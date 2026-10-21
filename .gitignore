@@ -1,0 +1,47 @@
+# Credentials, environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.secret
+*.secrets
+secrets/
+credentials/
+**/.credentials/
+
+# Trading / personal account data
+private-data/
+account-data/
+production-data/
+evidence/private/
+*.sqlite
+*.sqlite3
+*.db
+
+# Python, Rust, Node, editors
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+node_modules/
+target/
+web/dist/
+.vscode/
+.idea/
+.DS_Store
+
+# Logs, build and caches
+*.log
+coverage/
+htmlcov/
+coverage.xml
+*.egg-info/
+build/
+dist/
+.tmp/
