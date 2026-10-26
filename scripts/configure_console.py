@@ -5,6 +5,7 @@ import argparse
 from hashlib import sha256
 from pathlib import Path
 import secrets
+import re
 from urllib.parse import quote
 
 from dotenv import dotenv_values
@@ -21,7 +22,13 @@ def configure(port: int) -> Path:
     target = folder / "postgres.env"
     existing = dotenv_values(target) if target.exists() else {}
     password = existing.get("AETHERTRADE_POSTGRES_PASSWORD") or secrets.token_urlsafe(32)
-    instance = sha256(str(ROOT.resolve()).casefold().encode()).hexdigest()[:10]
+    # Keep the same Compose project and volume when an existing installation
+    # moves between a feature worktree and the main checkout.
+    instance = existing.get("AETHERTRADE_INSTANCE")
+    if instance is not None and not re.fullmatch(r"[0-9a-f]{10}", instance):
+        raise ValueError("Existing PostgreSQL instance is invalid; preserve and repair it explicitly")
+    if instance is None:
+        instance = sha256(str(ROOT.resolve()).casefold().encode()).hexdigest()[:10]
     dsn = f"postgresql+psycopg://aethertrade:{quote(password, safe='')}@127.0.0.1:{port}/aethertrade"
     text = "\n".join((
         "# Generated local development database credentials. Do not commit.",

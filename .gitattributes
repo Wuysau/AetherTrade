@@ -1,0 +1,6 @@
+# Contract resources must remain byte-identical across source and package paths.
+# Do not apply Windows checkout line-ending conversion to either copy.
+contracts/*.json -text
+contracts/*.yaml -text
+src/trading_system/schemas/*.json -text
+src/trading_system/schemas/*.yaml -text
