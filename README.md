@@ -53,7 +53,7 @@ instead of the happy path:
 | **Protection lifecycle** | Hosted/native stop and exit management with disclosed fallbacks |
 | **Markets (target)** | Binance Spot, USD-M perpetuals, and real US equities/ETFs |
 | **Research** | Paper simulation, point-in-time replay, experiment metrics, model cost budgets |
-| **Control surfaces** | Mobile Web/PWA and CLI/TUI sharing one control API |
+| **Control surfaces** | Responsive Web console and runtime CLI; legacy CLI/TUI adapters retained separately |
 | **Contracts first** | JSON Schema for proposals, intents, commands, and risk policy |
 | **Auditability** | Every decision, reservation, order, and recovery action is recorded |
 
