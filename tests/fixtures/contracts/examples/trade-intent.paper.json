@@ -1,0 +1,51 @@
+{
+  "contract_version": "2026-10-20",
+  "intent_id": "paper-intent-demo",
+  "environment": "PAPER",
+  "owner_strategy_id": "demo-ai-strategy",
+  "strategy_revision": 1,
+  "decision_run_id": "paper-run-demo",
+  "authorization_id": "paper-authorization-demo",
+  "venue_account_id": "paper-account-demo",
+  "collateral_group_id": "paper-group-demo",
+  "venue": "BINANCE",
+  "product": "SPOT",
+  "instrument_uid": "paper-binance-spot-btcusdt",
+  "venue_leg": "BOTH",
+  "ownership_epoch": 1,
+  "risk_policy_revision": 1,
+  "basis_fingerprint": "b41315c0371ad591ac5f9df4f9e8b603adaa948f5abdece83c9ba16811b42b28",
+  "snapshot_id": "paper-snapshot-demo",
+  "as_of": "2026-10-20T06:39:00Z",
+  "created_at": "2026-10-20T06:39:01Z",
+  "valid_until": "2026-10-20T06:40:00Z",
+  "evidence_refs": [
+    "paper-snapshot-demo"
+  ],
+  "action": "SET_TARGET",
+  "target_side": "LONG",
+  "target_quantity": "0.001",
+  "quantity_unit": "BASE",
+  "execution": {
+    "order_preference": "LIMIT",
+    "limit_price": "50000",
+    "maximum_entry_slippage_bps": "10",
+    "entry_deadline": "2026-10-20T06:40:00Z",
+    "allow_partial": true
+  },
+  "max_planned_loss": {
+    "amount": "2",
+    "currency": "USDT"
+  },
+  "requested_leverage": 1,
+  "exit_plan": {
+    "protection_policy": "NATIVE_REQUIRED",
+    "stop_trigger": "LAST",
+    "stop_price": "49000",
+    "review_due_at": "2026-10-20T06:45:00Z",
+    "maximum_holding_seconds": 3600
+  },
+  "proposal_hash": "d8ab93f4ab72c1aa0ab49c0be195f9ea98854a6a04bba5eae46c3428b74f5900",
+  "rationale_summary": "虚构 PAPER 接口样例，不可用于实盘。",
+  "supersedes_intent_id": null
+}

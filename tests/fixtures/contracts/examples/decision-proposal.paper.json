@@ -1,0 +1,39 @@
+{
+  "contract_version": "2026-10-20",
+  "proposal_id": "paper-proposal-demo",
+  "instrument_ref": "paper-binance-spot-btcusdt",
+  "action": "SET_TARGET",
+  "target": {
+    "side": "LONG",
+    "sizing": "BASE_QUANTITY",
+    "value": "0.001"
+  },
+  "requested_leverage": 1,
+  "entry": {
+    "order_preference": "LIMIT",
+    "limit_price": "50000",
+    "maximum_entry_slippage_bps": "10",
+    "entry_deadline": "2026-10-20T06:40:00Z",
+    "allow_partial": true
+  },
+  "exit_plan": {
+    "stop_price": "49000",
+    "stop_trigger": "LAST",
+    "review_due_at": "2026-10-20T06:45:00Z",
+    "maximum_holding_seconds": 3600,
+    "thesis_invalidation": "纯虚构契约样例；非行情、非实盘建议。"
+  },
+  "evidence_refs": [
+    "paper-snapshot-demo"
+  ],
+  "rationale": {
+    "summary": "仅验证字段结构。",
+    "counter_evidence": [
+      "没有真实市场证据。"
+    ],
+    "missing_information": [
+      "无真实账户资格验证。"
+    ]
+  },
+  "valid_until": "2026-10-20T06:40:00Z"
+}

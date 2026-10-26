@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DecisionProposal",
+  "description": "Design contract; structure validation does not verify financial authorization or venue behavior.",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "const": "2026-10-20"
+    },
+    "proposal_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "instrument_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "action": {
+      "enum": [
+        "SET_TARGET",
+        "UPDATE_EXIT",
+        "HOLD"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "enum": [
+            "LONG",
+            "SHORT",
+            "FLAT"
+          ]
+        },
+        "sizing": {
+          "enum": [
+            "QUOTE_NOTIONAL",
+            "BASE_QUANTITY"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+        }
+      },
+      "required": [
+        "side",
+        "sizing",
+        "value"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "side": {
+                "const": "FLAT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "string",
+                "pattern": "^0(?:\\.0+)?$"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "value": {
+                "type": "string",
+                "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "requested_leverage": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "entry": {
+      "type": "object",
+      "properties": {
+        "order_preference": {
+          "enum": [
+            "MARKET",
+            "LIMIT"
+          ]
+        },
+        "limit_price": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maximum_entry_slippage_bps": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+        },
+        "entry_deadline": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "allow_partial": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "order_preference",
+        "limit_price",
+        "maximum_entry_slippage_bps",
+        "entry_deadline",
+        "allow_partial"
+      ],
+      "additionalProperties": false
+    },
+    "exit_plan": {
+      "type": "object",
+      "properties": {
+        "stop_price": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop_trigger": {
+          "enum": [
+            "LAST",
+            "MARK",
+            "BID_ASK"
+          ]
+        },
+        "review_due_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "maximum_holding_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "thesis_invalidation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "stop_price",
+        "stop_trigger",
+        "review_due_at",
+        "maximum_holding_seconds",
+        "thesis_invalidation"
+      ],
+      "additionalProperties": false
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9_.:-]+$"
+      },
+      "minItems": 1,
+      "maxItems": 100,
+      "uniqueItems": true
+    },
+    "rationale": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "counter_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "maxItems": 20
+        },
+        "missing_information": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "summary",
+        "counter_evidence",
+        "missing_information"
+      ],
+      "additionalProperties": false
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "contract_version",
+    "proposal_id",
+    "instrument_ref",
+    "action",
+    "target",
+    "entry",
+    "exit_plan",
+    "evidence_refs",
+    "rationale",
+    "valid_until"
+  ],
+  "additionalProperties": false
+}

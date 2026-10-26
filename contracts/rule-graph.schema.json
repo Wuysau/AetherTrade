@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RuleGraph",
+  "description": "Application contract only; not authorization or native qualification.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/RuleGraph"
+    }
+  ],
+  "$defs": {
+    "RuleGraph": {
+      "type": "object",
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "instrument_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "condition": {
+          "$ref": "#/$defs/RuleCondition"
+        },
+        "trigger": {
+          "enum": [
+            "EDGE",
+            "CONTINUOUS"
+          ]
+        },
+        "window_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "closed_bar_only": {
+          "type": "boolean"
+        },
+        "cooldown_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sizing": {
+          "enum": [
+            "QUOTE_NOTIONAL",
+            "BASE_QUANTITY"
+          ]
+        },
+        "target_value": {
+          "type": "string",
+          "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+        },
+        "exit_priority": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_data": {
+          "enum": [
+            "HOLD",
+            "REJECT"
+          ]
+        }
+      },
+      "required": [
+        "rule_id",
+        "revision",
+        "instrument_ref",
+        "condition",
+        "trigger",
+        "window_seconds",
+        "closed_bar_only",
+        "cooldown_seconds",
+        "sizing",
+        "target_value",
+        "exit_priority",
+        "missing_data"
+      ],
+      "additionalProperties": false
+    },
+    "RuleCondition": {
+      "type": "object",
+      "properties": {
+        "operator": {
+          "enum": [
+            "ALL",
+            "ANY",
+            "NOT",
+            "GT",
+            "GE",
+            "LT",
+            "LE",
+            "EQ"
+          ]
+        },
+        "input_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RuleCondition"
+          }
+        }
+      },
+      "required": [
+        "operator",
+        "input_ref",
+        "threshold",
+        "children"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "operator": {
+              "enum": [
+                "ALL",
+                "ANY"
+              ]
+            },
+            "input_ref": {
+              "type": "null"
+            },
+            "threshold": {
+              "type": "null"
+            },
+            "children": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "operator": {
+              "const": "NOT"
+            },
+            "input_ref": {
+              "type": "null"
+            },
+            "threshold": {
+              "type": "null"
+            },
+            "children": {
+              "minItems": 1,
+              "maxItems": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "operator": {
+              "enum": [
+                "GT",
+                "GE",
+                "LT",
+                "LE",
+                "EQ"
+              ]
+            },
+            "input_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "threshold": {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+            },
+            "children": {
+              "maxItems": 0
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "task": "IP-25",
+  "status": "UNVERIFIED",
+  "product": "US_EQUITY",
+  "live_enabled": false,
+  "capabilities": [],
+  "offline_request_models": ["MARKET", "LIMIT"],
+  "offline_bridge_operations": ["SUBMIT_MARKET", "CLOSE_MARKET", "CANCEL"],
+  "native_runtime_evidence": "NOT_RUN",
+  "account_evidence": "NOT_RUN",
+  "limitations": [
+    "No qualified Stocks native write or read binding",
+    "No verified account balance, shares, order history or trade history coverage",
+    "Native stop and amend are not qualified",
+    "LIMIT preview only: tradingSession is absent from the canonical command",
+    "Wallet and quote asset choices require explicit durable mapping before native use",
+    "IP-11 synthetic client IDs are 28 characters; official Stocks clientOrderId requires 32 to 36",
+    "Request acknowledgement never establishes order lifecycle, fills or holdings"
+  ],
+  "official_reference": "https://developers.binance.com/en/docs/catalog/advanced-trading-stocks-trading/api/rest-api/trade",
+  "reference_read_date": "2026-10-23",
+  "locked_source_status": "UNRESOLVED_IN_IP_02_LOCK",
+  "qualification_claim": false
+}

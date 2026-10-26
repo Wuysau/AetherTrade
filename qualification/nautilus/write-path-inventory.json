@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "status": "NOT_RUN",
+  "live_enabled": false,
+  "coverage": "REQUIRED_PATHS_ONLY_NOT_NATIVE_EXHAUSTIVENESS_PROOF",
+  "unknown_path_policy": "DISABLED",
+  "source": "src/trading_system/contracts/ports.py",
+  "paths": [
+    {
+      "path": "SUBMIT",
+      "description": "initial order submission",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "CLOSE",
+      "description": "position close",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "CANCEL",
+      "description": "cancel with independent command identity",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "AMEND",
+      "description": "amend with independent command identity",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "SET_PROTECTION",
+      "description": "protective order creation",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "REPLACE_PROTECTION",
+      "description": "protective replacement cancel and submit",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "ALGORITHM_CHILD",
+      "description": "native algorithm child submission",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "ALGORITHM_CANCEL",
+      "description": "native algorithm cancellation",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "ALGORITHM_AMEND",
+      "description": "native algorithm amendment",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "BATCH_SUBMIT",
+      "description": "order list submission",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "CANCEL_ALL",
+      "description": "bulk cancellation",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "EMERGENCY_CLOSE",
+      "description": "preauthorized emergency reduction",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "RETRY_RESEND",
+      "description": "retry/reconnect resend",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "RECONCILIATION_WRITE",
+      "description": "recovery-triggered side effect",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "ADAPTER_DIRECT",
+      "description": "direct execution client/adapter write",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "STOCKS_WRITE",
+      "description": "stocks adapter write",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> durable command -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    }
+  ]
+}

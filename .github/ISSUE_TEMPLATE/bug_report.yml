@@ -1,0 +1,24 @@
+name: Bug report (no credentials)
+description: Report a reproducible issue without publishing private account data
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    id: actual
+    attributes:
+      label: Observed behavior
+      description: Use fictional symbols and scrub logs.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction (PAPER/test environment only)
+    validations:
+      required: true

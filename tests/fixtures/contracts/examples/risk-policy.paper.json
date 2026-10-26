@@ -1,0 +1,32 @@
+{
+  "contract_version": "2026-10-20",
+  "policy_id": "paper-policy-demo",
+  "revision": 1,
+  "environment": "PAPER",
+  "collateral_group_id": "paper-group-demo",
+  "valuation_currency": "USDT",
+  "maximum_capital": "1000",
+  "cash_buffer": "100",
+  "maximum_order_notional": "200",
+  "maximum_planned_loss_per_intent": "5",
+  "maximum_total_planned_loss": "20",
+  "maximum_gross_exposure": "800",
+  "maximum_net_exposure": "600",
+  "maximum_open_positions": 4,
+  "maximum_active_orders": 20,
+  "maximum_leverage": 1,
+  "daily_loss_fraction": "0.02",
+  "maximum_drawdown_fraction": "0.05",
+  "risk_day_timezone": "Asia/Shanghai",
+  "maximum_quote_age_ms": 2000,
+  "maximum_entry_slippage_bps": "10",
+  "maximum_model_cost_per_day": {
+    "amount": "2",
+    "currency": "USD"
+  },
+  "protection_policy": "NATIVE_REQUIRED",
+  "daily_lock_release": "REVIEW_REQUIRED",
+  "drawdown_lock_release": "REVIEW_REQUIRED",
+  "native_risk_bypass": false,
+  "live_enabled": false
+}

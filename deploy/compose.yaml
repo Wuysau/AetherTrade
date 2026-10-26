@@ -1,0 +1,300 @@
+{
+  "name": "ip32-offline",
+  "services": {
+    "execution-owner": {
+      "image": "${IP32_OWNER_IMAGE:?reviewed offline image digest required}",
+      "user": "10001:10001",
+      "read_only": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "pids_limit": 64,
+      "mem_limit": "256m",
+      "cpus": "1.0",
+      "command": [
+        "python",
+        "-c",
+        "raise SystemExit('OFFLINE_TEMPLATE: runtime binding not configured')"
+      ],
+      "environment": {
+        "TRADING_ENVIRONMENT": "PAPER",
+        "LIVE_ENABLED": "false",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,nodev,size=16m"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "owner-state",
+          "target": "/state/owner-state",
+          "volume": {
+            "nocopy": true
+          }
+        }
+      ],
+      "networks": [
+        "owner",
+        "ledger",
+        "cache"
+      ]
+    },
+    "decision-worker": {
+      "image": "${IP32_DECISION_IMAGE:?reviewed offline image digest required}",
+      "user": "10002:10002",
+      "read_only": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "pids_limit": 64,
+      "mem_limit": "256m",
+      "cpus": "1.0",
+      "command": [
+        "python",
+        "-c",
+        "raise SystemExit('OFFLINE_TEMPLATE: runtime binding not configured')"
+      ],
+      "environment": {
+        "TRADING_ENVIRONMENT": "PAPER",
+        "LIVE_ENABLED": "false",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,nodev,size=16m"
+      ],
+      "volumes": [],
+      "networks": [
+        "research"
+      ]
+    },
+    "control-api": {
+      "image": "${IP32_DECISION_IMAGE:?reviewed offline image digest required}",
+      "user": "10003:10003",
+      "read_only": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "pids_limit": 64,
+      "mem_limit": "256m",
+      "cpus": "1.0",
+      "command": [
+        "python",
+        "-c",
+        "raise SystemExit('OFFLINE_TEMPLATE: runtime binding not configured')"
+      ],
+      "environment": {
+        "TRADING_ENVIRONMENT": "PAPER",
+        "LIVE_ENABLED": "false",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,nodev,size=16m"
+      ],
+      "volumes": [],
+      "networks": [
+        "control"
+      ]
+    },
+    "notifier": {
+      "image": "${IP32_OWNER_IMAGE:?reviewed offline image digest required}",
+      "user": "10004:10004",
+      "read_only": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "pids_limit": 64,
+      "mem_limit": "256m",
+      "cpus": "1.0",
+      "command": [
+        "python",
+        "-c",
+        "raise SystemExit('OFFLINE_TEMPLATE: runtime binding not configured')"
+      ],
+      "environment": {
+        "TRADING_ENVIRONMENT": "PAPER",
+        "LIVE_ENABLED": "false",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,nodev,size=16m"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "notification-state",
+          "target": "/state/notification-state",
+          "volume": {
+            "nocopy": true
+          }
+        }
+      ],
+      "networks": [
+        "observation"
+      ]
+    },
+    "research-sandbox": {
+      "image": "${IP32_DECISION_IMAGE:?reviewed offline image digest required}",
+      "user": "10005:10005",
+      "read_only": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "pids_limit": 64,
+      "mem_limit": "256m",
+      "cpus": "1.0",
+      "command": [
+        "python",
+        "-c",
+        "raise SystemExit('OFFLINE_TEMPLATE: runtime binding not configured')"
+      ],
+      "environment": {
+        "TRADING_ENVIRONMENT": "PAPER",
+        "LIVE_ENABLED": "false",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,nodev,size=16m"
+      ],
+      "volumes": [],
+      "network_mode": "none"
+    },
+    "ledger": {
+      "image": "${IP32_OWNER_IMAGE:?reviewed offline image digest required}",
+      "user": "10006:10006",
+      "read_only": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "pids_limit": 64,
+      "mem_limit": "256m",
+      "cpus": "1.0",
+      "command": [
+        "python",
+        "-c",
+        "raise SystemExit('OFFLINE_TEMPLATE: runtime binding not configured')"
+      ],
+      "environment": {
+        "TRADING_ENVIRONMENT": "PAPER",
+        "LIVE_ENABLED": "false",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,nodev,size=16m"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "ledger-data",
+          "target": "/state/ledger-data",
+          "volume": {
+            "nocopy": true
+          }
+        }
+      ],
+      "networks": [
+        "ledger"
+      ]
+    },
+    "kernel-cache": {
+      "image": "${IP32_OWNER_IMAGE:?reviewed offline image digest required}",
+      "user": "10007:10007",
+      "read_only": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "pids_limit": 64,
+      "mem_limit": "256m",
+      "cpus": "1.0",
+      "command": [
+        "python",
+        "-c",
+        "raise SystemExit('OFFLINE_TEMPLATE: runtime binding not configured')"
+      ],
+      "environment": {
+        "TRADING_ENVIRONMENT": "PAPER",
+        "LIVE_ENABLED": "false",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,nodev,size=16m"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "cache-data",
+          "target": "/state/cache-data",
+          "volume": {
+            "nocopy": true
+          }
+        }
+      ],
+      "networks": [
+        "cache"
+      ]
+    }
+  },
+  "networks": {
+    "owner": {
+      "internal": true
+    },
+    "ledger": {
+      "internal": true
+    },
+    "cache": {
+      "internal": true
+    },
+    "research": {
+      "internal": true
+    },
+    "control": {
+      "internal": true
+    },
+    "observation": {
+      "internal": true
+    }
+  },
+  "volumes": {
+    "owner-state": {},
+    "notification-state": {},
+    "ledger-data": {},
+    "cache-data": {}
+  },
+  "x-ip32": {
+    "environment": "PAPER",
+    "live_enabled": false,
+    "native_qualification": "NOT_RUN",
+    "hot_reload": false,
+    "business_role": "ledger_owner",
+    "cache_role": "kernel_cache",
+    "dependency_lock": "qualification/nautilus/requirements.lock"
+  }
+}

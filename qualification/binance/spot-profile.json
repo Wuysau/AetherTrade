@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "venue": "BINANCE",
+  "product": "SPOT",
+  "status": "UNVERIFIED",
+  "live_enabled": false,
+  "capabilities": [],
+  "runtime_environments": ["PAPER", "RESEARCH"],
+  "review_ref": "96ec148a8249eda918c9ee3219c7030755cabcf0",
+  "deployment_ref": null,
+  "artifact_digest": null,
+  "qualification_ref": null,
+  "account_authorization": "BLOCKED_MISSING_AUTH",
+  "documentation_date": "2026-10-23",
+  "documentation_is_qualification": false,
+  "sources": [
+    "https://developers.binance.com/en/docs/products/spot/filters",
+    "https://nautilustrader.io/docs/latest/integrations/binance/"
+  ],
+  "limitations": [
+    "No native binding, account transport or order sender",
+    "Cash inventory and allocation ledger only; no contract position inference",
+    "Unknown filters must be marked missing; no automatic rounding or borrowing",
+    "Latest documentation is not evidence for the unresolved exact deployment build"
+  ],
+  "required_probes": [
+    {"name": "exact_build_owner_account_read_coverage", "status": "NOT_RUN"},
+    {"name": "cash_available_allocated_reserved_inventory", "status": "NOT_RUN"},
+    {"name": "conditional_order_ids_and_minimum_rules", "status": "NOT_RUN"},
+    {"name": "oco_shared_asset_freeze_and_replacement", "status": "NOT_RUN"},
+    {"name": "dynamic_filters_fees_server_limits", "status": "NOT_RUN"}
+  ]
+}

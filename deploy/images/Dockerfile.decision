@@ -1,0 +1,14 @@
+# Independent Linux image. Decision code receives no owner runtime or credentials.
+ARG PYTHON_IMAGE
+FROM ${PYTHON_IMAGE}
+ARG PYTHON_IMAGE
+RUN python -c "import os,re; assert re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9./:_-]*@sha256:[0-9a-f]{64}', os.environ['PYTHON_IMAGE'])"
+WORKDIR /app
+COPY src/trading_system/contracts /app/trading_system/contracts
+COPY src/trading_system/decision /app/trading_system/decision
+COPY src/trading_system/rules /app/trading_system/rules
+COPY qualification/nautilus/requirements.lock /app/native-requirements.lock
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app TRADING_ENVIRONMENT=PAPER LIVE_ENABLED=false
+USER 10002:10002
+ENTRYPOINT []
+CMD ["python", "-c", "raise SystemExit('OFFLINE_TEMPLATE: runtime binding not configured')"]

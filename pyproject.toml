@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aethertrade"
+version = "0.1.0"
+description = "Safety-first, contract-driven framework for AI-assisted paper trading; no live trading runtime"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+dependencies = ["jsonschema==4.26.0", "rfc3339-validator==0.1.4"]
+
+[project.optional-dependencies]
+test = ["pytest==9.1.1", "tzdata>=2024.1"]
+
+[project.urls]
+Repository = "https://github.com/Wuysau/AetherTrade"
+Issues = "https://github.com/Wuysau/AetherTrade/issues"
+
+[tool.setuptools]
+packages = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", ".", "tests"]
+addopts = "--strict-markers"

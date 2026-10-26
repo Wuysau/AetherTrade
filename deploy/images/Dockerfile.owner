@@ -1,0 +1,13 @@
+# Offline filesystem/probe image only. The runner must supply a reviewed Linux
+# Python image by digest. No host venv, native install or downloaded dependencies.
+ARG PYTHON_IMAGE
+FROM ${PYTHON_IMAGE}
+ARG PYTHON_IMAGE
+RUN python -c "import os,re; assert re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9./:_-]*@sha256:[0-9a-f]{64}', os.environ['PYTHON_IMAGE'])"
+WORKDIR /app
+COPY src/trading_system /app/trading_system
+COPY qualification/nautilus/requirements.lock /app/native-requirements.lock
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app TRADING_ENVIRONMENT=PAPER LIVE_ENABLED=false
+USER 10001:10001
+ENTRYPOINT []
+CMD ["python", "-c", "raise SystemExit('OFFLINE_TEMPLATE: runtime binding not configured')"]

@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "venue": "BINANCE",
+  "product": "USD_M_PERP",
+  "status": "UNVERIFIED",
+  "live_enabled": false,
+  "capabilities": [],
+  "runtime_environments": ["PAPER", "RESEARCH"],
+  "review_ref": "96ec148a8249eda918c9ee3219c7030755cabcf0",
+  "deployment_ref": null,
+  "artifact_digest": null,
+  "qualification_ref": null,
+  "account_authorization": "BLOCKED_MISSING_AUTH",
+  "documentation_date": "2026-10-23",
+  "documentation_is_qualification": false,
+  "sources": [
+    "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/trade",
+    "https://nautilustrader.io/docs/latest/integrations/binance/"
+  ],
+  "limitations": [
+    "No native binding, account transport or order sender",
+    "Quote-settled linear precheck only; portfolio and maintenance risk remain IP-06",
+    "No implicit position mode, margin mode or leverage changes",
+    "Latest documentation is not evidence for the unresolved exact deployment build"
+  ],
+  "required_probes": [
+    {"name": "exact_build_owner_account_read_coverage", "status": "NOT_RUN"},
+    {"name": "actual_position_margin_modes_and_reducible_legs", "status": "NOT_RUN"},
+    {"name": "mark_trigger_conditional_algo_id_continuity", "status": "NOT_RUN"},
+    {"name": "minimum_rules_and_reduce_leg_protection", "status": "NOT_RUN"},
+    {"name": "funding_liquidation_reference_and_margin_evidence", "status": "NOT_RUN"},
+    {"name": "dynamic_filters_fees_server_limits", "status": "NOT_RUN"}
+  ]
+}
