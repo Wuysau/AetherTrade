@@ -129,6 +129,30 @@ def test_strategy_and_risk_revision_conflicts(store):
         store.update_risk({"max_position_pct": "50", "max_daily_loss": "2000", "expected_revision": 1})
 
 
+def test_strategy_symbol_change_requires_exiting_attributed_holdings(store):
+    strategy = store.create_strategy({"name": "观察 BTC", "symbol": "BTCUSDT", "mode": "AI", "budget": "10000", "target_pct": "10"})
+    entry = {**buy(), "strategy_id": strategy["id"]}
+    store.order(entry, "strategy-buy", market(), 90)
+    before = store.dashboard(market(), "24H")
+    with pytest.raises(ApiError, match="STRATEGY_HAS_POSITION") as rejected:
+        store.update_strategy(strategy["id"], {"symbol": "ETHUSDT", "expected_revision": strategy["revision"]})
+    assert rejected.value.status == 409
+    assert "请先退出该策略持仓，再修改交易标的" in rejected.value.message
+    after = store.dashboard(market(), "24H")
+    assert after["strategies"] == before["strategies"]
+    assert after["positions"] == before["positions"]
+    assert after["orders"] == before["orders"]
+    assert after["account"] == before["account"]
+    edited = store.update_strategy(strategy["id"], {"name": "继续观察 BTC", "symbol": "BTCUSDT", "budget": "12000", "mode": "HYBRID", "expected_revision": strategy["revision"]})
+    assert (edited["name"], edited["budget"], edited["mode"]) == ("继续观察 BTC", "12000", "HYBRID")
+    sell = store.order({**entry, "side": "SELL"}, "strategy-sell", market(), 90)
+    assert sell["order"]["strategy_id"] == strategy["id"]
+    assert store.dashboard(market(), "24H")["positions"] == []
+    moved = store.update_strategy(strategy["id"], {"symbol": "ETHUSDT", "expected_revision": edited["revision"]})
+    assert moved["symbol"] == "ETHUSDT"
+    assert moved["revision"] == edited["revision"] + 1
+
+
 def test_concurrent_duplicate_order_charges_once(store):
     with ThreadPoolExecutor(max_workers=4) as pool:
         replies = list(pool.map(lambda _: store.order(buy(), "same-request", market(), 90), range(4)))

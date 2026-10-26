@@ -230,8 +230,14 @@ class Store:
             if data is None:
                 raise ApiError("STRATEGY_NOT_FOUND", "策略不存在。", 404)
             self._revision(data["revision"], payload.get("expected_revision"))
+            previous_symbol = data["symbol"]
             data.update({key: value for key, value in payload.items() if key != "expected_revision"})
             self._strategy_values(data)
+            if data["symbol"] != previous_symbol and any(
+                item.get("strategy_id") == identifier and Decimal(item["quantity"]) != 0
+                for item in rows(connection, positions)
+            ):
+                raise ApiError("STRATEGY_HAS_POSITION", "请先退出该策略持仓，再修改交易标的。", 409)
             data.update(revision=data["revision"] + 1, updated_at=stamp())
             connection.execute(update(strategies).where(strategies.c.id == identifier).values(data=data))
             self._event(connection, "STRATEGY_SAVED", "策略已更新", f"{data['name']}：配置已持久化，自动执行未配置。")

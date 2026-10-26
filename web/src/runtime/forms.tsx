@@ -58,11 +58,21 @@ export function OrderDialog({ api, data, initial, onClose, onSaved }: { api: Run
   const fresh = quoteIsFresh(quote) && data.market.status === 'CONNECTED';
   const holding = data.positions.find(p => p.symbol === form.symbol);
   const paused = data.account.paused && form.side === 'BUY';
-  function update<K extends keyof PaperOrderInput>(field: K, value: PaperOrderInput[K]) { setForm(previous => ({ ...previous, [field]: value })); key.current = crypto.randomUUID(); }
+  const eligibleStrategies = data.strategies.filter(strategy => strategy.symbol === form.symbol);
+  const unavailableStrategy = Boolean(form.strategy_id && !eligibleStrategies.some(strategy => strategy.id === form.strategy_id));
+  function update<K extends keyof PaperOrderInput>(field: K, value: PaperOrderInput[K]) {
+    setForm(previous => {
+      const next = { ...previous, [field]: value };
+      if (field === 'symbol' && !data.strategies.some(strategy => strategy.id === next.strategy_id && strategy.symbol === next.symbol)) next.strategy_id = null;
+      return next;
+    });
+    key.current = crypto.randomUUID();
+  }
   async function submit(event: FormEvent) {
     event.preventDefault(); setError('');
     if (!positiveDecimal(form.quantity)) { setError('请输入大于 0 的交易数量，不支持科学计数法。'); return; }
     if (!fresh) { setError('当前没有可用的新鲜行情，请关闭窗口后刷新行情。'); return; }
+    if (unavailableStrategy) { setError('原归属策略已不可用或与交易标的不符，请重新选择归属策略。'); return; }
     if (!confirming) { setConfirming(true); return; }
     setBusy(true);
     try { const response = await api.order(form, key.current); onSaved(`模拟订单已成交 · ${response.order.id}`); }
@@ -73,7 +83,7 @@ export function OrderDialog({ api, data, initial, onClose, onSaved }: { api: Run
     {confirming ? <><div className="order-confirm-summary"><span className={`order-direction ${form.side === 'BUY' ? 'positive' : 'negative'}`}>{form.side === 'BUY' ? '买入' : '卖出'}</span><h3>{form.symbol}</h3><div>{quantity(form.quantity)} <span className="quiet">{form.symbol.replace('USDT', '')}</span></div></div><div className="form-note">按确认时服务端报价成交。以下金额为参考估算，最终以成交回执为准。</div></> : <>
       <div className="form-grid"><label className="field"><span>交易标的</span><select value={form.symbol} onChange={e => update('symbol', e.target.value as SymbolName)}>{SYMBOLS.map(symbol => <option key={symbol}>{symbol}</option>)}</select></label><label className="field"><span>交易方向</span><select value={form.side} onChange={e => update('side', e.target.value as 'BUY' | 'SELL')}><option value="BUY">买入 · 增加持仓</option><option value="SELL">卖出 · 减少持仓</option></select></label></div>
       <label className="field"><span>交易数量 <small>{form.symbol.replace('USDT', '')}</small></span><input autoFocus required inputMode="decimal" value={form.quantity} placeholder="输入数量" onChange={e => update('quantity', e.target.value)} /></label>
-      <label className="field"><span>归属策略 <small>可选</small></span><select value={form.strategy_id ?? ''} onChange={e => update('strategy_id', e.target.value || null)}><option value="">手动交易</option>{data.strategies.filter(s => s.symbol === form.symbol).map(s => <option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
+      <label className="field"><span>归属策略 <small>可选</small></span><select value={form.strategy_id ?? ''} onChange={e => update('strategy_id', e.target.value || null)}><option value="">手动交易</option>{unavailableStrategy && <option value={form.strategy_id!} disabled>原策略不可用，请重新选择</option>}{eligibleStrategies.map(s => <option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
     </>}
     <div className="order-estimate"><div><span>参考报价</span><strong>{quote ? money(quote.price) : '—'}</strong></div><div><span>参考成交额</span><strong>{quote && positiveDecimal(form.quantity) ? money(Number(quote.price) * Number(form.quantity)) : '—'}</strong></div><div><span>{form.side === 'BUY' ? '可用资金' : '当前持有'}</span><strong>{form.side === 'BUY' ? `${money(data.account.cash)} USDT` : `${quantity(holding?.quantity ?? '0')} ${form.symbol.replace('USDT', '')}`}</strong></div></div>
     <div className="form-note">来源：{quote?.source ?? '暂无'} · {time(quote?.as_of)} UTC+8 <Badge kind={fresh ? 'pass' : 'wait'}>{fresh ? '有效行情' : '行情不可用'}</Badge></div>
