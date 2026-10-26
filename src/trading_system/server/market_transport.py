@@ -16,6 +16,7 @@ from .errors import ApiError
 
 MAX_HTTP_BODY = 1024 * 1024
 MAX_WS_MESSAGE = 256 * 1024
+_TUN_FAKE_IP_RANGE = ipaddress.ip_network('198.18.0.0/15')
 
 
 def invalid_url():
@@ -106,7 +107,27 @@ def _headers(config):
     return headers
 
 
-async def _destination(url, local_mode):
+def _official_fake_ip(config, url):
+    """Permit TUN DNS only for the fixed, credential-free official preset.
+
+    Keep the pinned TCP destination and original TLS hostname. A Fake-IP proxy
+    routes this connection by that hostname; TLS certificate checks still apply.
+    Custom sources and any configured credential never receive this exception.
+    """
+    if (config.get('provider') != 'binance' or config.get('local_mode') is not False
+            or config.get('auth_scheme') != 'none' or config.get('api_key')
+            or config.get('has_api_key') or config.get('encrypted_key')
+            or config.get('rest_url') != 'https://data-api.binance.vision'
+            or config.get('ws_url') != 'wss://data-stream.binance.vision/stream'):
+        return False
+    parsed = urlsplit(url)
+    return (parsed.scheme, parsed.hostname, parsed.port or 443) in {
+        ('https', 'data-api.binance.vision', 443),
+        ('wss', 'data-stream.binance.vision', 443),
+    }
+
+
+async def _destination(url, local_mode, *, official_fake_ip=False):
     parsed = urlsplit(url)
     port = parsed.port or (443 if parsed.scheme in ('https', 'wss') else 80)
     answers = await asyncio.get_running_loop().getaddrinfo(parsed.hostname, port, type=socket.SOCK_STREAM)
@@ -118,7 +139,9 @@ async def _destination(url, local_mode):
             address = ipaddress.ip_address(value)
         except ValueError:
             raise invalid_url() from None
-        if not (address.is_loopback if local_mode else _public_address(address)):
+        permitted = (address.is_loopback if local_mode else
+                     _public_address(address) or (official_fake_ip and address in _TUN_FAKE_IP_RANGE))
+        if not permitted:
             raise invalid_url()
     return addresses[0], port
 
@@ -155,7 +178,8 @@ class MarketTransport:
             timeout = _timeout(config)
             headers = dict(_headers(config), Accept='application/json', **{'Accept-Encoding': 'identity', 'Connection': 'close'})
             async with asyncio.timeout(timeout):
-                address, _ = await _destination(str(url), config['local_mode'])
+                address, _ = await _destination(str(url), config['local_mode'],
+                                                official_fake_ip=_official_fake_ip(config, str(url)))
                 headers['Host'] = url.netloc.decode()
                 outgoing = httpx.Request('GET', url.copy_with(host=address), headers=headers,
                                          extensions={'sni_hostname': url.raw_host.decode('ascii'),
@@ -195,7 +219,8 @@ class MarketTransport:
                 endpoint += '?' + urlencode(params, doseq=True)
             timeout = _timeout(config)
             async with asyncio.timeout(timeout):
-                address, port = await _destination(endpoint, config['local_mode'])
+                address, port = await _destination(endpoint, config['local_mode'],
+                                                   official_fake_ip=_official_fake_ip(config, endpoint))
             kwargs = dict(host=address, port=port, proxy=None, compression=None,
                           additional_headers=_headers(config), user_agent_header=None,
                           open_timeout=timeout, close_timeout=2, ping_interval=20, ping_timeout=20,
