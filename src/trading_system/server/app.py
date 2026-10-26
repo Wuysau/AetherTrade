@@ -22,6 +22,7 @@ from .errors import ApiError
 from .market import MarketFeed
 from .instruments import instruments
 from .model_service import ModelService
+from .model_api import ProfileAnalysis, ProfileVersion
 from .store import Store
 from .validation import Credentials, ModelAnalysis, ModelTest, PaperAction, PaperOrder, RiskUpdate, Setup, StrategyCreate, StrategyPatch
 
@@ -74,6 +75,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     @asynccontextmanager
     async def lifespan(app):
         await run_in_threadpool(store.initialize)
+        await run_in_threadpool(models.migrate)
         task = asyncio.create_task(poll(), name="aethertrade-public-quotes") if settings.market_enabled else None
         automation_task = asyncio.create_task(automation.run(), name="aethertrade-ai-automation") if settings.automation_enabled and not settings.testing else None
         try:
@@ -147,7 +149,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
         return response
 
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_credentials=True,
-                       allow_methods=["GET", "POST", "PATCH", "PUT"], allow_headers=["Content-Type", "X-CSRF-Token", "Idempotency-Key"])
+                       allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"], allow_headers=["Content-Type", "X-CSRF-Token", "Idempotency-Key"])
 
     def authenticated(request: Request):
         return store.session(request.cookies.get(settings.cookie_name))
@@ -196,10 +198,15 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     def dashboard(range: str = Query("24H"), _=Depends(authenticated)):
         result = store.dashboard(market_snapshot(), range)
         result['instruments'] = instruments()
-        result['model_config'] = models.get_config()
+        profile_collection = models.list_configs()
+        result['model_profiles'] = profile_collection['profiles']
+        result['model_config'] = next(profile for profile in profile_collection['profiles'] if profile['id'] == profile_collection['default_profile_id'])
         result['decisions'] = models.decisions()
         result['services'] = [item for item in result['services'] if item['id'] not in ('ai', 'equities')]
-        result['services'].append(models.service_summary())
+        result['services'].extend({'id': 'model:' + profile['id'], 'label': profile['name'],
+            'status': profile['connection_status'] if profile['enabled'] else 'CONFIGURED' if profile['model'] else 'NOT_CONFIGURED',
+            'detail': (profile['model'] or '尚未配置模型') + (' · 已启用，按策略选择使用' if profile['enabled'] else ' · 已停用'),
+            'updated_at': profile['last_test_at']} for profile in profile_collection['profiles'])
         stock_group = next((group for group in result['market'].get('groups', []) if group['id'] == 'bstocks'), None)
         result['services'].append({'id': 'bstocks', 'label': 'bStocks 现货',
             'status': 'CONNECTED' if stock_group and stock_group['status'] == 'CONNECTED' else 'UNAVAILABLE',
@@ -223,6 +230,30 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     def model_config(_=Depends(authenticated)):
         return models.get_config()
 
+    @app.get('/api/model-configs')
+    def model_profiles(_=Depends(authenticated)):
+        return models.list_configs()
+
+    @app.post('/api/model-configs')
+    def create_model_profile(payload: dict, _=Depends(mutation)):
+        return models.create_config(payload)
+
+    @app.get('/api/model-configs/{profile_id}')
+    def model_profile(profile_id: str, _=Depends(authenticated)):
+        return models.get_config(profile_id)
+
+    @app.put('/api/model-configs/{profile_id}')
+    def save_model_profile(profile_id: str, payload: dict, _=Depends(mutation)):
+        return models.save_config(payload, profile_id=profile_id)
+
+    @app.delete('/api/model-configs/{profile_id}')
+    def delete_model_profile(profile_id: str, payload: ProfileVersion, _=Depends(mutation)):
+        return models.delete_config(profile_id, payload.expected_revision)
+
+    @app.post('/api/model-configs/{profile_id}/test')
+    async def test_model_profile(profile_id: str, payload: ProfileVersion, _=Depends(mutation)):
+        return await models.test_connection(payload.expected_revision, profile_id=profile_id)
+
     @app.put('/api/model-config')
     def save_model_config(payload: dict, _=Depends(mutation)):
         return models.save_config(payload)
@@ -236,6 +267,12 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
         context = await run_in_threadpool(store.analysis_context, payload.symbol, market_snapshot(), settings.quote_max_age_seconds)
         return await models.generate(payload.symbol, payload.expected_revision, idempotency_key, context)
 
+    @app.post('/api/decisions/analyze')
+    async def analyze_with_profiles(payload: ProfileAnalysis, idempotency_key: str | None = Header(default=None), _=Depends(mutation)):
+        context = await run_in_threadpool(store.analysis_context, payload.symbol, market_snapshot(), settings.quote_max_age_seconds)
+        return await models.analyze(payload.symbol, payload.analysis_mode, payload.model_profile_ids,
+                                    payload.expected_revisions, idempotency_key, context)
+
     @app.post("/api/market/refresh")
     async def market_refresh(_=Depends(mutation)):
         if not settings.market_enabled and quote_provider is None:
@@ -244,7 +281,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
 
     @app.post("/api/strategies")
     def create_strategy(payload: StrategyCreate, _=Depends(mutation)):
-        return store.create_strategy(payload.model_dump())
+        return store.create_strategy(payload.model_dump(exclude_unset=True))
 
     @app.patch("/api/strategies/{identifier}")
     def update_strategy(identifier: str, payload: StrategyPatch, _=Depends(mutation)):

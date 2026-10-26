@@ -71,8 +71,8 @@ is partially green and still being stabilized; venue qualification has never bee
 | Console persistence | PostgreSQL or explicit local SQLite; sessions, strategies, risk and PAPER activity |
 | Public quotes | Binance Spot: BTCUSDT, ETHUSDT, SOLUSDT plus TSLABUSDT, NVDABUSDT, AAPLBUSDT bStocks |
 | PAPER operations | Manual spot buy/sell, fee/cash/risk checks, pause/resume and confirmed exit |
-| AI model configuration | OpenAI Responses, OpenAI-compatible Chat and Claude Messages; encrypted write-only keys |
-| AI strategy automation | Explicitly activated strategies analyze periodically; bell notifications; optional risk-checked automatic PAPER orders |
+| AI model configuration | Up to 20 named profiles for OpenAI Responses, OpenAI-compatible Chat and Claude Messages; independent encrypted write-only keys and revisions |
+| AI strategy automation | Independent per-strategy model selection; single-model or optional 2–3-model cross-analysis; bell notifications and opt-in risk-checked automatic PAPER orders |
 | Rules / hybrid / native execution | Configuration or existing modules only; no new native execution integration |
 | Original PostgreSQL ledger migration | Reference schema, separate from console-owned tables |
 | NautilusTrader adapter | Offline bridge only — native evidence **NOT_RUN** |
@@ -134,6 +134,28 @@ The new console provides local PAPER operations and explicitly activated AI-stra
 automation. Original native execution, automatic rule/hybrid execution, real account
 connectors and qualification gates remain separate. See [model and AI strategy setup](docs/MODELS_AND_AI.md).
 
+Each AI strategy selects one model profile or explicitly opts into cross-analysis by
+2–3 distinct profiles. Cross-analysis sends the same fixed market/account snapshot to
+each selected model once, with no extra arbitrator call; it may incur 2–3 provider
+charges per cycle. Activation and changes to an active strategy's model selection
+require acknowledgement of recurring costs. Manual analysis remains advice-only.
+
+Only unanimous BUY or SELL can proceed through the existing PAPER permission,
+position-ownership, quote and risk checks. All HOLD, disagreement, or any failed or
+missing participant means no automatic order. Results retain each model's actual
+outcome; partial completion is reported as incomplete, and agreement does not imply
+correctness or profitability. Editing a selected profile invalidates an in-flight
+job's execution eligibility; editing an unrelated profile does not.
+
+Existing model settings migrate to the reserved `default` profile, preserving their
+revision, ciphertext and enabled state. Existing AI strategies retain their revisions,
+activation and order permissions and bind to that profile in single mode; migration
+makes no model calls. The default profile can be edited or disabled but not deleted.
+Other profiles cannot be deleted while referenced by any strategy, including drafts
+and paused strategies. Unavailable selections never silently fall back to another
+profile. Development verification uses mocks and controlled local providers; it is
+not evidence of successful inference against a real cloud provider.
+
 ## Repository layout
 
 ```text
@@ -165,7 +187,8 @@ tests/                Unit, integration, fault, security, and contract tests
 - [ ] Stabilize the full test suite across Windows and Linux
 - [x] Package `trading_system` and add a supported local runtime CLI entry point
 - [x] Connect local PAPER web views, authenticated sessions and persistent controls
-- [ ] Integrate native execution owners, model providers and automatic rule scheduling
+- [x] Add configurable model protocols, independent strategy bindings and optional cross-analysis with controlled-provider tests
+- [ ] Validate real provider integrations and integrate native execution owners and automatic rule/hybrid scheduling
 - [ ] Venue qualification: Binance Spot, USD-M, US equities
 - [ ] Registered failover, recovery, and load evidence
 - [ ] Threat model review before any live-mode proposal

@@ -26,9 +26,17 @@ export interface Decision {
   counter_evidence: string[]; invalidation: string; risk_status: string;
   created_at: string; next_review_at: string | null;
   strategy_id?: string | null; strategy_name?: string | null; execution_status?: string; execution_reason?: string | null; order_id?: string | null;
+  analysis_mode?: AnalysisMode; consensus_status?: 'AGREED' | 'DISAGREED' | 'INCOMPLETE';
+  model_profile_ids?: string[]; profile_revisions?: Record<string, number>; model_results?: ModelResult[];
+  data_as_of?: string; snapshot_hash?: string; model_profile_id?: string; profile_name?: string; model?: string; config_revision?: number;
+  model_profiles?: { profile_id: string; profile_name: string; model: string; config_revision: number }[];
 }
+export type AnalysisMode = 'single' | 'consensus';
+export interface TokenUsage { input_tokens: number | null; output_tokens: number | null }
+export interface ModelResult { profile_id: string; profile_name: string; model: string; config_revision: number; status: 'SUCCEEDED' | 'FAILED'; decision?: Partial<Decision>; error?: string; usage?: TokenUsage | null }
+export interface AnalysisInput { symbol: SymbolName; analysis_mode: AnalysisMode; model_profile_ids: string[]; expected_revisions: Record<string, number>; acknowledge_cost: true }
 export type StrategyStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED';
-export interface StrategyInput { status?: StrategyStatus; analysis_interval_seconds?: number; auto_execute?: boolean; acknowledge_model_cost?: boolean; name: string; symbol: SymbolName; mode: Mode; budget: string; target_pct: string }
+export interface StrategyInput { status?: StrategyStatus; analysis_mode?: AnalysisMode; model_profile_ids?: string[]; analysis_interval_seconds?: number; auto_execute?: boolean; acknowledge_model_cost?: boolean; name: string; symbol: SymbolName; mode: Mode; budget: string; target_pct: string }
 export interface Strategy extends StrategyInput {
   id: string; status: StrategyStatus; runtime_status?: string; next_analysis_at?: string | null; last_analysis_at?: string | null; last_analysis_error?: string | null; revision: number; created_at: string; updated_at: string;
 }
@@ -48,7 +56,7 @@ export interface Dashboard {
   history: { at: string; equity: string }[]; positions: Position[]; orders: Order[];
   decisions: Decision[]; strategies: Strategy[]; events: RuntimeEvent[];
   notifications?: Notifications; automation?: { enabled: boolean; active_strategies: number; auto_order_strategies: number; running_jobs: number };
-  instruments?: Instrument[]; model_config?: ModelConfig;
+  instruments?: Instrument[]; model_config?: ModelConfig; model_profiles?: ModelProfile[];
   risk: Risk; services: Service[]; market: Market;
   research: { total_return_pct: string; max_drawdown_pct: string; win_rate: string | null; trade_count: number; fees: string };
 }
@@ -60,3 +68,5 @@ export type ModelProtocol = 'openai_responses' | 'openai_chat' | 'anthropic';
 export interface ModelFields { protocol: ModelProtocol; base_url: string; model: string; enabled: boolean; local_mode: boolean; max_output_tokens: number; timeout_seconds: number; anthropic_version: string }
 export interface ModelConfig extends ModelFields { revision: number; has_api_key: boolean; key_available: boolean; connection_status: 'NOT_CONFIGURED' | 'CONFIGURED' | 'CONNECTED' | 'UNAVAILABLE'; last_test_at: string | null; last_error: string | null }
 export interface ModelInput extends ModelFields { expected_revision: number; api_key?: string; clear_api_key?: boolean }
+export interface ModelProfile extends ModelConfig { id: string; name: string }
+export interface ModelProfileInput extends ModelFields { name: string; api_key?: string; clear_api_key?: boolean }

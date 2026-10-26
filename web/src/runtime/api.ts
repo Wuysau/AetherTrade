@@ -1,4 +1,4 @@
-import type { Notifications, ModelConfig, ModelInput, Decision, Instrument, SymbolName, ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput } from './types';
+import type { AnalysisInput, ModelProfile, ModelProfileInput, TokenUsage, Notifications, ModelConfig, ModelInput, Decision, Instrument, SymbolName, ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput } from './types';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) { super(message); this.name = 'ApiError'; }
@@ -32,6 +32,13 @@ export class RuntimeApi {
   markNotificationsRead(values: { ids: string[] } | { all: true }) { return this.request<Notifications>('/notifications/read', { method: 'POST', body: JSON.stringify(values) }); }
   instruments() { return this.request<{ instruments: Instrument[] }>('/instruments'); }
   modelConfig() { return this.request<ModelConfig>('/model-config'); }
+  modelConfigs() { return this.request<{ profiles: ModelProfile[]; default_profile_id: string }>('/model-configs'); }
+  modelProfile(id: string) { return this.request<ModelProfile>(`/model-configs/${encodeURIComponent(id)}`); }
+  createModelProfile(values: ModelProfileInput) { return this.request<ModelProfile>('/model-configs', { method: 'POST', body: JSON.stringify(values) }); }
+  saveModelProfile(id: string, values: ModelProfileInput & { expected_revision: number }) { return this.request<ModelProfile>(`/model-configs/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(values) }); }
+  deleteModelProfile(id: string, revision: number) { return this.request<{ deleted: true; id: string }>(`/model-configs/${encodeURIComponent(id)}`, { method: 'DELETE', body: JSON.stringify({ expected_revision: revision }) }); }
+  testModelProfile(id: string, revision: number) { return this.request<{ config: ModelProfile; models: string[]; message: string }>(`/model-configs/${encodeURIComponent(id)}/test`, { method: 'POST', body: JSON.stringify({ expected_revision: revision }) }, 150_000); }
+  analyzeDecision(values: AnalysisInput, key: string) { return this.request<{ decision: Decision; usage: TokenUsage | null }>('/decisions/analyze', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(values) }, 150_000); }
   saveModelConfig(values: ModelInput) { return this.request<ModelConfig>('/model-config', { method: 'PUT', body: JSON.stringify(values) }); }
   testModelConfig(revision: number) { return this.request<{ config: ModelConfig; models: string[]; message: string }>('/model-config/test', { method: 'POST', body: JSON.stringify({ expected_revision: revision }) }, 150_000); }
   generateDecision(symbol: SymbolName, revision: number, key: string) { return this.request<{ decision: Decision; usage: { input_tokens: number | null; output_tokens: number | null } }>('/decisions/generate', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ symbol, expected_revision: revision, acknowledge_cost: true }) }, 150_000); }

@@ -61,6 +61,8 @@ class StrategyCreate(Payload):
     analysis_interval_seconds: StrictInt = Field(default=300, ge=60, le=86400)
     auto_execute: StrictBool = False
     acknowledge_model_cost: StrictBool = False
+    analysis_mode: Literal["single", "consensus"] = "single"
+    model_profile_ids: list[StrictStr] = Field(default_factory=list, max_length=3)
 
 
 class StrategyPatch(Payload):
@@ -73,6 +75,8 @@ class StrategyPatch(Payload):
     analysis_interval_seconds: StrictInt | None = Field(default=None, ge=60, le=86400)
     auto_execute: StrictBool | None = None
     acknowledge_model_cost: StrictBool = False
+    analysis_mode: Literal["single", "consensus"] | None = None
+    model_profile_ids: list[StrictStr] | None = Field(default=None, max_length=3)
     expected_revision: int = Field(ge=1)
 
 

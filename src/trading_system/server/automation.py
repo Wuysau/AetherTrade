@@ -47,7 +47,37 @@ class AutomationService:
 
     @staticmethod
     def _ready(config):
-        return config.get("enabled") and bool(config.get("model")) and (config.get("local_mode") or config.get("key_available"))
+        return bool(config and config.get("enabled") and config.get("model")
+                    and (config.get("local_mode") or config.get("key_available", bool(config.get("encrypted_key")))))
+
+    @staticmethod
+    def _binding(strategy):
+        return (strategy.get("analysis_mode", "single"),
+                strategy.get("model_profile_ids", [repository.DEFAULT_PROFILE_ID] if strategy.get("mode") == "AI" else []))
+
+    @staticmethod
+    def _job_binding(job):
+        # Old durable claims only recorded the default model revision.
+        identifiers = job.get("model_profile_ids", [repository.DEFAULT_PROFILE_ID])
+        revisions = job.get("profile_revisions")
+        if revisions is None:
+            revisions = {repository.DEFAULT_PROFILE_ID: job["model_revision"]}
+        return job.get("analysis_mode", "single"), identifiers, revisions
+
+    @staticmethod
+    def _profile_map(configs):
+        # Preserve direct _claim(get_config(), ...) callers and legacy test doubles.
+        if isinstance(configs, dict):
+            if "profiles" in configs:
+                configs = configs["profiles"]
+            elif "revision" in configs:
+                return {configs.get("id", repository.DEFAULT_PROFILE_ID): configs}
+            else:
+                return configs
+        return {config["id"]: config for config in configs}
+
+    def _configs(self):
+        return self.models.list_configs() if hasattr(self.models, "list_configs") else self.models.get_config()
 
     def _notify(self, connection, job, decision, status, reason):
         # Job ID is a uniqueness constraint, including recovery after restart.
@@ -57,6 +87,10 @@ class AutomationService:
         message = reason
         if decision and status != "ERROR":
             action = {"BUY": "建议买入", "SELL": "建议卖出", "HOLD": "建议观察"}.get(decision.get("action"), "分析结果")
+            if decision.get("consensus_status") == "AGREED":
+                action = "所选模型方向一致 · " + action
+            elif decision.get("consensus_status") == "DISAGREED":
+                action = "所选模型存在方向分歧 · 建议观察"
             summary = " ".join(str(decision.get("summary", "")).split())[:160]
             message = f"{action}：{summary}。{reason}"
         item = dict(id=job["id"], kind="AI_ERROR" if status == "ERROR" else "AI_RESULT",
@@ -71,6 +105,10 @@ class AutomationService:
             return None
         decision = dict(decision, strategy_id=job["strategy_id"], strategy_name=job["strategy_name"],
                         execution_status=status, execution_reason=reason, order_id=decision.get("order_id"))
+        mode, identifiers, revisions = self._job_binding(job)
+        decision.setdefault("analysis_mode", mode)
+        decision.setdefault("model_profile_ids", identifiers)
+        decision.setdefault("profile_revisions", revisions)
         record = repository.read_run(connection, job["model_key"])
         if record and record.get("status") == "SUCCEEDED":
             record["result"]["decision"] = decision
@@ -95,6 +133,8 @@ class AutomationService:
         decision = self._annotate(connection, job, decision, status, reason)
         job.update(status="FINISHED", execution_status=status, execution_reason=reason,
                    decision=decision, completed_at=stamp())
+        if decision and decision.get("analysis_mode") == "consensus":
+            job.update(consensus_status=decision.get("consensus_status"), model_results=decision.get("model_results", []))
         put(connection, jobs, job["id"], job)
         schedule = read(connection, schedules, job["strategy_id"]) or {}
         schedule.update(job_id=None, last_analysis_at=stamp(), last_analysis_error=reason if status in ("ERROR", "BLOCKED") else None,
@@ -104,6 +144,7 @@ class AutomationService:
         self._notify(connection, job, decision, status, reason)
 
     def _claim(self, config, market):
+        available = self._profile_map(config)
         with self.store.transaction() as connection:
             # Recovery never replays a model call or executes old advice.
             current_time = stamp()
@@ -114,7 +155,6 @@ class AutomationService:
                     run = repository.read_run(connection, job["model_key"])
                     decision = run["result"]["decision"] if run and run.get("status") == "SUCCEEDED" else None
                     self._complete(connection, job, decision, "SKIPPED", "分析任务已中断或租约过期；未重试模型或下单。")
-            current_model = repository.read_config(connection)
             if not self.settings.automation_enabled:
                 return None
             saved_schedules = {r.id: r.data for r in connection.execute(select(schedules))}
@@ -128,7 +168,13 @@ class AutomationService:
                     continue
                 if schedule.get("activated_at") == strategy.get("_activated_at") and schedule.get("next_analysis_at") and schedule["next_analysis_at"] > current_time:
                     continue
-                if not self._ready(config) or config["revision"] != current_model["revision"] or not current_model["enabled"]:
+                analysis_mode, identifiers = self._binding(strategy)
+                selected = [available.get(identifier) for identifier in identifiers]
+                current = [repository.read_profile(connection, identifier) for identifier in identifiers]
+                valid_count = len(identifiers) == 1 if analysis_mode == "single" else analysis_mode == "consensus" and 2 <= len(identifiers) <= 3
+                if (not valid_count or len(set(identifiers)) != len(identifiers)
+                        or any(not self._ready(public) or not self._ready(saved) or public["revision"] != saved["revision"]
+                               for public, saved in zip(selected, current))):
                     schedule.update(runtime_status="WAITING_MODEL")
                     put(connection, schedules, strategy["id"], schedule)
                     continue
@@ -140,11 +186,15 @@ class AutomationService:
                     continue
                 identifier = str(uuid4())
                 job = dict(id=identifier, strategy_id=strategy["id"], strategy_name=strategy["name"],
-                           strategy_revision=strategy["revision"], model_revision=config["revision"],
+                           strategy_revision=strategy["revision"], analysis_mode=analysis_mode,
+                           model_profile_ids=list(identifiers), profile_revisions={item["id"]: item["revision"] for item in current},
+                           profile_names={item["id"]: item["name"] for item in current},
                            symbol=strategy["symbol"], auto_execute=strategy.get("auto_execute", False),
                            interval=strategy.get("analysis_interval_seconds", 300),
                            model_key="auto-analysis:" + identifier, worker_id=self.worker_id,
-                           created_at=current_time, lease_until=(now() + timedelta(seconds=max(180, config.get("timeout_seconds", 120) + 60))).isoformat(), status="RUNNING")
+                           created_at=current_time, lease_until=(now() + timedelta(seconds=max(180, max(item.get("timeout_seconds", 120) for item in current) + 60))).isoformat(), status="RUNNING")
+                if identifiers == [repository.DEFAULT_PROFILE_ID]:
+                    job["model_revision"] = current[0]["revision"]
                 put(connection, jobs, identifier, job)
                 schedule.update(job_id=identifier, runtime_status="RUNNING", activated_at=strategy.get("_activated_at"))
                 put(connection, schedules, strategy["id"], schedule)
@@ -182,11 +232,43 @@ class AutomationService:
 
     def _authorized(self, connection, job):
         strategy = read(connection, strategies, job["strategy_id"])
-        config = repository.read_config(connection)
+        mode, identifiers, revisions = self._job_binding(job)
+        configs = {identifier: repository.read_profile(connection, identifier) for identifier in identifiers}
         valid = (self.settings.automation_enabled and job["lease_until"] > stamp() and strategy and self._active(strategy)
                  and strategy["revision"] == job["strategy_revision"] and strategy["symbol"] == job["symbol"]
-                 and config["enabled"] and config["revision"] == job["model_revision"])
+                 and self._binding(strategy) == (mode, identifiers) and set(identifiers) == set(revisions)
+                 and all(self._ready(config) and config["revision"] == revisions[identifier] for identifier, config in configs.items()))
         return strategy if valid else None
+
+    def _consensus_guard(self, job, decision):
+        mode, identifiers, revisions = self._job_binding(job)
+        if mode != "consensus":
+            # Refusal states remain nonexecuting even if an inconsistent service
+            # response attaches them to a single-model claim.
+            if decision.get("consensus_status") in ("DISAGREED", "INCOMPLETE"):
+                decision["action"] = "HOLD"
+                if decision["consensus_status"] == "INCOMPLETE":
+                    return "ERROR", "模型分析结果不完整；未自动下单。"
+                return "NO_ACTION", "模型分析存在方向分歧；未自动下单。"
+            return None
+        outcomes = decision.get("model_results")
+        complete = (isinstance(outcomes, list) and len(outcomes) == len(identifiers)
+                    and all(isinstance(item, dict) for item in outcomes)
+                    and {item.get("profile_id") for item in outcomes} == set(identifiers)
+                    and all(item.get("status") == "SUCCEEDED" and item.get("config_revision") == revisions[item["profile_id"]]
+                            and isinstance(item.get("decision"), dict) and item["decision"].get("symbol") == job["symbol"]
+                            and item["decision"].get("action") in ("BUY", "SELL", "HOLD") for item in outcomes))
+        if not complete or decision.get("consensus_status") not in ("AGREED", "DISAGREED"):
+            decision.update(action="HOLD", consensus_status="INCOMPLETE")
+            return "ERROR", "交叉分析结果不完整：所选模型失败、缺少结果或结果无效；未自动下单。"
+        actions = {item["decision"]["action"] for item in outcomes}
+        if decision.get("consensus_status") == "DISAGREED" or len(actions) != 1:
+            decision.update(action="HOLD", consensus_status="DISAGREED")
+            return "NO_ACTION", "所选模型存在方向分歧；未自动下单。"
+        if decision.get("action") not in actions:
+            decision.update(action="HOLD", consensus_status="INCOMPLETE")
+            return "ERROR", "交叉分析汇总与模型结果不一致；未自动下单。"
+        return None
 
     def _before_dispatch(self, claimed):
         with self.store.transaction() as connection:
@@ -205,12 +287,15 @@ class AutomationService:
                 return
             decision = dict(result["decision"]) if result else None
             strategy = self._authorized(connection, job)
+            consensus_guard = self._consensus_guard(job, decision) if decision else None
             if not strategy:
                 status, reason = "SKIPPED", "策略、模型配置或任务租约已变更；本次结果不执行。"
             elif error:
                 status, reason = "ERROR", error
             elif decision is None:
                 status, reason = "SKIPPED", "任务已取消；未调用模型或下单。"
+            elif consensus_guard:
+                status, reason = consensus_guard
             elif not job["auto_execute"] or not strategy.get("auto_execute"):
                 status, reason = "NOT_ENABLED", "分析已完成；此周期未授权自动 PAPER 下单。"
             else:
@@ -225,7 +310,7 @@ class AutomationService:
     async def tick(self):
         if not self.settings.automation_enabled:
             return None
-        config = await run_in_threadpool(self.models.get_config)
+        config = await run_in_threadpool(self._configs)
         job = await run_in_threadpool(self._claim, config, self.quote_snapshot())
         if not job:
             return None
@@ -234,7 +319,13 @@ class AutomationService:
             if not await run_in_threadpool(self._before_dispatch, job):
                 await run_in_threadpool(self._finish, job)
                 return job["id"]
-            result = await self.models.generate(job["symbol"], job["model_revision"], job["model_key"], context)
+            mode, identifiers, revisions = self._job_binding(job)
+            if hasattr(self.models, "analyze"):
+                result = await self.models.analyze(job["symbol"], mode, identifiers, revisions, job["model_key"], context)
+            elif mode == "single" and identifiers == [repository.DEFAULT_PROFILE_ID]:
+                result = await self.models.generate(job["symbol"], revisions[repository.DEFAULT_PROFILE_ID], job["model_key"], context)
+            else:
+                raise ApiError("MODEL_ANALYSIS_UNAVAILABLE", "所选模型分析不可用；未调用替代模型。", 409)
         except ApiError as exc:
             await run_in_threadpool(self._finish, job, None, exc.message)
         except Exception:
@@ -273,7 +364,7 @@ class AutomationService:
         return self.notifications()
 
     def enrich_dashboard(self, result):
-        config = result.get("model_config") or self.models.get_config()
+        available = self._profile_map(result["model_profiles"] if "model_profiles" in result else self._configs())
         with self.store.transaction() as connection:
             schedules_by_id = {r.id: r.data for r in connection.execute(select(schedules))}
             all_jobs = rows(connection, jobs)
@@ -283,13 +374,16 @@ class AutomationService:
             schedule = schedules_by_id.get(strategy["id"], {})
             strategy.setdefault("analysis_interval_seconds", 300)
             strategy.setdefault("auto_execute", False)
+            mode, identifiers = self._binding(strategy)
+            strategy.setdefault("analysis_mode", mode)
+            strategy.setdefault("model_profile_ids", identifiers)
             is_active = self._active(strategy)
             active += int(is_active)
             armed += int(is_active and strategy["auto_execute"])
             runtime = strategy["status"]
             if is_active:
                 runtime = schedule.get("runtime_status", "READY")
-                if not self._ready(config):
+                if not identifiers or any(not self._ready(available.get(identifier)) for identifier in identifiers):
                     runtime = "WAITING_MODEL"
                 elif runtime != "RUNNING":
                     try:

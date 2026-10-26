@@ -4,29 +4,35 @@ import { ArrowLeft, Check, Info, LoaderCircle, ShieldCheck } from 'lucide-react'
 import { errorMessage, type RuntimeApi } from './api';
 import { money, positiveDecimal, quantity, quoteIsFresh, time } from './format';
 import { Alert, Badge, Dialog } from './ui';
-import type { Dashboard, Mode, PaperAction, PaperOrderInput, Risk, Strategy, StrategyInput, SymbolName } from './types';
+import { ModelSelection, routingError, strategyProfileIds } from './modelprofiles';
+import type { Dashboard, Mode, ModelProfile, PaperAction, PaperOrderInput, Risk, Strategy, StrategyInput, SymbolName } from './types';
 
 export const MODE_NAMES: Record<Mode, string> = { AI: 'AI 自主决策', RULE: '用户规则', HYBRID: 'AI / 规则混合' };
 export const SYMBOLS: SymbolName[] = INSTRUMENTS.map(i => i.symbol);
-export function StrategyDialog({ api, existing, mode, onClose, onSaved }: { api: RuntimeApi; existing?: Strategy; mode: Mode; onClose: () => void; onSaved: (message: string) => void }) {
-  const [form, setForm] = useState<StrategyInput>(existing ? { name: existing.name, symbol: existing.symbol, mode: existing.mode, budget: existing.budget, target_pct: existing.target_pct, analysis_interval_seconds: existing.analysis_interval_seconds ?? 300, auto_execute: existing.auto_execute ?? false } : { name: '', symbol: 'BTCUSDT', mode, budget: '1000', target_pct: '10', analysis_interval_seconds: 300, auto_execute: false });
+export function StrategyDialog({ api, existing, mode, profiles, onClose, onSaved }: { api: RuntimeApi; existing?: Strategy; mode: Mode; profiles?: ModelProfile[]; onClose: () => void; onSaved: (message: string) => void }) {
+  const [form, setForm] = useState<StrategyInput>(existing ? { name: existing.name, symbol: existing.symbol, mode: existing.mode, budget: existing.budget, target_pct: existing.target_pct, analysis_interval_seconds: existing.analysis_interval_seconds ?? 300, auto_execute: existing.auto_execute ?? false, analysis_mode: existing.analysis_mode ?? 'single', model_profile_ids: strategyProfileIds(existing) } : { name: '', symbol: 'BTCUSDT', mode, budget: '1000', target_pct: '10', analysis_interval_seconds: 300, auto_execute: false, analysis_mode: 'single', model_profile_ids: mode !== 'RULE' && profiles?.some(p => p.id === 'default') ? ['default'] : [] });
   const [status, setStatus] = useState<Strategy['status']>(existing?.status ?? 'DRAFT');
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const update = <K extends keyof StrategyInput>(key: K, value: StrategyInput[K]) => setForm(prev => ({ ...prev, [key]: value }));
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!form.name.trim() || !positiveDecimal(form.budget) || !positiveDecimal(form.target_pct) || Number(form.target_pct) > 100) { setError('请填写策略名称、正数预算和 0 至 100% 之间的目标仓位。'); return; }
+    if (profiles && form.mode !== 'RULE') { const problem = routingError(form.analysis_mode ?? 'single', form.model_profile_ids ?? [], profiles, status !== 'ACTIVE'); if (problem) { setError(problem); return; } }
     setBusy(true); setError('');
-    try { await api.saveStrategy({ ...form, name: form.name.trim(), acknowledge_model_cost: status === 'ACTIVE' }, existing, status); onSaved(status === 'ACTIVE' ? 'AI 策略已启用，将按周期分析；自动下单以勾选状态为准。' : '策略配置已保存；当前不运行自动分析。'); }
+    const { analysis_mode, model_profile_ids, ...legacyForm } = form;
+    const values = profiles !== undefined || existing?.model_profile_ids !== undefined ? { ...legacyForm, analysis_mode, model_profile_ids } : legacyForm;
+    try { await api.saveStrategy({ ...values, name: form.name.trim(), acknowledge_model_cost: status === 'ACTIVE' }, existing, status); onSaved(status === 'ACTIVE' ? 'AI 策略已启用，将按周期分析；自动下单以勾选状态为准。' : '策略配置已保存；当前不运行自动分析。'); }
     catch (err) { setError(errorMessage(err)); } finally { setBusy(false); }
   }
   return <Dialog title={existing ? '编辑策略' : '创建策略'} onClose={onClose} busy={busy} wide><form onSubmit={submit} className="editor-form">
     <p>配置保存在本地 PAPER 账户。保存草稿不会运行模型或自动下单。</p>
     <label className="field"><span>策略名称</span><input required maxLength={80} autoFocus value={form.name} placeholder="例如：BTC 趋势观察" onChange={e => update('name', e.target.value)} disabled={busy} /></label>
-    <div className="form-grid"><label className="field"><span>交易标的</span><select value={form.symbol} onChange={e => update('symbol', e.target.value as SymbolName)} disabled={busy}><InstrumentOptions /></select></label><label className="field"><span>决策模式</span><select value={form.mode} onChange={e => { update('mode', e.target.value as Mode); if (e.target.value !== 'AI') { update('auto_execute', false); setStatus('DRAFT'); } }} disabled={busy}>{Object.entries(MODE_NAMES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
+    <div className="form-grid"><label className="field"><span>交易标的</span><select value={form.symbol} onChange={e => update('symbol', e.target.value as SymbolName)} disabled={busy}><InstrumentOptions /></select></label><label className="field"><span>决策模式</span><select value={form.mode} onChange={e => { update('mode', e.target.value as Mode); if (e.target.value !== 'AI') { update('auto_execute', false); setStatus('DRAFT'); } if (e.target.value === 'RULE') { update('model_profile_ids', []); update('analysis_mode', 'single'); } }} disabled={busy}>{Object.entries(MODE_NAMES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
     <div className="form-grid"><label className="field"><span>策略预算 <small>USDT</small></span><input required inputMode="decimal" value={form.budget} onChange={e => update('budget', e.target.value)} disabled={busy} /></label><label className="field"><span>目标仓位 <small>%</small></span><input required inputMode="decimal" value={form.target_pct} onChange={e => update('target_pct', e.target.value)} disabled={busy} /></label></div>
+    {profiles && form.mode !== 'RULE' && <ModelSelection profiles={profiles} mode={form.analysis_mode ?? 'single'} ids={form.model_profile_ids ?? []} disabled={busy} recurring={form.mode === 'AI'} onChange={(analysis_mode, model_profile_ids) => setForm(previous => ({ ...previous, analysis_mode, model_profile_ids }))} />}
     <label className="field"><span>配置状态</span><select value={status} onChange={e => { setStatus(e.target.value as Strategy['status']); if (e.target.value === 'DRAFT') update('auto_execute', false); }} disabled={busy}><option value="DRAFT">草稿</option>{form.mode === 'AI' && <option value="ACTIVE">启用自动分析（可能持续产生 API 费用）</option>}<option value="PAUSED">暂停</option></select></label>
     {form.mode === 'AI' ? <><label className="field"><span>分析间隔（秒）</span><input type="number" required min={60} max={86400} step={1} value={form.analysis_interval_seconds} disabled={busy} onChange={e => update('analysis_interval_seconds', Number(e.target.value))} /></label><p className="field-help">启用后立即开始，随后按设定间隔调用模型，可能持续产生 API 费用。暂停停止后续分析；已发出的调用可能完成，但不能继续自动成交。</p><label className="model-check"><input type="checkbox" checked={form.auto_execute ?? false} disabled={busy} onChange={e => { update('auto_execute', e.target.checked); if (e.target.checked) setStatus('ACTIVE'); }} />自动下单（PAPER）</label><p className="field-help">勾选即启用自动分析并允许后续建议通过风控后模拟成交；取消仅停止自动下单，分析继续。仅使用本地虚拟资金。</p></> : <p className="field-help">规则与混合模式仅保存配置，暂不运行分析或自动下单。</p>}
+    {status === 'ACTIVE' && <Alert>保存即确认按当前模型选择持续分析：每轮 {form.model_profile_ids?.length ?? 1} 次调用，每 {form.analysis_interval_seconds ?? 300} 秒一轮，可能分别产生 API 费用。自动下单仍需权限与风控检查。</Alert>}
     {error && <Alert error>{error}</Alert>}
     <div className="dialog-buttons"><button type="button" className="button" onClick={onClose} disabled={busy}>取消</button><button className="button primary" disabled={busy}>{busy ? <LoaderCircle className="icon spin" /> : <Check className="icon" />}{busy ? '正在保存…' : '保存策略'}</button></div>
   </form></Dialog>;

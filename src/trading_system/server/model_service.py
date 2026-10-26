@@ -1,4 +1,5 @@
 """Manual model configuration and advice; no trading or scheduling authority."""
+import asyncio
 import hashlib
 import json
 import re
@@ -13,7 +14,12 @@ from .errors import ApiError
 from . import model_client as provider
 from . import model_repository as repository
 from .model_secrets import ModelSecrets
-from .store import stamp
+from .store import stamp, strategies
+
+
+DEFAULT_PROFILE_ID = repository.DEFAULT_PROFILE_ID
+EDITABLE = {'name', 'protocol', 'base_url', 'model', 'enabled', 'local_mode', 'max_output_tokens',
+            'timeout_seconds', 'anthropic_version'}
 
 
 class ModelService:
@@ -36,52 +42,110 @@ class ModelService:
             public['key_available'] = False
         return public
 
-    def get_config(self):
+    def migrate(self):
         with self.store.transaction() as connection:
-            return self._public(repository.read_config(connection))
+            repository.ensure_profiles(connection)
+
+    @staticmethod
+    def _profile(connection, profile_id):
+        if not isinstance(profile_id, str) or not 1 <= len(profile_id) <= 64:
+            raise ApiError('MODEL_PROFILE_NOT_FOUND', '模型配置不存在。', 404)
+        config = repository.read_profile(connection, profile_id)
+        if config is None:
+            raise ApiError('MODEL_PROFILE_NOT_FOUND', '模型配置不存在。', 404)
+        return config
+
+    def get_config(self, profile_id=DEFAULT_PROFILE_ID):
+        with self.store.transaction() as connection:
+            return self._public(self._profile(connection, profile_id))
+
+    def list_configs(self):
+        with self.store.transaction() as connection:
+            profiles = repository.read_profiles(connection)
+            profiles.sort(key=lambda p: (p['id'] != DEFAULT_PROFILE_ID, p['name'].casefold(), p['id']))
+            return {'profiles': [self._public(p) for p in profiles], 'default_profile_id': DEFAULT_PROFILE_ID}
 
     @staticmethod
     def _revision(config, revision):
         if type(revision) is not int or revision != config['revision']:
             raise ApiError('MODEL_REVISION_CONFLICT', '模型配置已更新，请重新加载后再操作。', 409)
 
-    def save_config(self, payload):
-        editable = {'protocol', 'base_url', 'model', 'enabled', 'local_mode', 'max_output_tokens', 'timeout_seconds', 'anthropic_version'}
-        if not isinstance(payload, dict) or set(payload) - editable - {'expected_revision', 'api_key', 'clear_api_key'}:
+    @staticmethod
+    def _payload(payload, *, creating=False):
+        allowed = EDITABLE | {'api_key', 'clear_api_key'} | (set() if creating else {'expected_revision'})
+        if not isinstance(payload, dict) or set(payload) - allowed or (creating and 'name' not in payload):
             raise ApiError('INVALID_MODEL_CONFIG', '模型配置字段无效。')
+
+    def create_config(self, payload):
+        self._payload(payload, creating=True)
         with self.store.transaction() as connection:
-            old = repository.read_config(connection)
-            self._revision(old, payload.get('expected_revision'))
-            config = dict(old, **{k: v for k, v in payload.items() if k in editable})
-            if config['protocol'] not in ('openai_responses', 'openai_chat', 'anthropic'):
-                raise ApiError('INVALID_MODEL_CONFIG', '请选择支持的模型协议。')
-            for key in ('enabled', 'local_mode'):
-                if type(config[key]) is not bool:
-                    raise ApiError('INVALID_MODEL_CONFIG', '模型开关需为布尔值。')
-            for key, lower, upper in [('max_output_tokens', 128, 8192), ('timeout_seconds', 5, 120)]:
-                if type(config[key]) is not int or not lower <= config[key] <= upper:
-                    raise ApiError('INVALID_MODEL_CONFIG', '模型请求限制不在允许范围内。')
-            if not isinstance(config['model'], str) or not 1 <= len(config['model'].strip()) <= 200 or any(ord(c) < 32 for c in config['model']):
-                raise ApiError('INVALID_MODEL_CONFIG', '请填写有效模型名称（最多 200 字符）。')
-            if not isinstance(config['anthropic_version'], str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', config['anthropic_version']):
-                raise ApiError('INVALID_MODEL_CONFIG', 'Claude API 版本需使用 YYYY-MM-DD。')
-            config['base_url'] = provider.validate_url(config['base_url'], config['local_mode'])
-            clear = payload.get('clear_api_key', False)
-            secret = payload.get('api_key')
-            if type(clear) is not bool or (secret is not None and (not isinstance(secret, str) or len(secret) > 4096 or any(ord(c) < 33 or ord(c) > 126 for c in secret))):
-                raise ApiError('INVALID_MODEL_CONFIG', 'API Key 格式无效。')
-            if clear and secret:
-                raise ApiError('INVALID_MODEL_CONFIG', '清除和设置 API Key 不能同时使用。')
-            if old['encrypted_key'] and any(old[k] != config[k] for k in ('base_url', 'protocol')) and not (clear or secret):
-                raise ApiError('MODEL_KEY_REENTRY_REQUIRED', '更改模型地址或协议时，请重新输入或清除 API Key。')
-            config['encrypted_key'] = None if clear else self.vault.encrypt(secret) if secret else old['encrypted_key']
-            config.update(revision=old['revision'] + 1, connection_status='CONFIGURED', last_test_at=None, last_error=None)
-            repository.write_config(connection, config)
+            if len(repository.read_profiles(connection)) >= 20:
+                raise ApiError('MODEL_PROFILE_LIMIT', '最多保存 20 个模型配置。', 409)
+            identifier = str(uuid4())
+            old = dict(repository.DEFAULT, id=identifier, name='')
+            config = self._edited(connection, old, payload)
+            repository.write_profile(connection, identifier, config)
             return self._public(config)
 
-    def _snapshot(self, revision, enabled=False):
+    def save_config(self, payload, profile_id=DEFAULT_PROFILE_ID):
+        self._payload(payload)
         with self.store.transaction() as connection:
-            config = repository.read_config(connection)
+            old = self._profile(connection, profile_id)
+            self._revision(old, payload.get('expected_revision'))
+            config = self._edited(connection, old, payload)
+            repository.write_profile(connection, profile_id, config)
+            return self._public(config)
+
+    def _edited(self, connection, old, payload):
+        config = dict(old, **{k: v for k, v in payload.items() if k in EDITABLE})
+        name = config['name']
+        if (not isinstance(name, str) or not 1 <= len(name.strip()) <= 80
+                or any(ord(c) < 32 or ord(c) == 127 for c in name)):
+            raise ApiError('INVALID_MODEL_CONFIG', '模型配置名称需为 1–80 个有效字符。')
+        config['name'] = name.strip()
+        if any(p['id'] != old['id'] and p['name'].casefold() == config['name'].casefold()
+               for p in repository.read_profiles(connection)):
+            raise ApiError('MODEL_PROFILE_NAME_CONFLICT', '模型配置名称已存在。', 409)
+        if config['protocol'] not in ('openai_responses', 'openai_chat', 'anthropic'):
+            raise ApiError('INVALID_MODEL_CONFIG', '请选择支持的模型协议。')
+        for key in ('enabled', 'local_mode'):
+            if type(config[key]) is not bool:
+                raise ApiError('INVALID_MODEL_CONFIG', '模型开关需为布尔值。')
+        for key, lower, upper in [('max_output_tokens', 128, 8192), ('timeout_seconds', 5, 120)]:
+            if type(config[key]) is not int or not lower <= config[key] <= upper:
+                raise ApiError('INVALID_MODEL_CONFIG', '模型请求限制不在允许范围内。')
+        if not isinstance(config['model'], str) or not 1 <= len(config['model'].strip()) <= 200 or any(ord(c) < 32 for c in config['model']):
+            raise ApiError('INVALID_MODEL_CONFIG', '请填写有效模型名称（最多 200 字符）。')
+        if not isinstance(config['anthropic_version'], str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', config['anthropic_version']):
+            raise ApiError('INVALID_MODEL_CONFIG', 'Claude API 版本需使用 YYYY-MM-DD。')
+        config['base_url'] = provider.validate_url(config['base_url'], config['local_mode'])
+        clear = payload.get('clear_api_key', False)
+        secret = payload.get('api_key')
+        if type(clear) is not bool or (secret is not None and (not isinstance(secret, str) or len(secret) > 4096 or any(ord(c) < 33 or ord(c) > 126 for c in secret))):
+            raise ApiError('INVALID_MODEL_CONFIG', 'API Key 格式无效。')
+        if clear and secret:
+            raise ApiError('INVALID_MODEL_CONFIG', '清除和设置 API Key 不能同时使用。')
+        if old['encrypted_key'] and any(old[k] != config[k] for k in ('base_url', 'protocol')) and not (clear or secret):
+            raise ApiError('MODEL_KEY_REENTRY_REQUIRED', '更改模型地址或协议时，请重新输入或清除 API Key。')
+        config['encrypted_key'] = None if clear else self.vault.encrypt(secret) if secret else old['encrypted_key']
+        config.update(revision=old['revision'] + 1, connection_status='CONFIGURED', last_test_at=None, last_error=None)
+        return config
+
+    def delete_config(self, profile_id, expected_revision):
+        with self.store.transaction() as connection:
+            config = self._profile(connection, profile_id)
+            self._revision(config, expected_revision)
+            if profile_id == DEFAULT_PROFILE_ID:
+                raise ApiError('MODEL_PROFILE_RESERVED', '默认模型不能删除，可停用或编辑。', 409)
+            if any(profile_id in s.get('model_profile_ids', [])
+                   for s in connection.execute(select(strategies.c.data)).scalars()):
+                raise ApiError('MODEL_PROFILE_REFERENCED', '策略仍引用此模型，请先修改策略选择。', 409)
+            repository.delete_profile(connection, profile_id)
+            return {'deleted': True, 'id': profile_id}
+
+    def _snapshot(self, revision, enabled=False, profile_id=DEFAULT_PROFILE_ID):
+        with self.store.transaction() as connection:
+            config = self._profile(connection, profile_id)
             self._revision(config, revision)
             if not config['model'] or (enabled and not config['enabled']):
                 raise ApiError('MODEL_NOT_CONFIGURED', '请配置并启用模型。', 409)
@@ -90,8 +154,8 @@ class ModelService:
                 raise ApiError('MODEL_KEY_REQUIRED', '远程模型需要 API Key。', 409)
             return config, secret
 
-    async def test_connection(self, expected_revision):
-        config, secret = self._snapshot(expected_revision)
+    async def test_connection(self, expected_revision, profile_id=DEFAULT_PROFILE_ID):
+        config, secret = self._snapshot(expected_revision, profile_id=profile_id)
         error = None
         models = []
         try:
@@ -111,74 +175,217 @@ class ModelService:
         except ApiError as exc:
             error = exc
         with self.store.transaction() as connection:
-            current = repository.read_config(connection)
+            current = self._profile(connection, profile_id)
             self._revision(current, expected_revision)
             current.update(connection_status='UNAVAILABLE' if error else 'CONNECTED', last_test_at=stamp(), last_error=error.message if error else None)
-            repository.write_config(connection, current)
+            repository.write_profile(connection, profile_id, current)
             public = self._public(current)
         if error:
             raise error
         return {'config': public, 'models': models, 'message': '模型目录与凭证已验证；未执行付费推理。'}
 
-    async def generate(self, symbol, expected_revision, key, context):
+    @staticmethod
+    def _request_identity(symbol, key):
         if not isinstance(symbol, str) or not re.fullmatch(r'[A-Z0-9]{3,24}', symbol) or not isinstance(key, str) or not re.fullmatch(r'[\x21-\x7e]{1,128}', key):
             raise ApiError('INVALID_MODEL_REQUEST', '分析标的或幂等键无效。')
-        if type(expected_revision) is not int:
+
+    @staticmethod
+    def _hash(value):
+        return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+
+    @staticmethod
+    def _cached(previous, fingerprints):
+        if previous:
+            if previous['fingerprint'] not in fingerprints:
+                raise ApiError('IDEMPOTENCY_CONFLICT', '此幂等键已用于其他分析请求。', 409)
+            if previous['status'] == 'SUCCEEDED':
+                return previous['result']
+            raise ApiError('MODEL_RUN_NOT_RETRYABLE', '此请求已提交或失败，未重复调用模型。', 409)
+        return None
+
+    @staticmethod
+    def _clean_context(symbol, context):
+        try:
+            quote = context['quote']
+            age = (datetime.now(timezone.utc) - datetime.fromisoformat(quote['as_of'])).total_seconds()
+            price = Decimal(quote['price'])
+            max_age = context['quote_max_age_seconds']
+            if (context['market_status'] not in ('CONNECTED', 'PARTIAL') or quote['symbol'] != symbol
+                    or quote.get('stale') is not False or not price.is_finite() or price <= 0
+                    or type(max_age) not in (int, float) or not 0 < max_age <= 3600 or not 0 <= age <= max_age):
+                raise ValueError()
+        except (KeyError, TypeError, ValueError, InvalidOperation, OverflowError):
+            raise ApiError('MODEL_QUOTE_UNAVAILABLE', '所选标的行情缺失或已过期，未调用模型。', 409) from None
+        clean = {'symbol': symbol}
+        fields = {'quote': ('symbol', 'price', 'change_pct', 'as_of'),
+                  'position': ('symbol', 'quantity', 'average_price', 'avg_price', 'cost_basis'),
+                  'account': ('cash', 'equity', 'currency', 'paused'),
+                  'risk': ('max_position_pct', 'max_daily_loss')}
+        for section, allowed in fields.items():
+            value = context.get(section)
+            if isinstance(value, dict):
+                clean[section] = {k: v for k, v in value.items() if k in allowed and (v is None or type(v) in (str, int, float, bool))}
+        try:
+            encoded = json.dumps(clean, allow_nan=False)
+            if len(encoded) > 16000:
+                raise ValueError()
+        except (TypeError, ValueError):
+            raise ApiError('INVALID_MODEL_CONTEXT', '分析上下文无效。') from None
+        return clean
+
+    @staticmethod
+    def _identity(config):
+        return {'profile_id': config['id'], 'profile_name': config['name'],
+                'model': config['model'], 'config_revision': config['revision']}
+
+    @staticmethod
+    def _error(exc):
+        # Never expose arbitrary transport exception text or a provider body.
+        return ({'code': exc.code, 'error': exc.message} if isinstance(exc, ApiError) else
+                {'code': 'MODEL_REQUEST_FAILED', 'error': '模型请求未完成；不会自动重试。'})
+
+    async def generate(self, symbol, expected_revision, key, context, *, profile_id=DEFAULT_PROFILE_ID, component=False):
+        self._request_identity(symbol, key)
+        if type(expected_revision) is not int or expected_revision < 0:
             raise ApiError('INVALID_MODEL_REQUEST', '模型版本无效。')
-        fingerprint = hashlib.sha256(json.dumps([symbol, expected_revision]).encode()).hexdigest()
+        fingerprint = self._hash([symbol, 'single', profile_id, expected_revision, component])
+        fingerprints = [fingerprint]
+        if profile_id == DEFAULT_PROFILE_ID and not component:
+            # Receipts created before profiles had this exact two-item digest.
+            fingerprints.append(hashlib.sha256(json.dumps([symbol, expected_revision]).encode()).hexdigest())
         # Persist the attempt before network I/O, including on process crashes.
         with self.store.transaction() as connection:
-            previous = repository.read_run(connection, key)
-            if previous:
-                if previous['fingerprint'] != fingerprint:
-                    raise ApiError('IDEMPOTENCY_CONFLICT', '此幂等键已用于其他分析请求。', 409)
-                if previous['status'] == 'SUCCEEDED':
-                    return previous['result']
-                raise ApiError('MODEL_RUN_NOT_RETRYABLE', '此请求已提交或失败，未重复调用模型。', 409)
-            config = repository.read_config(connection)
+            cached = self._cached(repository.read_run(connection, key), fingerprints)
+            if cached is not None:
+                return cached
+            config = self._profile(connection, profile_id)
             self._revision(config, expected_revision)
             if not config['enabled'] or not config['model']:
                 raise ApiError('MODEL_NOT_CONFIGURED', '请配置并启用模型。', 409)
-            try:
-                quote = context['quote']
-                age = (datetime.now(timezone.utc) - datetime.fromisoformat(quote['as_of'])).total_seconds()
-                price = Decimal(quote['price'])
-                max_age = context['quote_max_age_seconds']
-                if (context['market_status'] not in ('CONNECTED', 'PARTIAL') or quote['symbol'] != symbol
-                        or quote.get('stale') is not False or not price.is_finite() or price <= 0
-                        or type(max_age) not in (int, float) or not 0 < max_age <= 3600 or not 0 <= age <= max_age):
-                    raise ValueError()
-            except (KeyError, TypeError, ValueError, InvalidOperation):
-                raise ApiError('MODEL_QUOTE_UNAVAILABLE', '所选标的行情缺失或已过期，未调用模型。', 409) from None
+            clean = self._clean_context(symbol, context)
             secret = self.vault.decrypt(config['encrypted_key'])
             if not secret and not config['local_mode']:
                 raise ApiError('MODEL_KEY_REQUIRED', '远程模型需要 API Key。', 409)
-            record = {'fingerprint': fingerprint, 'status': 'IN_FLIGHT', 'created_at': stamp()}
+            if secret and secret in json.dumps(clean, allow_nan=False):
+                raise ApiError('INVALID_MODEL_CONTEXT', '分析上下文无效。')
+            record = {'fingerprint': fingerprint, 'status': 'IN_FLIGHT', 'created_at': stamp(),
+                      'component': component, 'analysis_mode': 'single', 'model_profile_ids': [profile_id],
+                      'profile_revisions': {profile_id: expected_revision}, 'profile': self._identity(config)}
             repository.write_run(connection, key, record, new=True)
         try:
-            clean = {'symbol': symbol}
-            fields = {'quote': ('symbol', 'price', 'change_pct', 'as_of'),
-                      'position': ('symbol', 'quantity', 'average_price', 'avg_price', 'cost_basis'),
-                      'account': ('cash', 'equity', 'currency', 'paused'),
-                      'risk': ('max_position_pct', 'max_daily_loss')}
-            for section, allowed in fields.items():
-                value = context.get(section)
-                if isinstance(value, dict):
-                    clean[section] = {k: v for k, v in value.items() if k in allowed and (v is None or type(v) in (str, int, float, bool))}
-            encoded = json.dumps(clean, allow_nan=False)
-            if len(encoded) > 16000 or (secret and secret in encoded):
-                raise ApiError('INVALID_MODEL_CONTEXT', '分析上下文无效。')
             path, body = provider.payload(config, clean)
             response = await provider.request(self.client, config, secret, 'POST', path, body)
             advice, usage = provider.parse(config, response, symbol)
             if secret and any(secret in value for value in [advice['summary'], advice['invalidation'], advice['symbol'], advice['action'], *advice['counter_evidence']]):
                 raise provider.invalid()
             decision = dict(advice, id=str(uuid4()), created_at=stamp(), next_review_at=None,
-                            risk_status='NOT_EVALUATED', source='AI · ' + config['protocol'], model=config['model'], config_revision=config['revision'])
+                            risk_status='NOT_EVALUATED', source='AI · ' + config['protocol'], model=config['model'],
+                            config_revision=config['revision'], analysis_mode='single', model_profile_id=profile_id,
+                            profile_name=config['name'], model_profile_ids=[profile_id],
+                            profile_revisions={profile_id: config['revision']}, model_profiles=[self._identity(config)],
+                            data_as_of=clean['quote']['as_of'], snapshot_hash=self._hash(clean))
             result = {'decision': decision, 'usage': usage}
-        except BaseException:
+        except BaseException as exc:
             with self.store.transaction() as connection:
-                repository.write_run(connection, key, dict(record, status='FAILED'))
+                repository.write_run(connection, key, dict(record, status='FAILED', **self._error(exc)))
+            raise
+        with self.store.transaction() as connection:
+            repository.write_run(connection, key, dict(record, status='SUCCEEDED', result=result))
+        return result
+
+    async def analyze(self, symbol, analysis_mode, profile_ids, expected_revisions, key, context):
+        self._request_identity(symbol, key)
+        if (analysis_mode not in ('single', 'consensus') or not isinstance(profile_ids, list)
+                or any(not isinstance(p, str) or not 1 <= len(p) <= 64 for p in profile_ids)
+                or len(set(profile_ids)) != len(profile_ids)
+                or (analysis_mode == 'single' and len(profile_ids) != 1)
+                or (analysis_mode == 'consensus' and not 2 <= len(profile_ids) <= 3)
+                or not isinstance(expected_revisions, dict) or set(expected_revisions) != set(profile_ids)
+                or any(type(v) is not int or v < 0 for v in expected_revisions.values())):
+            raise ApiError('INVALID_MODEL_REQUEST', '请选择一个模型，或选择 2–3 个不同模型交叉分析，并提供对应版本。')
+        # Freeze the caller's mutable selection before the first await.
+        profile_ids, expected_revisions = list(profile_ids), dict(expected_revisions)
+        if analysis_mode == 'single':
+            profile_id = profile_ids[0]
+            args = (symbol, expected_revisions[profile_id], key, context)
+            if profile_id == DEFAULT_PROFILE_ID:
+                return await self.generate(*args)  # Legacy four-argument test doubles and receipts.
+            return await self.generate(*args, profile_id=profile_id)
+
+        fingerprint = self._hash([symbol, analysis_mode, [[p, expected_revisions[p]] for p in profile_ids]])
+        with self.store.transaction() as connection:
+            cached = self._cached(repository.read_run(connection, key), [fingerprint])
+            if cached is not None:
+                return cached
+            configs = [self._profile(connection, p) for p in profile_ids]
+            for config in configs:
+                self._revision(config, expected_revisions[config['id']])
+            clean = self._clean_context(symbol, context)
+            encoded = json.dumps(clean, allow_nan=False)
+            # Check every selected credential before sharing context with any provider.
+            for config in configs:
+                try:
+                    secret = self.vault.decrypt(config['encrypted_key'])
+                except ApiError:
+                    continue  # This participant becomes an explicit failed result below.
+                if secret and secret in encoded:
+                    raise ApiError('INVALID_MODEL_CONTEXT', '分析上下文无效。')
+            snapshot_hash = self._hash(clean)
+            identities = [self._identity(c) for c in configs]
+            record = {'fingerprint': fingerprint, 'status': 'IN_FLIGHT', 'created_at': stamp(),
+                      'analysis_mode': 'consensus', 'model_profile_ids': profile_ids,
+                      'profile_revisions': expected_revisions, 'model_profiles': identities,
+                      'snapshot_hash': snapshot_hash, 'data_as_of': clean['quote']['as_of']}
+            repository.write_run(connection, key, record, new=True)
+            # This is the same primitive-only context for every participant. Caller
+            # mutation while a provider awaits cannot change another request.
+            shared_context = dict(clean, market_status=context['market_status'],
+                                  quote_max_age_seconds=context['quote_max_age_seconds'])
+            shared_context['quote'] = dict(clean['quote'], stale=False)
+
+        async def participant(identity):
+            profile_id = identity['profile_id']
+            child_key = 'model-component:' + self._hash([key, profile_id])
+            try:
+                result = await self.generate(symbol, expected_revisions[profile_id], child_key, shared_context,
+                                             profile_id=profile_id, component=True)
+                return dict(identity, status='SUCCEEDED', decision=result['decision'], usage=result['usage'])
+            except Exception as exc:
+                failure = self._error(exc)
+                # Even a pre-request failure (disabled/deleted/key unavailable)
+                # receives a durable child outcome; it is never automatically retried.
+                with self.store.transaction() as connection:
+                    if repository.read_run(connection, child_key) is None:
+                        repository.write_run(connection, child_key, {
+                            'fingerprint': self._hash([symbol, 'single', profile_id, expected_revisions[profile_id], True]),
+                            'status': 'FAILED', 'created_at': stamp(), 'component': True,
+                            'profile': identity, **failure}, new=True)
+                return dict(identity, status='FAILED', **failure)
+
+        try:
+            outcomes = await asyncio.gather(*(participant(identity) for identity in identities))
+            successful = [r for r in outcomes if r['status'] == 'SUCCEEDED']
+            actions = {r['decision']['action'] for r in successful}
+            complete = len(successful) == len(outcomes)
+            status = 'INCOMPLETE' if not complete else 'AGREED' if len(actions) == 1 else 'DISAGREED'
+            action = next(iter(actions)) if status == 'AGREED' else 'HOLD'
+            summary = (f'{len(outcomes)} 个模型方向一致：{action}。' if status == 'AGREED' else
+                       '模型方向存在分歧，汇总为 HOLD。' if status == 'DISAGREED' else
+                       f'{len(successful)}/{len(outcomes)} 个模型完成分析，结果不完整，汇总为 HOLD。')
+            decision = {'id': str(uuid4()), 'symbol': symbol, 'action': action, 'summary': summary,
+                        'counter_evidence': [], 'invalidation': '行情或任一模型配置变化后，应重新分析。',
+                        'created_at': stamp(), 'next_review_at': None, 'risk_status': 'NOT_EVALUATED',
+                        'source': 'AI · 交叉分析', 'model': ' + '.join(c['model'] for c in configs),
+                        'analysis_mode': 'consensus', 'consensus_status': status, 'model_profile_ids': profile_ids,
+                        'profile_revisions': expected_revisions, 'model_profiles': identities,
+                        'data_as_of': clean['quote']['as_of'], 'snapshot_hash': snapshot_hash, 'model_results': outcomes}
+            usage = None
+            if complete and all(type(r['usage'].get(k)) is int for r in successful for k in ('input_tokens', 'output_tokens')):
+                usage = {k: sum(r['usage'][k] for r in successful) for k in ('input_tokens', 'output_tokens')}
+            result = {'decision': decision, 'usage': usage}
+        except BaseException as exc:
+            with self.store.transaction() as connection:
+                repository.write_run(connection, key, dict(record, status='FAILED', **self._error(exc)))
             raise
         with self.store.transaction() as connection:
             repository.write_run(connection, key, dict(record, status='SUCCEEDED', result=result))
@@ -187,7 +394,7 @@ class ModelService:
     def decisions(self):
         with self.store.transaction() as connection:
             records = connection.execute(select(repository.runs.c.data)).scalars()
-            return sorted([r['result']['decision'] for r in records if r['status'] == 'SUCCEEDED'], key=lambda d: d['created_at'], reverse=True)[:200]
+            return sorted([r['result']['decision'] for r in records if r['status'] == 'SUCCEEDED' and not r.get('component')], key=lambda d: d['created_at'], reverse=True)[:200]
 
     def service_summary(self):
         config = self.get_config()

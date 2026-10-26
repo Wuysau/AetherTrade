@@ -74,6 +74,8 @@ class Store:
         self._lock = threading.RLock()
 
     def initialize(self):
+        # Register additive model tables even when Store is used without the app.
+        from . import model_repository as repository
         metadata.create_all(self.engine)
         try:
             with self.engine.begin() as connection:
@@ -82,6 +84,16 @@ class Store:
         except IntegrityError:
             # Another process initialized the single lock row first.
             pass
+        with self.transaction() as connection:
+            repository.ensure_profiles(connection)
+            for strategy in rows(connection, strategies):
+                if "analysis_mode" in strategy and "model_profile_ids" in strategy:
+                    continue
+                strategy.setdefault("analysis_mode", "single")
+                strategy.setdefault("model_profile_ids", [repository.DEFAULT_PROFILE_ID] if strategy.get("mode") == "AI" else [])
+                # Binding migration confers no activation/order authority and does
+                # not alter a revision that an existing client or job captured.
+                connection.execute(update(strategies).where(strategies.c.id == strategy["id"]).values(data=strategy))
 
     def close(self):
         self.engine.dispose()
@@ -203,7 +215,8 @@ class Store:
         if type(expected) is not int or current != expected:
             raise ApiError("REVISION_CONFLICT", "数据已更新，请刷新后重试。", 409)
 
-    def _strategy_values(self, payload, *, previous_status="DRAFT"):
+    def _strategy_values(self, payload, *, connection, previous_status="DRAFT", previous_routing=None):
+        from . import model_repository as repository
         if not isinstance(payload.get("name"), str) or not 1 <= len(payload["name"].strip()) <= 80:
             raise ApiError("INVALID_STRATEGY", "策略名称不能为空且最多 80 字符。")
         if payload.get("symbol") not in SYMBOLS or payload.get("mode") not in ("AI", "RULE", "HYBRID"):
@@ -222,9 +235,26 @@ class Store:
             raise ApiError("INVALID_STRATEGY", "分析间隔需为 60–86400 秒，自动下单需为布尔值。")
         if payload["mode"] != "AI" and (status == "ACTIVE" or payload["auto_execute"]):
             raise ApiError("INVALID_STRATEGY", "只有 AI 策略支持激活与自动 PAPER 下单。")
+        payload.setdefault("analysis_mode", "single")
+        payload.setdefault("model_profile_ids", [repository.DEFAULT_PROFILE_ID] if payload["mode"] == "AI" else [])
+        analysis_mode, identifiers = payload["analysis_mode"], payload["model_profile_ids"]
+        if (analysis_mode not in ("single", "consensus") or not isinstance(identifiers, list)
+                or len(identifiers) > 3 or any(type(identifier) is not str or not 1 <= len(identifier) <= 64 for identifier in identifiers)
+                or len(set(identifiers)) != len(identifiers)):
+            raise ApiError("INVALID_MODEL_BINDING", "请选择有效且不重复的模型配置。")
+        if payload["mode"] == "RULE":
+            if identifiers:
+                raise ApiError("INVALID_MODEL_BINDING", "RULE 策略不使用模型配置。")
+        elif identifiers or status == "ACTIVE":
+            if (analysis_mode == "single" and len(identifiers) != 1) or (analysis_mode == "consensus" and not 2 <= len(identifiers) <= 3):
+                raise ApiError("INVALID_MODEL_BINDING", "单模型分析需选择 1 个模型，交叉分析需选择 2–3 个模型。")
+        if any(repository.read_profile(connection, identifier) is None for identifier in identifiers):
+            raise ApiError("MODEL_PROFILE_NOT_FOUND", "所选模型配置不存在，请重新选择。", 409)
         acknowledgement = payload.pop("acknowledge_model_cost", False)
         if type(acknowledgement) is not bool:
             raise ApiError("INVALID_STRATEGY", "模型费用确认需为布尔值。")
+        if previous_status == "ACTIVE" and previous_routing != (analysis_mode, identifiers) and acknowledgement is not True:
+            raise ApiError("MODEL_COST_ACK_REQUIRED", "更改已激活策略的模型选择前，请确认周期性模型调用费用。", 409)
         if status == "ACTIVE" and previous_status != "ACTIVE":
             if acknowledgement is not True:
                 raise ApiError("MODEL_COST_ACK_REQUIRED", "激活策略前请确认周期性模型调用费用。", 409)
@@ -235,10 +265,10 @@ class Store:
         return payload
 
     def create_strategy(self, payload):
-        data = self._strategy_values(dict(payload))
-        data.update(id=str(uuid4()), revision=1, created_at=stamp(), updated_at=stamp())
         with self.transaction() as connection:
             self._state(connection)
+            data = self._strategy_values(dict(payload), connection=connection)
+            data.update(id=str(uuid4()), revision=1, created_at=stamp(), updated_at=stamp())
             connection.execute(insert(strategies).values(id=data["id"], data=data))
             self._event(connection, "STRATEGY_SAVED", "策略已保存", f"{data['name']}：{data['status']}，自动 PAPER 下单：{data['auto_execute']}。")
         return {key: value for key, value in data.items() if not key.startswith("_")}
@@ -252,10 +282,11 @@ class Store:
             previous_symbol = data["symbol"]
             previous_status = data["status"]
             previous_auto = data.get("auto_execute", False)
+            previous_routing = (data.get("analysis_mode", "single"), list(data.get("model_profile_ids", ["default"] if data["mode"] == "AI" else [])))
             data.update({key: value for key, value in payload.items() if key != "expected_revision"})
             if payload.get("auto_execute") is True and not previous_auto and previous_status != "ACTIVE" and payload.get("status") != "ACTIVE":
                 raise ApiError("INVALID_STRATEGY", "启用自动下单时请明确激活策略并确认模型费用。")
-            self._strategy_values(data, previous_status=previous_status)
+            self._strategy_values(data, connection=connection, previous_status=previous_status, previous_routing=previous_routing)
             if data["symbol"] != previous_symbol and any(
                 item.get("strategy_id") == identifier and Decimal(item["quantity"]) != 0
                 for item in rows(connection, positions)
