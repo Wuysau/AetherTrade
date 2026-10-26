@@ -1,4 +1,4 @@
-import type { AnalysisInput, ModelProfile, ModelProfileInput, TokenUsage, Notifications, ModelConfig, ModelInput, Decision, Instrument, SymbolName, ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput } from './types';
+import type { CandleHistory, CandleInterval, MarketConfig, MarketInput, AnalysisInput, ModelProfile, ModelProfileInput, TokenUsage, Notifications, ModelConfig, ModelInput, Decision, Instrument, SymbolName, ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput } from './types';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) { super(message); this.name = 'ApiError'; }
@@ -27,6 +27,20 @@ export class RuntimeApi {
     }
     if (body === null) throw new ApiError(response.status, 'INVALID_RESPONSE', '服务响应格式异常，请刷新重试。');
     return body as T;
+  }
+  marketConfig() { return this.request<MarketConfig>('/market/config'); }
+  saveMarketConfig(values: MarketInput) { return this.request<MarketConfig>('/market/config', { method: 'PUT', body: JSON.stringify(values) }); }
+  testMarketConfig(revision: number) { return this.request<{ ok: boolean; revision: number; message: string; quote_count: number }>('/market/config/test', { method: 'POST', body: JSON.stringify({ expected_revision: revision }) }, 30_000); }
+  marketSnapshot(signal?: AbortSignal) { return this.request<Market>('/market/snapshot', { signal }); }
+  marketCandles(symbol: SymbolName, interval: CandleInterval, signal?: AbortSignal) { return this.request<CandleHistory>(`/market/candles?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=120`, { signal }); }
+  openMarketStream(callbacks: { market: (market: Market) => void; error: () => void; unauthorized: () => void }) {
+    const stream = new EventSource('/api/market/stream');
+    let stopped = false;
+    const close = () => { stopped = true; stream.close(); };
+    stream.addEventListener('market', event => { if (stopped) return; try { callbacks.market(JSON.parse((event as MessageEvent).data)); } catch { callbacks.error(); } });
+    stream.addEventListener('auth-expired', () => { if (stopped) return; close(); callbacks.unauthorized(); this.onUnauthorized?.(); });
+    stream.onerror = () => { if (!stopped) callbacks.error(); };
+    return close;
   }
   notifications() { return this.request<Notifications>('/notifications'); }
   markNotificationsRead(values: { ids: string[] } | { all: true }) { return this.request<Notifications>('/notifications/read', { method: 'POST', body: JSON.stringify(values) }); }

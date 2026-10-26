@@ -54,6 +54,7 @@ instead of the happy path:
 | **Markets (target)** | Binance Spot including bStocks tokenized stocks; USD-M perpetuals remain a separate future integration |
 | **Research** | Paper simulation, point-in-time replay, experiment metrics, model cost budgets |
 | **Control surfaces** | Responsive Web console and runtime CLI; legacy CLI/TUI adapters retained separately |
+| **Live market terminal** | Read-only quotes, real OHLC candles, five-level books and recent trades; default Binance public streams or a saved custom source |
 | **Contracts first** | JSON Schema for proposals, intents, commands, and risk policy |
 | **Auditability** | Every decision, reservation, order, and recovery action is recorded |
 
@@ -69,7 +70,7 @@ is partially green and still being stabilized; venue qualification has never bee
 | Web control surface | Runnable six-page React console, desktop/mobile, authenticated sessions |
 | Runtime CLI | `aethertrade serve`, `init-db`, `doctor`; legacy terminal client also retained |
 | Console persistence | PostgreSQL or explicit local SQLite; sessions, strategies, risk and PAPER activity |
-| Public quotes | Binance Spot: BTCUSDT, ETHUSDT, SOLUSDT plus TSLABUSDT, NVDABUSDT, AAPLBUSDT bStocks |
+| Live public markets | Binance Spot WebSocket + REST fallback: BTCUSDT, ETHUSDT, SOLUSDT plus TSLABUSDT, NVDABUSDT, AAPLBUSDT bStocks; configurable Binance-compatible or standard-JSON source |
 | PAPER operations | Manual spot buy/sell, fee/cash/risk checks, pause/resume and confirmed exit |
 | AI model configuration | Up to 20 named profiles for OpenAI Responses, OpenAI-compatible Chat and Claude Messages; independent encrypted write-only keys and revisions |
 | AI strategy automation | Independent per-strategy model selection; single-model or optional 2–3-model cross-analysis; bell notifications and opt-in risk-checked automatic PAPER orders |
@@ -98,6 +99,22 @@ a dedicated PostgreSQL 17 container on `127.0.0.1:55432`, initializes console-ow
 tables and opens **http://127.0.0.1:8787**. First visit: create your local user and
 choose the initial virtual account balance. No example positions or model decisions
 are inserted. Public market quotes are read-only and require no exchange key.
+
+The positions/orders page opens with a live market terminal: selected price and
+24-hour statistics, actual OHLC candles, five-level books and recent trades. The
+official public source needs no key. To save your own Binance-compatible or
+standard-JSON service, optional encrypted market key, or REST-only source, use the
+inline source settings and follow [market source setup](docs/MARKET_SOURCES.md).
+One active configuration persists across restarts; changing it clears old-source
+caches. Connection tests, saving and resetting to the official preset are separate
+actions and do not change trading permissions.
+
+Official ticker updates are typically about once a second and candle updates about
+every two seconds; browser snapshots are coalesced to at most twice a second. A
+disconnected stream reconnects with REST fallback, whose source setting defaults
+to five seconds. The UI reports polling, reconnecting, disabled, partial and stale
+data explicitly. `AETHERTRADE_MARKET_POLL_SECONDS` controls observation persistence
+(default 15 seconds), independently of live updates and source polling.
 
 Without Docker, choose the explicit local database mode:
 
@@ -187,6 +204,7 @@ tests/                Unit, integration, fault, security, and contract tests
 - [ ] Stabilize the full test suite across Windows and Linux
 - [x] Package `trading_system` and add a supported local runtime CLI entry point
 - [x] Connect local PAPER web views, authenticated sessions and persistent controls
+- [x] Add a live market terminal, configurable public-data sources and explicit REST fallback
 - [x] Add configurable model protocols, independent strategy bindings and optional cross-analysis with controlled-provider tests
 - [ ] Validate real provider integrations and integrate native execution owners and automatic rule/hybrid scheduling
 - [ ] Venue qualification: Binance Spot, USD-M, US equities

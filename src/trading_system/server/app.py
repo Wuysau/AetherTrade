@@ -19,7 +19,9 @@ from starlette.concurrency import run_in_threadpool
 from .automation import AutomationService
 from .config import Settings
 from .errors import ApiError
-from .market import MarketFeed
+from .market_config import MarketConfigService
+from .market_live import LiveMarketFeed
+from .market_api import install_market_routes
 from .instruments import instruments
 from .model_service import ModelService
 from .model_api import ProfileAnalysis, ProfileVersion
@@ -33,13 +35,18 @@ VERSION = "0.1.0"
 def create_app(settings: Settings | None = None, *, quote_provider=None, model_client=None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = Store(settings.database_url)
-    feed = quote_provider if quote_provider is not None else MarketFeed(max_age_seconds=settings.quote_max_age_seconds, include_bstocks=True)
+    market_config = MarketConfigService(store, settings.model_key_path)
+    feed = quote_provider if quote_provider is not None else LiveMarketFeed(market_config, max_age_seconds=settings.quote_max_age_seconds)
     models = ModelService(store, settings.model_key_path, client=model_client)
     refresh_lock = asyncio.Lock()
     refresh_failed = False
 
     def market_snapshot():
         current = feed.snapshot()
+        if not settings.market_enabled and quote_provider is None:
+            return {**current, 'status': 'UNAVAILABLE', 'error': '服务端行情读取已关闭。',
+                    'transport': {**current.get('transport', {}), 'mode': 'disabled', 'status': 'DISABLED'},
+                    'quotes': [{**quote, 'stale': True} for quote in current.get('quotes', [])]}
         if refresh_failed:
             return {**current, "status": "STALE" if current.get("quotes") else "UNAVAILABLE",
                     "error": "公开行情更新失败，请稍后重试。",
@@ -66,7 +73,12 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     async def poll():
         while True:
             try:
-                await refresh()
+                if hasattr(feed, 'start'):
+                    # Live adapters own their network loops. Persist only periodic
+                    # observations, rather than writing every upstream market tick.
+                    await run_in_threadpool(store.record_observation, market_snapshot(), settings.quote_max_age_seconds)
+                else:
+                    await refresh()
             except Exception:
                 # Do not log provider URLs, database details or credential text.
                 log.warning("Market observation unavailable; next scheduled refresh will retry")
@@ -76,6 +88,9 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     async def lifespan(app):
         await run_in_threadpool(store.initialize)
         await run_in_threadpool(models.migrate)
+        await run_in_threadpool(market_config.migrate)
+        if settings.market_enabled and hasattr(feed, 'start'):
+            await feed.start()
         task = asyncio.create_task(poll(), name="aethertrade-public-quotes") if settings.market_enabled else None
         automation_task = asyncio.create_task(automation.run(), name="aethertrade-ai-automation") if settings.automation_enabled and not settings.testing else None
         try:
@@ -106,6 +121,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     app.state.settings, app.state.store, app.state.market = settings, store, feed
     app.state.models = models
     app.state.automation = automation
+    app.state.market_config = market_config
 
     @app.exception_handler(ApiError)
     async def expected_error(request, exc):
@@ -159,6 +175,17 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
         if not secrets.compare_digest(provided.encode(), session["csrf_token"].encode()):
             raise ApiError("CSRF_REJECTED", "安全令牌无效，请刷新页面后重试。", 403)
         return session
+
+    async def reconfigure_market():
+        nonlocal refresh_failed
+        refresh_failed = False
+        if hasattr(feed, 'reconfigure'):
+            await feed.reconfigure()
+
+    install_market_routes(app, store=store, config_service=market_config, feed=feed,
+                          snapshot=market_snapshot, reconfigure=reconfigure_market,
+                          authenticated=authenticated, mutation=mutation, settings=settings,
+                          externally_provided=quote_provider is not None)
 
     def session_response(data):
         token = data.pop("token")

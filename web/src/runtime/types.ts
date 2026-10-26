@@ -45,8 +45,21 @@ export interface Notifications { unread_count: number; items: Notification[] }
 export interface RuntimeEvent { id: string; kind: string; title: string; detail: string; created_at: string }
 export interface Risk { max_position_pct: string; max_daily_loss: string; revision: number }
 export interface Service { id: string; label: string; status: 'CONNECTED' | 'CONFIGURED' | 'UNAVAILABLE' | 'NOT_CONFIGURED'; detail: string; updated_at: string | null }
-export interface Quote { symbol: SymbolName; price: string; change_pct: string; as_of: string; source: string; stale: boolean }
+export interface Quote { symbol: SymbolName; price: string; change_pct: string; as_of: string; source: string; stale: boolean; open?: string; high?: string; low?: string; volume?: string; quote_volume?: string }
+export type CandleInterval = '1m' | '5m' | '15m' | '1h' | '4h' | '1d';
+export interface Candle { time: number; open: string; high: string; low: string; close: string; volume: string }
+export interface MarketBook { bids: [string, string][]; asks: [string, string][]; as_of: string; stale: boolean }
+export interface MarketTrade { id: string; price: string; quantity: string; side: 'BUY' | 'SELL'; as_of: string }
+export interface MarketFields { provider: 'binance' | 'binance_compatible' | 'standard_json'; name: string; rest_url: string; ws_url: string; auth_scheme: 'none' | 'bearer' | 'x_api_key'; local_mode: boolean; enabled: boolean; poll_seconds: number; timeout_seconds: number }
+export interface MarketConfig extends MarketFields { revision: number; has_api_key: boolean; key_available: boolean }
+export interface MarketInput extends MarketFields { expected_revision: number; api_key?: string; clear_api_key?: boolean }
+export interface CandleHistory { symbol: SymbolName; interval: CandleInterval; source_revision: number; candles: Candle[]; source: string }
+export type BrowserMarketStatus = 'connecting' | 'streaming' | 'polling' | 'paused' | 'unavailable';
 export interface Market {
+  instance_id?: string; source_revision?: number; sequence?: number;
+  transport?: { mode: 'websocket' | 'polling' | 'disabled'; status: 'CONNECTING' | 'LIVE' | 'RECONNECTING' | 'POLLING' | 'DISABLED'; last_event_at: string | null; last_error: string | null; reconnect_attempt: number };
+  books?: Partial<Record<SymbolName, MarketBook>>; trades?: Partial<Record<SymbolName, MarketTrade[]>>;
+  candles?: Partial<Record<SymbolName, Partial<Record<CandleInterval, Candle>>>>;
   source: string; status: 'CONNECTED' | 'PARTIAL' | 'UNAVAILABLE' | 'STALE';
   last_updated: string | null; error: string | null; quotes: Quote[];
   groups?: { id: 'crypto' | 'bstocks'; label: string; status: string; last_updated: string | null; error: string | null }[];

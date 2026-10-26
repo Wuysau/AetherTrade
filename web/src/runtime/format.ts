@@ -68,3 +68,20 @@ export function chartObservations(points: { at: string; equity: string }[], maxi
   result.push(unique[unique.length - 1]);
   return result;
 }
+
+/** Compact display precision; raw decimal values remain available in market titles. */
+export function marketPrice(value: string | number | null | undefined): string {
+  const parsed = finite(value);
+  if (parsed === null) return '—';
+  const magnitude = Math.abs(parsed);
+  return parsed.toLocaleString('en-US', magnitude > 0 && magnitude < .01
+    ? { maximumSignificantDigits: 6 }
+    : { maximumFractionDigits: magnitude >= 1000 ? 2 : magnitude >= 1 ? 4 : 6 });
+}
+export function marketVolume(value: string | null | undefined): string {
+  const parsed = finite(value);
+  if (parsed === null) return '—';
+  return Math.abs(parsed) >= 1_000_000
+    ? parsed.toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 2 })
+    : marketPrice(value);
+}

@@ -13,7 +13,7 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     serve = commands.add_parser("serve", help="Start the API and built browser UI")
     serve.add_argument("--port", type=int, help="Loopback HTTP port (default 8787)")
-    serve.add_argument("--no-market", action="store_true", help="Disable public quote polling")
+    serve.add_argument("--no-market", action="store_true", help="Disable public quote streams and polling")
     commands.add_parser("init-db", help="Initialize console-owned tables without resetting data")
     commands.add_parser("doctor", help="Check database connectivity and browser build")
     args = parser.parse_args(argv)
@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
         from .store import Store
         from . import model_repository  # Register additive model tables for init-db/doctor too.
         from . import automation  # Register schedules/jobs/notifications without starting a worker.
+        from . import market_config  # Register additive source settings, without connecting to a provider.
         store = Store(settings.database_url)
         try:
             store.initialize()
