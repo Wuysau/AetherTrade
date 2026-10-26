@@ -11,6 +11,7 @@ from typing import Literal, TypeAlias
 import json
 from jsonschema import Draft202012Validator, FormatChecker
 from .canonical import canonical_hash, canonical_json, decimal_string, utc_timestamp
+from .resources import contract_path
 
 class Absent(Enum):
     VALUE = "absent"
@@ -240,9 +241,7 @@ class ContractCodec:
     Temporal order uses the original timestamp fraction, without float conversion.
     """
     def __init__(self):
-        root = Path(__file__).resolve().parents[3]
-        directory = root / "contracts"
-        self._schemas = {kind: json.loads((directory / (kind + ".schema.json")).read_text(encoding="utf-8")) for kind in _KINDS}
+        self._schemas = {kind: json.loads(contract_path(kind + ".schema.json").read_text(encoding="utf-8")) for kind in _KINDS}
 
     def decode(self, kind: str, payload: dict) -> WireRecord:
         if kind not in _KINDS:

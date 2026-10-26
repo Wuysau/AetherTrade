@@ -5,11 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "aethertrade"
 version = "0.1.0"
-description = "Safety-first, contract-driven framework for AI-assisted paper trading; no live trading runtime"
+description = "AetherTrade local paper-trading console and contract-driven trading framework"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11"
-dependencies = ["jsonschema==4.26.0", "rfc3339-validator==0.1.4"]
+dependencies = [
+  "jsonschema==4.26.0", "rfc3339-validator==0.1.4",
+  "fastapi==0.162.0", "uvicorn==0.54.0", "sqlalchemy==2.1.6",
+  "psycopg[binary]==3.3.6", "httpx==0.28.1", "python-dotenv==1.2.4",
+]
+
+[project.scripts]
+aethertrade = "trading_system.server.cli:main"
 
 [project.optional-dependencies]
 test = ["pytest==9.1.1", "tzdata>=2024.1"]
@@ -18,8 +25,12 @@ test = ["pytest==9.1.1", "tzdata>=2024.1"]
 Repository = "https://github.com/Wuysau/AetherTrade"
 Issues = "https://github.com/Wuysau/AetherTrade/issues"
 
-[tool.setuptools]
-packages = []
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["trading_system*"]
+
+[tool.setuptools.package-data]
+trading_system = ["schemas/*.json", "schemas/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

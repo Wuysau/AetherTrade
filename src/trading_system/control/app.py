@@ -14,6 +14,7 @@ from jsonschema import Draft202012Validator, ValidationError
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_json, domain_payload
 from trading_system.contracts.wire import ContractCodec
+from trading_system.contracts.resources import contract_path as bundled_contract_path
 from trading_system.storage.models import decode
 from .auth import ControlError
 from .commands import ControlCommandService, ControlQuery
@@ -27,7 +28,7 @@ class ControlApp:
         self.query = ControlQuery(inbox)
         self.policies = PolicyService(inbox)
         self.deployments = DeploymentService(inbox)
-        path = contract_path or Path(__file__).resolve().parents[3] / 'contracts/control-openapi.yaml'
+        path = contract_path or bundled_contract_path('control-openapi.yaml')
         self.contract = json.loads(Path(path).read_text(encoding='utf-8'))
         self.routes = []
         for path, methods in self.contract['paths'].items():

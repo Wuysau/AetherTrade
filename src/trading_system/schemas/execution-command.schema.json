@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExecutionCommand",
+  "description": "Design contract; structure validation does not verify financial authorization or venue behavior.",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "const": "2026-10-20"
+    },
+    "command_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "intent_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "parent_command_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.:-]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "environment": {
+      "enum": [
+        "RESEARCH",
+        "PAPER",
+        "TESTNET",
+        "LIVE"
+      ]
+    },
+    "venue_account_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "product": {
+      "enum": [
+        "SPOT",
+        "USD_M_PERP",
+        "US_EQUITY"
+      ]
+    },
+    "instrument_uid": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "operation": {
+      "enum": [
+        "SUBMIT",
+        "CANCEL",
+        "AMEND",
+        "SET_PROTECTION",
+        "CLOSE"
+      ]
+    },
+    "logical_client_order_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "venue_client_order_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "venue_order_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.:-]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "target_order_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.:-]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "canonical_payload": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "enum": [
+            "BUY",
+            "SELL"
+          ]
+        },
+        "order_type": {
+          "enum": [
+            "MARKET",
+            "LIMIT",
+            "STOP_MARKET",
+            "STOP_LIMIT",
+            "TAKE_PROFIT_MARKET",
+            "TAKE_PROFIT_LIMIT"
+          ]
+        },
+        "quantity": {
+          "type": "string",
+          "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+        },
+        "quote_notional": {
+          "type": "string",
+          "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+        },
+        "price": {
+          "type": "string",
+          "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+        },
+        "trigger_price": {
+          "type": "string",
+          "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+        },
+        "reduce_only": {
+          "type": "boolean"
+        },
+        "full_position_exit": {
+          "type": "boolean"
+        },
+        "position_side": {
+          "enum": [
+            "BOTH",
+            "LONG",
+            "SHORT"
+          ]
+        },
+        "time_in_force": {
+          "enum": [
+            "GTC",
+            "GTD",
+            "DAY",
+            "IOC",
+            "FOK"
+          ]
+        },
+        "tokenize": {
+          "const": false
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "payload_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ownership_epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "execution_epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "policy_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "state": {
+      "enum": [
+        "DURABLE_READY",
+        "MAY_HAVE_SENT",
+        "UNKNOWN",
+        "NOT_SENT",
+        "VENUE_REJECTED",
+        "VENUE_CONFIRMED",
+        "ABORTED_UNSENT"
+      ]
+    },
+    "outcome_provenance": {
+      "enum": [
+        "LOCAL_VALIDATION",
+        "VENUE_EVENT",
+        "VENUE_QUERY",
+        "RECONCILIATION_INFERRED",
+        "LOCAL_POLICY",
+        "NONE"
+      ]
+    },
+    "durable_record_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "contract_version",
+    "command_id",
+    "attempt_id",
+    "intent_id",
+    "parent_command_id",
+    "environment",
+    "venue_account_id",
+    "product",
+    "instrument_uid",
+    "operation",
+    "logical_client_order_id",
+    "venue_client_order_id",
+    "venue_order_id",
+    "target_order_id",
+    "canonical_payload",
+    "payload_hash",
+    "ownership_epoch",
+    "execution_epoch",
+    "policy_revision",
+    "state",
+    "outcome_provenance",
+    "durable_record_ref",
+    "created_at"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "CANCEL",
+              "AMEND"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "target_order_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "SUBMIT",
+              "SET_PROTECTION",
+              "CLOSE"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "canonical_payload": {
+            "required": [
+              "side",
+              "order_type"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "quantity"
+                ]
+              },
+              {
+                "required": [
+                  "quote_notional"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "product": {
+            "const": "US_EQUITY"
+          },
+          "operation": {
+            "const": "SUBMIT"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "canonical_payload": {
+            "required": [
+              "tokenize"
+            ],
+            "properties": {
+              "order_type": {
+                "enum": [
+                  "MARKET",
+                  "LIMIT"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

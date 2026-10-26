@@ -1,0 +1,455 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TradeIntent",
+  "description": "Design contract; structure validation does not verify financial authorization or venue behavior.",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "const": "2026-10-20"
+    },
+    "intent_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "environment": {
+      "enum": [
+        "RESEARCH",
+        "PAPER",
+        "TESTNET",
+        "LIVE"
+      ]
+    },
+    "owner_strategy_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "strategy_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "decision_run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "authorization_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "venue_account_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "collateral_group_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "venue": {
+      "const": "BINANCE"
+    },
+    "product": {
+      "enum": [
+        "SPOT",
+        "USD_M_PERP",
+        "US_EQUITY"
+      ]
+    },
+    "instrument_uid": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "venue_leg": {
+      "enum": [
+        "BOTH",
+        "LONG",
+        "SHORT"
+      ]
+    },
+    "ownership_epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "risk_policy_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "basis_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9_.:-]+$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "action": {
+      "enum": [
+        "SET_TARGET",
+        "UPDATE_EXIT",
+        "HOLD"
+      ]
+    },
+    "target_side": {
+      "enum": [
+        "LONG",
+        "SHORT",
+        "FLAT"
+      ]
+    },
+    "target_quantity": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "quantity_unit": {
+      "enum": [
+        "BASE",
+        "CONTRACT",
+        "SHARE"
+      ]
+    },
+    "execution": {
+      "type": "object",
+      "properties": {
+        "order_preference": {
+          "enum": [
+            "MARKET",
+            "LIMIT"
+          ]
+        },
+        "limit_price": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maximum_entry_slippage_bps": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+        },
+        "entry_deadline": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "allow_partial": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "order_preference",
+        "limit_price",
+        "maximum_entry_slippage_bps",
+        "entry_deadline",
+        "allow_partial"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "order_preference": {
+                "const": "LIMIT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "limit_price": {
+                "type": "string",
+                "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "limit_price": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "max_planned_loss": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{2,16}$"
+        }
+      },
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "requested_leverage": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "exit_plan": {
+      "type": "object",
+      "properties": {
+        "protection_policy": {
+          "enum": [
+            "NATIVE_REQUIRED",
+            "HOSTED_ALLOWED_CASH_ONLY"
+          ]
+        },
+        "stop_trigger": {
+          "enum": [
+            "LAST",
+            "MARK",
+            "BID_ASK"
+          ]
+        },
+        "stop_price": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "review_due_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "maximum_holding_seconds": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "protection_policy",
+        "stop_trigger",
+        "stop_price",
+        "review_due_at",
+        "maximum_holding_seconds"
+      ],
+      "additionalProperties": false
+    },
+    "proposal_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "rationale_summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "supersedes_intent_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.:-]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "contract_version",
+    "intent_id",
+    "environment",
+    "owner_strategy_id",
+    "strategy_revision",
+    "decision_run_id",
+    "authorization_id",
+    "venue_account_id",
+    "collateral_group_id",
+    "venue",
+    "product",
+    "instrument_uid",
+    "venue_leg",
+    "ownership_epoch",
+    "risk_policy_revision",
+    "basis_fingerprint",
+    "snapshot_id",
+    "as_of",
+    "created_at",
+    "valid_until",
+    "evidence_refs",
+    "action",
+    "target_side",
+    "target_quantity",
+    "quantity_unit",
+    "execution",
+    "max_planned_loss",
+    "requested_leverage",
+    "exit_plan",
+    "proposal_hash",
+    "rationale_summary",
+    "supersedes_intent_id"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "target_side": {
+            "const": "FLAT"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "target_quantity": {
+            "type": "string",
+            "pattern": "^0(?:\\.0+)?$"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "target_quantity": {
+            "type": "string",
+            "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "product": {
+            "enum": [
+              "SPOT",
+              "US_EQUITY"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "requested_leverage": {
+            "const": 1
+          },
+          "target_side": {
+            "enum": [
+              "LONG",
+              "FLAT"
+            ]
+          },
+          "venue_leg": {
+            "const": "BOTH"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "product": {
+            "const": "USD_M_PERP"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_plan": {
+            "properties": {
+              "protection_policy": {
+                "const": "NATIVE_REQUIRED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "target_side": {
+            "enum": [
+              "LONG",
+              "SHORT"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_plan": {
+            "properties": {
+              "stop_price": {
+                "type": "string",
+                "pattern": "^(?:[1-9][0-9]*(?:\\.[0-9]+)?|0\\.[0-9]*[1-9][0-9]*)$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "product": {
+            "const": "US_EQUITY"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "quantity_unit": {
+            "const": "SHARE"
+          }
+        }
+      }
+    }
+  ]
+}

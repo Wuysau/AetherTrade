@@ -19,7 +19,8 @@ and designed to fail closed.
 > [!WARNING]
 > **Research software. Not production ready. No live trading.**
 > There is no certified venue integration, no qualification report, and no support for
-> real funds. Run it with fictional data only. See [Project status](#project-status).
+> real funds. The local console uses virtual PAPER funds and read-only public prices.
+> See [Project status](#project-status).
 
 ---
 
@@ -65,9 +66,13 @@ is partially green and still being stabilized; venue qualification has never bee
 |---|---|
 | Domain models, intent, risk, execution, protection modules | Implemented, unit/integration coverage |
 | Contract schemas (`contracts/`) | Stable |
-| Web control surface | Static views in progress |
-| CLI/TUI | Prototype |
-| PostgreSQL ledger migration | Reference schema |
+| Web control surface | Runnable six-page React console, desktop/mobile, authenticated sessions |
+| Runtime CLI | `aethertrade serve`, `init-db`, `doctor`; legacy terminal client also retained |
+| Console persistence | PostgreSQL or explicit local SQLite; sessions, strategies, risk and PAPER activity |
+| Public quotes | Binance market-data-only endpoint: BTCUSDT, ETHUSDT, SOLUSDT |
+| PAPER operations | Manual spot buy/sell, fee/cash/risk checks, pause/resume and confirmed exit |
+| AI / rule automatic execution | Configuration only; model/scheduler integration not enabled |
+| Original PostgreSQL ledger migration | Reference schema, separate from console-owned tables |
 | NautilusTrader adapter | Offline bridge only — native evidence **NOT_RUN** |
 | Binance Spot / USD-M / US Equities qualification | **NOT_RUN** |
 | Live trading | **Disabled** |
@@ -77,37 +82,64 @@ profitability claim, and not permission to trade real funds.
 
 ## Quickstart
 
-```bash
-git clone https://github.com/Wuysau/AetherTrade.git
-cd AetherTrade
+Requirements: Python 3.11+, Node.js 22.12+ (24 recommended). PostgreSQL mode also
+requires a running Docker Desktop/Compose engine.
 
+On Windows, from this checkout:
+
+```powershell
+.\scripts\start-console.ps1 -Database Postgres
+```
+
+This creates an isolated Python environment, installs/builds the frontend, provisions
+a dedicated PostgreSQL 17 container on `127.0.0.1:55432`, initializes console-owned
+tables and opens **http://127.0.0.1:8787**. First visit: create your local user and
+choose the initial virtual account balance. No example positions or model decisions
+are inserted. Public market quotes are read-only and require no exchange key.
+
+Without Docker, choose the explicit local database mode:
+
+```powershell
+.\scripts\start-console.ps1 -Database Local
+.\scripts\stop-console.ps1                 # stops API; data remains
+.\scripts\stop-console.ps1 -StopDatabase   # also stops this checkout's PostgreSQL
+```
+
+Database modes have separate accounts/data; they are never silently interchanged.
+Use `-Port`, `-DatabasePort`, `-NoBrowser`, `-NoMarket` or `-Foreground` as needed.
+Subsequent runs may use `-SkipInstall`; the frontend is still rebuilt. Generated
+PostgreSQL credentials live in ignored `.runtime/postgres.env`; logs and process
+records also live under `.runtime/`. Stopping never deletes database volumes.
+
+Manual startup / other platforms:
+
+```bash
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate  # PowerShell: .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[test]"
-
-python -m pytest -q
-```
-
-The suite is a work in progress; some failures are currently expected. Windows users
-need `tzdata` (installed with the test extra) for IANA timezone support.
-
-Web workspace (TypeScript + Vitest, no runtime API yet):
-
-```bash
 npm --prefix web ci
-npm --prefix web run typecheck
-npm --prefix web test
+npm --prefix web run build
+aethertrade serve          # explicit default: local SQLite, loopback 8787
 ```
 
-There is no supported way to connect an exchange account, and you should not try.
+Set `AETHERTRADE_DATABASE_URL` to a `postgresql+psycopg://...` URL to select a supplied
+PostgreSQL database. Optional settings are in `.env.runtime.example`; copying it
+to `.env.runtime` is optional. The manual CLI does not load the generated
+`.runtime/postgres.env` automatically. See [runtime operations](docs/RUNTIME.md)
+for database selection, development proxy, data locations, tests and limitations.
+
+The new console provides local PAPER operations; the original native execution,
+AI/automatic rules, real account connectors and qualification gates remain separate.
 
 ## Repository layout
 
 ```text
 src/trading_system/   decision, rules, risk, execution, protection, recovery, research…
+src/trading_system/server/  runnable local API, sessions, persistence, public quotes
 contracts/            JSON Schemas and the control API contract
-web/                  Web/PWA control surface
-deploy/               Offline, sandboxed Compose template (no runtime binding)
+web/                  React/Vite six-screen browser console and legacy view modules
+deploy/console.compose.yaml  local PostgreSQL service
+deploy/compose.yaml   original offline isolation template (not a runnable product stack)
 migrations/           PostgreSQL ledger schema
 qualification/        Venue and engine capability records (all NOT_RUN)
 tests/                Unit, integration, fault, security, and contract tests
@@ -128,8 +160,9 @@ tests/                Unit, integration, fault, security, and contract tests
 ## Roadmap
 
 - [ ] Stabilize the full test suite across Windows and Linux
-- [ ] Package `trading_system` and add a supported CLI entry point
-- [ ] Complete the read-only control API and live web views
+- [x] Package `trading_system` and add a supported local runtime CLI entry point
+- [x] Connect local PAPER web views, authenticated sessions and persistent controls
+- [ ] Integrate native execution owners, model providers and automatic rule scheduling
 - [ ] Venue qualification: Binance Spot, USD-M, US equities
 - [ ] Registered failover, recovery, and load evidence
 - [ ] Threat model review before any live-mode proposal
