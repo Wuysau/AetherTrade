@@ -35,8 +35,10 @@ class Settings:
     quote_max_age_seconds: int = 90
     market_enabled: bool = True
     testing: bool = False
+    automation_enabled: bool = True
     cookie_name: str = "aethertrade_session"
     cookie_secure: bool = False
+    model_key_path: Path = PROJECT_ROOT / ".runtime/model-secrets.key"
 
     def __post_init__(self) -> None:
         if self.host not in {"127.0.0.1", "localhost", "::1"}:
@@ -62,6 +64,7 @@ class Settings:
             if not self.testing and parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
                 raise ValueError("Local console browser origins must be loopback")
         object.__setattr__(self, "web_dist", Path(self.web_dist).resolve())
+        object.__setattr__(self, "model_key_path", Path(self.model_key_path).resolve())
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -82,6 +85,8 @@ class Settings:
             session_hours=int(os.getenv("AETHERTRADE_SESSION_HOURS", "12")),
             market_poll_seconds=int(os.getenv("AETHERTRADE_MARKET_POLL_SECONDS", "15")),
             quote_max_age_seconds=int(os.getenv("AETHERTRADE_QUOTE_MAX_AGE_SECONDS", "90")),
+            automation_enabled=_flag(os.getenv("AETHERTRADE_AUTOMATION_ENABLED", "true")),
             market_enabled=_flag(os.getenv("AETHERTRADE_MARKET_ENABLED", "true")),
             cookie_secure=_flag(os.getenv("AETHERTRADE_COOKIE_SECURE", "false")),
+            model_key_path=Path(os.getenv("AETHERTRADE_MODEL_KEY_PATH", str(PROJECT_ROOT / ".runtime/model-secrets.key"))),
         )

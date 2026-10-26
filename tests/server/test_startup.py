@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import sqlite3
 
 import pytest
 
@@ -41,6 +42,10 @@ def test_doctor_initializes_real_database_and_checks_build(tmp_path):
                             cwd=tmp_path, env=env, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert db.is_file() and "Browser build: ready" in result.stdout
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("SELECT name FROM sqlite_master WHERE name='console_model_config'").fetchone()
+        assert connection.execute("SELECT name FROM sqlite_master WHERE name='console_ai_jobs'").fetchone()
+        assert connection.execute("SELECT name FROM sqlite_master WHERE name='console_notifications'").fetchone()
 
 
 def test_all_packaged_contracts_are_exact_checkout_copies():

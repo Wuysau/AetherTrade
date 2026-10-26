@@ -207,3 +207,25 @@ dialog.wide-dialog{max-width:520px}
 }
 @media(max-width:360px){.stat-value{font-size:19px}.stat-foot{font-size:9px}.form-grid{grid-template-columns:1fr}.guard-action{flex-wrap:wrap}.helper-grid{gap:5px}.helper{padding:10px 7px}}
 @media(prefers-reduced-motion:reduce){.runtime-view,.spin{animation:none}.progress span{transition:none}}
+
+/* Model settings extend the existing panel and form vocabulary. */
+.model-panel { margin-bottom: 22px; }
+.model-summary, .model-check { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.model-check { line-height: 1.7; cursor: pointer; }
+.model-check input { width: 17px; height: 17px; accent-color: var(--blue, #79b6d4); }
+.model-settings { padding: 22px 0 0; }
+.model-settings summary { cursor: pointer; padding: 10px 0; }
+.model-advanced { display: grid; gap: 14px; padding: 12px 0; }
+.manual-analysis { display: grid; gap: 14px; border-top: 1px solid #263442; padding-top: 22px; margin-top: 22px; }
+.manual-analysis h3, .market-group h3 { font-size: 13px; font-weight: 450; margin: 0; }
+.manual-analysis > .button { justify-self: start; }
+.market-group h3, .market-group > .field-help { padding: 14px 22px; }
+.model-summary span { overflow-wrap: anywhere; }
+.model-settings .action-strip { flex-wrap: wrap; }
+@media (max-width: 620px) { .model-settings .form-grid { grid-template-columns: 1fr; } .model-check { flex-wrap: nowrap; align-items: flex-start; } .model-check input { flex: 0 0 17px; margin-top: 4px; } }
+
+/* Strategy automation shares existing console surfaces and controls. */
+.automation-panel{margin-bottom:19px}.automation-row{display:flex;justify-content:space-between;gap:24px;padding:18px 0;border-top:1px solid var(--stroke-soft)}.automation-row h3{font-size:14px;font-weight:500;margin:0 0 5px}.automation-controls{min-width:240px;white-space:normal}.automation-controls .model-check{margin:10px 0}.automation-controls .field-help{margin:6px 0;max-width:48ch}.manual-disclosure{margin-top:18px}.manual-disclosure summary{cursor:pointer;color:var(--muted);padding:10px 0}.activity-button{position:relative;display:grid}.notification-count{position:absolute;right:-9px;top:-6px;min-width:18px;padding:1px 4px;border-radius:9px;background:var(--blue);color:#091721;font-size:10px;font-weight:700}.notification-list .action-strip{margin-top:10px;flex-wrap:wrap}.notification-list p{overflow-wrap:anywhere}.notification-list time{font-size:11px;color:var(--muted)}
+@media(max-width:620px){.top-tools .activity-button{display:grid;width:34px;height:34px;margin-right:5px}.automation-row{display:block}.automation-controls{min-width:0;margin-top:12px}.notification-list .button{white-space:normal}}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

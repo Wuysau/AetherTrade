@@ -203,7 +203,7 @@ class Store:
         if type(expected) is not int or current != expected:
             raise ApiError("REVISION_CONFLICT", "数据已更新，请刷新后重试。", 409)
 
-    def _strategy_values(self, payload):
+    def _strategy_values(self, payload, *, previous_status="DRAFT"):
         if not isinstance(payload.get("name"), str) or not 1 <= len(payload["name"].strip()) <= 80:
             raise ApiError("INVALID_STRATEGY", "策略名称不能为空且最多 80 字符。")
         if payload.get("symbol") not in SYMBOLS or payload.get("mode") not in ("AI", "RULE", "HYBRID"):
@@ -211,18 +211,37 @@ class Store:
         payload["name"] = payload["name"].strip()
         payload["budget"] = number(amount(payload.get("budget")))
         payload["target_pct"] = number(amount(payload.get("target_pct"), maximum="100"))
-        if payload.get("status", "DRAFT") not in ("DRAFT", "PAUSED"):
-            raise ApiError("INVALID_STRATEGY", "策略仅支持草稿或暂停状态。")
+        payload.setdefault("status", "DRAFT")
+        payload.setdefault("analysis_interval_seconds", 300)
+        payload.setdefault("auto_execute", False)
+        status = payload["status"]
+        if status not in ("DRAFT", "ACTIVE", "PAUSED"):
+            raise ApiError("INVALID_STRATEGY", "策略状态无效。")
+        interval = payload["analysis_interval_seconds"]
+        if type(interval) is not int or not 60 <= interval <= 86400 or type(payload["auto_execute"]) is not bool:
+            raise ApiError("INVALID_STRATEGY", "分析间隔需为 60–86400 秒，自动下单需为布尔值。")
+        if payload["mode"] != "AI" and (status == "ACTIVE" or payload["auto_execute"]):
+            raise ApiError("INVALID_STRATEGY", "只有 AI 策略支持激活与自动 PAPER 下单。")
+        acknowledgement = payload.pop("acknowledge_model_cost", False)
+        if type(acknowledgement) is not bool:
+            raise ApiError("INVALID_STRATEGY", "模型费用确认需为布尔值。")
+        if status == "ACTIVE" and previous_status != "ACTIVE":
+            if acknowledgement is not True:
+                raise ApiError("MODEL_COST_ACK_REQUIRED", "激活策略前请确认周期性模型调用费用。", 409)
+            payload["_activation_authorized"] = True
+            payload["_activated_at"] = stamp()
+        if payload["auto_execute"] and status == "DRAFT":
+            raise ApiError("INVALID_STRATEGY", "自动下单需要明确激活 AI 策略。")
         return payload
 
     def create_strategy(self, payload):
         data = self._strategy_values(dict(payload))
-        data.update(id=str(uuid4()), status="DRAFT", revision=1, created_at=stamp(), updated_at=stamp())
+        data.update(id=str(uuid4()), revision=1, created_at=stamp(), updated_at=stamp())
         with self.transaction() as connection:
             self._state(connection)
             connection.execute(insert(strategies).values(id=data["id"], data=data))
-            self._event(connection, "STRATEGY_SAVED", "策略已保存", f"{data['name']}：仅保存配置，尚未自动执行或连接 AI。")
-        return data
+            self._event(connection, "STRATEGY_SAVED", "策略已保存", f"{data['name']}：{data['status']}，自动 PAPER 下单：{data['auto_execute']}。")
+        return {key: value for key, value in data.items() if not key.startswith("_")}
 
     def update_strategy(self, identifier, payload):
         with self.transaction() as connection:
@@ -231,8 +250,12 @@ class Store:
                 raise ApiError("STRATEGY_NOT_FOUND", "策略不存在。", 404)
             self._revision(data["revision"], payload.get("expected_revision"))
             previous_symbol = data["symbol"]
+            previous_status = data["status"]
+            previous_auto = data.get("auto_execute", False)
             data.update({key: value for key, value in payload.items() if key != "expected_revision"})
-            self._strategy_values(data)
+            if payload.get("auto_execute") is True and not previous_auto and previous_status != "ACTIVE" and payload.get("status") != "ACTIVE":
+                raise ApiError("INVALID_STRATEGY", "启用自动下单时请明确激活策略并确认模型费用。")
+            self._strategy_values(data, previous_status=previous_status)
             if data["symbol"] != previous_symbol and any(
                 item.get("strategy_id") == identifier and Decimal(item["quantity"]) != 0
                 for item in rows(connection, positions)
@@ -240,8 +263,8 @@ class Store:
                 raise ApiError("STRATEGY_HAS_POSITION", "请先退出该策略持仓，再修改交易标的。", 409)
             data.update(revision=data["revision"] + 1, updated_at=stamp())
             connection.execute(update(strategies).where(strategies.c.id == identifier).values(data=data))
-            self._event(connection, "STRATEGY_SAVED", "策略已更新", f"{data['name']}：配置已持久化，自动执行未配置。")
-            return data
+            self._event(connection, "STRATEGY_SAVED", "策略已更新", f"{data['name']}：{data['status']}，自动 PAPER 下单：{data['auto_execute']}。")
+            return {key: value for key, value in data.items() if not key.startswith("_")}
 
     def update_risk(self, payload):
         maximum = amount(payload["max_position_pct"], maximum="100")
@@ -267,7 +290,7 @@ class Store:
             price = amount(quote.get("price"), scale=18)
             if fresh:
                 age = (now() - utc_timestamp(quote.get("as_of"))).total_seconds()
-                if quote.get("stale") is not False or market.get("status") != "CONNECTED" or not 0 <= age <= maximum_age:
+                if quote.get("stale") is not False or market.get("status") not in ("CONNECTED", "PARTIAL") or not 0 <= age <= maximum_age:
                     raise ValueError()
             return price
         except (ApiError, ValueError, TypeError, AttributeError):
@@ -354,46 +377,50 @@ class Store:
 
     def order(self, payload, key, market, maximum_age):
         with self.transaction() as connection:
-            cached, fingerprint = self._cached(connection, key, "order", payload)
-            if cached:
-                return cached
-            data = self._state(connection)
-            account = data["account"]
-            symbol, side = payload.get("symbol"), payload.get("side")
-            if symbol not in SYMBOLS or side not in ("BUY", "SELL"):
-                raise ApiError("INVALID_ORDER", "PAPER 订单品种或方向无效。")
-            quantity = amount(payload.get("quantity"))
-            strategy_id = payload.get("strategy_id")
+            return self._order(connection, payload, key, market, maximum_age)
+
+    def _order(self, connection, payload, key, market, maximum_age):
+        """Shared risk checks, fill and receipt within the caller's account lock."""
+        cached, fingerprint = self._cached(connection, key, "order", payload)
+        if cached:
+            return cached
+        data = self._state(connection)
+        account = data["account"]
+        symbol, side = payload.get("symbol"), payload.get("side")
+        if symbol not in SYMBOLS or side not in ("BUY", "SELL"):
+            raise ApiError("INVALID_ORDER", "PAPER 订单品种或方向无效。")
+        quantity = amount(payload.get("quantity"))
+        strategy_id = payload.get("strategy_id")
+        if strategy_id:
+            strategy = connection.execute(select(strategies.c.data).where(strategies.c.id == strategy_id)).scalar_one_or_none()
+            if not strategy or strategy["symbol"] != symbol:
+                raise ApiError("STRATEGY_MISMATCH", "订单必须关联同一品种的现有策略。")
+        price = self._price(market, symbol, maximum_age)
+        if side == "BUY":
+            if account["paused"]:
+                raise ApiError("ENTRIES_PAUSED", "PAPER 新开仓已暂停；仍可卖出已有持仓。", 409)
+            equity, held = self._valuation(connection, account, market, fresh=True, maximum_age=maximum_age)
+            projected_loss = self._day_start(connection, account["initial_cash"]) - equity + quantity * price * FEE
+            if projected_loss >= Decimal(data["risk"]["max_daily_loss"]):
+                raise ApiError("DAILY_LOSS_LIMIT", "PAPER 当日亏损已达到限制。", 409)
+            previous = next((Decimal(item["market_value"]) for item in held if item["symbol"] == symbol), Decimal(0))
+            post_equity = equity - quantity * price * FEE
+            if post_equity <= 0 or (previous + quantity * price) * 100 > post_equity * Decimal(data["risk"]["max_position_pct"]):
+                raise ApiError("POSITION_LIMIT", "该订单将超过 PAPER 单品种仓位上限。", 409)
             if strategy_id:
-                strategy = connection.execute(select(strategies.c.data).where(strategies.c.id == strategy_id)).scalar_one_or_none()
-                if not strategy or strategy["symbol"] != symbol:
-                    raise ApiError("STRATEGY_MISMATCH", "订单必须关联同一品种的现有策略。")
-            price = self._price(market, symbol, maximum_age)
-            if side == "BUY":
-                if account["paused"]:
-                    raise ApiError("ENTRIES_PAUSED", "PAPER 新开仓已暂停；仍可卖出已有持仓。", 409)
-                equity, held = self._valuation(connection, account, market, fresh=True, maximum_age=maximum_age)
-                projected_loss = self._day_start(connection, account["initial_cash"]) - equity + quantity * price * FEE
-                if projected_loss >= Decimal(data["risk"]["max_daily_loss"]):
-                    raise ApiError("DAILY_LOSS_LIMIT", "PAPER 当日亏损已达到限制。", 409)
-                previous = next((Decimal(item["market_value"]) for item in held if item["symbol"] == symbol), Decimal(0))
-                post_equity = equity - quantity * price * FEE
-                if post_equity <= 0 or (previous + quantity * price) * 100 > post_equity * Decimal(data["risk"]["max_position_pct"]):
-                    raise ApiError("POSITION_LIMIT", "该订单将超过 PAPER 单品种仓位上限。", 409)
-                if strategy_id:
-                    if strategy["status"] == "PAUSED":
-                        raise ApiError("STRATEGY_PAUSED", "所选策略已暂停。", 409)
-                    if previous + quantity * price > Decimal(strategy["budget"]):
-                        raise ApiError("STRATEGY_BUDGET", "订单将超过策略预算。", 409)
-            order = self._fill(connection, account, payload, price)
-            account["revision"] += 1
-            self._save(connection, data)
-            equity, _ = self._valuation(connection, account, market)
-            self._observe(connection, equity)
-            self._event(connection, "PAPER_FILL", "PAPER 模拟订单已成交", f"{side} {symbol} × {order['quantity']}；仅更新本地 PAPER 账本，模拟费率 0.1%。")
-            result = {"order": order, "account_revision": account["revision"]}
-            connection.execute(insert(receipts).values(key=key, fingerprint=fingerprint, data=result))
-            return result
+                if strategy["status"] == "PAUSED":
+                    raise ApiError("STRATEGY_PAUSED", "所选策略已暂停。", 409)
+                if previous + quantity * price > Decimal(strategy["budget"]):
+                    raise ApiError("STRATEGY_BUDGET", "订单将超过策略预算。", 409)
+        order = self._fill(connection, account, payload, price)
+        account["revision"] += 1
+        self._save(connection, data)
+        equity, _ = self._valuation(connection, account, market)
+        self._observe(connection, equity)
+        self._event(connection, "PAPER_FILL", "PAPER 模拟订单已成交", f"{side} {symbol} × {order['quantity']}；仅更新本地 PAPER 账本，模拟费率 0.1%。")
+        result = {"order": order, "account_revision": account["revision"]}
+        connection.execute(insert(receipts).values(key=key, fingerprint=fingerprint, data=result))
+        return result
 
     def action(self, payload, key, market, maximum_age):
         with self.transaction() as connection:
@@ -489,6 +516,28 @@ class Store:
                 connection.execute(update(positions).where(positions.c.symbol == item["symbol"]).values(data=item))
             self._observe(connection, equity)
 
+    def analysis_context(self, symbol, market, maximum_age):
+        """Minimal PAPER context; no identity, credential, connection or session data.
+
+        Freshness is enforced by ModelService after durable idempotent replay.
+        Do not include a potentially stale whole-portfolio equity estimate.
+        """
+        if symbol not in SYMBOLS:
+            raise ApiError("INVALID_SYMBOL", "不支持该分析标的。")
+        snapshot = self.dashboard(market, "24H")
+        account = {key: snapshot['account'][key] for key in ('cash', 'equity', 'currency', 'paused')}
+        for holding in snapshot['positions']:
+            try:
+                self._price(market, holding['symbol'], maximum_age)
+            except ApiError:
+                account.pop('equity', None)
+                break
+        matching = [quote for quote in market.get('quotes', []) if isinstance(quote, dict) and quote.get('symbol') == symbol]
+        return {'symbol': symbol, 'quote': matching[0] if len(matching) == 1 else None,
+                'position': next((position for position in snapshot['positions'] if position['symbol'] == symbol), None),
+                'account': account, 'risk': snapshot['risk'],
+                'market_status': market.get('status'), 'quote_max_age_seconds': maximum_age}
+
     def export(self, market):
         data = self.dashboard(market, "90D")
         account = data["account"]
@@ -500,5 +549,5 @@ class Store:
         lines += [f"{item['created_at']} {item['symbol']} {item['side']} {item['quantity']} @ {item['price']} fee={item['fee']} id={item['id']}" for item in reversed(data["orders"])]
         if not data["orders"]:
             lines.append("尚无成交。")
-        lines += ["", "AI 决策与自动执行未配置。研究指标仅基于已记录活动和行情观察。"]
+        lines += ["", "AI 分析与自动交易相互独立。研究指标仅基于已记录的 PAPER 活动和行情观察。"]
         return "\n".join(lines) + "\n"

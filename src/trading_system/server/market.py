@@ -17,10 +17,10 @@ from decimal import Decimal
 
 import httpx
 
+from .instruments import BSTOCK_SYMBOLS, CRYPTO_SYMBOLS
 
 _URL = "https://data-api.binance.vision/api/v3/ticker/24hr"
 _SOURCE = "Binance Spot (data-api.binance.vision)"
-_SYMBOLS = ("BTCUSDT", "ETHUSDT", "SOLUSDT")
 _MAX_BODY_BYTES = 32768
 _DECIMAL = re.compile(r"-?[0-9]+(?:\.[0-9]+)?\Z")
 
@@ -67,7 +67,7 @@ def _decimal_string(value: object, *, positive: bool) -> str:
     return value
 
 
-class MarketFeed:
+class _QuoteGroup:
     """Offline construction; only refresh performs a fixed public GET.
 
     Failed refreshes invalidate the entire previous batch. An old quote remains
@@ -79,11 +79,13 @@ class MarketFeed:
     def __init__(
         self, timeout: float = 6.0, max_age_seconds: float = 90,
         client: httpx.AsyncClient | None = None,
+        *, symbols: tuple[str, ...] = CRYPTO_SYMBOLS,
     ) -> None:
         for name, value in (("timeout", timeout), ("max_age_seconds", max_age_seconds)):
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
                 raise ValueError(f"{name} must be a finite positive number")
         self.timeout = float(timeout)
+        self._symbols = symbols
         self.max_age_seconds = float(max_age_seconds)
         self._client = client
         self._owns_client = client is None
@@ -152,7 +154,7 @@ class MarketFeed:
         # headers, cookies, arbitrary query parameters or a different base URL.
         request = httpx.Request(
             "GET", _URL,
-            params={"symbols": json.dumps(_SYMBOLS, separators=(",", ":")), "type": "FULL"},
+            params={"symbols": json.dumps(self._symbols, separators=(",", ":")), "type": "FULL"},
             headers={"Accept": "application/json", "Accept-Encoding": "identity"},
             extensions={"timeout": httpx.Timeout(self.timeout).as_dict()},
         )
@@ -181,7 +183,7 @@ class MarketFeed:
             await response.aclose()
 
     def _parse(self, payload: object) -> tuple[Quote, ...]:
-        if not isinstance(payload, list) or len(payload) != len(_SYMBOLS):
+        if not isinstance(payload, list) or len(payload) != len(self._symbols):
             raise _InvalidData("公开行情响应缺少完整的指定交易对")
         now = _utc_now()
         quotes = {}
@@ -189,7 +191,7 @@ class MarketFeed:
             if not isinstance(item, dict):
                 raise _InvalidData("公开行情响应结构无效")
             symbol = item.get("symbol")
-            if not isinstance(symbol, str) or symbol not in _SYMBOLS or symbol in quotes:
+            if not isinstance(symbol, str) or symbol not in self._symbols or symbol in quotes:
                 raise _InvalidData("公开行情响应包含错误或重复的交易对")
             price = _decimal_string(item.get("lastPrice"), positive=True)
             change = _decimal_string(item.get("priceChangePercent"), positive=False)
@@ -207,7 +209,7 @@ class MarketFeed:
                 symbol, price, change, as_of.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
                 _SOURCE, False,
             )
-        return tuple(quotes[symbol] for symbol in _SYMBOLS)
+        return tuple(quotes[symbol] for symbol in self._symbols)
 
     async def close(self) -> None:
         """Close only resources owned by this feed; injected clients stay open."""
@@ -216,3 +218,54 @@ class MarketFeed:
             self._error = "行情服务已关闭"
             if self._owns_client and self._client is not None:
                 await self._client.aclose()
+
+
+class MarketFeed:
+    """Independent bounded batches; default retains the crypto-only protocol.
+
+    Each group owns its cache, request deadline, lock and (unless injected)
+    HTTP client. A slow or invalid group cannot invalidate another group's
+    fresh quotes. No network I/O occurs until an explicit refresh.
+    """
+
+    def __init__(
+        self, timeout: float = 6.0, max_age_seconds: float = 90,
+        client: httpx.AsyncClient | None = None, *, include_bstocks: bool = False,
+    ) -> None:
+        self._groups = [("crypto", "加密货币", _QuoteGroup(timeout, max_age_seconds, client))]
+        if include_bstocks:
+            self._groups.append(("bstocks", "Binance bStocks", _QuoteGroup(
+                timeout, max_age_seconds, client, symbols=BSTOCK_SYMBOLS,
+            )))
+
+    def snapshot(self) -> dict:
+        snapshots = [group.snapshot() for _, _, group in self._groups]
+        if len(snapshots) == 1:
+            return snapshots[0]
+        quotes = [quote for snapshot in snapshots for quote in snapshot["quotes"]]
+        statuses = [snapshot["status"] for snapshot in snapshots]
+        if all(status == "CONNECTED" for status in statuses):
+            status = "CONNECTED"
+        elif "CONNECTED" in statuses:
+            status = "PARTIAL"
+        else:
+            status = "STALE" if quotes else "UNAVAILABLE"
+        groups = [
+            {"id": group_id, "label": label, **{
+                key: snapshot[key] for key in ("status", "last_updated", "error")
+            }}
+            for (group_id, label, _), snapshot in zip(self._groups, snapshots)
+        ]
+        return {
+            "source": _SOURCE, "status": status,
+            "last_updated": min((q["as_of"] for q in quotes), default=None),
+            "error": "; ".join(f"{g['label']}: {g['error']}" for g in groups if g["error"]) or None,
+            "quotes": quotes, "groups": groups,
+        }
+
+    async def refresh(self) -> dict:
+        await asyncio.gather(*(group.refresh() for _, _, group in self._groups))
+        return self.snapshot()
+
+    async def close(self) -> None:
+        await asyncio.gather(*(group.close() for _, _, group in self._groups))

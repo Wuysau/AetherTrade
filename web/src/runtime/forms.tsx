@@ -1,3 +1,4 @@
+import { INSTRUMENTS, InstrumentOptions } from './instruments';
 import { useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, Check, Info, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { errorMessage, type RuntimeApi } from './api';
@@ -6,9 +7,9 @@ import { Alert, Badge, Dialog } from './ui';
 import type { Dashboard, Mode, PaperAction, PaperOrderInput, Risk, Strategy, StrategyInput, SymbolName } from './types';
 
 export const MODE_NAMES: Record<Mode, string> = { AI: 'AI 自主决策', RULE: '用户规则', HYBRID: 'AI / 规则混合' };
-export const SYMBOLS: SymbolName[] = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+export const SYMBOLS: SymbolName[] = INSTRUMENTS.map(i => i.symbol);
 export function StrategyDialog({ api, existing, mode, onClose, onSaved }: { api: RuntimeApi; existing?: Strategy; mode: Mode; onClose: () => void; onSaved: (message: string) => void }) {
-  const [form, setForm] = useState<StrategyInput>(existing ? { name: existing.name, symbol: existing.symbol, mode: existing.mode, budget: existing.budget, target_pct: existing.target_pct } : { name: '', symbol: 'BTCUSDT', mode, budget: '1000', target_pct: '10' });
+  const [form, setForm] = useState<StrategyInput>(existing ? { name: existing.name, symbol: existing.symbol, mode: existing.mode, budget: existing.budget, target_pct: existing.target_pct, analysis_interval_seconds: existing.analysis_interval_seconds ?? 300, auto_execute: existing.auto_execute ?? false } : { name: '', symbol: 'BTCUSDT', mode, budget: '1000', target_pct: '10', analysis_interval_seconds: 300, auto_execute: false });
   const [status, setStatus] = useState<Strategy['status']>(existing?.status ?? 'DRAFT');
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const update = <K extends keyof StrategyInput>(key: K, value: StrategyInput[K]) => setForm(prev => ({ ...prev, [key]: value }));
@@ -16,16 +17,16 @@ export function StrategyDialog({ api, existing, mode, onClose, onSaved }: { api:
     event.preventDefault();
     if (!form.name.trim() || !positiveDecimal(form.budget) || !positiveDecimal(form.target_pct) || Number(form.target_pct) > 100) { setError('请填写策略名称、正数预算和 0 至 100% 之间的目标仓位。'); return; }
     setBusy(true); setError('');
-    try { await api.saveStrategy({ ...form, name: form.name.trim() }, existing, status); onSaved(existing ? '策略配置已更新；自动交易尚未启用。' : '策略草稿已保存；自动交易尚未启用。'); }
+    try { await api.saveStrategy({ ...form, name: form.name.trim(), acknowledge_model_cost: status === 'ACTIVE' }, existing, status); onSaved(status === 'ACTIVE' ? 'AI 策略已启用，将按周期分析；自动下单以勾选状态为准。' : '策略配置已保存；当前不运行自动分析。'); }
     catch (err) { setError(errorMessage(err)); } finally { setBusy(false); }
   }
   return <Dialog title={existing ? '编辑策略' : '创建策略'} onClose={onClose} busy={busy} wide><form onSubmit={submit} className="editor-form">
     <p>配置保存在本地 PAPER 账户。保存草稿不会运行模型或自动下单。</p>
     <label className="field"><span>策略名称</span><input required maxLength={80} autoFocus value={form.name} placeholder="例如：BTC 趋势观察" onChange={e => update('name', e.target.value)} disabled={busy} /></label>
-    <div className="form-grid"><label className="field"><span>交易标的</span><select value={form.symbol} onChange={e => update('symbol', e.target.value as SymbolName)} disabled={busy}>{SYMBOLS.map(symbol => <option key={symbol}>{symbol}</option>)}</select></label><label className="field"><span>决策模式</span><select value={form.mode} onChange={e => update('mode', e.target.value as Mode)} disabled={busy}>{Object.entries(MODE_NAMES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
+    <div className="form-grid"><label className="field"><span>交易标的</span><select value={form.symbol} onChange={e => update('symbol', e.target.value as SymbolName)} disabled={busy}><InstrumentOptions /></select></label><label className="field"><span>决策模式</span><select value={form.mode} onChange={e => { update('mode', e.target.value as Mode); if (e.target.value !== 'AI') { update('auto_execute', false); setStatus('DRAFT'); } }} disabled={busy}>{Object.entries(MODE_NAMES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
     <div className="form-grid"><label className="field"><span>策略预算 <small>USDT</small></span><input required inputMode="decimal" value={form.budget} onChange={e => update('budget', e.target.value)} disabled={busy} /></label><label className="field"><span>目标仓位 <small>%</small></span><input required inputMode="decimal" value={form.target_pct} onChange={e => update('target_pct', e.target.value)} disabled={busy} /></label></div>
-    {existing && <label className="field"><span>配置状态</span><select value={status} onChange={e => setStatus(e.target.value as Strategy['status'])} disabled={busy}><option value="DRAFT">草稿</option><option value="PAUSED">暂停</option></select></label>}
-    <div className="form-note"><Info className="icon sm" />仅支持现货模拟记录。{form.mode === 'RULE' ? '规则执行引擎未接入。' : 'AI 模型未配置。'}所有模式均不会自动交易。</div>
+    <label className="field"><span>配置状态</span><select value={status} onChange={e => { setStatus(e.target.value as Strategy['status']); if (e.target.value === 'DRAFT') update('auto_execute', false); }} disabled={busy}><option value="DRAFT">草稿</option>{form.mode === 'AI' && <option value="ACTIVE">启用自动分析（可能持续产生 API 费用）</option>}<option value="PAUSED">暂停</option></select></label>
+    {form.mode === 'AI' ? <><label className="field"><span>分析间隔（秒）</span><input type="number" required min={60} max={86400} step={1} value={form.analysis_interval_seconds} disabled={busy} onChange={e => update('analysis_interval_seconds', Number(e.target.value))} /></label><p className="field-help">启用后立即开始，随后按设定间隔调用模型，可能持续产生 API 费用。暂停停止后续分析；已发出的调用可能完成，但不能继续自动成交。</p><label className="model-check"><input type="checkbox" checked={form.auto_execute ?? false} disabled={busy} onChange={e => { update('auto_execute', e.target.checked); if (e.target.checked) setStatus('ACTIVE'); }} />自动下单（PAPER）</label><p className="field-help">勾选即启用自动分析并允许后续建议通过风控后模拟成交；取消仅停止自动下单，分析继续。仅使用本地虚拟资金。</p></> : <p className="field-help">规则与混合模式仅保存配置，暂不运行分析或自动下单。</p>}
     {error && <Alert error>{error}</Alert>}
     <div className="dialog-buttons"><button type="button" className="button" onClick={onClose} disabled={busy}>取消</button><button className="button primary" disabled={busy}>{busy ? <LoaderCircle className="icon spin" /> : <Check className="icon" />}{busy ? '正在保存…' : '保存策略'}</button></div>
   </form></Dialog>;
@@ -55,7 +56,7 @@ export function OrderDialog({ api, data, initial, onClose, onSaved }: { api: Run
   const [confirming, setConfirming] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const key = useRef(crypto.randomUUID());
   const quote = data.market.quotes.find(q => q.symbol === form.symbol);
-  const fresh = quoteIsFresh(quote) && data.market.status === 'CONNECTED';
+  const fresh = quoteIsFresh(quote) && ['CONNECTED', 'PARTIAL'].includes(data.market.status);
   const holding = data.positions.find(p => p.symbol === form.symbol);
   const paused = data.account.paused && form.side === 'BUY';
   const eligibleStrategies = data.strategies.filter(strategy => strategy.symbol === form.symbol);
@@ -81,7 +82,7 @@ export function OrderDialog({ api, data, initial, onClose, onSaved }: { api: Run
   return <Dialog title={confirming ? '确认模拟订单' : '创建模拟订单'} busy={busy} onClose={onClose} wide><form onSubmit={submit} className="editor-form">
     <Alert><strong>PAPER</strong> · 仅影响本地虚拟资金，使用服务端最新有效报价成交，模拟手续费 0.10%。</Alert>
     {confirming ? <><div className="order-confirm-summary"><span className={`order-direction ${form.side === 'BUY' ? 'positive' : 'negative'}`}>{form.side === 'BUY' ? '买入' : '卖出'}</span><h3>{form.symbol}</h3><div>{quantity(form.quantity)} <span className="quiet">{form.symbol.replace('USDT', '')}</span></div></div><div className="form-note">按确认时服务端报价成交。以下金额为参考估算，最终以成交回执为准。</div></> : <>
-      <div className="form-grid"><label className="field"><span>交易标的</span><select value={form.symbol} onChange={e => update('symbol', e.target.value as SymbolName)}>{SYMBOLS.map(symbol => <option key={symbol}>{symbol}</option>)}</select></label><label className="field"><span>交易方向</span><select value={form.side} onChange={e => update('side', e.target.value as 'BUY' | 'SELL')}><option value="BUY">买入 · 增加持仓</option><option value="SELL">卖出 · 减少持仓</option></select></label></div>
+      <div className="form-grid"><label className="field"><span>交易标的</span><select value={form.symbol} onChange={e => update('symbol', e.target.value as SymbolName)}><InstrumentOptions /></select></label><label className="field"><span>交易方向</span><select value={form.side} onChange={e => update('side', e.target.value as 'BUY' | 'SELL')}><option value="BUY">买入 · 增加持仓</option><option value="SELL">卖出 · 减少持仓</option></select></label></div>
       <label className="field"><span>交易数量 <small>{form.symbol.replace('USDT', '')}</small></span><input autoFocus required inputMode="decimal" value={form.quantity} placeholder="输入数量" onChange={e => update('quantity', e.target.value)} /></label>
       <label className="field"><span>归属策略 <small>可选</small></span><select value={form.strategy_id ?? ''} onChange={e => update('strategy_id', e.target.value || null)}><option value="">手动交易</option>{unavailableStrategy && <option value={form.strategy_id!} disabled>原策略不可用，请重新选择</option>}{eligibleStrategies.map(s => <option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
     </>}

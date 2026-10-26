@@ -2,12 +2,15 @@
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, field_validator
 
 from trading_system.contracts.canonical import decimal_string
 from .errors import ApiError
 
-SYMBOLS = ("BTCUSDT", "ETHUSDT", "SOLUSDT")
+from .instruments import ALL_SYMBOLS
+
+SYMBOLS = ALL_SYMBOLS
+Symbol = Literal["BTCUSDT", "ETHUSDT", "SOLUSDT", "TSLABUSDT", "NVDABUSDT", "AAPLBUSDT"]
 
 
 def amount(value: str, *, positive: bool = True, maximum: str = "1000000000000", scale: int = 12) -> Decimal:
@@ -50,19 +53,26 @@ class Setup(Credentials):
 
 class StrategyCreate(Payload):
     name: StrictStr = Field(min_length=1, max_length=80)
-    symbol: Literal["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+    symbol: Symbol
     mode: Literal["AI", "RULE", "HYBRID"]
     budget: StrictStr
     target_pct: StrictStr
+    status: Literal["DRAFT", "ACTIVE", "PAUSED"] = "DRAFT"
+    analysis_interval_seconds: StrictInt = Field(default=300, ge=60, le=86400)
+    auto_execute: StrictBool = False
+    acknowledge_model_cost: StrictBool = False
 
 
 class StrategyPatch(Payload):
     name: StrictStr | None = Field(default=None, min_length=1, max_length=80)
-    symbol: Literal["BTCUSDT", "ETHUSDT", "SOLUSDT"] | None = None
+    symbol: Symbol | None = None
     mode: Literal["AI", "RULE", "HYBRID"] | None = None
     budget: StrictStr | None = None
     target_pct: StrictStr | None = None
-    status: Literal["DRAFT", "PAUSED"] | None = None
+    status: Literal["DRAFT", "ACTIVE", "PAUSED"] | None = None
+    analysis_interval_seconds: StrictInt | None = Field(default=None, ge=60, le=86400)
+    auto_execute: StrictBool | None = None
+    acknowledge_model_cost: StrictBool = False
     expected_revision: int = Field(ge=1)
 
 
@@ -73,7 +83,7 @@ class RiskUpdate(Payload):
 
 
 class PaperOrder(Payload):
-    symbol: Literal["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+    symbol: Symbol
     side: Literal["BUY", "SELL"]
     quantity: StrictStr
     strategy_id: StrictStr | None = Field(default=None, max_length=64)
@@ -83,3 +93,19 @@ class PaperAction(Payload):
     action: Literal["pause_new", "resume_new", "cancel_entries", "exit_owned"]
     expected_revision: int = Field(ge=1)
     confirmation: StrictStr | None = Field(default=None, max_length=32)
+
+
+class ModelTest(Payload):
+    expected_revision: StrictInt = Field(ge=1)
+
+
+class ModelAnalysis(ModelTest):
+    symbol: Symbol
+    acknowledge_cost: StrictBool
+
+    @field_validator("acknowledge_cost")
+    @classmethod
+    def explicit_acknowledgement(cls, value):
+        if value is not True:
+            raise ValueError("manual provider-call acknowledgement required")
+        return value

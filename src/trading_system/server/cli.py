@@ -36,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
                         proxy_headers=False, server_header=False, log_level="info")
             return 0
         from .store import Store
+        from . import model_repository  # Register additive model tables for init-db/doctor too.
+        from . import automation  # Register schedules/jobs/notifications without starting a worker.
         store = Store(settings.database_url)
         try:
             store.initialize()

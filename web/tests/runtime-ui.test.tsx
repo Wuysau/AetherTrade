@@ -85,7 +85,7 @@ describe('reviewable mutation workflows', () => {
     await user.click(screen.getByRole('button', { name: '保存策略' }));
     await screen.findByRole('alert');
     expect((screen.getByLabelText('策略名称') as HTMLInputElement).value).toBe('趋势观察');
-    expect(save).toHaveBeenCalledWith({ name: '趋势观察', symbol: 'BTCUSDT', mode: 'AI', budget: '1000', target_pct: '10' }, undefined, 'DRAFT');
+    expect(save).toHaveBeenCalledWith({ name: '趋势观察', symbol: 'BTCUSDT', mode: 'AI', budget: '1000', target_pct: '10', analysis_interval_seconds: 300, auto_execute: false, acknowledge_model_cost: false }, undefined, 'DRAFT');
   });
   it('requires a separate order review and preserves the idempotency key on transport retry', async () => {
     const api = new RuntimeApi();
@@ -187,4 +187,42 @@ describe('reviewable mutation workflows', () => {
     expect(save).not.toHaveBeenCalled();
     await screen.findByRole('alert');
   });
+});
+
+it('keeps bell unread state until read and opens the associated decision', async () => {
+  const api = new RuntimeApi(); const data = dashboard();
+  data.decisions = [{ id: 'decision-notified', symbol: 'BTCUSDT', action: 'HOLD', source: 'test', summary: '真实建议记录', counter_evidence: [], invalidation: '', risk_status: 'NOT_EVALUATED', created_at: data.as_of, next_review_at: null, execution_status: 'NO_ACTION' }];
+  data.notifications = { unread_count: 1, items: [{ id: 'n1', kind: 'AI_RESULT', title: '分析完成', message: '观望，无需下单', severity: 'info', created_at: data.as_of, read_at: null, strategy_id: 's1', decision_id: 'decision-notified', order_id: null }] };
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: '1' }); vi.spyOn(api, 'session').mockResolvedValue(session); vi.spyOn(api, 'dashboard').mockResolvedValue(data); vi.spyOn(api, 'modelConfig').mockRejectedValue(new Error('未配置'));
+  const read = vi.spyOn(api, 'markNotificationsRead').mockResolvedValue({ unread_count: 0, items: [{ ...data.notifications.items[0], read_at: data.as_of }] });
+  render(<RuntimeApp api={api} />);
+  fireEvent.click(await screen.findByRole('button', { name: '查看通知，1 条未读' }));
+  expect(read).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '查看关联决策' }));
+  await waitFor(() => expect(read).toHaveBeenCalledWith({ ids: ['n1'] }));
+  await screen.findByText('decision-notified'); expect(screen.getByText('观望 · 无需下单')).toBeTruthy();
+  fireEvent.click(await screen.findByRole('button', { name: '查看通知，0 条未读' }));
+  expect((screen.getByRole('button', { name: '全部标为已读' }) as HTMLButtonElement).disabled).toBe(true);
+});
+it('reopening the same notification reselects its decision while dashboard refresh preserves manual selection', async () => {
+  const api = new RuntimeApi(); const data = dashboard();
+  const first = { id: 'decision-a', symbol: 'BTCUSDT', action: 'HOLD', source: 'test', summary: '记录 A', counter_evidence: [], invalidation: '', risk_status: 'NOT_EVALUATED', created_at: data.as_of, next_review_at: null };
+  data.decisions = [first, { ...first, id: 'decision-b', symbol: 'ETHUSDT', summary: '记录 B' }];
+  data.model_config = { protocol: 'openai_responses', base_url: 'https://api.openai.com/v1', model: 'saved-model', enabled: false, local_mode: false, max_output_tokens: 1024, timeout_seconds: 120, anthropic_version: '2023-06-01', revision: 1, has_api_key: false, key_available: false, connection_status: 'CONFIGURED', last_test_at: null, last_error: null };
+  data.notifications = { unread_count: 1, items: [{ id: 'n-a', kind: 'AI_RESULT', title: '分析完成', message: '记录 A 已生成', severity: 'info', created_at: data.as_of, read_at: null, strategy_id: 's1', decision_id: 'decision-a', order_id: null }] };
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: '1' }); vi.spyOn(api, 'session').mockResolvedValue(session);
+  const sync = vi.spyOn(api, 'dashboard').mockResolvedValue(data);
+  const readNotifications = { unread_count: 0, items: [{ ...data.notifications.items[0], read_at: data.as_of }] };
+  vi.spyOn(api, 'markNotificationsRead').mockResolvedValue(readNotifications);
+  render(<RuntimeApp api={api} />);
+  fireEvent.click(await screen.findByRole('button', { name: '查看通知，1 条未读' })); fireEvent.click(screen.getByRole('button', { name: '查看关联决策' }));
+  await screen.findByText('decision-a');
+  fireEvent.click(screen.getByRole('button', { name: /ETHUSDT.*记录 B/ })); await screen.findByText('decision-b');
+  fireEvent.click(screen.getByRole('button', { name: '模型配置' })); fireEvent.change(screen.getByLabelText('模型名称'), { target: { value: 'unsaved-model' } });
+  sync.mockResolvedValue({ ...data, as_of: new Date(Date.now() + 1000).toISOString(), notifications: readNotifications });
+  fireEvent.focus(window); await waitFor(() => expect(sync).toHaveBeenCalledTimes(2));
+  expect(screen.getByText('decision-b')).toBeTruthy(); expect((screen.getByLabelText('模型名称') as HTMLInputElement).value).toBe('unsaved-model');
+  fireEvent.click(await screen.findByRole('button', { name: '查看通知，0 条未读' })); fireEvent.click(screen.getByRole('button', { name: '查看关联决策' }));
+  await screen.findByText('decision-a'); expect(screen.queryByText('decision-b')).toBeNull();
+  expect((screen.getByLabelText('模型名称') as HTMLInputElement).value).toBe('unsaved-model');
 });

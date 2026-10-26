@@ -51,7 +51,7 @@ instead of the happy path:
 | **Risk controls** | Per-strategy budget reservations, account-level limits, persistent loss locks, kill switches |
 | **Durable execution** | Intent journal, idempotent order commands, reconciliation, recovery gates |
 | **Protection lifecycle** | Hosted/native stop and exit management with disclosed fallbacks |
-| **Markets (target)** | Binance Spot, USD-M perpetuals, and real US equities/ETFs |
+| **Markets (target)** | Binance Spot including bStocks tokenized stocks; USD-M perpetuals remain a separate future integration |
 | **Research** | Paper simulation, point-in-time replay, experiment metrics, model cost budgets |
 | **Control surfaces** | Responsive Web console and runtime CLI; legacy CLI/TUI adapters retained separately |
 | **Contracts first** | JSON Schema for proposals, intents, commands, and risk policy |
@@ -69,9 +69,11 @@ is partially green and still being stabilized; venue qualification has never bee
 | Web control surface | Runnable six-page React console, desktop/mobile, authenticated sessions |
 | Runtime CLI | `aethertrade serve`, `init-db`, `doctor`; legacy terminal client also retained |
 | Console persistence | PostgreSQL or explicit local SQLite; sessions, strategies, risk and PAPER activity |
-| Public quotes | Binance market-data-only endpoint: BTCUSDT, ETHUSDT, SOLUSDT |
+| Public quotes | Binance Spot: BTCUSDT, ETHUSDT, SOLUSDT plus TSLABUSDT, NVDABUSDT, AAPLBUSDT bStocks |
 | PAPER operations | Manual spot buy/sell, fee/cash/risk checks, pause/resume and confirmed exit |
-| AI / rule automatic execution | Configuration only; model/scheduler integration not enabled |
+| AI model configuration | OpenAI Responses, OpenAI-compatible Chat and Claude Messages; encrypted write-only keys |
+| AI strategy automation | Explicitly activated strategies analyze periodically; bell notifications; optional risk-checked automatic PAPER orders |
+| Rules / hybrid / native execution | Configuration or existing modules only; no new native execution integration |
 | Original PostgreSQL ledger migration | Reference schema, separate from console-owned tables |
 | NautilusTrader adapter | Offline bridge only — native evidence **NOT_RUN** |
 | Binance Spot / USD-M / US Equities qualification | **NOT_RUN** |
@@ -128,8 +130,9 @@ to `.env.runtime` is optional. The manual CLI does not load the generated
 `.runtime/postgres.env` automatically. See [runtime operations](docs/RUNTIME.md)
 for database selection, development proxy, data locations, tests and limitations.
 
-The new console provides local PAPER operations; the original native execution,
-AI/automatic rules, real account connectors and qualification gates remain separate.
+The new console provides local PAPER operations and explicitly activated AI-strategy
+automation. Original native execution, automatic rule/hybrid execution, real account
+connectors and qualification gates remain separate. See [model and AI strategy setup](docs/MODELS_AND_AI.md).
 
 ## Repository layout
 

@@ -1,4 +1,4 @@
-import type { ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput } from './types';
+import type { Notifications, ModelConfig, ModelInput, Decision, Instrument, SymbolName, ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput } from './types';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) { super(message); this.name = 'ApiError'; }
@@ -8,12 +8,12 @@ export class RuntimeApi {
   onUnauthorized: (() => void) | null = null;
   constructor(private readonly transport: typeof fetch = (...args) => fetch(...args)) {}
   setSession(session: Session | null) { this.csrf = session?.csrf_token ?? ''; }
-  async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  async request<T>(path: string, options: RequestInit = {}, timeoutMs = 20_000): Promise<T> {
     const headers = new Headers(options.headers);
     headers.set('Accept', 'application/json');
     if (options.body) headers.set('Content-Type', 'application/json');
     if (options.method && options.method !== 'GET' && this.csrf) headers.set('X-CSRF-Token', this.csrf);
-    const signal = options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(20_000)]) : AbortSignal.timeout(20_000);
+    const signal = options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs);
     let response: Response;
     try { response = await this.transport(`/api${path}`, { ...options, headers, credentials: 'same-origin', signal }); }
     catch (error) {
@@ -28,6 +28,13 @@ export class RuntimeApi {
     if (body === null) throw new ApiError(response.status, 'INVALID_RESPONSE', '服务响应格式异常，请刷新重试。');
     return body as T;
   }
+  notifications() { return this.request<Notifications>('/notifications'); }
+  markNotificationsRead(values: { ids: string[] } | { all: true }) { return this.request<Notifications>('/notifications/read', { method: 'POST', body: JSON.stringify(values) }); }
+  instruments() { return this.request<{ instruments: Instrument[] }>('/instruments'); }
+  modelConfig() { return this.request<ModelConfig>('/model-config'); }
+  saveModelConfig(values: ModelInput) { return this.request<ModelConfig>('/model-config', { method: 'PUT', body: JSON.stringify(values) }); }
+  testModelConfig(revision: number) { return this.request<{ config: ModelConfig; models: string[]; message: string }>('/model-config/test', { method: 'POST', body: JSON.stringify({ expected_revision: revision }) }, 150_000); }
+  generateDecision(symbol: SymbolName, revision: number, key: string) { return this.request<{ decision: Decision; usage: { input_tokens: number | null; output_tokens: number | null } }>('/decisions/generate', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ symbol, expected_revision: revision, acknowledge_cost: true }) }, 150_000); }
   bootstrap() { return this.request<Bootstrap>('/bootstrap'); }
   session() { return this.request<Session>('/session'); }
   login(username: string, password: string) { return this.request<Session>('/session/login', { method: 'POST', body: JSON.stringify({ username, password }) }); }
@@ -38,7 +45,7 @@ export class RuntimeApi {
   saveStrategy(values: StrategyInput, existing?: Strategy, status?: Strategy['status']) {
     return this.request<Strategy>(existing ? `/strategies/${encodeURIComponent(existing.id)}` : '/strategies', {
       method: existing ? 'PATCH' : 'POST',
-      body: JSON.stringify({ ...values, ...(existing ? { expected_revision: existing.revision, ...(status ? { status } : {}) } : {}) }),
+      body: JSON.stringify({ ...values, ...(existing ? { expected_revision: existing.revision } : {}), ...(status ? { status } : {}) }),
     });
   }
   saveRisk(values: Omit<Risk, 'revision'>, revision: number) { return this.request<Risk>('/risk-policy', { method: 'PUT', body: JSON.stringify({ ...values, expected_revision: revision }) }); }

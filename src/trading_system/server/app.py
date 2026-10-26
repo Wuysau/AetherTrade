@@ -16,20 +16,24 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException
 from starlette.concurrency import run_in_threadpool
 
+from .automation import AutomationService
 from .config import Settings
 from .errors import ApiError
 from .market import MarketFeed
+from .instruments import instruments
+from .model_service import ModelService
 from .store import Store
-from .validation import Credentials, PaperAction, PaperOrder, RiskUpdate, Setup, StrategyCreate, StrategyPatch
+from .validation import Credentials, ModelAnalysis, ModelTest, PaperAction, PaperOrder, RiskUpdate, Setup, StrategyCreate, StrategyPatch
 
 log = logging.getLogger(__name__)
 VERSION = "0.1.0"
 
 
-def create_app(settings: Settings | None = None, *, quote_provider=None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, quote_provider=None, model_client=None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = Store(settings.database_url)
-    feed = quote_provider if quote_provider is not None else MarketFeed(max_age_seconds=settings.quote_max_age_seconds)
+    feed = quote_provider if quote_provider is not None else MarketFeed(max_age_seconds=settings.quote_max_age_seconds, include_bstocks=True)
+    models = ModelService(store, settings.model_key_path, client=model_client)
     refresh_lock = asyncio.Lock()
     refresh_failed = False
 
@@ -40,6 +44,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None) -> Fast
                     "error": "公开行情更新失败，请稍后重试。",
                     "quotes": [{**quote, "stale": True} for quote in current.get("quotes", [])]}
         return current
+
+    automation = AutomationService(store, models, market_snapshot, settings)
 
     async def refresh():
         nonlocal refresh_failed
@@ -69,9 +75,14 @@ def create_app(settings: Settings | None = None, *, quote_provider=None) -> Fast
     async def lifespan(app):
         await run_in_threadpool(store.initialize)
         task = asyncio.create_task(poll(), name="aethertrade-public-quotes") if settings.market_enabled else None
+        automation_task = asyncio.create_task(automation.run(), name="aethertrade-ai-automation") if settings.automation_enabled and not settings.testing else None
         try:
             yield
         finally:
+            if automation_task:
+                automation_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await automation_task
             if task:
                 task.cancel()
                 with suppress(asyncio.CancelledError):
@@ -83,11 +94,16 @@ def create_app(settings: Settings | None = None, *, quote_provider=None) -> Fast
                     if inspect.isawaitable(result):
                         await result
             finally:
-                await run_in_threadpool(store.close)
+                try:
+                    await models.close()
+                finally:
+                    await run_in_threadpool(store.close)
 
     app = FastAPI(title="AetherTrade local PAPER API", version=VERSION, lifespan=lifespan,
                   docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings, app.state.store, app.state.market = settings, store, feed
+    app.state.models = models
+    app.state.automation = automation
 
     @app.exception_handler(ApiError)
     async def expected_error(request, exc):
@@ -178,7 +194,47 @@ def create_app(settings: Settings | None = None, *, quote_provider=None) -> Fast
 
     @app.get("/api/dashboard")
     def dashboard(range: str = Query("24H"), _=Depends(authenticated)):
-        return store.dashboard(market_snapshot(), range)
+        result = store.dashboard(market_snapshot(), range)
+        result['instruments'] = instruments()
+        result['model_config'] = models.get_config()
+        result['decisions'] = models.decisions()
+        result['services'] = [item for item in result['services'] if item['id'] not in ('ai', 'equities')]
+        result['services'].append(models.service_summary())
+        stock_group = next((group for group in result['market'].get('groups', []) if group['id'] == 'bstocks'), None)
+        result['services'].append({'id': 'bstocks', 'label': 'bStocks 现货',
+            'status': 'CONNECTED' if stock_group and stock_group['status'] == 'CONNECTED' else 'UNAVAILABLE',
+            'detail': '首批：TSLABUSDT、NVDABUSDT、AAPLBUSDT；币安代币化股票现货。',
+            'updated_at': stock_group['last_updated'] if stock_group else None})
+        return automation.enrich_dashboard(result)
+
+    @app.get("/api/notifications")
+    def get_notifications(_=Depends(authenticated)):
+        return automation.notifications()
+
+    @app.post("/api/notifications/read")
+    def read_notifications(payload: dict, _=Depends(mutation)):
+        return automation.mark_read(payload)
+
+    @app.get('/api/instruments')
+    def instrument_catalog(_=Depends(authenticated)):
+        return {'instruments': instruments()}
+
+    @app.get('/api/model-config')
+    def model_config(_=Depends(authenticated)):
+        return models.get_config()
+
+    @app.put('/api/model-config')
+    def save_model_config(payload: dict, _=Depends(mutation)):
+        return models.save_config(payload)
+
+    @app.post('/api/model-config/test')
+    async def test_model(payload: ModelTest, _=Depends(mutation)):
+        return await models.test_connection(payload.expected_revision)
+
+    @app.post('/api/decisions/generate')
+    async def generate_decision(payload: ModelAnalysis, idempotency_key: str | None = Header(default=None), _=Depends(mutation)):
+        context = await run_in_threadpool(store.analysis_context, payload.symbol, market_snapshot(), settings.quote_max_age_seconds)
+        return await models.generate(payload.symbol, payload.expected_revision, idempotency_key, context)
 
     @app.post("/api/market/refresh")
     async def market_refresh(_=Depends(mutation)):
