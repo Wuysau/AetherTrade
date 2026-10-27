@@ -1,0 +1,21 @@
+F..F                                                                     [100%]
+=================================== FAILURES ===================================
+_______ test_btc_daily_lock_blocks_eth_new_risk_same_authoritative_group _______
+tests/integration/test_group_daily_locks.py:77: in test_btc_daily_lock_blocks_eth_new_risk_same_authoritative_group
+    assert service.active(case.scope) == (lock,)
+E   AssertionError: assert () == (RiskLock(loc...T12:00:00Z'),)
+E     
+E     Right contains one more item: RiskLock(lock_id='ee9362ea344f4c5cb203978d1fd5add9', scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_ac...RiskPermission.NO_NEW_RISK: 'NO_NEW_RISK'>, required_evidence=('DAILY_LOSS_REVIEW',), raised_at='2026-10-22T12:00:00Z')
+E     Use -v to get more diff
+__ test_only_source_lock_resolves_with_durable_review_and_distinct_authority ___
+tests/integration/test_group_daily_locks.py:147: in test_only_source_lock_resolves_with_durable_review_and_distinct_authority
+    assert 'NEW_RISK' not in service.allowed_actions(case.scope)
+E   AssertionError: assert 'NEW_RISK' not in frozenset({'EXIT', 'MANAGE', 'NEW_RISK', 'RECONCILE'})
+E    +  where frozenset({'EXIT', 'MANAGE', 'NEW_RISK', 'RECONCILE'}) = allowed_actions(ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-18076ca984c84bdc9393ac372321fb93', product=<Product.SPOT: 'SPOT'>, instrument_uid='paper-binance-spot-ethusdt', venue_leg='BOTH'))
+E    +    where allowed_actions = <trading_system.risk.locks.RiskLockService object at 0x722fe6502300>.allowed_actions
+E    +    and   ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-18076ca984c84bdc9393ac372321fb93', product=<Product.SPOT: 'SPOT'>, instrument_uid='paper-binance-spot-ethusdt', venue_leg='BOTH') = <integration.support_ip_07.ReservationCase object at 0x722fe6500110>.scope
+=========================== short test summary info ============================
+FAILED tests/integration/test_group_daily_locks.py::test_btc_daily_lock_blocks_eth_new_risk_same_authoritative_group
+FAILED tests/integration/test_group_daily_locks.py::test_only_source_lock_resolves_with_durable_review_and_distinct_authority
+2 failed, 2 passed in 0.99s
+
