@@ -145,8 +145,10 @@ The database-read races use synthetic service time advanced during the SQL read;
 they are Python control-flow probes, not an actual PostgreSQL clock test.
 PostgreSQL acceptance remains **NOT_RUN** in this Windows worktree.
 
-Account/collateral-wide DAILY_LOSS applicability remains a separate integration
-requirement. The ledger repository currently selects locks by exact instrument
+At the independent-review followup boundary, account/collateral-wide DAILY_LOSS
+applicability remained a separate integration requirement. It is now implemented
+and verified in the [shared daily-loss followup](paper-group-daily-loss-2026-10-27.md).
+The following describes the earlier gap: the ledger repository selected locks by exact instrument
 and leg scope; this A.3 work therefore does not make a BTC-only cause lock visible
 on ETH automatically. A safe shared policy must bind accounts/products to their
 intended risk collateral domain using trusted durable configuration, read the
@@ -154,5 +156,6 @@ latest account-wide daily-loss locks under the group mutex, and verify their
 applicability while retaining the source lock ID and scope for resolution.
 Instrument-specific protection/order locks must not be broadcast globally.
 The shared view must also drive RiskLockService.allowed_actions and user-facing
-state. Until that concrete reader/applicability view exists, do not claim this
-change alone implements persistent account-wide daily-loss enforcement.
+state. The original A.3 commit alone did not implement persistent account-wide
+daily-loss enforcement; qualification of the later shared view is recorded in
+the followup rather than retroactively attributed to those earlier probes.
