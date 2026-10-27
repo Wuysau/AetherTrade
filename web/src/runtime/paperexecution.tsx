@@ -1,4 +1,4 @@
-import type { Dashboard } from './types';
+import type { Dashboard, Order } from './types';
 import { Alert, Badge, Empty, Panel } from './ui';
 
 export const paperOrderLabel = (status?: string) => ({
@@ -7,6 +7,15 @@ export const paperOrderLabel = (status?: string) => ({
   FILLED: '已成交', CANCEL_UNKNOWN: '撤单结果未知', UNKNOWN: '结果未知 · 待核对',
   EXPIRED: '已过期', REJECTED: '已拒绝', CANCELED: '已撤销',
 }[status ?? ''] ?? '状态待核对');
+
+export const orderFilledQuantity = (order: Order): string => order.filled_quantity ?? (order.status === 'FILLED' ? order.quantity : '0');
+export const orderHasFill = (order: Order): boolean => /[1-9]/.test(orderFilledQuantity(order));
+export const paperProtectionLabel = (state: string): string => ({
+  GAP: '保护缺口', PENDING: '保护待确认', REPAIRING: '保护修复中',
+  VERIFIED_SYNTHETIC: '模拟保护已验证', VERIFIED_NATIVE: '模拟保护已验证',
+  VERIFIED_HOSTED: '托管保护已验证', EXITING: '退出处理中', FLAT_VERIFIED: '已核对为空仓',
+  UNCONFIGURED: '未配置', UNVERIFIED: '未验证',
+}[state] ?? state);
 
 export function PaperExecutionView({ data }: { data: Dashboard }) {
   const execution = data.execution;

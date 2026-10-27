@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { PaperExecutionView } from '../src/runtime/paperexecution';
+import { PaperExecutionView, orderFilledQuantity, orderHasFill, paperProtectionLabel } from '../src/runtime/paperexecution';
 import { OrderDialog, StrategyDialog } from '../src/runtime/forms';
 import { RuntimeApi } from '../src/runtime/api';
-import type { Dashboard, Strategy } from '../src/runtime/types';
+import type { Dashboard, Strategy, Order } from '../src/runtime/types';
 
 function snapshot(): Dashboard {
   return { as_of: new Date().toISOString(),
@@ -65,4 +65,15 @@ it('requires a configured rule before activating HYBRID', async () => {
   fireEvent.click(screen.getByRole('button', {name:'保存策略'}));
   await screen.findByRole('alert');
   expect(save).not.toHaveBeenCalled();
+});
+
+it('counts actual fills rather than submitted quantities, including canceled partial fills', () => {
+  const submitted = {status:'SUBMITTED',quantity:'1',filled_quantity:'0'} as Order;
+  const canceled = {status:'CANCELED',quantity:'1',filled_quantity:'0.4'} as Order;
+  const tiny = {status:'PARTIALLY_FILLED',quantity:'1',filled_quantity:'0.000000000001'} as Order;
+  expect(orderHasFill(submitted)).toBe(false);
+  expect(orderHasFill(canceled)).toBe(true);
+  expect(orderFilledQuantity(tiny)).toBe('0.000000000001');
+  expect(paperProtectionLabel('GAP')).toBe('保护缺口');
+  expect(paperProtectionLabel('PENDING')).toBe('保护待确认');
 });

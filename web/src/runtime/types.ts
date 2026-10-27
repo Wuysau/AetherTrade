@@ -14,7 +14,7 @@ export interface Position {
   id: string; symbol: SymbolName; product: 'SPOT'; side: 'LONG'; quantity: string;
   average_price: string; mark_price: string | null; market_value: string | null;
   unrealized_pnl: string | null; strategy_id: string | null; owner: string;
-  protection: 'UNCONFIGURED'; updated_at: string;
+  protection: string; updated_at: string;
 }
 export interface Order {
   id: string; symbol: SymbolName; side: 'BUY' | 'SELL'; quantity: string;
