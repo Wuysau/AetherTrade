@@ -253,7 +253,7 @@ class OwnershipService:
                         flat = facts.position.actual_quantity.value == 0
                         if (facts.protection_verified is not True or protection.missing or not protection.evidence
                                 or protection.covered_quantity.unit != facts.position.actual_quantity.unit
-                                or protection.covered_quantity.value < abs(facts.position.actual_quantity.value)
+                                or protection.covered_quantity.value < facts.position.actual_quantity.value.copy_abs()
                                 or protection.state not in ({t.ProtectionState.FLAT_VERIFIED} if flat else
                                     {t.ProtectionState.VERIFIED_NATIVE, t.ProtectionState.VERIFIED_HOSTED})
                                 or facts.exit_plan_accepted is not True or not facts.accepted_exit_plan_id):
