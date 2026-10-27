@@ -218,7 +218,7 @@ def test_remote_dns_pins_ip_and_preserves_tls_host(service, monkeypatch):
         def handle(request):
             assert request.url.host == '8.8.8.8'
             assert request.headers['host'] == 'models.example.com'
-            assert request.extensions['sni_hostname'] == b'models.example.com'
+            assert request.extensions['sni_hostname'] == 'models.example.com'
             assert request.headers['authorization'] == 'Bearer test-secret'
             return httpx.Response(200, json={'data': [{'id': 'test-model'}]})
         monkeypatch.setattr(asyncio.get_running_loop(), 'getaddrinfo', resolve)
@@ -355,7 +355,7 @@ def test_same_ip_origins_require_separate_tls_handshakes(service, monkeypatch):
             config = dict(base_url='https://' + host + '/v1', protocol='openai_chat', local_mode=False, timeout_seconds=5)
             await request(service.client, config, 'fixture-' + host, 'GET', '/models')
         handshakes = [sni for stream in backend.streams for sni in stream.sni]
-        assert handshakes == [b'first.example', b'second.example']
+        assert handshakes == ['first.example', 'second.example']
         assert len(backend.streams) == 2
         assert b'fixture-second.example' not in b''.join(backend.streams[0].writes)
         assert all(stream.closed for stream in backend.streams)

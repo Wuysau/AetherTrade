@@ -79,7 +79,7 @@ async def request(client, config, secret, method, path, payload=None):
                 original_host = url.host
                 headers['Host'] = url.netloc.decode()
                 url = url.copy_with(host=addresses[0])
-                extensions = {'sni_hostname': original_host.encode()}
+                extensions = {'sni_hostname': original_host}
             else:
                 extensions = {}
             extensions['timeout'] = httpx.Timeout(config['timeout_seconds']).as_dict()
