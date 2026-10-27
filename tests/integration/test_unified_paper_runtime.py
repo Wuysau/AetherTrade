@@ -211,3 +211,38 @@ def test_expired_five_second_paper_permit_cannot_cross_side_effect_guard(runtime
         assert conn.execute('SELECT count(*) FROM paper_engine_commands').fetchone()[0] == 0
     with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
         assert sum(p.held for p in ReservationRepository(tx).group()) > 100
+
+
+def test_released_assets_are_reattested_for_partial_exit_and_other_scope(runtime):
+    context = data()
+    context['risk']['max_position_pct'] = '100'
+    entry = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='90'), 'large-entry', market(), 90, context)
+    runtime.dispatch(entry['command_id'])
+    runtime.inject(entry['command_id'], dict(event_id='large-entry-fill', status='FILLED', cumulative_quantity='90', price='100'))
+    partial = runtime.accept(dict(symbol='BTCUSDT', side='SELL', quantity='40'), 'first-exit', market(), 90, context)
+    runtime.dispatch(partial['command_id'])
+    runtime.inject(partial['command_id'], dict(event_id='first-exit-fill', status='FILLED', cumulative_quantity='40', price='100'))
+    final = runtime.accept(dict(symbol='BTCUSDT', side='SELL', quantity='50'), 'final-exit', market(), 90, context)
+    runtime.dispatch(final['command_id'])
+    runtime.inject(final['command_id'], dict(event_id='final-exit-fill', status='FILLED', cumulative_quantity='50', price='100'))
+    assert runtime.account_view()['cash'] == '9982'
+    eth_market = market()
+    eth_market['quotes'][0]['symbol'] = 'ETHUSDT'
+    next_entry = runtime.accept(dict(symbol='ETHUSDT', side='BUY', quantity='90'), 'other-scope-entry', eth_market, 90, context)
+    assert next_entry['status'] == 'PENDING'
+
+
+def test_balance_reattestation_cannot_release_a_held_command(runtime, monkeypatch):
+    from dataclasses import replace
+    first = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'still-held', market(), 90, data())
+    original = runtime._released_balances
+    def forged(tx, book, reservations):
+        proof = original(tx, book, reservations)
+        return replace(proof, reservation_ids=tuple(p.reservation.reservation_id for p in reservations))
+    monkeypatch.setattr(runtime, '_released_balances', forged)
+    second_market = market()
+    second_market['quotes'][0]['symbol'] = 'ETHUSDT'
+    with pytest.raises(ApiError) as failure:
+        runtime.accept(dict(symbol='ETHUSDT', side='BUY', quantity='1'), 'cannot-free-first', second_market, 90, data())
+    assert 'RELEASE_BALANCE_ATTESTATION_INVALID' in failure.value.message
+    assert [c['command_id'] for c in runtime.projection()['commands']] == [first['command_id']]

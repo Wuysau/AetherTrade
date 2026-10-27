@@ -16,7 +16,7 @@ from trading_system.contracts.canonical import utc_timestamp
 from trading_system.contracts.wire import TradeIntent, ExecutionCommand, RiskPolicy, ABSENT
 from trading_system.accounts.authorization import valid_evidence
 from trading_system.storage.events import EventStore
-from trading_system.storage.models import ScopeMismatch, MissingEvidence, account_key, scope_id
+from trading_system.storage.models import ScopeMismatch, MissingEvidence, account_key, scope_id, decode
 from trading_system.execution.commands import CommandRepository
 from .evaluator import RiskEvaluator, RiskInputs
 from .reservation_repository import ReservationRepository, merge_holds, balance_watermark
@@ -59,6 +59,21 @@ class ReconciliationProof:
     obligations_cleared: bool
 
 
+@dataclass(frozen=True, kw_only=True)
+class ReleasedBalanceAttestation:
+    """Trusted current collateral-account balance reader, never an API input.
+
+    The reader must independently derive the current balances from the complete
+    economic ledger, while the owner/control and collateral locks are held.
+    Only an already RELEASED reservation can be re-attested; this cannot turn
+    a held, pending, unknown or merely acknowledged command into a release.
+    """
+    transaction_id: str
+    book_hash: str
+    reservation_ids: tuple[str, ...]
+    evidence: tuple[t.EvidenceRef, ...]
+
+
 def amounts(values):
     result = {}
     for value in values:
@@ -78,7 +93,7 @@ def complete(coverage, scope):
 class ReservationService:
     def __init__(self, uow, scope: t.ScopeKey, load_inputs, *, clock,
                  load_proof=None, maximum_attempts=3, load_action_proof=None,
-                 monotonic_clock=monotonic_ns):
+                 monotonic_clock=monotonic_ns, load_released_balances=None):
         if scope.environment == t.Environment.LIVE:
             raise ValueError('LIVE_DISABLED')
         if type(maximum_attempts) is not int or not 1 <= maximum_attempts <= 10:
@@ -86,6 +101,7 @@ class ReservationService:
         self.uow, self.scope, self.load_inputs = uow, scope, load_inputs
         self.clock, self.load_proof = clock, load_proof
         self.load_action_proof = load_action_proof
+        self.load_released_balances = load_released_balances
         self.monotonic_clock = monotonic_clock
         self.maximum_attempts = maximum_attempts
 
@@ -182,7 +198,66 @@ class ReservationService:
             return deny('REPLAN_REQUIRED:STALE_BOOK')
         if not complete(book.coverage, self.scope) or not book.evidence:
             return deny('BOOK_INCOMPLETE')
-        group = merge_holds(repo.group(), book)
+        originals = repo.group()
+        group = merge_holds(originals, book)
+        released_proof = None
+        if self.load_released_balances:
+            from trading_system.risk.target_guard import digest
+            proof = self.load_released_balances(tx, book, originals)
+            if (type(proof) is not ReleasedBalanceAttestation or proof.transaction_id != tx.transaction_id
+                    or proof.book_hash != digest(book) or proof.evidence != book.evidence
+                    or len(set(proof.reservation_ids)) != len(proof.reservation_ids)):
+                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+            restored = {}
+            for original in originals:
+                r = original.reservation
+                if r.reservation_id not in proof.reservation_ids:
+                    continue
+                if (r.state != t.ReservationState.RELEASED or original.held or original.reflected
+                        or original.release_pending or not r.command_refs):
+                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+                release_raw = tx.execute('SELECT scope_id,payload FROM ledger.audit_events WHERE record_id=%s',
+                    ('ip07:proof:' + r.reservation_id + ':' + str(original.sequence),)).fetchone()
+                release = decode(ReconciliationProof, release_raw[1]) if release_raw else None
+                if (release is None or not release.obligations_cleared or not release.evidence.terminal_verified
+                        or release.intent_id != r.intent_id or release.command_refs != r.command_refs
+                        or release.asset != r.asset or release.evidence.reflected_amount != 0
+                        or any(utc_timestamp(e.visible_at) < utc_timestamp(release.evidence.venue_freeze_ref.visible_at)
+                            for e in book.evidence)):
+                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+                # A persisted release is still insufficient if any command has
+                # become uncertain, or its current order is not terminal.
+                for cid in r.command_refs:
+                    source = tx.execute('SELECT scope_id FROM ledger.commands WHERE record_id=%s AND sequence=1', (cid,)).fetchone()
+                    if source is None:
+                        return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+                    raw = tx.execute('SELECT payload FROM ledger.commands WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+                        (source[0], cid)).fetchone()
+                    stored = decode(ExecutionCommand, raw[0])
+                    outcome = tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+                        (source[0], 'ip10:outcome:' + cid)).fetchone()
+                    from trading_system.execution.commands import CommandOutcome, command_hash
+                    result = decode(CommandOutcome, outcome[0]) if outcome else None
+                    order_raw = tx.execute('SELECT payload FROM ledger.order_projections WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+                        (source[0], stored.logical_client_order_id)).fetchone()
+                    order = decode(t.OrderProjection, order_raw[0]) if order_raw else None
+                    if (result is None or result.command_id != cid or result.receipt.command_id != cid
+                            or stored.intent_id != r.intent_id or result.request_hash != command_hash(stored)
+                            or result.durable_record_ref != stored.durable_record_ref
+                            or result.receipt.status not in (t.CommandState.VENUE_CONFIRMED, t.CommandState.VENUE_REJECTED)
+                            or order is None or order.lifecycle_state not in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED')
+                            or order.command_certainty != 'CONFIRMED' or order.pending_operation != 'NONE'
+                            or order.leaves_quantity.value != 0 or scope_id(order.order.identity.scope) != source[0]
+                            or order.order.identity.logical_client_order_id != stored.logical_client_order_id
+                            or order.order.identity.venue_client_order_id != stored.venue_client_order_id
+                            or order.order.ownership_epoch != stored.ownership_epoch
+                            or order.order.owner_strategy_id != r.owner_strategy_id):
+                        return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+                restored[r.reservation_id] = original
+            if set(restored) != set(proof.reservation_ids):
+                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+            group = tuple(restored.get(p.reservation.reservation_id, p) for p in group)
+            released_proof = proof
         for p in group:
             r = p.reservation
             if (r.environment != self.scope.environment or r.collateral_group_id != tx.group_id
@@ -345,6 +420,8 @@ class ReservationService:
             return deny('EXPIRED_OR_UNBOUND_CLOCK')
         reading = current[0]
         tx.intents.append(intent)
+        if released_proof is not None:
+            tx._append('audit_events', 'ip07:released-balances:' + intent.intent_id, released_proof, 0)
         repo.risk(decision)
         tx._append('audit_events', 'ip07:target-basis:' + command.command_id,
             TargetBasis(command_id=command.command_id, book_sequence=book.sequence,

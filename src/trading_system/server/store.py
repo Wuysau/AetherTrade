@@ -322,9 +322,10 @@ class Store:
             if payload.get("auto_execute") is True and not previous_auto and previous_status != "ACTIVE" and payload.get("status") != "ACTIVE":
                 raise ApiError("INVALID_STRATEGY", "启用自动下单时请明确激活策略并确认模型费用。")
             self._strategy_values(data, connection=connection, previous_status=previous_status, previous_routing=previous_routing)
+            owned_positions = self.execution.account_view()['positions'] if self.execution else rows(connection, positions)
             if data["symbol"] != previous_symbol and any(
                 item.get("strategy_id") == identifier and Decimal(item["quantity"]) != 0
-                for item in rows(connection, positions)
+                for item in owned_positions
             ):
                 raise ApiError("STRATEGY_HAS_POSITION", "请先退出该策略持仓，再修改交易标的。", 409)
             data.update(revision=data["revision"] + 1, updated_at=stamp())
@@ -365,6 +366,8 @@ class Store:
     def _valuation(self, connection, account, market, *, fresh=False, maximum_age=90):
         if self.execution and not rows(connection, positions) and not rows(connection, orders):
             projection = self.execution.account_view()
+            if Decimal(account['initial_cash']) != Decimal(projection['initial_cash']):
+                raise ApiError('PAPER_CAPITAL_MISMATCH', '控制台初始虚拟资金与独立业务账本不一致；请使用显式创建的新 PAPER 账户。', 409)
             account['cash'] = projection['cash']
             total = Decimal(account['cash'])
             held = []

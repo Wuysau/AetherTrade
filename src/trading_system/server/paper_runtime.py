@@ -31,7 +31,7 @@ from trading_system.intents.target_compiler import TargetInputs
 from trading_system.risk.evaluator import RiskEvaluator, RiskInputs, GroupLimit, EmergencyReduction
 from trading_system.risk.exposure import ExposureMark, WorkingOrder
 from trading_system.risk.reservations import ReservationService, ReservationInputs
-from trading_system.risk.reservations import ReconciliationProof
+from trading_system.risk.reservations import ReconciliationProof, ReleasedBalanceAttestation
 from trading_system.risk.reservation_repository import ReservationRepository
 from trading_system.risk.target_guard import TargetReport, TargetBasis, validate_report, roots, digest
 from trading_system.risk.locked_actions import ActionProof, WorkingTerms
@@ -442,11 +442,32 @@ class UnifiedPaperRuntime:
             # following IP-07 transaction commits the full risk/command bundle.
             tx._append('audit_events', 'console:request:' + command_id, request, 0)
         service = ReservationService(self.uow, scope, lambda tx, i, b: self._inputs(tx, i, b, request, command),
-            clock=lambda: self.clock().utc_now, load_action_proof=self._action_proof)
+            clock=lambda: self.clock().utc_now, load_action_proof=self._action_proof,
+            load_released_balances=self._released_balances)
         result = service.reserve(intent, book.sequence)
         if not result.accepted:
             raise ApiError('PAPER_RISK_REJECTED', '；'.join(result.rejection_codes), 409) from ValueError(result.rejection_codes)
         return self._receipt(request)
+
+    def _released_balances(self, tx, book, originals):
+        # The shared synthetic account has exactly one quote currency. Its
+        # current cash is derived from the provisioned seed plus EVERY group's
+        # durable fill and synthetic fee, not copied from a client snapshot.
+        balances = {value.currency: value.amount for value in book.balances}
+        symbol = tx.scope.instrument_uid.removeprefix('console-paper:')
+        actual = D(0)
+        for raw, side in tx.execute("SELECT f.payload,c.payload->'canonical_payload'->>'side' FROM ledger.fills f "
+                "JOIN ledger.commands c ON c.scope_id=f.scope_id AND c.sequence=1 "
+                "AND c.payload->>'logical_client_order_id'=f.payload->'order'->>'logical_client_order_id' "
+                "WHERE f.scope_id=%s", (scope_id(tx.scope),)).fetchall():
+            actual += decode(t.Fill, raw).quantity.value * (1 if side == 'BUY' else -1)
+        if (balances.get('USDT') != self._cash(tx) or balances.get(symbol.removesuffix('USDT')) != actual
+                or actual != sum((p.actual_quantity.value for p in book.positions), D(0))):
+            raise ValueError('CURRENT_SYNTHETIC_BALANCE_NOT_RECONCILED')
+        ids = tuple(p.reservation.reservation_id for p in originals
+            if p.reservation.state == t.ReservationState.RELEASED and p.held == p.reflected == p.release_pending == 0)
+        return ReleasedBalanceAttestation(transaction_id=tx.transaction_id, book_hash=digest(book),
+            reservation_ids=ids, evidence=book.evidence)
 
     def _receipt(self, request):
         return dict(id=request.command_id, command_id=request.command_id, symbol=request.symbol,
@@ -592,13 +613,19 @@ class UnifiedPaperRuntime:
             return self._receipt(request)
 
     def account_view(self):
+        with self.control_guard():
+            return self._account_view()
+
+    def _account_view(self):
         positions = []
         cash = None
+        seed_cash = None
         for symbol in SYMBOLS:
             scope = scope_for(symbol)
             with self.uow.transaction(scope) as tx:
                 if cash is None:
                     cash = self._cash(tx)
+                    seed_cash = tx.execute("SELECT payload->>'initial_cash' FROM ledger.audit_events WHERE record_id='console:seed'").fetchone()[0]
                 book = tx._latest('book_snapshots', 'book', t.BookSnapshot)
                 if book is None or not book.positions:
                     continue
@@ -622,11 +649,13 @@ class UnifiedPaperRuntime:
                         cost *= (running - q) / running
                         fees *= (running - q) / running
                         running -= q
+                plan = tx._latest('protection_plans', 'protection:' + scope_id(scope), t.ProtectionPlan)
+                protection = 'VERIFIED_SYNTHETIC' if plan and plan.state == 'VERIFIED_NATIVE' else 'GAP'
                 positions.append(dict(id=book.positions[0].position_id, symbol=symbol, product='SPOT', side='LONG',
                     quantity=number(quantity), average_price=number(cost / quantity if quantity else D(0)),
-                    mark_price=number(mark), strategy_id=strategy_id, owner='UNIFIED_PAPER', protection='GAP',
+                    mark_price=number(mark), strategy_id=strategy_id, owner='UNIFIED_PAPER', protection=protection,
                     _entry_fees=number(fees), updated_at=book.evidence[0].visible_at))
-        return {'cash': number(cash or D(0)), 'positions': positions}
+        return {'cash': number(cash or D(0)), 'positions': positions, 'initial_cash': seed_cash}
 
     def _action_proof(self, tx, command, intent, book):
         request = self._request(tx, command.command_id)
@@ -986,6 +1015,10 @@ class UnifiedPaperRuntime:
             'protection_state': 'VERIFIED_SYNTHETIC' if actual and verified else 'GAP' if actual else 'NO_POSITION', 'simulation_notice': NOTICE}
 
     def projection(self):
+        with self.control_guard():
+            return self._projection()
+
+    def _projection(self):
         targets, commands, locks, protections, orders_view = [], [], [], [], []
         for symbol in SYMBOLS:
             scope = scope_for(symbol)
@@ -999,6 +1032,16 @@ class UnifiedPaperRuntime:
                     protections.append({**domain_payload(plan), 'state': 'VERIFIED_SYNTHETIC' if plan.state == 'VERIFIED_NATIVE' else str(plan.state),
                         'provenance': 'UNIFIED_PAPER_SYNTHETIC'})
                 latest_target = None
+                from .paper_accounting import realized_by_order
+                accounting_fills = []
+                for fill_raw, fill_side, fill_command_id in tx.execute("SELECT f.payload,c.payload->'canonical_payload'->>'side',c.record_id "
+                        "FROM ledger.fills f JOIN ledger.commands c ON c.scope_id=f.scope_id AND c.sequence=1 "
+                        "AND c.payload->>'logical_client_order_id'=f.payload->'order'->>'logical_client_order_id' "
+                        "WHERE f.scope_id=%s ORDER BY f.processed_at,f.record_id", (scope_id(scope),)).fetchall():
+                    fill = decode(t.Fill, fill_raw)
+                    accounting_fills.append(dict(side=fill_side, quantity=fill.quantity.value, price=fill.price.value,
+                        command_id=fill_command_id))
+                realized = realized_by_order(accounting_fills)
                 for raw, in records:
                     request = decode(RuntimeRequest, raw)
                     command = CommandRepository(tx).get(request.command_id)
@@ -1028,6 +1071,7 @@ class UnifiedPaperRuntime:
                             side=command.canonical_payload.side, quantity=command.canonical_payload.quantity,
                             filled_quantity=number(filled), price=number(notional / filled) if filled else request.quote_price,
                             notional=number(notional), fee=number(notional * D('.001')), status=status,
+                            realized_pnl=number(realized[command.command_id]) if command.command_id in realized else None,
                             strategy_id=request.strategy_id, created_at=request.requested_at))
                 if latest_target:
                     targets.append(latest_target)
