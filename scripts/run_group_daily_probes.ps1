@@ -27,6 +27,9 @@ $sourcePaths = @('src/trading_system/storage/uow.py', 'src/trading_system/risk/l
     'src/trading_system/risk/locked_actions.py', 'src/trading_system/risk/reservations.py',
     'tests/integration/test_group_daily_locks.py', 'tests/unit/test_risk_applicability.py',
     'migrations/0001_business_ledger.sql', 'migrations/0002_risk_resolution_authority.sql')
+if (Test-Path -LiteralPath 'src/trading_system/risk/daily_loss.py') {
+    $sourcePaths += @('src/trading_system/risk/daily_loss.py', 'tests/integration/test_daily_loss_monitor.py')
+}
 $sourceHashes = foreach ($sourcePath in $sourcePaths) {
     @{path=$sourcePath; sha256=(Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash.ToLowerInvariant()}
 }

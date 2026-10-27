@@ -36,8 +36,9 @@ never resolve a lock.
 
 Existing source resolution uses its separate trusted resolver. Monitor reads
 validated resolved originals and the authoritative ResolutionAudit. That audit
-does not bind a complete observation watermark: safe same-day rearm therefore
-remains DENY_NEW_RISK with an explicit missing-watermark code. Do not replay an
+does not bind a complete observation watermark: safe rearm therefore
+remains DENY_NEW_RISK with an explicit missing-watermark code, including rollover
+without separate authoritative new-day policy review. Do not replay an
 already reviewed historical breach or invent an override/new authorization.
 The original day baseline is never reset. Console/AI/manual wiring and a real
 production archive reader remain explicit integration work, not a second lock.
