@@ -5,6 +5,7 @@ import { errorMessage, type RuntimeApi } from './api';
 import { money, positiveDecimal, quantity, quoteIsFresh, time } from './format';
 import { Alert, Badge, Dialog } from './ui';
 import { ModelSelection, routingError, strategyProfileIds } from './modelprofiles';
+import { paperOrderLabel } from './paperexecution';
 import type { Dashboard, Mode, ModelProfile, PaperAction, PaperOrderInput, Risk, Strategy, StrategyInput, SymbolName } from './types';
 
 export const MODE_NAMES: Record<Mode, string> = { AI: 'AI 自主决策', RULE: '用户规则', HYBRID: 'AI / 规则混合' };
@@ -82,12 +83,12 @@ export function OrderDialog({ api, data, initial, onClose, onSaved }: { api: Run
     if (unavailableStrategy) { setError('原归属策略已不可用或与交易标的不符，请重新选择归属策略。'); return; }
     if (!confirming) { setConfirming(true); return; }
     setBusy(true);
-    try { const response = await api.order(form, key.current); onSaved(`模拟订单已成交 · ${response.order.id}`); }
+    try { const response = await api.order(form, key.current); onSaved(`PAPER 请求已记录 · ${paperOrderLabel(response.order.status)} · ${response.order.id}`); }
     catch (err) { setError(errorMessage(err)); } finally { setBusy(false); }
   }
   return <Dialog title={confirming ? '确认模拟订单' : '创建模拟订单'} busy={busy} onClose={onClose} wide><form onSubmit={submit} className="editor-form">
-    <Alert><strong>PAPER</strong> · 仅影响本地虚拟资金，使用服务端最新有效报价成交，模拟手续费 0.10%。</Alert>
-    {confirming ? <><div className="order-confirm-summary"><span className={`order-direction ${form.side === 'BUY' ? 'positive' : 'negative'}`}>{form.side === 'BUY' ? '买入' : '卖出'}</span><h3>{form.symbol}</h3><div>{quantity(form.quantity)} <span className="quiet">{form.symbol.replace('USDT', '')}</span></div></div><div className="form-note">按确认时服务端报价成交。以下金额为参考估算，最终以成交回执为准。</div></> : <>
+    <Alert><strong>PAPER</strong> · 仅使用虚拟资金。提交后等待模拟订单事件；无法验证真实滑点或流动性。</Alert>
+    {confirming ? <><div className="order-confirm-summary"><span className={`order-direction ${form.side === 'BUY' ? 'positive' : 'negative'}`}>{form.side === 'BUY' ? '买入' : '卖出'}</span><h3>{form.symbol}</h3><div>{quantity(form.quantity)} <span className="quiet">{form.symbol.replace('USDT', '')}</span></div></div><div className="form-note">以下金额仅为估算。回执表示请求已记录；实际数量、价格和保护状态以之后的事件为准。</div></> : <>
       <div className="form-grid"><label className="field"><span>交易标的</span><select value={form.symbol} onChange={e => update('symbol', e.target.value as SymbolName)}><InstrumentOptions /></select></label><label className="field"><span>交易方向</span><select value={form.side} onChange={e => update('side', e.target.value as 'BUY' | 'SELL')}><option value="BUY">买入 · 增加持仓</option><option value="SELL">卖出 · 减少持仓</option></select></label></div>
       <label className="field"><span>交易数量 <small>{form.symbol.replace('USDT', '')}</small></span><input autoFocus required inputMode="decimal" value={form.quantity} placeholder="输入数量" onChange={e => update('quantity', e.target.value)} /></label>
       <label className="field"><span>归属策略 <small>可选</small></span><select value={form.strategy_id ?? ''} onChange={e => update('strategy_id', e.target.value || null)}><option value="">手动交易</option>{unavailableStrategy && <option value={form.strategy_id!} disabled>原策略不可用，请重新选择</option>}{eligibleStrategies.map(s => <option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
@@ -97,14 +98,14 @@ export function OrderDialog({ api, data, initial, onClose, onSaved }: { api: Run
     {paused && <Alert error>新增开仓已暂停。请先在风控与权限中恢复开仓，卖出不受此限制。</Alert>}
     {!fresh && <Alert error>报价缺失或已过期，当前不能执行模拟订单。请刷新行情后重试。</Alert>}
     {error && <Alert error>{error}</Alert>}
-    <div className="dialog-buttons">{confirming ? <button className="button" type="button" disabled={busy} onClick={() => { setConfirming(false); setError(''); }}><ArrowLeft className="icon" />返回修改</button> : <button className="button" type="button" disabled={busy} onClick={onClose}>取消</button>}<button className="button primary" disabled={busy || !fresh || paused}>{busy ? <LoaderCircle className="icon spin" /> : <ShieldCheck className="icon" />}{busy ? '正在提交…' : confirming ? '确认模拟成交' : '核对订单'}</button></div>
+    <div className="dialog-buttons">{confirming ? <button className="button" type="button" disabled={busy} onClick={() => { setConfirming(false); setError(''); }}><ArrowLeft className="icon" />返回修改</button> : <button className="button" type="button" disabled={busy} onClick={onClose}>取消</button>}<button className="button primary" disabled={busy || !fresh || paused}>{busy ? <LoaderCircle className="icon spin" /> : <ShieldCheck className="icon" />}{busy ? '正在提交…' : confirming ? '确认模拟委托' : '核对订单'}</button></div>
   </form></Dialog>;
 }
 const ACTION_COPY: Record<PaperAction, { title: string; description: string; button: string }> = {
   pause_new: { title: '暂停新增开仓', description: '暂停本地 PAPER 账户的新买入。现有持仓保持不变，卖出仍可执行。', button: '确认暂停开仓' },
   resume_new: { title: '恢复新增开仓', description: '允许本地 PAPER 账户再次买入。行情时效、资金与风险阈值仍由服务端逐笔校验。', button: '确认恢复开仓' },
-  cancel_entries: { title: '撤销未成交入场委托', description: '仅撤销未成交的模拟入场委托。当前手动订单即时成交，已成交订单不会被撤回；没有待撤订单时会返回无变更回执。', button: '确认撤销入场委托' },
-  exit_owned: { title: '退出全部模拟持仓', description: '按每个标的最新有效报价卖出全部本地 PAPER 持仓，并计入模拟手续费。任一报价不可用时整笔操作不执行。', button: '确认退出全部持仓' },
+  cancel_entries: { title: '撤销未成交入场委托', description: '仅撤销未成交的模拟入场委托。撤单请求需等待确认；结果未知时保留余单预留，已成交部分仍需保护。', button: '确认撤销入场委托' },
+  exit_owned: { title: '退出全部模拟持仓', description: '为已有持仓请求减仓，逐笔校验归属、数量和授权。只有成交与对账确认后才算完成退出。', button: '确认退出全部持仓' },
 };
 export function ActionDialog({ action, data, api, onClose, onSaved }: { action: PaperAction; data: Dashboard; api: RuntimeApi; onClose: () => void; onSaved: (message: string) => void }) {
   const [revision] = useState(data.account.revision), [key] = useState(() => crypto.randomUUID());

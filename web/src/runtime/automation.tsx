@@ -6,7 +6,7 @@ import { StrategyModelSummary, profilesFromDashboard, strategyProfileIds } from 
 import type { Dashboard, Strategy } from './types';
 
 export const runtimeLabel = (s: Strategy) => ({ DRAFT: '草稿 · 未启用', PAUSED: '已暂停', WAITING_MODEL: '等待模型服务', WAITING_QUOTES: '等待有效行情', READY: '等待分析', RUNNING: '正在分析', ERROR: '分析失败', ACTIVE: '已启用' }[s.runtime_status ?? s.status] ?? s.runtime_status);
-export const executionLabel = (status?: string) => ({ FILLED: 'PAPER 已成交', BLOCKED: 'PAPER 风控拦截', NOT_ENABLED: '自动下单未启用', NO_ACTION: '观望 · 无需下单', HOLD: '观望 · 无需下单', SKIPPED: '已跳过执行', PAUSED: '已暂停', ERROR: '执行失败' }[status ?? ''] ?? '未执行订单');
+export const executionLabel = (status?: string) => ({ PENDING: 'PAPER 请求已排队', SUBMITTED: 'PAPER 已提交 · 待成交', UNKNOWN: 'PAPER 结果未知 · 待核对', PARTIALLY_FILLED: 'PAPER 部分成交', FILLED: 'PAPER 已成交', BLOCKED: 'PAPER 风控拦截', NOT_ENABLED: '自动下单未启用', NO_ACTION: '观望 · 无需下单', HOLD: '观望 · 无需下单', SKIPPED: '已跳过执行', PAUSED: '已暂停', ERROR: '执行失败' }[status ?? ''] ?? '未执行订单');
 export function StrategyAutomation({ strategy: s, api, onSaved }: { strategy: Strategy; api: RuntimeApi; onSaved: (message: string) => void }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   async function update(status: Strategy['status'], auto = s.auto_execute ?? false) {

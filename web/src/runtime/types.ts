@@ -18,7 +18,8 @@ export interface Position {
 }
 export interface Order {
   id: string; symbol: SymbolName; side: 'BUY' | 'SELL'; quantity: string;
-  price: string; notional: string; fee: string; status: 'FILLED';
+  price: string; notional: string; fee: string; status: 'FILLED' | 'SUBMITTED' | 'PARTIALLY_FILLED' | 'CANCEL_UNKNOWN' | 'EXPIRED' | 'REJECTED' | 'CANCELED' | 'UNKNOWN';
+  filled_quantity?: string; leaves_quantity?: string; provenance?: string;
   strategy_id: string | null; created_at: string;
 }
 export interface Decision {
@@ -71,7 +72,24 @@ export interface Dashboard {
   notifications?: Notifications; automation?: { enabled: boolean; active_strategies: number; auto_order_strategies: number; running_jobs: number };
   instruments?: Instrument[]; model_config?: ModelConfig; model_profiles?: ModelProfile[];
   risk: Risk; services: Service[]; market: Market;
+  execution?: PaperExecution;
+  risk_locks?: PaperRiskLock[];
   research: { total_return_pct: string; max_drawdown_pct: string; win_rate: string | null; trade_count: number; fees: string };
+}
+
+export interface PaperRiskLock { lock_id: string; cause: string; state: string; permission: string }
+export interface PaperTarget {
+  symbol: string; strategy_id: string | null; target_quantity: string;
+  actual_quantity: string; in_flight_quantity: string;
+  protection_state: string; protected_quantity: string; command_id?: string; reason?: string;
+}
+export interface PaperCommand {
+  command_id: string; symbol: string; state: string; order_status: string;
+  quantity: string; filled_quantity: string; leaves_quantity: string; reason?: string;
+}
+export interface PaperExecution {
+  mode: string; simulation_notice: string; targets: PaperTarget[];
+  commands: PaperCommand[]; risk_locks: PaperRiskLock[];
 }
 export interface PaperOrderInput { symbol: SymbolName; side: 'BUY' | 'SELL'; quantity: string; strategy_id: string | null }
 export interface ActionReceipt { id: string; action: PaperAction; status: 'APPLIED'; affected_count: number; detail: string; created_at: string }

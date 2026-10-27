@@ -71,7 +71,7 @@ export class RuntimeApi {
   }
   saveRisk(values: Omit<Risk, 'revision'>, revision: number) { return this.request<Risk>('/risk-policy', { method: 'PUT', body: JSON.stringify({ ...values, expected_revision: revision }) }); }
   order(values: PaperOrderInput, key: string) {
-    return this.request<{ order: { id: string }; account_revision: number }>('/paper/orders', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(values) });
+    return this.request<{ order: { id: string; status?: string; command_id?: string }; command_id?: string; account_revision: number }>('/paper/orders', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(values) });
   }
   action(action: PaperAction, revision: number, key: string, confirmation?: string) {
     return this.request<ActionReceipt>('/paper/actions', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ action, expected_revision: revision, ...(confirmation ? { confirmation } : {}) }) });

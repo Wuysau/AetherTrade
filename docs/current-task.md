@@ -41,9 +41,37 @@ Use fresh dedicated test databases in the existing isolated test clusters or
 a newly provisioned disposable cluster. Never read/alter real credentials.
 No push, public merge, venue Testnet or LIVE writing is authorized by this task.
 
-Next smallest step: integrate the reviewed atomic-target commits and run their
-PostgreSQL regressions; reproduce the preserved owner-CAS counterexample.
+## Progress after recovery
 
-Ruling: continue the already authorized plan inline; do not repeat design
-approval or task dispatch. Record fresh test outputs and update this file after
-each meaningful implementation step.
+- Atomic target branch integrated as `4aa1323`/`40572be`; owner-CAS branch
+  integrated through `3302354`. Deferred-expiry counterexample retained in
+  `2920641`: actual PostgreSQL 133 passed / 1 failed, then `66bd023` restricts
+  caller DDL/TEMP and the same PostgreSQL suite passes 134 / 0 skipped.
+- Integrated PostgreSQL run at `66bd023` proved ledger 30, reservations 67,
+  duplicate targets 29, risk locks 36, dispatch 61, execution evidence 37,
+  recovery 94, protection 74, ownership 134, PaperEngine 59 passed. It is NOT a
+  green full gate: ETH revision/child-book fixture conflicts fixed in `b50a6c4`
+  require rerun; existing console test DB caused the runner to refuse reuse.
+- `97c4f9d` persists console DAILY_LOSS after rollback, rebound, restart and
+  risk-day rollover, using shared cause policies. SQLite 24 passed / 1 skipped;
+  PostgreSQL regression awaits the fresh-cluster run.
+- User supplied prior chat `01a167ee-3f84-7483-8767-3a0dd532c8d4`. Its validated
+  console/multimodel/live-market work was merged to public-snapshot, old
+  runtime-console worktree removed, ending at DNS fix `3062154`. All included
+  in our original baseline; reuse those records rather than rebuild features.
+- Web distinguishes queued/submitted/unknown receipts from fills and shows
+  target/in-flight/actual/protection/locks. Typecheck/build pass; 103 tests pass.
+  Desktop 1440 and mobile 390 rendered with explicitly labeled synthetic UI
+  fixture, no document horizontal overflow. This is UI evidence only.
+- Separate worktrees now implement remaining backend wiring, fresh validation,
+  and learning docs (`paper-runtime-resume`, `paper-validation-resume`,
+  `paper-learning-resume`), each with one writer. Integrate reviewed commits
+  before final combined qualification; no real account or venue accessed.
+
+Next smallest step: integrate the common runtime service, connect all modes and
+complete actual PostgreSQL lifecycle/fault evidence, then final review.
+
+Ruling: continue the already authorized plan without new design approval.
+After initial integration, use dispatching-parallel-agents for independent
+runtime, validation and documentation work in separate worktrees. Record fresh
+test outputs and update this file after each meaningful implementation step.
