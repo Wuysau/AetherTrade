@@ -40,9 +40,10 @@ SUITES = (
     ('protection', '15', 'tests/integration/test_protection_lifecycle.py'),
     ('ownership', '16', 'tests/integration/test_ownership_transfer.py'),
     ('paper-engine', 'PAPER_ENGINE', 'tests/integration/test_paper_engine_postgres.py'),
-    ('console', 'CONSOLE', 'tests/server/test_store.py::test_postgresql_race_restart_and_concurrent_transaction_receipts'),
+    ('console', 'PAPER_RUNTIME', 'tests/integration/test_unified_console_contract.py'),
     ('unified-runtime', 'PAPER_RUNTIME', 'tests/integration/test_unified_paper_runtime.py'),
     ('runtime-faults', 'PAPER_RUNTIME', 'tests/integration/test_unified_runtime_faults.py'),
+    ('console-contract', 'PAPER_RUNTIME', 'tests/server'),
 )
 
 
@@ -229,7 +230,7 @@ def main(argv=None):
             evidence_root = args.evidence_dir.resolve()
             evidence_root.mkdir(parents=True, exist_ok=True)
             selected = [entry for entry in SUITES if not args.suite or entry[0] == args.suite]
-            missing = [path for _, _, path in selected if not (ROOT / path.split('::')[0]).is_file()]
+            missing = [path for _, _, path in selected if not (ROOT / path.split('::')[0]).exists()]
             if missing:
                 raise GateError('required PostgreSQL suite is missing: ' + ', '.join(missing))
             migrations = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
@@ -276,10 +277,13 @@ def main(argv=None):
                     xml, log = evidence / f'{name}.xml', evidence / f'{name}.log'
                     absolute_test = str(ROOT / testfile.split('::')[0]) + ('::' + testfile.split('::', 1)[1] if '::' in testfile else '')
                     command = [sys.executable, '-m', 'pytest', '-q', '--tb=short', f'--rootdir={ROOT}', f'--junitxml={xml}', absolute_test]
+                    if name == 'console-contract':
+                        command.extend(['-m', 'paper_runtime'])
+                    suite_timeout = 600 if name == 'console-contract' else 300
                     with log.open('wb') as output:
                         try:
                             outcome = subprocess.run(command, cwd=cwd, env=env, stdout=output,
-                                                     stderr=subprocess.STDOUT, timeout=300, check=False)
+                                                     stderr=subprocess.STDOUT, timeout=suite_timeout, check=False)
                             exit_code = outcome.returncode
                         except subprocess.TimeoutExpired:
                             exit_code = 124
@@ -293,6 +297,7 @@ def main(argv=None):
                                             'PAPER_RUNTIME_ISOLATED_DATABASE' if number == 'PAPER_RUNTIME' else
                                             'AETHERTRADE_RUN_POSTGRES_TESTS' if number == 'CONSOLE' else f'IP{number}_ISOLATED_DATABASE'),
                          'results': counts, 'output': log.name, 'junit': xml.name}
+                entry['timeout_seconds'] = suite_timeout
                 if number == 'PAPER_RUNTIME':
                     entry['created_databases'] = sorted({row[0] for row in connection.execute(
                         'SELECT datname FROM pg_database').fetchall()} - before_databases)

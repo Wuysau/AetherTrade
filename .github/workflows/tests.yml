@@ -28,6 +28,8 @@ jobs:
           --ignore=tests/integration/test_paper_engine_postgres.py
           --ignore=tests/integration/test_unified_paper_runtime.py
           --ignore=tests/integration/test_unified_runtime_faults.py
+          --ignore=tests/integration/test_unified_console_contract.py
+          -m 'not paper_runtime'
 
   postgres-paper:
     runs-on: ubuntu-latest

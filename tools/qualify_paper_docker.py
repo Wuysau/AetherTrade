@@ -102,6 +102,7 @@ def main(argv=None):
                                   '--ignore=tests/integration/test_paper_engine_postgres.py',
                                   '--ignore=tests/integration/test_unified_paper_runtime.py',
                                   '--ignore=tests/integration/test_unified_runtime_faults.py',
+                                  '--ignore=tests/integration/test_unified_console_contract.py', '-m', 'not paper_runtime',
                                   '--tb=short', '--junitxml=/handoff/evidence/python-suite.xml'], 'python-suite', 1200, check=False)
         invoke(['docker', 'exec', runner, 'python', '-m', 'pip', 'freeze'], 'resolved-dependencies')
         status = int(pg_exit != 0 or python_exit not in (None, 0))

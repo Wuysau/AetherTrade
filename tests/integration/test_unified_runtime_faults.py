@@ -181,7 +181,8 @@ def test_process_kill_rolls_back_partial_protection_projection_and_recovers_fill
         states['after_recovery'] = snapshot(runtime_config)
         assert len(states['after_recovery']['ledger']['fills']) == 1
         assert restarted.projection()['targets'][0]['actual_quantity'] == '1'
-        assert any(lock['cause'] == 'PROTECTION_GAP' for lock in restarted.projection()['risk_locks'])
+        assert any(lock['cause'] == 'PROTECTION_PENDING' and lock['permission'] == 'NO_NEW_RISK'
+                   for lock in restarted.projection()['risk_locks'])
         assert all(row['payload']['state'] == 'GAP' for row in states['after_recovery']['ledger']['protection_plans'])
     finally:
         preserve('process-protection', states)
