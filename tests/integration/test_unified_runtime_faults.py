@@ -81,7 +81,17 @@ def kill_worker(config, phase, command_id, marker):
         PaperEngine.submit = submit
         current.dispatch(command_id)
     elif phase == 'after-ack':
-        current._reconcile = lambda *args, **kwargs: die()
+        original = current._reconcile
+
+        def after_ack(*args, **kwargs):
+            with current.connect() as conn:
+                state = conn.execute("SELECT payload->>'state' FROM ledger.commands WHERE record_id=%s "
+                    'ORDER BY sequence DESC LIMIT 1', (command_id,)).fetchone()[0]
+            if state == 'VENUE_CONFIRMED':
+                die()
+            return original(*args, **kwargs)
+
+        current._reconcile = after_ack
         current.dispatch(command_id)
     elif phase == 'protection-staged':
         original = LedgerTx._append
