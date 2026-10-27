@@ -1,0 +1,628 @@
+FFFFFFFF                                                                 [100%]
+=================================== FAILURES ===================================
+_ test_locked_target_rechecks_expiry_and_current_authority[permit_expired-CANCEL] _
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c591e9f0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c44f9f40>
+operation = 'CANCEL', invalidation = 'permit_expired'
+
+    @pytest.mark.parametrize('operation', ['CANCEL', 'AMEND'])
+    @pytest.mark.parametrize('invalidation', ['permit_expired', 'lease_expired', 'revoked', 'ownership_epoch'])
+    def test_locked_target_rechecks_expiry_and_current_authority(case, monkeypatch, operation, invalidation):
+        from psycopg import sql
+        cmd, permit = case.command()
+        case.engine.submit(cmd, permit)
+        before = case.query(cmd).orders
+        maintenance, mp = case.command(operation, before[0].order.identity.venue_order_id, quantity='0.8')
+    
+        def invalidate():
+            if invalidation == 'permit_expired':
+                case.now = replace(case.now, monotonic_ns=1001)
+            elif invalidation == 'lease_expired':
+                case.now = replace(case.now, monotonic_ns=10001)
+            elif invalidation == 'revoked':
+                case.authorities.pop(maintenance.command_id)
+            else:
+                case.authorities[maintenance.command_id] = replace(
+                    case.authorities[maintenance.command_id], ownership_epoch=2)
+    
+        blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+            sql.Literal(before[0].order.identity.venue_order_id))
+>       _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+            lambda: getattr(case.engine, operation.lower())(maintenance, mp), invalidate)
+
+tests/integration/test_paper_engine_postgres.py:435: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c591e9f0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c44f9f40>
+blocking_sql = Composed([SQL('SELECT 1 FROM paper_engine_orders WHERE order_id='), Literal('paper-order:P11cb301f8f8d34fa6223ec0365ebba56e'), SQL(' FOR UPDATE')])
+operation = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.<lambda> at 0x7f29c4538400>
+invalidate = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.invalidate at 0x7f29c4538180>
+
+    def _while_engine_is_blocked(case, monkeypatch, blocking_sql, operation, invalidate):
+        """Observe PostgreSQL's actual lock wait before changing current authority."""
+        admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', case.dsn)
+        connected, backend = Event(), []
+        original_connect = case.engine._connect
+    
+        def instrumented_connect():
+            conn = original_connect()
+            backend.append(conn.execute('SELECT pg_backend_pid()').fetchone()['pg_backend_pid'])
+            connected.set()
+            return conn
+    
+        monkeypatch.setattr(case.engine, '_connect', instrumented_connect)
+        with psycopg.connect(admin_dsn) as holder:
+            holder.execute(blocking_sql)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(operation)
+                try:
+                    assert connected.wait(5), 'engine did not connect'
+                    with psycopg.connect(admin_dsn, autocommit=True) as observer:
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline:
+                            waiting = observer.execute('SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s',
+                                (backend[0],)).fetchone()
+                            if waiting and waiting[0] == 'Lock':
+                                break
+                            time.sleep(0.01)
+                        else:
+                            pytest.fail('engine never entered the real PostgreSQL lock wait')
+                    invalidate()
+                finally:
+                    holder.rollback()
+>               with pytest.raises(BridgeDenied):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               Failed: DID NOT RAISE BridgeDenied
+
+tests/integration/test_paper_engine_postgres.py:409: Failed
+_ test_locked_target_rechecks_expiry_and_current_authority[permit_expired-AMEND] _
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c44f9d60>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c44b0aa0>
+operation = 'AMEND', invalidation = 'permit_expired'
+
+    @pytest.mark.parametrize('operation', ['CANCEL', 'AMEND'])
+    @pytest.mark.parametrize('invalidation', ['permit_expired', 'lease_expired', 'revoked', 'ownership_epoch'])
+    def test_locked_target_rechecks_expiry_and_current_authority(case, monkeypatch, operation, invalidation):
+        from psycopg import sql
+        cmd, permit = case.command()
+        case.engine.submit(cmd, permit)
+        before = case.query(cmd).orders
+        maintenance, mp = case.command(operation, before[0].order.identity.venue_order_id, quantity='0.8')
+    
+        def invalidate():
+            if invalidation == 'permit_expired':
+                case.now = replace(case.now, monotonic_ns=1001)
+            elif invalidation == 'lease_expired':
+                case.now = replace(case.now, monotonic_ns=10001)
+            elif invalidation == 'revoked':
+                case.authorities.pop(maintenance.command_id)
+            else:
+                case.authorities[maintenance.command_id] = replace(
+                    case.authorities[maintenance.command_id], ownership_epoch=2)
+    
+        blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+            sql.Literal(before[0].order.identity.venue_order_id))
+>       _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+            lambda: getattr(case.engine, operation.lower())(maintenance, mp), invalidate)
+
+tests/integration/test_paper_engine_postgres.py:435: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c44f9d60>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c44b0aa0>
+blocking_sql = Composed([SQL('SELECT 1 FROM paper_engine_orders WHERE order_id='), Literal('paper-order:P1edb76944b7c0c7dac8a68b63df1d23a6'), SQL(' FOR UPDATE')])
+operation = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.<lambda> at 0x7f29c453a0c0>
+invalidate = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.invalidate at 0x7f29c4538860>
+
+    def _while_engine_is_blocked(case, monkeypatch, blocking_sql, operation, invalidate):
+        """Observe PostgreSQL's actual lock wait before changing current authority."""
+        admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', case.dsn)
+        connected, backend = Event(), []
+        original_connect = case.engine._connect
+    
+        def instrumented_connect():
+            conn = original_connect()
+            backend.append(conn.execute('SELECT pg_backend_pid()').fetchone()['pg_backend_pid'])
+            connected.set()
+            return conn
+    
+        monkeypatch.setattr(case.engine, '_connect', instrumented_connect)
+        with psycopg.connect(admin_dsn) as holder:
+            holder.execute(blocking_sql)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(operation)
+                try:
+                    assert connected.wait(5), 'engine did not connect'
+                    with psycopg.connect(admin_dsn, autocommit=True) as observer:
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline:
+                            waiting = observer.execute('SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s',
+                                (backend[0],)).fetchone()
+                            if waiting and waiting[0] == 'Lock':
+                                break
+                            time.sleep(0.01)
+                        else:
+                            pytest.fail('engine never entered the real PostgreSQL lock wait')
+                    invalidate()
+                finally:
+                    holder.rollback()
+>               with pytest.raises(BridgeDenied):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               Failed: DID NOT RAISE BridgeDenied
+
+tests/integration/test_paper_engine_postgres.py:409: Failed
+_ test_locked_target_rechecks_expiry_and_current_authority[lease_expired-CANCEL] _
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c44fff20>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c44ff9b0>
+operation = 'CANCEL', invalidation = 'lease_expired'
+
+    @pytest.mark.parametrize('operation', ['CANCEL', 'AMEND'])
+    @pytest.mark.parametrize('invalidation', ['permit_expired', 'lease_expired', 'revoked', 'ownership_epoch'])
+    def test_locked_target_rechecks_expiry_and_current_authority(case, monkeypatch, operation, invalidation):
+        from psycopg import sql
+        cmd, permit = case.command()
+        case.engine.submit(cmd, permit)
+        before = case.query(cmd).orders
+        maintenance, mp = case.command(operation, before[0].order.identity.venue_order_id, quantity='0.8')
+    
+        def invalidate():
+            if invalidation == 'permit_expired':
+                case.now = replace(case.now, monotonic_ns=1001)
+            elif invalidation == 'lease_expired':
+                case.now = replace(case.now, monotonic_ns=10001)
+            elif invalidation == 'revoked':
+                case.authorities.pop(maintenance.command_id)
+            else:
+                case.authorities[maintenance.command_id] = replace(
+                    case.authorities[maintenance.command_id], ownership_epoch=2)
+    
+        blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+            sql.Literal(before[0].order.identity.venue_order_id))
+>       _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+            lambda: getattr(case.engine, operation.lower())(maintenance, mp), invalidate)
+
+tests/integration/test_paper_engine_postgres.py:435: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c44fff20>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c44ff9b0>
+blocking_sql = Composed([SQL('SELECT 1 FROM paper_engine_orders WHERE order_id='), Literal('paper-order:P1e450622e663d7baf60dd655256cdcf08'), SQL(' FOR UPDATE')])
+operation = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.<lambda> at 0x7f29c45396c0>
+invalidate = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.invalidate at 0x7f29c4539800>
+
+    def _while_engine_is_blocked(case, monkeypatch, blocking_sql, operation, invalidate):
+        """Observe PostgreSQL's actual lock wait before changing current authority."""
+        admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', case.dsn)
+        connected, backend = Event(), []
+        original_connect = case.engine._connect
+    
+        def instrumented_connect():
+            conn = original_connect()
+            backend.append(conn.execute('SELECT pg_backend_pid()').fetchone()['pg_backend_pid'])
+            connected.set()
+            return conn
+    
+        monkeypatch.setattr(case.engine, '_connect', instrumented_connect)
+        with psycopg.connect(admin_dsn) as holder:
+            holder.execute(blocking_sql)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(operation)
+                try:
+                    assert connected.wait(5), 'engine did not connect'
+                    with psycopg.connect(admin_dsn, autocommit=True) as observer:
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline:
+                            waiting = observer.execute('SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s',
+                                (backend[0],)).fetchone()
+                            if waiting and waiting[0] == 'Lock':
+                                break
+                            time.sleep(0.01)
+                        else:
+                            pytest.fail('engine never entered the real PostgreSQL lock wait')
+                    invalidate()
+                finally:
+                    holder.rollback()
+>               with pytest.raises(BridgeDenied):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               Failed: DID NOT RAISE BridgeDenied
+
+tests/integration/test_paper_engine_postgres.py:409: Failed
+_ test_locked_target_rechecks_expiry_and_current_authority[lease_expired-AMEND] _
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c4497e00>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c4494290>
+operation = 'AMEND', invalidation = 'lease_expired'
+
+    @pytest.mark.parametrize('operation', ['CANCEL', 'AMEND'])
+    @pytest.mark.parametrize('invalidation', ['permit_expired', 'lease_expired', 'revoked', 'ownership_epoch'])
+    def test_locked_target_rechecks_expiry_and_current_authority(case, monkeypatch, operation, invalidation):
+        from psycopg import sql
+        cmd, permit = case.command()
+        case.engine.submit(cmd, permit)
+        before = case.query(cmd).orders
+        maintenance, mp = case.command(operation, before[0].order.identity.venue_order_id, quantity='0.8')
+    
+        def invalidate():
+            if invalidation == 'permit_expired':
+                case.now = replace(case.now, monotonic_ns=1001)
+            elif invalidation == 'lease_expired':
+                case.now = replace(case.now, monotonic_ns=10001)
+            elif invalidation == 'revoked':
+                case.authorities.pop(maintenance.command_id)
+            else:
+                case.authorities[maintenance.command_id] = replace(
+                    case.authorities[maintenance.command_id], ownership_epoch=2)
+    
+        blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+            sql.Literal(before[0].order.identity.venue_order_id))
+>       _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+            lambda: getattr(case.engine, operation.lower())(maintenance, mp), invalidate)
+
+tests/integration/test_paper_engine_postgres.py:435: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c4497e00>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c4494290>
+blocking_sql = Composed([SQL('SELECT 1 FROM paper_engine_orders WHERE order_id='), Literal('paper-order:P1e012b79ef8373db8b7deab9ca3ff7a68'), SQL(' FOR UPDATE')])
+operation = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.<lambda> at 0x7f29c453a8e0>
+invalidate = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.invalidate at 0x7f29c453a660>
+
+    def _while_engine_is_blocked(case, monkeypatch, blocking_sql, operation, invalidate):
+        """Observe PostgreSQL's actual lock wait before changing current authority."""
+        admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', case.dsn)
+        connected, backend = Event(), []
+        original_connect = case.engine._connect
+    
+        def instrumented_connect():
+            conn = original_connect()
+            backend.append(conn.execute('SELECT pg_backend_pid()').fetchone()['pg_backend_pid'])
+            connected.set()
+            return conn
+    
+        monkeypatch.setattr(case.engine, '_connect', instrumented_connect)
+        with psycopg.connect(admin_dsn) as holder:
+            holder.execute(blocking_sql)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(operation)
+                try:
+                    assert connected.wait(5), 'engine did not connect'
+                    with psycopg.connect(admin_dsn, autocommit=True) as observer:
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline:
+                            waiting = observer.execute('SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s',
+                                (backend[0],)).fetchone()
+                            if waiting and waiting[0] == 'Lock':
+                                break
+                            time.sleep(0.01)
+                        else:
+                            pytest.fail('engine never entered the real PostgreSQL lock wait')
+                    invalidate()
+                finally:
+                    holder.rollback()
+>               with pytest.raises(BridgeDenied):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               Failed: DID NOT RAISE BridgeDenied
+
+tests/integration/test_paper_engine_postgres.py:409: Failed
+___ test_locked_target_rechecks_expiry_and_current_authority[revoked-CANCEL] ___
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c44947a0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c4497ce0>
+operation = 'CANCEL', invalidation = 'revoked'
+
+    @pytest.mark.parametrize('operation', ['CANCEL', 'AMEND'])
+    @pytest.mark.parametrize('invalidation', ['permit_expired', 'lease_expired', 'revoked', 'ownership_epoch'])
+    def test_locked_target_rechecks_expiry_and_current_authority(case, monkeypatch, operation, invalidation):
+        from psycopg import sql
+        cmd, permit = case.command()
+        case.engine.submit(cmd, permit)
+        before = case.query(cmd).orders
+        maintenance, mp = case.command(operation, before[0].order.identity.venue_order_id, quantity='0.8')
+    
+        def invalidate():
+            if invalidation == 'permit_expired':
+                case.now = replace(case.now, monotonic_ns=1001)
+            elif invalidation == 'lease_expired':
+                case.now = replace(case.now, monotonic_ns=10001)
+            elif invalidation == 'revoked':
+                case.authorities.pop(maintenance.command_id)
+            else:
+                case.authorities[maintenance.command_id] = replace(
+                    case.authorities[maintenance.command_id], ownership_epoch=2)
+    
+        blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+            sql.Literal(before[0].order.identity.venue_order_id))
+>       _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+            lambda: getattr(case.engine, operation.lower())(maintenance, mp), invalidate)
+
+tests/integration/test_paper_engine_postgres.py:435: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c44947a0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c4497ce0>
+blocking_sql = Composed([SQL('SELECT 1 FROM paper_engine_orders WHERE order_id='), Literal('paper-order:P128746f9de32ed6888baafdb9734f52b4'), SQL(' FOR UPDATE')])
+operation = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.<lambda> at 0x7f29c3ff87c0>
+invalidate = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.invalidate at 0x7f29c3ff8680>
+
+    def _while_engine_is_blocked(case, monkeypatch, blocking_sql, operation, invalidate):
+        """Observe PostgreSQL's actual lock wait before changing current authority."""
+        admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', case.dsn)
+        connected, backend = Event(), []
+        original_connect = case.engine._connect
+    
+        def instrumented_connect():
+            conn = original_connect()
+            backend.append(conn.execute('SELECT pg_backend_pid()').fetchone()['pg_backend_pid'])
+            connected.set()
+            return conn
+    
+        monkeypatch.setattr(case.engine, '_connect', instrumented_connect)
+        with psycopg.connect(admin_dsn) as holder:
+            holder.execute(blocking_sql)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(operation)
+                try:
+                    assert connected.wait(5), 'engine did not connect'
+                    with psycopg.connect(admin_dsn, autocommit=True) as observer:
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline:
+                            waiting = observer.execute('SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s',
+                                (backend[0],)).fetchone()
+                            if waiting and waiting[0] == 'Lock':
+                                break
+                            time.sleep(0.01)
+                        else:
+                            pytest.fail('engine never entered the real PostgreSQL lock wait')
+                    invalidate()
+                finally:
+                    holder.rollback()
+>               with pytest.raises(BridgeDenied):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               Failed: DID NOT RAISE BridgeDenied
+
+tests/integration/test_paper_engine_postgres.py:409: Failed
+___ test_locked_target_rechecks_expiry_and_current_authority[revoked-AMEND] ____
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c4496900>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c4495d30>
+operation = 'AMEND', invalidation = 'revoked'
+
+    @pytest.mark.parametrize('operation', ['CANCEL', 'AMEND'])
+    @pytest.mark.parametrize('invalidation', ['permit_expired', 'lease_expired', 'revoked', 'ownership_epoch'])
+    def test_locked_target_rechecks_expiry_and_current_authority(case, monkeypatch, operation, invalidation):
+        from psycopg import sql
+        cmd, permit = case.command()
+        case.engine.submit(cmd, permit)
+        before = case.query(cmd).orders
+        maintenance, mp = case.command(operation, before[0].order.identity.venue_order_id, quantity='0.8')
+    
+        def invalidate():
+            if invalidation == 'permit_expired':
+                case.now = replace(case.now, monotonic_ns=1001)
+            elif invalidation == 'lease_expired':
+                case.now = replace(case.now, monotonic_ns=10001)
+            elif invalidation == 'revoked':
+                case.authorities.pop(maintenance.command_id)
+            else:
+                case.authorities[maintenance.command_id] = replace(
+                    case.authorities[maintenance.command_id], ownership_epoch=2)
+    
+        blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+            sql.Literal(before[0].order.identity.venue_order_id))
+>       _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+            lambda: getattr(case.engine, operation.lower())(maintenance, mp), invalidate)
+
+tests/integration/test_paper_engine_postgres.py:435: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c4496900>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c4495d30>
+blocking_sql = Composed([SQL('SELECT 1 FROM paper_engine_orders WHERE order_id='), Literal('paper-order:P1290c8ea2640f8a8fa2776c01e71da5d6'), SQL(' FOR UPDATE')])
+operation = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.<lambda> at 0x7f29c3ff85e0>
+invalidate = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.invalidate at 0x7f29c3ff84a0>
+
+    def _while_engine_is_blocked(case, monkeypatch, blocking_sql, operation, invalidate):
+        """Observe PostgreSQL's actual lock wait before changing current authority."""
+        admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', case.dsn)
+        connected, backend = Event(), []
+        original_connect = case.engine._connect
+    
+        def instrumented_connect():
+            conn = original_connect()
+            backend.append(conn.execute('SELECT pg_backend_pid()').fetchone()['pg_backend_pid'])
+            connected.set()
+            return conn
+    
+        monkeypatch.setattr(case.engine, '_connect', instrumented_connect)
+        with psycopg.connect(admin_dsn) as holder:
+            holder.execute(blocking_sql)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(operation)
+                try:
+                    assert connected.wait(5), 'engine did not connect'
+                    with psycopg.connect(admin_dsn, autocommit=True) as observer:
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline:
+                            waiting = observer.execute('SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s',
+                                (backend[0],)).fetchone()
+                            if waiting and waiting[0] == 'Lock':
+                                break
+                            time.sleep(0.01)
+                        else:
+                            pytest.fail('engine never entered the real PostgreSQL lock wait')
+                    invalidate()
+                finally:
+                    holder.rollback()
+>               with pytest.raises(BridgeDenied):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               Failed: DID NOT RAISE BridgeDenied
+
+tests/integration/test_paper_engine_postgres.py:409: Failed
+_ test_locked_target_rechecks_expiry_and_current_authority[ownership_epoch-CANCEL] _
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c4498a70>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c4498f50>
+operation = 'CANCEL', invalidation = 'ownership_epoch'
+
+    @pytest.mark.parametrize('operation', ['CANCEL', 'AMEND'])
+    @pytest.mark.parametrize('invalidation', ['permit_expired', 'lease_expired', 'revoked', 'ownership_epoch'])
+    def test_locked_target_rechecks_expiry_and_current_authority(case, monkeypatch, operation, invalidation):
+        from psycopg import sql
+        cmd, permit = case.command()
+        case.engine.submit(cmd, permit)
+        before = case.query(cmd).orders
+        maintenance, mp = case.command(operation, before[0].order.identity.venue_order_id, quantity='0.8')
+    
+        def invalidate():
+            if invalidation == 'permit_expired':
+                case.now = replace(case.now, monotonic_ns=1001)
+            elif invalidation == 'lease_expired':
+                case.now = replace(case.now, monotonic_ns=10001)
+            elif invalidation == 'revoked':
+                case.authorities.pop(maintenance.command_id)
+            else:
+                case.authorities[maintenance.command_id] = replace(
+                    case.authorities[maintenance.command_id], ownership_epoch=2)
+    
+        blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+            sql.Literal(before[0].order.identity.venue_order_id))
+>       _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+            lambda: getattr(case.engine, operation.lower())(maintenance, mp), invalidate)
+
+tests/integration/test_paper_engine_postgres.py:435: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c4498a70>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c4498f50>
+blocking_sql = Composed([SQL('SELECT 1 FROM paper_engine_orders WHERE order_id='), Literal('paper-order:P1e685a6b8a0000e2c8e9af3c907b2ce6d'), SQL(' FOR UPDATE')])
+operation = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.<lambda> at 0x7f29c3ff8540>
+invalidate = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.invalidate at 0x7f29c3ff9260>
+
+    def _while_engine_is_blocked(case, monkeypatch, blocking_sql, operation, invalidate):
+        """Observe PostgreSQL's actual lock wait before changing current authority."""
+        admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', case.dsn)
+        connected, backend = Event(), []
+        original_connect = case.engine._connect
+    
+        def instrumented_connect():
+            conn = original_connect()
+            backend.append(conn.execute('SELECT pg_backend_pid()').fetchone()['pg_backend_pid'])
+            connected.set()
+            return conn
+    
+        monkeypatch.setattr(case.engine, '_connect', instrumented_connect)
+        with psycopg.connect(admin_dsn) as holder:
+            holder.execute(blocking_sql)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(operation)
+                try:
+                    assert connected.wait(5), 'engine did not connect'
+                    with psycopg.connect(admin_dsn, autocommit=True) as observer:
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline:
+                            waiting = observer.execute('SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s',
+                                (backend[0],)).fetchone()
+                            if waiting and waiting[0] == 'Lock':
+                                break
+                            time.sleep(0.01)
+                        else:
+                            pytest.fail('engine never entered the real PostgreSQL lock wait')
+                    invalidate()
+                finally:
+                    holder.rollback()
+>               with pytest.raises(BridgeDenied):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               Failed: DID NOT RAISE BridgeDenied
+
+tests/integration/test_paper_engine_postgres.py:409: Failed
+_ test_locked_target_rechecks_expiry_and_current_authority[ownership_epoch-AMEND] _
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c449a090>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c449a030>
+operation = 'AMEND', invalidation = 'ownership_epoch'
+
+    @pytest.mark.parametrize('operation', ['CANCEL', 'AMEND'])
+    @pytest.mark.parametrize('invalidation', ['permit_expired', 'lease_expired', 'revoked', 'ownership_epoch'])
+    def test_locked_target_rechecks_expiry_and_current_authority(case, monkeypatch, operation, invalidation):
+        from psycopg import sql
+        cmd, permit = case.command()
+        case.engine.submit(cmd, permit)
+        before = case.query(cmd).orders
+        maintenance, mp = case.command(operation, before[0].order.identity.venue_order_id, quantity='0.8')
+    
+        def invalidate():
+            if invalidation == 'permit_expired':
+                case.now = replace(case.now, monotonic_ns=1001)
+            elif invalidation == 'lease_expired':
+                case.now = replace(case.now, monotonic_ns=10001)
+            elif invalidation == 'revoked':
+                case.authorities.pop(maintenance.command_id)
+            else:
+                case.authorities[maintenance.command_id] = replace(
+                    case.authorities[maintenance.command_id], ownership_epoch=2)
+    
+        blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+            sql.Literal(before[0].order.identity.venue_order_id))
+>       _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+            lambda: getattr(case.engine, operation.lower())(maintenance, mp), invalidate)
+
+tests/integration/test_paper_engine_postgres.py:435: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+case = <test_paper_engine_postgres.Case object at 0x7f29c449a090>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f29c449a030>
+blocking_sql = Composed([SQL('SELECT 1 FROM paper_engine_orders WHERE order_id='), Literal('paper-order:P10f8f0f55e670cf4b1a18db38c476d46d'), SQL(' FOR UPDATE')])
+operation = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.<lambda> at 0x7f29c3ffa020>
+invalidate = <function test_locked_target_rechecks_expiry_and_current_authority.<locals>.invalidate at 0x7f29c3ff8860>
+
+    def _while_engine_is_blocked(case, monkeypatch, blocking_sql, operation, invalidate):
+        """Observe PostgreSQL's actual lock wait before changing current authority."""
+        admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', case.dsn)
+        connected, backend = Event(), []
+        original_connect = case.engine._connect
+    
+        def instrumented_connect():
+            conn = original_connect()
+            backend.append(conn.execute('SELECT pg_backend_pid()').fetchone()['pg_backend_pid'])
+            connected.set()
+            return conn
+    
+        monkeypatch.setattr(case.engine, '_connect', instrumented_connect)
+        with psycopg.connect(admin_dsn) as holder:
+            holder.execute(blocking_sql)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(operation)
+                try:
+                    assert connected.wait(5), 'engine did not connect'
+                    with psycopg.connect(admin_dsn, autocommit=True) as observer:
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline:
+                            waiting = observer.execute('SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s',
+                                (backend[0],)).fetchone()
+                            if waiting and waiting[0] == 'Lock':
+                                break
+                            time.sleep(0.01)
+                        else:
+                            pytest.fail('engine never entered the real PostgreSQL lock wait')
+                    invalidate()
+                finally:
+                    holder.rollback()
+>               with pytest.raises(BridgeDenied):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               Failed: DID NOT RAISE BridgeDenied
+
+tests/integration/test_paper_engine_postgres.py:409: Failed
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_engine_postgres.py::test_locked_target_rechecks_expiry_and_current_authority[permit_expired-CANCEL]
+FAILED tests/integration/test_paper_engine_postgres.py::test_locked_target_rechecks_expiry_and_current_authority[permit_expired-AMEND]
+FAILED tests/integration/test_paper_engine_postgres.py::test_locked_target_rechecks_expiry_and_current_authority[lease_expired-CANCEL]
+FAILED tests/integration/test_paper_engine_postgres.py::test_locked_target_rechecks_expiry_and_current_authority[lease_expired-AMEND]
+FAILED tests/integration/test_paper_engine_postgres.py::test_locked_target_rechecks_expiry_and_current_authority[revoked-CANCEL]
+FAILED tests/integration/test_paper_engine_postgres.py::test_locked_target_rechecks_expiry_and_current_authority[revoked-AMEND]
+FAILED tests/integration/test_paper_engine_postgres.py::test_locked_target_rechecks_expiry_and_current_authority[ownership_epoch-CANCEL]
+FAILED tests/integration/test_paper_engine_postgres.py::test_locked_target_rechecks_expiry_and_current_authority[ownership_epoch-AMEND]
+8 failed, 206 deselected in 1.05s

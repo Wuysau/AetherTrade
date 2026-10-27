@@ -1,5 +1,9 @@
 # Controlled PAPER engine: scoped verification
 
+Historical adapter evidence at `df76e25`; see the
+[security followup](2026-10-27-paper-engine-security-followup.md) for the later
+lock-wait fix, restricted database roles, and superseding verification.
+
 Date: 2026-10-27. Source base: `3062154beb0dcade0711b93ecca060376e9773be`.
 Implementation is the focused commit containing this evidence, not a LIVE or Testnet qualification.
 

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS paper_engine_orders (
     price_currency TEXT NOT NULL,
     quantity NUMERIC NOT NULL CHECK (quantity > 0 AND quantity <> 'NaN'),
     filled NUMERIC NOT NULL DEFAULT 0 CHECK (filled >= 0 AND filled <> 'NaN'),
-    lifecycle TEXT NOT NULL CHECK (lifecycle IN
+    lifecycle TEXT NOT NULL DEFAULT 'SUBMITTED' CHECK (lifecycle IN
       ('SUBMITTED','PARTIALLY_FILLED','FILLED','CANCELED','EXPIRED','REJECTED')),
     pending TEXT NOT NULL DEFAULT 'NONE' CHECK (pending IN ('NONE','CANCEL','AMEND')),
     pending_command_id TEXT,
@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS paper_engine_orders (
     CHECK (filled <= quantity),
     CHECK ((pending = 'NONE') = (pending_command_id IS NULL))
 );
+
+-- Idempotent when applying role isolation to an earlier PAPER-only schema.
+ALTER TABLE paper_engine_orders ALTER COLUMN lifecycle SET DEFAULT 'SUBMITTED';
 
 CREATE TABLE IF NOT EXISTS paper_engine_commands (
     environment TEXT NOT NULL CHECK (environment = 'PAPER'),

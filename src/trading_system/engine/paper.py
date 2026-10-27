@@ -63,7 +63,7 @@ class SyntheticOrderEvent:
 class PaperEngine:
     def __init__(self, scope: t.ScopeKey, *, dsn: str, authority_guard,
                  owner_strategy_id: str, quantity_unit: str, price_currency: str,
-                 event_guard=None, clock=_clock, lose_ack_for=frozenset()):
+                 event_guard=None, event_dsn=None, clock=_clock, lose_ack_for=frozenset()):
         if (not isinstance(scope, t.ScopeKey) or scope.environment != t.Environment.PAPER
                 or not scope.venue_account_id or not scope.instrument_uid
                 or scope.venue_leg not in {'BOTH', 'LONG', 'SHORT'}):
@@ -72,6 +72,7 @@ class PaperEngine:
                 or not quantity_unit or not price_currency):
             raise BridgeDenied('TRUSTED_PAPER_COMPOSITION_REQUIRED')
         self.scope, self._dsn = scope, dsn
+        self._event_dsn = event_dsn
         self._scope_key = canonical_json(domain_payload(scope))
         self._authority_guard, self._event_guard, self._clock = authority_guard, event_guard, clock
         self._owner_strategy_id = owner_strategy_id
@@ -86,7 +87,53 @@ class PaperEngine:
         raise BridgeDenied('NATIVE_PATH_NOT_QUALIFIED')
 
     def _connect(self):
-        return psycopg.connect(self._dsn, row_factory=dict_row)
+        return self._open(self._dsn, controller=False)
+
+    def _event_connect(self):
+        if not self._event_dsn:
+            raise BridgeDenied('SEPARATE_SYNTHETIC_CONTROLLER_DATABASE_ROLE_REQUIRED')
+        return self._open(self._event_dsn, controller=True)
+
+    @staticmethod
+    def _open(dsn, *, controller):
+        conn = psycopg.connect(dsn, row_factory=dict_row, autocommit=True)
+        try:
+            role = conn.execute('''SELECT NOT starts_with(current_database(),'paper_engine_')
+                OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspname='paper_sim')
+                OR r.rolsuper OR r.rolcreatedb OR r.rolcreaterole
+                OR r.rolreplication OR r.rolbypassrls OR r.rolinherit
+                OR EXISTS (SELECT 1 FROM pg_auth_members WHERE member=r.oid)
+                OR EXISTS (SELECT 1 FROM pg_database WHERE datname=current_database() AND datdba=r.oid)
+                OR EXISTS (SELECT 1 FROM pg_class WHERE relname=ANY(%s) AND relowner=r.oid)
+                OR has_schema_privilege(current_user,'public','CREATE')
+                OR has_database_privilege(current_user,current_database(),'TEMP') AS privileged,
+                has_table_privilege(current_user,'paper_engine_commands','INSERT') AS commands,
+                has_table_privilege(current_user,'paper_engine_events','INSERT') AS events,
+                has_column_privilege(current_user,'paper_engine_orders','filled','UPDATE')
+                OR has_column_privilege(current_user,'paper_engine_orders','lifecycle','UPDATE')
+                OR has_column_privilege(current_user,'paper_engine_orders','quantity','UPDATE') AS economic_update,
+                has_column_privilege(current_user,'paper_engine_orders','filled','INSERT') AS fabricated_initial_fill,
+                has_table_privilege(current_user,'paper_engine_orders','DELETE,TRUNCATE')
+                OR has_table_privilege(current_user,'paper_engine_commands','DELETE,TRUNCATE')
+                OR has_table_privilege(current_user,'paper_engine_events','DELETE,TRUNCATE') AS destructive
+                FROM pg_roles r WHERE r.rolname=current_user''',
+                (['paper_engine_orders', 'paper_engine_commands', 'paper_engine_events'],)).fetchone()
+            if (role is None or role['privileged'] or role['destructive']
+                    or role['fabricated_initial_fill'] or role['economic_update'] != controller
+                    or role['commands'] != (not controller) or role['events'] != controller):
+                raise BridgeDenied('RESTRICTED_SEPARATE_PAPER_DATABASE_ROLES_REQUIRED')
+            conn.autocommit = False
+            return conn
+        except BaseException:
+            conn.close()
+            raise
+
+    def _check_authority(self, command, permit):
+        # Guards are reentrant trusted owner guards. Reload, do not re-use the
+        # snapshot captured before a database lock wait. The outer guard still
+        # serializes revocation through transaction commit.
+        with self._authority_guard(command.command_id) as current:
+            validate_bridge_authority(command, permit, current, scope=self.scope, clock=self._clock)
 
     def submit(self, command, permit):
         return self._write(command, permit, {'SUBMIT', 'CLOSE', 'SET_PROTECTION'})
@@ -122,6 +169,7 @@ class PaperEngine:
                     if command.operation in {'CANCEL', 'AMEND'}:
                         target = conn.execute('SELECT * FROM paper_engine_orders WHERE scope_key=%s '
                             'AND order_id=%s FOR UPDATE', (self._scope_key, command.target_order_id)).fetchone()
+                        self._check_authority(command, permit)
                         if (target is None or target['ownership_epoch'] != command.ownership_epoch
                                 or target['owner_strategy_id'] != self._owner_strategy_id
                                 or target['lifecycle'] in TERMINAL or target['pending'] != 'NONE'):
@@ -131,6 +179,7 @@ class PaperEngine:
                             if quantity < target['filled'] or quantity <= 0:
                                 raise BridgeDenied('AMEND_BELOW_ACTUAL_FILL')
                         target_client = target['client_id']
+                        self._check_authority(command, permit)
                         conn.execute('UPDATE paper_engine_orders SET pending=%s, pending_command_id=%s, certainty=%s, '
                             'revision=revision+1 WHERE scope_key=%s AND client_id=%s',
                             (command.operation, command.command_id, 'UNKNOWN', self._scope_key, target_client))
@@ -139,17 +188,22 @@ class PaperEngine:
                         if quantity <= 0 or command.target_order_id is not None:
                             raise BridgeDenied('EXPLICIT_BASE_QUANTITY_REQUIRED')
                         target_client = expected
+                        self._check_authority(command, permit)
                         conn.execute('INSERT INTO paper_engine_orders '
                             '(environment,scope_key,client_id,order_id,logical_id,owner_strategy_id,'
-                            'ownership_epoch,quantity_unit,price_currency,quantity,lifecycle) '
-                            'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+                            'ownership_epoch,quantity_unit,price_currency,quantity) '
+                            'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
                             ('PAPER', self._scope_key, expected, 'paper-order:' + expected,
                              command.logical_client_order_id, self._owner_strategy_id,
-                             command.ownership_epoch, self._quantity_unit, self._price_currency, quantity, 'SUBMITTED'))
+                             command.ownership_epoch, self._quantity_unit, self._price_currency, quantity))
+                    self._check_authority(command, permit)
                     conn.execute('INSERT INTO paper_engine_commands '
                         '(environment,scope_key,command_id,client_id,target_client_id,operation,request_hash,request) '
                         'VALUES (%s,%s,%s,%s,%s,%s,%s,%s)', ('PAPER', self._scope_key, command.command_id,
                             expected, target_client, command.operation, request_hash, Jsonb(body)))
+                    # Any statement can wait on a table/index/foreign-key lock.
+                    # A late denial rolls back ALL staged venue mutations.
+                    self._check_authority(command, permit)
             except psycopg.errors.UniqueViolation as exc:
                 raise BridgeDenied('IDENTITY_ALREADY_OBSERVED_QUERY_SAME_ID') from exc
         # A simulated timeout occurs AFTER the separate simulated venue commit.
@@ -193,9 +247,10 @@ class PaperEngine:
                 raise BridgeDenied('INVALID_EVENT_TIME')
             payload = domain_payload(event)
             payload_hash = canonical_hash(payload)
-            with self._connect() as conn:
+            with self._event_connect() as conn:
                 order = conn.execute('SELECT * FROM paper_engine_orders WHERE scope_key=%s '
                     'AND client_id=%s FOR UPDATE', (self._scope_key, event.venue_client_order_id)).fetchone()
+                self._check_event_control(event)
                 if order is None:
                     raise BridgeDenied('ORIGINAL_CLIENT_ID_REQUIRED')
                 previous = conn.execute('SELECT payload_hash FROM paper_engine_events '
@@ -233,6 +288,7 @@ class PaperEngine:
                     quantity = self._quantity(amendment['request']['canonical_payload']['quantity'])
                     if quantity <= order['filled']:
                         raise BridgeDenied('AMEND_MUST_RETAIN_WORKING_QUANTITY')
+                    self._check_event_control(event)
                     conn.execute('UPDATE paper_engine_orders SET quantity=%s WHERE scope_key=%s AND client_id=%s',
                         (quantity, self._scope_key, order['client_id']))
                     lifecycle, pending, certainty = order['lifecycle'], 'NONE', 'CONFIRMED'
@@ -246,17 +302,27 @@ class PaperEngine:
                         pending, certainty = order['pending'], order['certainty']
                 else:
                     raise BridgeDenied('UNSUPPORTED_SYNTHETIC_TRANSITION')
+                self._check_event_control(event)
                 conn.execute('INSERT INTO paper_engine_events '
                     '(environment,scope_key,event_id,client_id,payload_hash,payload,fill_delta,price,occurred_at) '
                     'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)', ('PAPER', self._scope_key, event.event_id,
                         order['client_id'], payload_hash, Jsonb(payload), delta, event.price, event.occurred_at))
+                self._check_event_control(event)
                 conn.execute('UPDATE paper_engine_orders SET filled=%s,lifecycle=%s,pending=%s,'
                     'pending_command_id=%s,certainty=%s,'
                     'revision=revision+1 WHERE scope_key=%s AND client_id=%s',
                     (event.cumulative_quantity, lifecycle, pending,
                      order['pending_command_id'] if pending != 'NONE' else None,
                      certainty, self._scope_key, order['client_id']))
+                self._check_event_control(event)
         return True
+
+    def _check_event_control(self, event):
+        with self._event_guard(event) as current_scope:
+            now = self._clock()
+            if (current_scope != self.scope or now.clock_health != 'HEALTHY'
+                    or utc_timestamp(event.occurred_at) > utc_timestamp(now.utc_now)):
+                raise BridgeDenied('SYNTHETIC_EVENT_AUTHORITY_CHANGED')
 
     def _identity(self, row):
         return t.OrderIdentity(scope=self.scope, logical_client_order_id=row['logical_id'],

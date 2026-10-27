@@ -8,7 +8,9 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from threading import Barrier
+import secrets
+from threading import Barrier, Event
+import time
 from uuid import uuid4
 
 import psycopg
@@ -20,6 +22,7 @@ from trading_system.contracts.wire import ContractCodec
 from trading_system.engine.nautilus.bridge import BridgeAuthority, BridgeDenied
 from trading_system.engine.paper import PaperEngine, SyntheticOrderEvent, paper_client_order_id
 from trading_system.runtime.execution_owner import ExecutionOwner, OwnerDenied
+from scripts.provision_paper_engine_roles import provision_paper_engine_roles, require_isolated_paper_database
 
 ROOT = Path(__file__).resolve().parents[2]
 NOW, EXPIRY = '2026-10-27T00:00:00Z', '2026-10-27T00:01:00Z'
@@ -30,9 +33,24 @@ def paper_dsn():
     dsn = os.environ.get('PAPER_ENGINE_DATABASE_DSN')
     if not dsn or os.environ.get('PAPER_ENGINE_ISOLATED_DATABASE') != 'YES':
         pytest.fail('NOT_RUN: explicit isolated PAPER PostgreSQL is required')
-    with psycopg.connect(dsn) as conn:
-        conn.execute((ROOT / 'migrations/0003_paper_engine.sql').read_text())
-    return dsn
+    admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', dsn)
+    suffix = uuid4().hex[:12]
+    roles = provision_paper_engine_roles(admin_dsn, isolated_paper=True,
+        runtime_role='paper_engine_runtime_' + suffix, event_role='paper_engine_events_' + suffix,
+        runtime_password=secrets.token_urlsafe(32), event_password=secrets.token_urlsafe(32))
+    with psycopg.connect(admin_dsn) as conn:
+        conn.execute('CREATE TABLE IF NOT EXISTS paper_authority_sentinel (secret TEXT NOT NULL)')
+    original = {key: os.environ.get(key) for key in
+        ('PAPER_ENGINE_DATABASE_DSN', 'PAPER_ENGINE_ADMIN_DATABASE_DSN', 'PAPER_ENGINE_EVENT_DATABASE_DSN')}
+    os.environ['PAPER_ENGINE_DATABASE_DSN'] = roles.runtime_dsn
+    os.environ['PAPER_ENGINE_ADMIN_DATABASE_DSN'] = admin_dsn
+    os.environ['PAPER_ENGINE_EVENT_DATABASE_DSN'] = roles.event_dsn
+    yield roles.runtime_dsn
+    for key, value in original.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
 
 
 class Case:
@@ -46,6 +64,8 @@ class Case:
         self.authorities = {}
         self.now = t.ClockReading(utc_now=NOW, monotonic_ns=100, clock_health='HEALTHY')
         self.dsn = dsn
+        self.event_dsn = os.environ['PAPER_ENGINE_EVENT_DATABASE_DSN']
+        self.event_revoked = False
         self.engine = self.restart()
 
     @contextmanager
@@ -57,10 +77,12 @@ class Case:
     def restart(self, **kwargs):
         return PaperEngine(self.scope, dsn=self.dsn, authority_guard=self.guard,
             owner_strategy_id='synthetic-strategy', quantity_unit='BTC', price_currency='USDT',
-            event_guard=self.event_guard, clock=lambda: self.now, **kwargs)
+            event_guard=self.event_guard, event_dsn=self.event_dsn, clock=lambda: self.now, **kwargs)
 
     @contextmanager
     def event_guard(self, event):
+        if self.event_revoked or self.now.monotonic_ns >= 1000:
+            raise BridgeDenied('EVENT_CONTROLLER_REVOKED_OR_EXPIRED')
         yield self.scope
 
     def command(self, operation='SUBMIT', target=None, quantity='1'):
@@ -371,3 +393,185 @@ def test_exact_paper_owner_composition_and_native_gate(case, tmp_path):
             (case.engine, replace(case.lease, shard=replace(case.lease.shard, venue_account_id='other')))):
         with pytest.raises(OwnerDenied, match='OFFLINE_OWNER_COMPOSITION_REQUIRED'):
             ExecutionOwner(lease, journal_path=tmp_path / 'denied.jsonl', engine=engine, claim=claim)
+
+
+def _while_engine_is_blocked(case, monkeypatch, blocking_sql, operation, invalidate, *, controller=False):
+    """Observe PostgreSQL's actual lock wait before changing current authority."""
+    admin_dsn = os.environ.get('PAPER_ENGINE_ADMIN_DATABASE_DSN', case.dsn)
+    connected, backend = Event(), []
+    method = '_event_connect' if controller else '_connect'
+    original_connect = getattr(case.engine, method)
+
+    def instrumented_connect():
+        conn = original_connect()
+        backend.append(conn.execute('SELECT pg_backend_pid()').fetchone()['pg_backend_pid'])
+        connected.set()
+        return conn
+
+    monkeypatch.setattr(case.engine, method, instrumented_connect)
+    with psycopg.connect(admin_dsn) as holder:
+        holder.execute(blocking_sql)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(operation)
+            try:
+                assert connected.wait(5), 'engine did not connect'
+                with psycopg.connect(admin_dsn, autocommit=True) as observer:
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        waiting = observer.execute('SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s',
+                            (backend[0],)).fetchone()
+                        if waiting and waiting[0] == 'Lock':
+                            break
+                        time.sleep(0.01)
+                    else:
+                        pytest.fail('engine never entered the real PostgreSQL lock wait')
+                invalidate()
+            finally:
+                holder.rollback()
+            with pytest.raises(BridgeDenied):
+                future.result(timeout=5)
+    monkeypatch.setattr(case.engine, method, original_connect)
+
+
+@pytest.mark.parametrize('operation', ['CANCEL', 'AMEND'])
+@pytest.mark.parametrize('invalidation', ['permit_expired', 'lease_expired', 'revoked', 'ownership_epoch'])
+def test_locked_target_rechecks_expiry_and_current_authority(case, monkeypatch, operation, invalidation):
+    from psycopg import sql
+    cmd, permit = case.command()
+    case.engine.submit(cmd, permit)
+    before = case.query(cmd).orders
+    maintenance, mp = case.command(operation, before[0].order.identity.venue_order_id, quantity='0.8')
+
+    def invalidate():
+        if invalidation == 'permit_expired':
+            case.now = replace(case.now, monotonic_ns=1001)
+        elif invalidation == 'lease_expired':
+            case.now = replace(case.now, monotonic_ns=10001)
+        elif invalidation == 'revoked':
+            case.authorities.pop(maintenance.command_id)
+        else:
+            case.authorities[maintenance.command_id] = replace(
+                case.authorities[maintenance.command_id], ownership_epoch=2)
+
+    blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+        sql.Literal(before[0].order.identity.venue_order_id))
+    _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+        lambda: getattr(case.engine, operation.lower())(maintenance, mp), invalidate)
+    assert case.query(cmd).orders == before
+    with psycopg.connect(case.dsn) as conn:
+        assert conn.execute('SELECT count(*) FROM paper_engine_commands WHERE command_id=%s',
+            (maintenance.command_id,)).fetchone()[0] == 0
+
+
+@pytest.mark.parametrize('operation', ['SUBMIT', 'CANCEL', 'AMEND'])
+@pytest.mark.parametrize('invalidation', ['expired', 'revoked'])
+def test_late_denial_after_staged_mutation_rolls_back_entire_transaction(case, monkeypatch, operation, invalidation):
+    original, permit = case.command()
+    case.engine.submit(original, permit)
+    before = case.query(original).orders
+    command, cp = case.command(operation,
+        None if operation == 'SUBMIT' else before[0].order.identity.venue_order_id, quantity='0.8')
+    def invalidate():
+        if invalidation == 'expired':
+            case.now = replace(case.now, monotonic_ns=1001)
+        else:
+            case.authorities.pop(command.command_id)
+
+    _while_engine_is_blocked(case, monkeypatch, 'LOCK TABLE paper_engine_commands IN SHARE MODE',
+        lambda: getattr(case.engine, 'submit' if operation == 'SUBMIT' else operation.lower())(command, cp),
+        invalidate)
+    assert case.query(original).orders == before
+    assert case.query(command).orders == ()
+    assert len(case.query().orders) == 1
+
+
+@pytest.mark.parametrize('invalidation', ['expired', 'revoked'])
+def test_event_controller_rechecked_after_real_order_lock(case, monkeypatch, invalidation):
+    from psycopg import sql
+    cmd, permit = case.command()
+    case.engine.submit(cmd, permit)
+    before = case.query(cmd).orders
+    event = case.event(cmd, 'PARTIALLY_FILLED', '0.4', '100')
+
+    def invalidate():
+        if invalidation == 'expired':
+            case.now = replace(case.now, monotonic_ns=1001)
+        else:
+            case.event_revoked = True
+
+    blocking_sql = sql.SQL('SELECT 1 FROM paper_engine_orders WHERE order_id={} FOR UPDATE').format(
+        sql.Literal(before[0].order.identity.venue_order_id))
+    _while_engine_is_blocked(case, monkeypatch, blocking_sql,
+        lambda: case.engine.inject(event), invalidate, controller=True)
+    assert case.query(cmd).orders == before
+    assert not case.query(cmd).fills
+
+
+@pytest.mark.parametrize('invalidation', ['expired', 'revoked'])
+def test_controller_late_denial_rolls_back_staged_amendment(case, monkeypatch, invalidation):
+    cmd, permit = case.command()
+    case.engine.submit(cmd, permit)
+    amend, ap = case.command('AMEND', case.query(cmd).orders[0].order.identity.venue_order_id, quantity='0.8')
+    case.engine.amend(amend, ap)
+    before = case.query(cmd).orders
+    event = case.event(cmd, 'AMENDED', command_id=amend.command_id)
+
+    def invalidate():
+        if invalidation == 'expired':
+            case.now = replace(case.now, monotonic_ns=1001)
+        else:
+            case.event_revoked = True
+
+    _while_engine_is_blocked(case, monkeypatch, 'LOCK TABLE paper_engine_events IN SHARE MODE',
+        lambda: case.engine.inject(event), invalidate, controller=True)
+    assert case.query(cmd).orders == before
+    with psycopg.connect(case.dsn) as conn:
+        assert conn.execute('SELECT count(*) FROM paper_engine_events WHERE event_id=%s',
+            (event.event_id,)).fetchone()[0] == 0
+
+
+def test_runtime_and_controller_are_restricted_distinct_database_roles(case):
+    for dsn in (case.dsn, case.event_dsn):
+        with psycopg.connect(dsn) as conn:
+            flags = conn.execute('SELECT rolsuper,rolcreatedb,rolcreaterole,rolinherit,rolreplication,rolbypassrls '
+                'FROM pg_roles WHERE rolname=current_user').fetchone()
+            assert flags == (False,) * 6
+        for statement in ('CREATE TABLE public.paper_forbidden (x INT)',
+                          'CREATE TEMP TABLE paper_forbidden (x INT)',
+                          'ALTER TABLE paper_engine_orders ADD COLUMN forbidden INT',
+                          'DROP TABLE paper_engine_commands',
+                          'TRUNCATE paper_engine_events',
+                          'DELETE FROM paper_engine_orders',
+                          'SELECT * FROM paper_authority_sentinel',
+                          'CREATE ROLE paper_engine_forbidden'):
+            with psycopg.connect(dsn) as conn, pytest.raises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(statement)
+    for statement in ('UPDATE paper_engine_orders SET filled=1',
+                      "UPDATE paper_engine_orders SET lifecycle='FILLED'",
+                      "INSERT INTO paper_engine_events (environment) VALUES ('PAPER')",
+                      "INSERT INTO paper_engine_orders (filled) VALUES (1)"):
+        with psycopg.connect(case.dsn) as conn, pytest.raises(psycopg.errors.InsufficientPrivilege):
+            conn.execute(statement)
+    with psycopg.connect(case.event_dsn) as conn, pytest.raises(psycopg.errors.InsufficientPrivilege):
+        conn.execute("INSERT INTO paper_engine_commands (environment) VALUES ('PAPER')")
+
+
+def test_engine_rejects_admin_and_swapped_database_credentials(case):
+    for dsn in (os.environ['PAPER_ENGINE_ADMIN_DATABASE_DSN'], case.event_dsn):
+        engine = PaperEngine(case.scope, dsn=dsn, authority_guard=case.guard,
+            owner_strategy_id='synthetic', quantity_unit='BTC', price_currency='USDT')
+        with pytest.raises(BridgeDenied, match='RESTRICTED_SEPARATE_PAPER_DATABASE_ROLES_REQUIRED'):
+            engine._connect()
+    engine = case.restart()
+    engine._event_dsn = case.dsn
+    with pytest.raises(BridgeDenied, match='RESTRICTED_SEPARATE_PAPER_DATABASE_ROLES_REQUIRED'):
+        engine._event_connect()
+
+
+def test_provisioning_guard_refuses_existing_application_schema_before_migration(paper_dsn):
+    with psycopg.connect(os.environ['PAPER_ENGINE_ADMIN_DATABASE_DSN']) as conn:
+        assert require_isolated_paper_database(conn).startswith('paper_engine_')
+        conn.execute('CREATE SCHEMA paper_sim')
+        with pytest.raises(ValueError, match='existing paper_sim schema refused'):
+            require_isolated_paper_database(conn)
+        conn.rollback()  # The negative test creates no persistent application schema.
