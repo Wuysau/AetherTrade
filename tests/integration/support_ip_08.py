@@ -14,6 +14,7 @@ from integration.support_ip_03 import LedgerScenario
 from trading_system.contracts import types as t
 from trading_system.risk.locks import RiskLockService
 from trading_system.risk.risk_day import RiskDayService
+from trading_system.storage.uow import UnitOfWork
 
 STAMP = '2026-10-20T00:00:00Z'
 LATER = '2026-10-21T01:00:00Z'
@@ -62,12 +63,23 @@ def ip08_postgres():
             pytest.fail('refuses existing ledger schema')
         conn.execute((ROOT / 'migrations/0001_business_ledger.sql').read_text(encoding='utf-8'))
         conn.execute((ROOT / 'deploy/db/roles.sql').read_text(encoding='utf-8'))
+        conn.execute((ROOT / 'migrations/0002_risk_resolution_authority.sql').read_text(encoding='utf-8'))
     return dsn
 
 
 @pytest.fixture
 def risk_db(ip08_postgres):
-    return LedgerScenario(ip08_postgres)
+    scenario = LedgerScenario(ip08_postgres)
+    def connect_resolver():
+        conn = scenario.connect_admin()
+        conn.execute('SET ROLE ledger_risk_resolver')
+        conn.commit()
+        return conn
+    # Isolated test administrator explicitly provisions this trusted identity.
+    # Production composition must provide separate credentials; never SET ROLE
+    # from an execution-owner login with resolver membership.
+    scenario.resolver_uow = UnitOfWork(connect_resolver)
+    return scenario
 
 
 def resolution(lock, *, authorization_id=''):

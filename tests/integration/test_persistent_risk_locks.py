@@ -16,6 +16,7 @@ from trading_system.contracts import types as t
 from trading_system.risk.locks import RiskLockService
 from trading_system.risk.risk_day import RiskDayService, day_bounds, Settlement
 from trading_system.storage.models import scope_id
+from trading_system.storage.models import encode
 
 
 def test_cashflow_adjusted_pnl(pnl_case):
@@ -101,7 +102,7 @@ def test_multi_locks_survive_restart(risk_db):
     assert {lock.cause for lock in locks} == {'DAILY_LOSS', 'TOTAL_DRAWDOWN', 'PROTECTION_GAP', 'MODEL_HEALTH'}
     model = next(lock for lock in locks if lock.cause == 'MODEL_HEALTH')
     supplied = resolution(model)
-    service = RiskLockService(risk_db.uow, clock=lambda: LATER, verify=OfflineVerifier(model, supplied))
+    service = RiskLockService(risk_db.uow, clock=lambda: LATER, resolver_uow=risk_db.resolver_uow, verify=OfflineVerifier(model, supplied))
     assert service.resolve(model.lock_id, supplied).resolved
     assert {lock.cause for lock in service.active(risk_db.scope)} == {'DAILY_LOSS', 'TOTAL_DRAWDOWN', 'PROTECTION_GAP'}
     assert service.allowed_actions(risk_db.scope) == {'EXIT', 'RECONCILE'}
@@ -114,7 +115,7 @@ def test_drawdown_across_midnight(risk_db):
     assert later.active(risk_db.scope) == (lock,)
     assert not later.resolve(lock.lock_id, resolution(lock, authorization_id='arbitrary-string')).resolved
     supplied = resolution(lock, authorization_id='offline-reviewed-new-authorization')
-    verified = RiskLockService(risk_db.uow, clock=lambda: LATER, verify=OfflineVerifier(lock, supplied))
+    verified = RiskLockService(risk_db.uow, clock=lambda: LATER, resolver_uow=risk_db.resolver_uow, verify=OfflineVerifier(lock, supplied))
     assert verified.resolve(lock.lock_id, supplied).resolved
     assert verified.resolve(lock.lock_id, supplied).resolved  # idempotent, no duplicate writes
     assert later.active(risk_db.scope) == ()
@@ -138,7 +139,7 @@ def test_resolution_negative_evidence(risk_db, fault):
                    'environment': {'environment': t.Environment.TESTNET},
                    'hash': {'hash': 'invalid'}, 'future': {'visible_at': '2027-01-01T00:00:00Z'}}
         supplied = replace(supplied, evidence=(replace(ref, **changes[fault]),))
-    later = RiskLockService(risk_db.uow, clock=lambda: LATER, verify=verifier)
+    later = RiskLockService(risk_db.uow, clock=lambda: LATER, resolver_uow=risk_db.resolver_uow, verify=verifier)
     assert not later.resolve(lock.lock_id, supplied).resolved
     assert service.active(risk_db.scope) == (lock,)
 
@@ -147,7 +148,7 @@ def test_unknown_cause_and_intersection(risk_db):
     service = RiskLockService(risk_db.uow, clock=lambda: STAMP)
     lock = service.raise_lock(risk_db.scope, 'UNKNOWN_CAUSE', evidence())
     supplied = resolution(lock)
-    later = RiskLockService(risk_db.uow, clock=lambda: LATER, verify=OfflineVerifier(lock, supplied))
+    later = RiskLockService(risk_db.uow, clock=lambda: LATER, resolver_uow=risk_db.resolver_uow, verify=OfflineVerifier(lock, supplied))
     assert not later.resolve(lock.lock_id, supplied).resolved
     assert later.allowed_actions(risk_db.scope) == {'RECONCILE'}
 
@@ -171,7 +172,7 @@ def test_resolution_failure_rolls_back(risk_db):
     def fail(tx, lock, requirement, supplied):
         raise RuntimeError('injected verifier failure')
     with pytest.raises(RuntimeError, match='injected'):
-        RiskLockService(risk_db.uow, clock=lambda: LATER, verify=fail).resolve(lock.lock_id, resolution(lock))
+        RiskLockService(risk_db.uow, clock=lambda: LATER, resolver_uow=risk_db.resolver_uow, verify=fail).resolve(lock.lock_id, resolution(lock))
     assert service.active(risk_db.scope) == (lock,)
 
 
@@ -186,7 +187,7 @@ def test_resolution_event_failure_is_atomic(risk_db, monkeypatch):
         raise RuntimeError('injected after event write')
     monkeypatch.setattr(EventStore, 'append', fail_after_event)
     with pytest.raises(RuntimeError, match='after event write'):
-        RiskLockService(risk_db.uow, clock=lambda: LATER,
+        RiskLockService(risk_db.uow, clock=lambda: LATER, resolver_uow=risk_db.resolver_uow,
             verify=OfflineVerifier(lock, supplied)).resolve(lock.lock_id, supplied)
     assert service.active(risk_db.scope) == (lock,)
     with risk_db.connect_admin() as conn:
@@ -199,13 +200,107 @@ def test_concurrent_resolution_is_once(risk_db):
         risk_db.scope, 'MODEL_HEALTH', evidence())
     supplied = resolution(lock)
     def resolve():
-        return RiskLockService(risk_db.uow, clock=lambda: LATER,
+        return RiskLockService(risk_db.uow, clock=lambda: LATER, resolver_uow=risk_db.resolver_uow,
             verify=OfflineVerifier(lock, supplied)).resolve(lock.lock_id, supplied)
     with ThreadPoolExecutor(max_workers=2) as pool:
         assert all(result.resolved for result in pool.map(lambda _: resolve(), range(2)))
     with risk_db.connect_admin() as conn:
         assert conn.execute('SELECT count(*) FROM ledger.risk_locks WHERE scope_id=%s',
                             (scope_id(risk_db.scope),)).fetchone()[0] == 2
+
+
+def test_owner_verifier_cannot_resolve_without_separate_authority(risk_db):
+    service = RiskLockService(risk_db.uow, clock=lambda: STAMP)
+    lock = service.raise_lock(risk_db.scope, 'MODEL_HEALTH', evidence())
+    supplied = resolution(lock)
+    result = RiskLockService(risk_db.uow, clock=lambda: LATER,
+        verify=OfflineVerifier(lock, supplied)).resolve(lock.lock_id, supplied)
+    assert not result.resolved
+    assert 'TRUSTED_RESOLUTION_AUTHORITY_REQUIRED' in result.missing
+    assert service.active(risk_db.scope) == (lock,)
+
+
+@pytest.mark.parametrize('attack', ['function', 'approval', 'raw', 'role', 'setting'])
+def test_execution_owner_cannot_forge_resolution(risk_db, attack):
+    import psycopg
+    service = RiskLockService(risk_db.uow, clock=lambda: STAMP)
+    lock = service.raise_lock(risk_db.scope, 'MODEL_HEALTH', evidence())
+    denied = (psycopg.errors.InsufficientPrivilege if attack in ('function', 'approval', 'role')
+              else psycopg.errors.CheckViolation)
+    with pytest.raises(denied):
+        with risk_db.uow.transaction(risk_db.scope) as tx:
+            args = (scope_id(lock.scope), lock.lock_id, 1,
+                    encode(replace(lock, state='RESOLVED')), tx.transaction_id)
+            if attack == 'function':
+                tx.execute('SELECT ledger.resolve_risk_lock(%s,%s,%s,%s::jsonb,%s)', args)
+            elif attack == 'approval':
+                tx.execute('INSERT INTO ledger.risk_resolution_approvals '
+                    '(scope_id,record_id,sequence,payload,transaction_id) '
+                    'VALUES (%s,%s,%s,%s::jsonb,%s)', args)
+            elif attack == 'role':
+                # SET ROLE from a superuser test-session would be misleading;
+                # inspect the real role-membership privilege instead.
+                assert not tx.execute("SELECT pg_has_role('ledger_owner',"
+                    "'ledger_risk_resolver','SET')").fetchone()[0]
+                tx.execute('SELECT ledger.resolve_risk_lock(%s,%s,%s,%s::jsonb,%s)', args)
+            else:
+                if attack == 'setting':
+                    tx.execute("SET LOCAL ledger.resolution_authorized='true'")
+                    tx._append('audit_events', 'forged-resolution:' + lock.lock_id,
+                               resolution(lock), 0)
+                tx._append('risk_locks', lock.lock_id, replace(lock, state='RESOLVED'), 1)
+    assert service.active(risk_db.scope) == (lock,)
+
+
+def test_resolution_projection_failure_rolls_back_event_and_approval(risk_db, monkeypatch):
+    from trading_system.storage.uow import LedgerTx
+    service = RiskLockService(risk_db.uow, clock=lambda: STAMP)
+    lock = service.raise_lock(risk_db.scope, 'MODEL_HEALTH', evidence())
+    supplied = resolution(lock)
+    original = LedgerTx._append
+    def fail_after_projection(tx, table, record_id, record, expected):
+        if table == 'audit_events' and record_id == 'risk-resolution:' + lock.lock_id:
+            raise RuntimeError('injected after resolved projection')
+        return original(tx, table, record_id, record, expected)
+    monkeypatch.setattr(LedgerTx, '_append', fail_after_projection)
+    with pytest.raises(RuntimeError, match='after resolved projection'):
+        RiskLockService(risk_db.uow, clock=lambda: LATER,
+            resolver_uow=risk_db.resolver_uow, verify=OfflineVerifier(lock, supplied)
+        ).resolve(lock.lock_id, supplied)
+    assert service.active(risk_db.scope) == (lock,)
+    with risk_db.connect_admin() as conn:
+        assert conn.execute('SELECT count(*) FROM ledger.risk_resolution_approvals '
+            'WHERE scope_id=%s', (scope_id(lock.scope),)).fetchone()[0] == 0
+        assert conn.execute('SELECT count(*) FROM ledger.domain_events '
+            'WHERE scope_id=%s', (scope_id(lock.scope),)).fetchone()[0] == 1
+
+
+def test_real_owner_login_cannot_assume_resolution_authority(risk_db):
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import make_conninfo
+    from uuid import uuid4
+    role = 'ip08_owner_' + uuid4().hex
+    password = uuid4().hex
+    with risk_db.connect_admin() as conn:
+        conn.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER '
+            'NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS').format(
+                sql.Identifier(role), sql.Literal(password)))
+        conn.execute(sql.SQL('GRANT ledger_owner TO {}').format(sql.Identifier(role)))
+    dsn = make_conninfo(risk_db.dsn, user=role, password=password)
+    try:
+        with psycopg.connect(dsn) as conn:
+            assert conn.execute('SELECT current_user,session_user').fetchone() == (role, role)
+            assert not conn.execute('SELECT rolsuper FROM pg_roles WHERE rolname=current_user').fetchone()[0]
+        for statement in ('SET ROLE ledger_risk_resolver',
+                "SELECT ledger.resolve_risk_lock('forged','forged',1,'{}'::jsonb,'forged')",
+                "INSERT INTO ledger.risk_resolution_approvals VALUES ('x','x',1,'{}','x',pg_current_xact_id())"):
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                with psycopg.connect(dsn) as conn:
+                    conn.execute(statement)
+    finally:
+        with risk_db.connect_admin() as conn:
+            conn.execute(sql.SQL('DROP ROLE {}').format(sql.Identifier(role)))
 
 
 def test_incomplete_costs_do_not_clear_current_risk(risk_db):
