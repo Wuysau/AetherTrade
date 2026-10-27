@@ -72,7 +72,7 @@ class ChildCase(DispatchCase):
         # The original IP-10 seed intent is immutable. Use a new intent identity.
         self.intent = replace(self.intent, intent_id='ip14:' + self.intent.intent_id)
         visible = (self.now - timedelta(seconds=1)).isoformat()
-        self.book = replace(base.book, scope=self.scope, basis_fingerprint=self.intent.basis_fingerprint,
+        self.book = replace(base.book, scope=self.scope, sequence=2, basis_fingerprint=self.intent.basis_fingerprint,
             coverage=replace(base.book.coverage, scope=self.scope),
             evidence=tuple(replace(ref, visible_at=visible) for ref in base.book.evidence))
         self.policy = t.ChildPolicy(expires_at=self.intent.valid_until, slice_quantity=quantity('0.004'),
@@ -89,7 +89,7 @@ class ChildCase(DispatchCase):
             tx.reservations.append(replace(self.ledger.reservation,
                 reservation_id='ip14:' + self.ledger.reservation.reservation_id,
                 intent_id=self.intent.intent_id, expires_at=self.intent.valid_until), 0)
-            tx.projections.save_book(self.book, 0)
+            tx.projections.save_book(self.book, 1)
         self.dispatcher = ChildDispatcher(self.uow, self.scope, self.engine,
             load_facts=self.facts, owner_guard=self.guard)
         self.projections = {}

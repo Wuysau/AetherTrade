@@ -45,6 +45,16 @@ def eth_case(dsn, *, sell=False):
             ('PAPER', case.scope.venue_account_id, str(case.scope.product), case.scope.instrument_uid,
              case.scope.venue_leg, case.owner))
     case.save_book(c.book)
+    # The scope was changed after ReservationCase seeded its durable revision.
+    # Seed the same prerequisite for ETH; a BTC-scoped row cannot authorize ETH.
+    from trading_system.intents.ingress import IngressRevision, revision_key
+    context = case.target_context(c.intent)
+    with case.ledger.uow.transaction(case.scope) as tx:
+        tx._append('audit_events', revision_key(context), IngressRevision(sequence=1,
+            identity_id=context.identity_id, deployment_id=context.deployment_id,
+            authorization_id=context.authorization_id, owner_strategy_id=case.owner,
+            strategy_revision=context.strategy_revision, risk_policy_revision=context.policy_revision,
+            ownership_epoch=context.ownership_epoch, enabled=True), 0)
     return case
 
 
