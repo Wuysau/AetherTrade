@@ -217,11 +217,17 @@ class AutomationService:
         price = self.store._price(market, job["symbol"], self.settings.quote_max_age_seconds)
         if strategy['mode'] in ('RULE', 'HYBRID') and action == 'BUY' and not self._rule_matches(strategy['rule'], price):
             return 'NO_ACTION', '当前价格不满足服务端规则；未创建命令。'
-        if decision.get('created_at'):
-            from trading_system.contracts.canonical import utc_timestamp
+        from trading_system.contracts.canonical import utc_timestamp
+        try:
             age = (now() - utc_timestamp(decision['created_at'])).total_seconds()
-            if not 0 <= age <= 120:
-                raise ApiError('STALE_DECISION', '决策已过期或时间异常；未增加风险。', 409)
+            basis_age = (now() - utc_timestamp(decision['data_as_of'])).total_seconds()
+            quote_at = next(q['as_of'] for q in market['quotes'] if q['symbol'] == job['symbol'])
+            ordered = utc_timestamp(decision['data_as_of']) <= utc_timestamp(quote_at)
+            valid = 0 <= age <= 120 and 0 <= basis_age <= self.settings.quote_max_age_seconds and ordered
+        except (KeyError, ValueError, TypeError, StopIteration):
+            valid = False
+        if not valid:
+            raise ApiError('STALE_DECISION', '决策或其行情依据已过期、缺失或时间乱序；未创建命令。', 409)
         if action == "SELL":
             if not held:
                 return "NO_ACTION", "策略没有可卖出的自有持仓。"
@@ -346,7 +352,7 @@ class AutomationService:
                 action = 'BUY' if self._rule_matches(job['rule'], price) else 'HOLD'
                 result = {'decision': dict(id='rule:' + job['id'], symbol=job['symbol'], action=action,
                     summary=f"价格 {price} {job['rule']['operator']} {job['rule']['price']}；服务端规则计算。",
-                    risk_status='NOT_EVALUATED', created_at=stamp())}
+                    risk_status='NOT_EVALUATED', created_at=stamp(), data_as_of=context['quote']['as_of'])}
             elif hasattr(self.models, "analyze"):
                 result = await self.models.analyze(job["symbol"], mode, identifiers, revisions, job["model_key"], context)
             elif mode == "single" and identifiers == [repository.DEFAULT_PROFILE_ID]:
