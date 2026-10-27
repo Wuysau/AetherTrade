@@ -251,14 +251,14 @@ def test_manual_reduction_blocks_old_automatic_target_after_restart(runtime, run
     entry = runtime.accept(automatic, 'old-target-entry', market(), 90, data(), strategy)['command_id']
     runtime.dispatch(entry)
     runtime.inject(entry, dict(event_id='old-target-filled', status='FILLED', cumulative_quantity='1', price='100'))
-    reduce = runtime.accept(request('.25', side='SELL'), 'manual-target-change', market(), 90, data())['command_id']
+    reduce = runtime.accept(request('0.25', side='SELL'), 'manual-target-change', market(), 90, data())['command_id']
     runtime.dispatch(reduce)
-    runtime.inject(reduce, dict(event_id='manual-target-filled', status='FILLED', cumulative_quantity='.25', price='100'))
+    runtime.inject(reduce, dict(event_id='manual-target-filled', status='FILLED', cumulative_quantity='0.25', price='100'))
     states = {'before_old_target_retry': snapshot(runtime_config)}
     try:
         restarted = UnifiedPaperRuntime(**runtime_config)
         restarted.dispatch(entry)
-        proposal = dict(request('.25', strategy_id=strategy['id']), decision_run_id='old-rule:stale-target')
+        proposal = dict(request('0.25', strategy_id=strategy['id']), decision_run_id='old-rule:stale-target')
         with pytest.raises(ApiError) as denied:
             restarted.accept(proposal, 'old-target-refill', market(), 90, data(), strategy)
         assert denied.value.code == 'MANUAL_REDUCTION_REAUTH_REQUIRED'
