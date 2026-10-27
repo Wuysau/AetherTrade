@@ -1,0 +1,100 @@
+{
+  "archive": "console-migration-green.zip",
+  "archive_sha256": "8bc8f05dcf175cea1d12828b84afdda1a4e2dea6f201fb69b4145c4706ca1858",
+  "files_sha256": {
+    "console-fixed/4ff150f1a8bb-a212ac11afdc/console.log": "85233b3b25ae1ca6f54f6cf241cdf40207dc0c6b9887b4e735f167a101838900",
+    "console-fixed/4ff150f1a8bb-a212ac11afdc/console.xml": "e9d5ce627da53f8a697bc08c5c50d905213d76ce945feeb143d699456c924503",
+    "console-fixed/4ff150f1a8bb-a212ac11afdc/summary.json": "a186c88992515ed1722a82e8cf3f5372e8b7b5593326af56247ce72013f99fc1",
+    "console-fixed-run.txt": "5bdc3e23126d968bde733fcf6c99e76aa32ceb67c751a7b1b8591107bb2e5c2a",
+    "console-fixed-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "server-store-contract-fixed/4ff150f1a8bb-0539c7847eaa/console-contract.log": "5581fce3f27f722b08f43948e0533d7c16e09d0e8fd893ea0134cc180cb6a5e3",
+    "server-store-contract-fixed/4ff150f1a8bb-0539c7847eaa/console-contract.xml": "0709e6dd1fcd88663e1dbfaa3e78c26a95aeccc6b853c4fd63d66beaccfd0e46",
+    "server-store-contract-fixed/4ff150f1a8bb-0539c7847eaa/summary.json": "b2971bcd6766092316129a480c17425f6be42e4e5693ebdfdd9513371cd22a3d",
+    "server-store-contract-fixed-run.txt": "5dd773644bae865d180aaccbc6237748114086b0af439f3f7c09ccebbea2a3ed",
+    "server-store-contract-fixed-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "server-store-sqlite-fixed.txt": "49bca8a49197a420787528a6c50737642977394442b9b7b3b98018d5711ec8be",
+    "server-store-sqlite-fixed.xml": "d4066eacfded25e9237000f1cd02c224df8da1dc5079a763fac89be15e1a6465",
+    "server-store-sqlite-fixed-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+  },
+  "runs": [
+    {
+      "source_commit": "4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512",
+      "suite": "console",
+      "evidence_subdirectory": "console-fixed",
+      "results": {
+        "passed": 4,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "accepted": true
+      },
+      "exit_code": 0,
+      "command": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-6f1db19c6a28",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "console",
+        "--evidence-dir",
+        "/handoff/evidence/console-fixed"
+      ]
+    },
+    {
+      "source_commit": "4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512",
+      "suite": "console-contract",
+      "evidence_subdirectory": "server-store-contract-fixed",
+      "results": {
+        "passed": 10,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "accepted": true
+      },
+      "exit_code": 0,
+      "command": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-6f1db19c6a28",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "console-contract",
+        "--evidence-dir",
+        "/handoff/evidence/server-store-contract-fixed"
+      ]
+    }
+  ],
+  "sqlite_regression": {
+    "source_commit": "4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512",
+    "results": "12 passed, 10 deselected, zero skips/failures",
+    "command": [
+      "docker",
+      "exec",
+      "-w",
+      "/tmp/source",
+      "aethertrade-qualification-runner-6f1db19c6a28",
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "tests/server/test_store.py",
+      "-m",
+      "not paper_runtime",
+      "--tb=short",
+      "--junitxml=/handoff/evidence/server-store-sqlite-fixed.xml"
+    ],
+    "exit_code": 0
+  }
+}

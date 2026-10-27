@@ -56,8 +56,29 @@ without unified execution now correctly returns UNIFIED_PAPER_REQUIRED rather
 than entering the domain no-short check. Commit `c18ce07` changes that obsolete
 SQLite expectation while retaining the real no-short counterexample in the
 mandatory PostgreSQL module; it also adds a legacy FILLED row read-only/no-import
-counterexample. Those followups await fixed-source verification.
+counterexample.
 
 `console-migration-red.zip` and `console-migration-manifest.json` preserve original
 commands, exit codes, XML/logs, source/migration information, and the synthetic
 partial-sale ledger. This report does not claim the full integrated gate passed.
+
+## Fixed-source followup
+
+At `4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512`, after production fixes
+`6ab4d6d`, `2e9e4b1`, and `ff84d45`, independent actual Linux/PostgreSQL runs
+passed all **4 console integration cases** and all **10 migrated server execution
+cases**, zero skips/errors, exit 0. The ordinary SQLite subset passed **12 cases**,
+with 10 explicitly deselected for the mandatory PostgreSQL job. The original
+symbol-attribution, exact partial/full cash, total-fee and win-rate assertions all
+remain and now pass. Legacy immediate fills remain read-only and are never
+imported as unified execution evidence.
+
+The release fix retains the domain's conservative balance-watermark behavior.
+Runtime now re-attests already terminal, already released obligations against
+the current complete economic balance under the actual collateral/owner guards.
+Held and UNKNOWN obligations cannot become released through that attestation.
+Additional dedicated safety cases and the fresh whole gate still need to run
+at the final integrated commit.
+
+`console-migration-green.zip` and `console-followup-manifest.json` preserve those
+raw logs/XML and exact commands, exit codes, migration and fixed-source metadata.
