@@ -32,6 +32,7 @@ SUITES = (
     ('reservations', '07', 'tests/integration/test_reservations.py'),
     ('duplicate-target', '07', 'tests/integration/test_paper_duplicate_target.py'),
     ('risk-locks', '08', 'tests/integration/test_persistent_risk_locks.py'),
+    ('group-daily-loss', '08', 'tests/integration/test_group_daily_locks.py'),
     ('dispatch', '10', 'tests/integration/test_durable_dispatch.py'),
     ('child-cancel', '10', 'tests/integration/test_child_and_cancel_commands.py'),
     ('execution-evidence', '12', 'tests/integration/test_execution_evidence.py'),
