@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from time import monotonic_ns
+from threading import local
 from uuid import uuid4
 
 import psycopg
@@ -101,6 +102,7 @@ class UnifiedPaperRuntime:
         self.directory.mkdir(parents=True, exist_ok=True)
         self.current_control, self.clock = current_control, clock
         self.uow = UnitOfWork(self.connect)
+        self._control = local()
 
     def connect(self):
         conn = psycopg.connect(self.ledger_dsn)
@@ -119,6 +121,30 @@ class UnifiedPaperRuntime:
         except BaseException:
             conn.close()
             raise
+
+    @contextmanager
+    def control_guard(self):
+        """Serialize console authority in the BUSINESS ledger lock namespace.
+
+        Console and business databases may differ; acquiring a same-named lock
+        in the console database would provide no fencing against this owner.
+        """
+        if getattr(self._control, 'depth', 0):
+            self._control.depth += 1
+            try:
+                yield
+            finally:
+                self._control.depth -= 1
+            return
+        with self.connect() as conn:
+            conn.execute("SELECT pg_advisory_lock(hashtextextended('console-owner:paper-local:SPOT',0))")
+            conn.commit()
+            self._control.depth = 1
+            try:
+                yield
+            finally:
+                self._control.depth = 0
+                conn.execute("SELECT pg_advisory_unlock(hashtextextended('console-owner:paper-local:SPOT',0))")
 
     @staticmethod
     def provision(admin_dsn, *, initial_cash):
@@ -275,6 +301,10 @@ class UnifiedPaperRuntime:
                 order_sides=sides, context=context))
 
     def accept(self, payload, key, market, maximum_age, data, strategy=None):
+        with self.control_guard():
+            return self._accept(payload, key, market, maximum_age, data, strategy)
+
+    def _accept(self, payload, key, market, maximum_age, data, strategy=None):
         scope, reading = scope_for(payload['symbol']), self.clock()
         fingerprint = canonical_hash(payload)
         command_id = 'console-command:' + canonical_hash({'key': key, 'account': ACCOUNT})
@@ -289,6 +319,17 @@ class UnifiedPaperRuntime:
             book = self._book(tx, scope, refresh=True)
             reading = self.clock()
             actual = sum((p.actual_quantity.value for p in book.positions), D(0))
+            if strategy:
+                previous_entries = tx.execute("SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND sequence=1 "
+                    "AND record_id LIKE 'console:request:%%' AND payload->>'side'='BUY' ORDER BY processed_at DESC LIMIT 1",
+                    (scope_id(scope),)).fetchone()
+                if actual and previous_entries and decode(RuntimeRequest, previous_entries[0]).strategy_id != strategy['id']:
+                    raise ApiError('POSITION_OWNERSHIP', '当前持仓属于其他策略或人工；未创建命令。', 409)
+                manual_reduction = tx.execute("SELECT payload->>'requested_at' FROM ledger.audit_events WHERE scope_id=%s "
+                    "AND sequence=1 AND record_id LIKE 'console:request:%%' AND payload->>'mode'='MANUAL' "
+                    "AND payload->>'side'='SELL' ORDER BY processed_at DESC LIMIT 1", (scope_id(scope),)).fetchone()
+                if payload.get('decision_run_id') and manual_reduction and strategy.get('_activated_at', '') <= manual_reduction[0]:
+                    raise ApiError('MANUAL_REDUCTION_REAUTH_REQUIRED', '人工减仓后旧目标已停用；需重新明确激活策略。', 409)
             quantity = amount(payload['quantity'])
             target = actual + (quantity if payload['side'] == 'BUY' else -quantity)
             if target < 0:
@@ -338,7 +379,7 @@ class UnifiedPaperRuntime:
                 ownership_epoch=1, execution_epoch=1, policy_revision=1, state='DURABLE_READY', outcome_provenance='NONE',
                 durable_record_ref='pending-atomic-commit', created_at=reading.utc_now))
             request = RuntimeRequest(key=key, fingerprint=fingerprint, symbol=payload['symbol'], side=payload['side'], quantity=payload['quantity'], strategy_id=payload.get('strategy_id'),
-                mode=strategy['mode'] if strategy else 'MANUAL', strategy_revision=binding.strategy_revision,
+                mode=strategy['mode'] if strategy and payload.get('decision_run_id') else 'MANUAL', strategy_revision=binding.strategy_revision,
                 command_id=command_id, intent_id=intent.intent_id, requested_at=reading.utc_now, quote_at=quote_at,
                 quote_price=str(quote_price), maximum_age=maximum_age, budget=format(budget, 'f'),
                 initial_cash=data['account']['initial_cash'], risk_position_pct=data['risk']['max_position_pct'],
@@ -375,7 +416,52 @@ class UnifiedPaperRuntime:
                 tx.risk_locks.append(lock, 0)
 
     def cancel_entries(self):
-        raise ApiError('PAPER_CANCEL_NOT_QUALIFIED', '尚未完成统一 PAPER 撤单控制验证；未变更任何订单或预留。', 409)
+        count = 0
+        for command in self.projection()['commands']:
+            if command['order_status'] in ('SUBMITTED', 'ACCEPTED', 'PARTIALLY_FILLED'):
+                self.cancel(command['command_id'], 'cancel-entry:' + command['command_id'])
+                count += 1
+        return count
+
+    def cancel(self, command_id, key):
+        scope, symbol = self._scope_command(command_id)
+        now = self.clock()
+        with self.uow.transaction(scope) as tx:
+            parent = CommandRepository(tx).get(command_id)
+            previous = self._request(tx, command_id)
+            target = tx._latest('order_projections', parent.logical_client_order_id, t.OrderProjection)
+            if (parent.operation != 'SUBMIT' or parent.canonical_payload.side != 'BUY' or target is None
+                    or target.lifecycle_state not in ('SUBMITTED', 'ACCEPTED', 'PARTIALLY_FILLED')
+                    or target.command_certainty != 'CONFIRMED' or target.pending_operation != 'NONE'):
+                raise ApiError('CANCEL_TARGET_UNVERIFIED', '只能撤销已确认归属且没有未知操作的入场余单。', 409)
+            new_id = 'console-cancel:' + canonical_hash({'parent': command_id, 'key': key})
+            existing = self._request(tx, new_id)
+            if existing:
+                return self._receipt(existing)
+            book = self._book(tx, scope, refresh=True)
+            expiry = (utc_timestamp(now.utc_now) + timedelta(seconds=30)).isoformat()
+            auth = replace(previous.authorization.authorization, authorization_id='grant:' + new_id,
+                valid_from=now.utc_now, expires_at=expiry)
+            ref = self._ref('authenticated-cancel:' + new_id, {'target': domain_payload(target.order)}, now.utc_now)
+            binding = replace(previous.authorization, authorization=auth, evidence=(ref,))
+            intent = replace(previous.intent, intent_id='intent:' + new_id, authorization_id=auth.authorization_id,
+                basis_fingerprint=book.basis_fingerprint, created_at=now.utc_now, valid_until=expiry,
+                execution=replace(previous.intent.execution, entry_deadline=expiry),
+                decision_run_id='manual-cancel:' + key, supersedes_intent_id=previous.intent.intent_id)
+            logical = 'logical:' + new_id
+            body = ContractCodec().encode(parent)['canonical_payload']
+            command = replace(parent, command_id=new_id, intent_id=intent.intent_id, attempt_id='attempt:' + new_id,
+                parent_command_id=command_id, logical_client_order_id=logical,
+                venue_client_order_id=paper_client_order_id(scope, logical, 'CANCEL'),
+                operation='CANCEL', target_order_id=target.order.identity.venue_order_id, venue_order_id=None,
+                state='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='pending-atomic-control', created_at=now.utc_now)
+            request = replace(previous, key=key, fingerprint=canonical_hash({'cancel': command_id}), mode='MANUAL',
+                command_id=new_id, intent_id=intent.intent_id, requested_at=now.utc_now, intent=intent,
+                authorization=binding, rationale='受权撤销原入场余单；不释放未知风险预留。')
+            tx.intents.append(intent)
+            tx._append('audit_events', 'console:request:' + new_id, request, 0)
+            CommandRepository(tx).append(command)
+        return self._receipt(request)
 
     def exit_owned(self, key, market, maximum_age, data):
         held = self.account_view()['positions']
@@ -507,9 +593,25 @@ class UnifiedPaperRuntime:
             request = self._request(tx, command.command_id)
             if request is None:
                 raise ValueError('SERVER_REQUEST_AUTHORITY_REQUIRED')
-            if self.current_control:
+            if self.current_control and command.operation != 'CANCEL':
                 self.current_control(request, command)
             now = self.clock()
+            if command.operation == 'CANCEL':
+                # No price is needed to remove an owned opening remainder.
+                # Current exact ownership and pending state remain mandatory.
+                book = tx.projections.book(scope)
+                parent = CommandRepository(tx).get(command.parent_command_id)
+                targets = [p for p in book.active_orders if p.order.identity.venue_order_id == command.target_order_id]
+                if (parent is None or parent.operation != 'SUBMIT' or parent.canonical_payload.side != 'BUY'
+                        or len(targets) != 1 or targets[0].command_certainty != 'CONFIRMED'
+                        or targets[0].pending_operation != 'NONE' or targets[0].order.owner_strategy_id != OWNER
+                        or targets[0].order.ownership_epoch != intent.ownership_epoch
+                        or parent.logical_client_order_id != targets[0].order.identity.logical_client_order_id
+                        or targets[0].leaves_quantity.value <= 0):
+                    raise ValueError('CURRENT_CANCEL_TARGET_REQUIRED')
+                return DispatchFacts(binding=request.authorization, lease=lease, request_hash=command_hash(command),
+                    valid_until=intent.valid_until, deadline_monotonic_ns=now.monotonic_ns + 1_000_000_000,
+                    checks=REQUIRED_CHECKS | {'OWNED_TARGET'})
             if not 0 <= (utc_timestamp(now.utc_now) - utc_timestamp(request.quote_at)).total_seconds() <= request.maximum_age:
                 raise ValueError('QUOTE_STALE')
             holds = tx.reservations.for_intent(intent.intent_id)
@@ -578,8 +680,10 @@ class UnifiedPaperRuntime:
                 command = CommandRepository(tx).get(command_id)
                 if command is None:
                     raise ApiError('COMMAND_NOT_ACCEPTED', '命令尚未通过原子风控。', 409)
+                client_id = (CommandRepository(tx).get(command.parent_command_id).venue_client_order_id
+                    if command.operation == 'CANCEL' else command.venue_client_order_id)
             event = SyntheticOrderEvent(event_id=payload['event_id'], scope=scope,
-                venue_client_order_id=command.venue_client_order_id, status=payload['status'],
+                venue_client_order_id=client_id, status=payload['status'],
                 cumulative_quantity=amount(payload['cumulative_quantity'], positive=False),
                 price=amount(payload['price'], scale=18) if payload.get('price') is not None else None,
                 occurred_at=payload.get('occurred_at') or self.clock().utc_now)
@@ -599,8 +703,10 @@ class UnifiedPaperRuntime:
             repo = CommandRepository(tx)
             command = repo.get(command_id)
             request = self._request(tx, command_id)
+            order_unknown = report.orders[0].pending_operation != 'NONE' and command.operation == 'CANCEL'
             repo.record_outcome(t.CommandReceipt(receipt_id='query:' + uuid4().hex, command_id=command_id,
-                status=t.CommandState.VENUE_CONFIRMED, reason='PAPER_ORIGINAL_ID_QUERY', existing_result_ref=report.evidence[0].id))
+                status=t.CommandState.UNKNOWN if order_unknown else t.CommandState.VENUE_CONFIRMED,
+                reason='PAPER_ORIGINAL_ID_QUERY', existing_result_ref=report.evidence[0].id))
             for fill in report.fills:
                 if tx.execute('SELECT 1 FROM ledger.fills WHERE scope_id=%s AND record_id=%s',
                         (scope_id(scope), fill.fill_id)).fetchone():
@@ -611,9 +717,10 @@ class UnifiedPaperRuntime:
             current = report.orders[0]
             if current.lifecycle_state in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED'):
                 current = replace(current, leaves_quantity=t.Quantity(value=D(0), unit='BASE'))
-            old = tx._latest('order_projections', command.logical_client_order_id, t.OrderProjection)
+            logical_id = current.order.identity.logical_client_order_id
+            old = tx._latest('order_projections', logical_id, t.OrderProjection)
             if old is None or replace(current, sequence=old.sequence) != old:
-                tx._append('order_projections', command.logical_client_order_id,
+                tx._append('order_projections', logical_id,
                     replace(current, sequence=1 if old is None else old.sequence + 1), 0 if old is None else old.sequence)
             # Derive actual holdings solely from durable fills and original sides.
             actual = D(0)
@@ -661,7 +768,8 @@ class UnifiedPaperRuntime:
             self._record_target(tx, next_book)
             release = []
             if current.lifecycle_state in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED') and current.command_certainty == 'CONFIRMED':
-                release = [r for r in tx.reservations.for_intent(command.intent_id)
+                root_intent_id = CommandRepository(tx).get(command.parent_command_id).intent_id if command.operation == 'CANCEL' else command.intent_id
+                release = [r for r in tx.reservations.for_intent(root_intent_id)
                     if ReservationRepository(tx).get(r.reservation_id).held]
             book_sequence = next_book.sequence
         for reservation in release:
@@ -677,7 +785,7 @@ class UnifiedPaperRuntime:
             'protection_state': 'GAP' if actual else 'NO_POSITION', 'simulation_notice': NOTICE}
 
     def projection(self):
-        targets, commands, locks = [], [], []
+        targets, commands, locks, protections, orders_view = [], [], [], [], []
         for symbol in SYMBOLS:
             scope = scope_for(symbol)
             with self.uow.transaction(scope) as tx:
@@ -685,22 +793,41 @@ class UnifiedPaperRuntime:
                     "AND record_id LIKE 'console:request:%%' AND sequence=1 ORDER BY processed_at", (scope_id(scope),)).fetchall()
                 book = tx._latest('book_snapshots', 'book', t.BookSnapshot)
                 actual = sum((p.actual_quantity.value for p in book.positions), D(0)) if book else D(0)
+                plan = tx._latest('protection_plans', 'protection:' + scope_id(scope), t.ProtectionPlan)
+                if plan:
+                    protections.append(domain_payload(plan))
+                latest_target = None
                 for raw, in records:
                     request = decode(RuntimeRequest, raw)
                     command = CommandRepository(tx).get(request.command_id)
                     if command is None:
                         continue
-                    projection = tx._latest('order_projections', command.logical_client_order_id, t.OrderProjection)
+                    target_command = CommandRepository(tx).get(command.parent_command_id) if command.operation == 'CANCEL' else command
+                    projection = tx._latest('order_projections', target_command.logical_client_order_id, t.OrderProjection)
                     filled = projection.filled_quantity.value if projection else D(0)
                     leaves = projection.leaves_quantity.value if projection else D(command.canonical_payload.quantity)
                     status = str(projection.lifecycle_state) if projection else ('PENDING' if command.state == 'DURABLE_READY' else 'UNKNOWN')
+                    if projection and projection.pending_operation == 'CANCEL':
+                        status = 'CANCEL_UNKNOWN'
                     commands.append(dict(command_id=command.command_id, symbol=symbol, state=command.state,
                         order_status=status, quantity=command.canonical_payload.quantity, filled_quantity=number(filled),
                         leaves_quantity=number(leaves), reason=request.rationale))
-                    targets.append(dict(symbol=symbol, strategy_id=request.strategy_id, target_quantity=request.intent.target_quantity,
+                    if command.operation != 'CANCEL':
+                        latest_target = dict(symbol=symbol, strategy_id=request.strategy_id, target_quantity=request.intent.target_quantity,
                         actual_quantity=number(actual), in_flight_quantity=number(leaves if status not in ('FILLED', 'CANCELED', 'REJECTED', 'EXPIRED') else D(0)),
-                        protection_state='UNVERIFIED' if actual else 'NO_POSITION', protected_quantity='0',
-                        command_id=command.command_id, reason=request.rationale))
+                        protection_state=str(plan.state) if plan and actual else 'NO_POSITION', protected_quantity='0',
+                        command_id=command.command_id, reason=request.rationale + ('；人工减仓后需重新激活旧自动目标。' if request.mode == 'MANUAL' and request.side == 'SELL' else ''))
+                        fill_rows = tx.execute("SELECT payload FROM ledger.fills WHERE scope_id=%s "
+                            "AND payload->'order'->>'logical_client_order_id'=%s", (scope_id(scope), command.logical_client_order_id)).fetchall()
+                        notional = sum((decode(t.Fill, row[0]).quantity.value * decode(t.Fill, row[0]).price.value for row in fill_rows), D(0))
+                        orders_view.append(dict(id=command.command_id, command_id=command.command_id, symbol=symbol,
+                            side=command.canonical_payload.side, quantity=command.canonical_payload.quantity,
+                            filled_quantity=number(filled), price=number(notional / filled) if filled else request.quote_price,
+                            notional=number(notional), fee=number(notional * D('.001')), status=status,
+                            strategy_id=request.strategy_id, created_at=request.requested_at))
+                if latest_target:
+                    targets.append(latest_target)
                 locks.extend(domain_payload(lock) for lock in tx.risk_locks.applicable(scope))
         return dict(mode='UNIFIED_PAPER', simulation_notice=NOTICE, targets=targets, commands=commands,
-            orders=commands, positions=[], protection_plans=[], risk_locks=list({l['lock_id']: l for l in locks}.values()))
+            orders=orders_view, positions=self.account_view()['positions'], protection_plans=protections,
+            risk_locks=list({l['lock_id']: l for l in locks}.values()))

@@ -105,3 +105,26 @@ def test_lost_ack_queries_same_id_after_restart_and_never_resubmits(runtime, run
     restarted.dispatch(command_id)
     with psycopg.connect(runtime_config['venue_dsn']) as conn:
         assert conn.execute('SELECT count(*) FROM paper_engine_commands').fetchone()[0] == 1
+
+
+def test_partial_cancel_unknown_keeps_full_reservation_and_protection_duty(runtime, runtime_config):
+    from trading_system.server.paper_runtime import scope_for
+    from trading_system.risk.reservation_repository import ReservationRepository
+    initial = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'partial-cancel', market(), 90, data())
+    command_id = initial['command_id']
+    assert runtime.dispatch(command_id)['status'] == 'VENUE_CONFIRMED'
+    runtime.inject(command_id, dict(event_id='partial', status='PARTIALLY_FILLED', cumulative_quantity='0.4', price='100'))
+    cancel = runtime.cancel(command_id, 'cancel-original')
+    result = runtime.dispatch(cancel['command_id'])
+    assert result['status'] == 'UNKNOWN'
+    runtime.inject(cancel['command_id'], dict(event_id='cancel-timeout', status='CANCEL_UNKNOWN', cumulative_quantity='0.4'))
+    restarted = UnifiedPaperRuntime(**runtime_config)
+    assert restarted.reconcile(cancel['command_id'])['filled_quantity'] == '0.4'
+    with restarted.uow.transaction(scope_for('BTCUSDT')) as tx:
+        holds = ReservationRepository(tx).group()
+        assert sum(p.held for p in holds) > 100
+        assert any(lock.cause == 'PROTECTION_GAP' for lock in tx.risk_locks.applicable(tx.scope))
+    result = restarted.inject(cancel['command_id'], dict(event_id='cancel-confirmed', status='CANCELED', cumulative_quantity='0.4'))
+    assert result['status'] == 'CANCELED'
+    with restarted.uow.transaction(scope_for('BTCUSDT')) as tx:
+        assert sum(p.held for p in ReservationRepository(tx).group()) == 0

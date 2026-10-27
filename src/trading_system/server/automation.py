@@ -235,7 +235,8 @@ class AutomationService:
             quantity = (funds / (price * (1 + FEE))).quantize(Decimal("0.000000000001"), rounding=ROUND_DOWN)
             if quantity <= 0:
                 return "NO_ACTION", "策略已达到目标配置或可用资金不足最小下单精度。"
-        result = self.store._order(connection, dict(symbol=job["symbol"], side=action, quantity=number(quantity), strategy_id=strategy["id"]),
+        result = self.store._order(connection, dict(symbol=job["symbol"], side=action, quantity=number(quantity), strategy_id=strategy["id"],
+            decision_run_id=job['id'], rationale=decision.get('summary', '服务端规则或模型决策')),
                                    "auto-order:" + job["id"], market, self.settings.quote_max_age_seconds)
         decision.update(order_id=result["order"]["id"], command_id=result['order']['command_id'], risk_status="PAPER_PASSED")
         return "PENDING", "已通过统一 PAPER 风控并持久化命令；等待执行与成交事件。"

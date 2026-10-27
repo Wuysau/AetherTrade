@@ -335,7 +335,9 @@ class PaperEngine:
             venue_client_order_id=row['client_id'], venue_order_id=row['order_id'])
 
     def _projection(self, row):
-        leaves = _difference(row['quantity'], row['filled'])
+        # Leaves is executable remaining quantity. A confirmed terminal order
+        # has no executable remainder; UNKNOWN cancellation retains all leaves.
+        leaves = Decimal(0) if row['lifecycle'] in TERMINAL else _difference(row['quantity'], row['filled'])
         return t.OrderProjection(order=t.OwnedOrderRef(identity=self._identity(row),
             owner_strategy_id=row['owner_strategy_id'], ownership_epoch=row['ownership_epoch']),
             lifecycle_state=t.OrderLifecycle(row['lifecycle']), pending_operation=row['pending'],

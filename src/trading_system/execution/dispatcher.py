@@ -152,6 +152,7 @@ class CommandDispatcher:
                 # Signing/authentication timestamps, if ever qualified, belong
                 # exclusively to the controlled EnginePort at this boundary.
                 with (self.side_effect_guard(command, permit, lease) if self.side_effect_guard else nullcontext()):
+                    self._clock_check(lease, facts, permit)
                     receipt = operation(command, permit)
                 if (not isinstance(receipt, t.CommandReceipt) or receipt.command_id != command_id
                         or not receipt.receipt_id

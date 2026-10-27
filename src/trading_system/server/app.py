@@ -36,6 +36,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     settings = settings or Settings.from_env()
     store = Store(settings.database_url)
     if settings.paper_ledger_dsn:
+        if store.sqlite:
+            raise ValueError('SQLite console is interaction-only; unified PAPER requires PostgreSQL console storage')
         from .paper_runtime import UnifiedPaperRuntime
         from .store import state as console_state, strategies as console_strategies
         from sqlalchemy import select

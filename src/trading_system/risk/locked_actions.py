@@ -141,6 +141,29 @@ class LockedActionVerifier:
                 or report.orders != book.active_orders or report.balances != book.balances
                 or not book.evidence or any(e not in report.evidence for e in book.evidence)):
             return None
+        if command.operation == 'CANCEL':
+            # Cancel only a proved owned OPENING root. Cancelling protection or
+            # an exit can increase retained risk and is deliberately excluded.
+            matches = [order for order in book.active_orders if order.order.identity.venue_order_id == command.target_order_id]
+            if len(matches) != 1 or command.parent_command_id is None:
+                return None
+            target = matches[0]
+            from trading_system.execution.commands import CommandRepository
+            parent = CommandRepository(tx).get(command.parent_command_id)
+            details = [term for term in proof.orders if term.order == target.order]
+            if (parent is None or parent.operation != 'SUBMIT' or parent.parent_command_id is not None
+                    or parent.canonical_payload.side != 'BUY' or scope.product != t.Product.SPOT
+                    or parent.logical_client_order_id != target.order.identity.logical_client_order_id
+                    or target.order.owner_strategy_id != intent.owner_strategy_id
+                    or target.order.ownership_epoch != intent.ownership_epoch
+                    or target.command_certainty != 'CONFIRMED' or target.pending_operation != 'NONE'
+                    or target.lifecycle_state not in ('SUBMITTED', 'ACCEPTED', 'PARTIALLY_FILLED')
+                    or len(details) != 1 or details[0].side != 'BUY' or details[0].evidence not in report.evidence
+                    or target.leaves_quantity.unit != intent.quantity_unit or target.leaves_quantity.value <= 0
+                    or not ('EXIT' in allowed or 'MANAGE' in allowed)):
+                return None
+            return min(utc_timestamp(proof.valid_until), *(utc_timestamp(e.visible_at)
+                + timedelta(seconds=self.maximum_age_seconds) for e in report.evidence)).isoformat()
         # A single signed position is required. Hedge SHORT legs use negative
         # quantities consistently with RiskEvaluator; ambiguity fails closed.
         if len(book.positions) != 1:

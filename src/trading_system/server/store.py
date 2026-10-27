@@ -6,7 +6,7 @@ UPDATE on PostgreSQL), including idempotency checks and first-owner setup.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, localcontext
 from pathlib import Path
@@ -106,15 +106,13 @@ class Store:
 
     @contextmanager
     def transaction(self):
-        with self._lock, self.engine.connect() as connection, localcontext() as arithmetic:
+        with self._lock, (self.execution.control_guard() if self.execution else nullcontext()), self.engine.connect() as connection, localcontext() as arithmetic:
             arithmetic.prec = 80
             if self.sqlite:
                 connection.exec_driver_sql("BEGIN IMMEDIATE")
             else:
                 connection.begin()
             try:
-                if not self.sqlite and self.execution:
-                    connection.exec_driver_sql("SELECT pg_advisory_xact_lock(hashtextextended('console-owner:paper-local:SPOT',0))")
                 connection.execute(select(state.c.id).where(state.c.id == 1).with_for_update()).first()
                 yield connection
                 connection.commit()
@@ -601,6 +599,8 @@ class Store:
             history = [{"at": item.at, "equity": item.equity} for item in connection.execute(select(observations.c.at, observations.c.equity).order_by(observations.c.at))]
             cutoff = (now() - timedelta(days=days[period])).isoformat()
             trades = sorted(rows(connection, orders), key=lambda item: item["created_at"], reverse=True)
+            if self.execution and not trades:
+                trades = sorted(self.execution.projection()['orders'], key=lambda item: item['created_at'], reverse=True)
             closed = [Decimal(item["realized_pnl"]) for item in trades if item.get("realized_pnl") is not None]
             peak, drawdown = initial, Decimal(0)
             for point in [*history, {"equity": number(equity)}]:
