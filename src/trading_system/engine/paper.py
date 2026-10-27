@@ -96,7 +96,8 @@ class PaperEngine:
 
     @staticmethod
     def _open(dsn, *, controller):
-        conn = psycopg.connect(dsn, row_factory=dict_row, autocommit=True)
+        conn = psycopg.connect(dsn, row_factory=dict_row, autocommit=True,
+            options='-c search_path=pg_catalog')
         try:
             role = conn.execute('''SELECT NOT starts_with(current_database(),'paper_engine_')
                 OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspname='paper_sim')
@@ -104,20 +105,24 @@ class PaperEngine:
                 OR r.rolreplication OR r.rolbypassrls OR r.rolinherit
                 OR EXISTS (SELECT 1 FROM pg_auth_members WHERE member=r.oid)
                 OR EXISTS (SELECT 1 FROM pg_database WHERE datname=current_database() AND datdba=r.oid)
-                OR EXISTS (SELECT 1 FROM pg_class WHERE relname=ANY(%s) AND relowner=r.oid)
+                OR EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                    WHERE n.nspname='public' AND c.relname=ANY(%s) AND c.relowner=r.oid)
+                OR (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                    WHERE n.nspname='public' AND c.relname=ANY(%s) AND c.relkind='r') <> 3
                 OR has_schema_privilege(current_user,'public','CREATE')
                 OR has_database_privilege(current_user,current_database(),'TEMP') AS privileged,
-                has_table_privilege(current_user,'paper_engine_commands','INSERT') AS commands,
-                has_table_privilege(current_user,'paper_engine_events','INSERT') AS events,
-                has_column_privilege(current_user,'paper_engine_orders','filled','UPDATE')
-                OR has_column_privilege(current_user,'paper_engine_orders','lifecycle','UPDATE')
-                OR has_column_privilege(current_user,'paper_engine_orders','quantity','UPDATE') AS economic_update,
-                has_column_privilege(current_user,'paper_engine_orders','filled','INSERT') AS fabricated_initial_fill,
-                has_table_privilege(current_user,'paper_engine_orders','DELETE,TRUNCATE')
-                OR has_table_privilege(current_user,'paper_engine_commands','DELETE,TRUNCATE')
-                OR has_table_privilege(current_user,'paper_engine_events','DELETE,TRUNCATE') AS destructive
+                has_table_privilege(current_user,'public.paper_engine_commands','INSERT') AS commands,
+                has_table_privilege(current_user,'public.paper_engine_events','INSERT') AS events,
+                has_column_privilege(current_user,'public.paper_engine_orders','filled','UPDATE')
+                OR has_column_privilege(current_user,'public.paper_engine_orders','lifecycle','UPDATE')
+                OR has_column_privilege(current_user,'public.paper_engine_orders','quantity','UPDATE') AS economic_update,
+                has_column_privilege(current_user,'public.paper_engine_orders','filled','INSERT') AS fabricated_initial_fill,
+                has_table_privilege(current_user,'public.paper_engine_orders','DELETE,TRUNCATE')
+                OR has_table_privilege(current_user,'public.paper_engine_commands','DELETE,TRUNCATE')
+                OR has_table_privilege(current_user,'public.paper_engine_events','DELETE,TRUNCATE') AS destructive
                 FROM pg_roles r WHERE r.rolname=current_user''',
-                (['paper_engine_orders', 'paper_engine_commands', 'paper_engine_events'],)).fetchone()
+                (['paper_engine_orders', 'paper_engine_commands', 'paper_engine_events'],
+                 ['paper_engine_orders', 'paper_engine_commands', 'paper_engine_events'])).fetchone()
             if (role is None or role['privileged'] or role['destructive']
                     or role['fabricated_initial_fill'] or role['economic_update'] != controller
                     or role['commands'] != (not controller) or role['events'] != controller):
@@ -160,14 +165,14 @@ class PaperEngine:
                 with self._connect() as conn:
                     # The unique indexes also fence concurrent adapter instances;
                     # no memory-only consumed set is relied on after restart.
-                    exists = conn.execute('SELECT 1 FROM paper_engine_commands WHERE scope_key=%s '
+                    exists = conn.execute('SELECT 1 FROM public.paper_engine_commands WHERE scope_key=%s '
                         'AND (command_id=%s OR client_id=%s)',
                         (self._scope_key, command.command_id, expected)).fetchone()
                     if exists:
                         raise BridgeDenied('COMMAND_ALREADY_OBSERVED_QUERY_SAME_ID')
                     validate_bridge_authority(command, permit, authority, scope=self.scope, clock=self._clock)
                     if command.operation in {'CANCEL', 'AMEND'}:
-                        target = conn.execute('SELECT * FROM paper_engine_orders WHERE scope_key=%s '
+                        target = conn.execute('SELECT * FROM public.paper_engine_orders WHERE scope_key=%s '
                             'AND order_id=%s FOR UPDATE', (self._scope_key, command.target_order_id)).fetchone()
                         self._check_authority(command, permit)
                         if (target is None or target['ownership_epoch'] != command.ownership_epoch
@@ -180,7 +185,7 @@ class PaperEngine:
                                 raise BridgeDenied('AMEND_BELOW_ACTUAL_FILL')
                         target_client = target['client_id']
                         self._check_authority(command, permit)
-                        conn.execute('UPDATE paper_engine_orders SET pending=%s, pending_command_id=%s, certainty=%s, '
+                        conn.execute('UPDATE public.paper_engine_orders SET pending=%s, pending_command_id=%s, certainty=%s, '
                             'revision=revision+1 WHERE scope_key=%s AND client_id=%s',
                             (command.operation, command.command_id, 'UNKNOWN', self._scope_key, target_client))
                     else:
@@ -189,7 +194,7 @@ class PaperEngine:
                             raise BridgeDenied('EXPLICIT_BASE_QUANTITY_REQUIRED')
                         target_client = expected
                         self._check_authority(command, permit)
-                        conn.execute('INSERT INTO paper_engine_orders '
+                        conn.execute('INSERT INTO public.paper_engine_orders '
                             '(environment,scope_key,client_id,order_id,logical_id,owner_strategy_id,'
                             'ownership_epoch,quantity_unit,price_currency,quantity) '
                             'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
@@ -197,7 +202,7 @@ class PaperEngine:
                              command.logical_client_order_id, self._owner_strategy_id,
                              command.ownership_epoch, self._quantity_unit, self._price_currency, quantity))
                     self._check_authority(command, permit)
-                    conn.execute('INSERT INTO paper_engine_commands '
+                    conn.execute('INSERT INTO public.paper_engine_commands '
                         '(environment,scope_key,command_id,client_id,target_client_id,operation,request_hash,request) '
                         'VALUES (%s,%s,%s,%s,%s,%s,%s,%s)', ('PAPER', self._scope_key, command.command_id,
                             expected, target_client, command.operation, request_hash, Jsonb(body)))
@@ -248,12 +253,12 @@ class PaperEngine:
             payload = domain_payload(event)
             payload_hash = canonical_hash(payload)
             with self._event_connect() as conn:
-                order = conn.execute('SELECT * FROM paper_engine_orders WHERE scope_key=%s '
+                order = conn.execute('SELECT * FROM public.paper_engine_orders WHERE scope_key=%s '
                     'AND client_id=%s FOR UPDATE', (self._scope_key, event.venue_client_order_id)).fetchone()
                 self._check_event_control(event)
                 if order is None:
                     raise BridgeDenied('ORIGINAL_CLIENT_ID_REQUIRED')
-                previous = conn.execute('SELECT payload_hash FROM paper_engine_events '
+                previous = conn.execute('SELECT payload_hash FROM public.paper_engine_events '
                     'WHERE scope_key=%s AND event_id=%s', (self._scope_key, event.event_id)).fetchone()
                 if previous:
                     if previous['payload_hash'] != payload_hash:
@@ -279,7 +284,7 @@ class PaperEngine:
                         raise BridgeDenied('PENDING_CANCEL_REQUIRED')
                     lifecycle, pending, certainty = order['lifecycle'], 'CANCEL', 'UNKNOWN'
                 elif status == 'AMENDED':
-                    amendment = conn.execute('SELECT request FROM paper_engine_commands WHERE scope_key=%s '
+                    amendment = conn.execute('SELECT request FROM public.paper_engine_commands WHERE scope_key=%s '
                         'AND command_id=%s AND target_client_id=%s AND operation=%s',
                         (self._scope_key, event.command_id, order['client_id'], 'AMEND')).fetchone()
                     if (order['pending'] != 'AMEND' or amendment is None
@@ -289,7 +294,7 @@ class PaperEngine:
                     if quantity <= order['filled']:
                         raise BridgeDenied('AMEND_MUST_RETAIN_WORKING_QUANTITY')
                     self._check_event_control(event)
-                    conn.execute('UPDATE paper_engine_orders SET quantity=%s WHERE scope_key=%s AND client_id=%s',
+                    conn.execute('UPDATE public.paper_engine_orders SET quantity=%s WHERE scope_key=%s AND client_id=%s',
                         (quantity, self._scope_key, order['client_id']))
                     lifecycle, pending, certainty = order['lifecycle'], 'NONE', 'CONFIRMED'
                 elif status in {'CANCELED', 'EXPIRED', 'REJECTED', 'SUBMITTED'}:
@@ -303,12 +308,12 @@ class PaperEngine:
                 else:
                     raise BridgeDenied('UNSUPPORTED_SYNTHETIC_TRANSITION')
                 self._check_event_control(event)
-                conn.execute('INSERT INTO paper_engine_events '
+                conn.execute('INSERT INTO public.paper_engine_events '
                     '(environment,scope_key,event_id,client_id,payload_hash,payload,fill_delta,price,occurred_at) '
                     'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)', ('PAPER', self._scope_key, event.event_id,
                         order['client_id'], payload_hash, Jsonb(payload), delta, event.price, event.occurred_at))
                 self._check_event_control(event)
-                conn.execute('UPDATE paper_engine_orders SET filled=%s,lifecycle=%s,pending=%s,'
+                conn.execute('UPDATE public.paper_engine_orders SET filled=%s,lifecycle=%s,pending=%s,'
                     'pending_command_id=%s,certainty=%s,'
                     'revision=revision+1 WHERE scope_key=%s AND client_id=%s',
                     (event.cumulative_quantity, lifecycle, pending,
@@ -353,20 +358,20 @@ class PaperEngine:
             with self._connect() as conn:
                 conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
                 if query.command_ids:
-                    commands = conn.execute('SELECT command_id,target_client_id FROM paper_engine_commands '
+                    commands = conn.execute('SELECT command_id,target_client_id FROM public.paper_engine_commands '
                         'WHERE scope_key=%s AND command_id=ANY(%s)',
                         (self._scope_key, list(query.command_ids))).fetchall()
                     if {r['command_id'] for r in commands} != set(query.command_ids):
                         missing.append('COMMAND_NOT_OBSERVED')
                     clients = [r['target_client_id'] for r in commands]
-                    rows = conn.execute('SELECT * FROM paper_engine_orders WHERE scope_key=%s AND client_id=ANY(%s) '
+                    rows = conn.execute('SELECT * FROM public.paper_engine_orders WHERE scope_key=%s AND client_id=ANY(%s) '
                         'ORDER BY client_id', (self._scope_key, clients)).fetchall()
                 else:
-                    rows = conn.execute('SELECT * FROM paper_engine_orders WHERE scope_key=%s ORDER BY client_id',
+                    rows = conn.execute('SELECT * FROM public.paper_engine_orders WHERE scope_key=%s ORDER BY client_id',
                         (self._scope_key,)).fetchall()
                 for row in rows:
                     orders.append(self._projection(row))
-                    events = conn.execute('SELECT * FROM paper_engine_events WHERE scope_key=%s AND client_id=%s '
+                    events = conn.execute('SELECT * FROM public.paper_engine_events WHERE scope_key=%s AND client_id=%s '
                         'AND fill_delta>0 ORDER BY occurred_at,event_id', (self._scope_key, row['client_id'])).fetchall()
                     for event in events:
                         occurred = event['occurred_at'].isoformat()

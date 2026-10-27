@@ -1,5 +1,9 @@
 # PAPER engine security followup
 
+The later [fresh provisioning followup](2026-10-27-paper-engine-fresh-provisioning.md)
+corrects the original relation-reuse gap and supersedes setup/migration claims
+below. Existing engine databases are refused rather than upgraded by provisioning.
+
 Source base: `df76e25cb0921a6e1cc584836e050f5208211f99`. This evidence supersedes
 the original adapter run for the lock-wait and database-role findings. Native,
 Testnet and LIVE qualification remain NOT_RUN and all existing gates stay closed.

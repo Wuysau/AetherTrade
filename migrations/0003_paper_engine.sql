@@ -1,6 +1,8 @@
 -- Dedicated synthetic venue state. Never business-ledger or exchange evidence.
 -- Apply only in an explicitly provisioned isolated PAPER PostgreSQL database.
-CREATE TABLE IF NOT EXISTS paper_engine_orders (
+-- Fresh-only: reject existing relations in the provisioner; concurrent collisions
+-- also abort this transaction rather than silently reusing or regranting state.
+CREATE TABLE public.paper_engine_orders (
     environment TEXT NOT NULL CHECK (environment = 'PAPER'),
     scope_key TEXT NOT NULL,
     client_id TEXT NOT NULL,
@@ -24,10 +26,7 @@ CREATE TABLE IF NOT EXISTS paper_engine_orders (
     CHECK ((pending = 'NONE') = (pending_command_id IS NULL))
 );
 
--- Idempotent when applying role isolation to an earlier PAPER-only schema.
-ALTER TABLE paper_engine_orders ALTER COLUMN lifecycle SET DEFAULT 'SUBMITTED';
-
-CREATE TABLE IF NOT EXISTS paper_engine_commands (
+CREATE TABLE public.paper_engine_commands (
     environment TEXT NOT NULL CHECK (environment = 'PAPER'),
     scope_key TEXT NOT NULL,
     command_id TEXT NOT NULL,
@@ -38,10 +37,10 @@ CREATE TABLE IF NOT EXISTS paper_engine_commands (
     request JSONB NOT NULL,
     PRIMARY KEY (scope_key, command_id),
     UNIQUE (scope_key, client_id),
-    FOREIGN KEY (scope_key, target_client_id) REFERENCES paper_engine_orders (scope_key, client_id)
+    FOREIGN KEY (scope_key, target_client_id) REFERENCES public.paper_engine_orders (scope_key, client_id)
 );
 
-CREATE TABLE IF NOT EXISTS paper_engine_events (
+CREATE TABLE public.paper_engine_events (
     environment TEXT NOT NULL CHECK (environment = 'PAPER'),
     scope_key TEXT NOT NULL,
     event_id TEXT NOT NULL,
@@ -52,6 +51,6 @@ CREATE TABLE IF NOT EXISTS paper_engine_events (
     price NUMERIC CHECK (price > 0 AND price <> 'NaN'),
     occurred_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (scope_key, event_id),
-    FOREIGN KEY (scope_key, client_id) REFERENCES paper_engine_orders (scope_key, client_id),
+    FOREIGN KEY (scope_key, client_id) REFERENCES public.paper_engine_orders (scope_key, client_id),
     CHECK (fill_delta = 0 OR price IS NOT NULL)
 );

@@ -1,7 +1,7 @@
 """Mandatory real-PostgreSQL synthetic venue tests; never exchange qualification."""
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
 import json
 import os
@@ -570,8 +570,115 @@ def test_engine_rejects_admin_and_swapped_database_credentials(case):
 
 def test_provisioning_guard_refuses_existing_application_schema_before_migration(paper_dsn):
     with psycopg.connect(os.environ['PAPER_ENGINE_ADMIN_DATABASE_DSN']) as conn:
-        assert require_isolated_paper_database(conn).startswith('paper_engine_')
+        assert conn.execute('SELECT current_database()').fetchone()[0].startswith('paper_engine_')
         conn.execute('CREATE SCHEMA paper_sim')
         with pytest.raises(ValueError, match='existing paper_sim schema refused'):
             require_isolated_paper_database(conn)
         conn.rollback()  # The negative test creates no persistent application schema.
+
+
+@pytest.fixture
+def empty_paper_database(paper_dsn):
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    admin = conninfo_to_dict(os.environ['PAPER_ENGINE_ADMIN_DATABASE_DSN'])
+    database = 'paper_engine_guard_' + uuid4().hex[:12]
+    with psycopg.connect(make_conninfo(**dict(admin, dbname='postgres')), autocommit=True) as conn:
+        conn.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(database)))
+    return ProvisioningDatabase(make_conninfo(**dict(admin, dbname=database)))
+
+
+@dataclass(frozen=True)
+class ProvisioningDatabase:
+    dsn: str = field(repr=False)
+
+
+def _public_schema_snapshot(conn):
+    return (
+        conn.execute("SELECT c.oid,c.relname,c.relkind,c.relowner,c.relacl FROM pg_class c JOIN pg_namespace n "
+            "ON c.relnamespace=n.oid WHERE n.nspname='public' ORDER BY c.oid").fetchall(),
+        conn.execute("SELECT a.attrelid,a.attnum,a.attname,a.atttypid,a.attnotnull FROM pg_attribute a "
+            "JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace "
+            "WHERE n.nspname='public' AND a.attnum>0 ORDER BY a.attrelid,a.attnum").fetchall(),
+        conn.execute("SELECT nspowner,nspacl FROM pg_namespace WHERE nspname='public'").fetchall(),
+        conn.execute('SELECT datacl FROM pg_database WHERE datname=current_database()').fetchall())
+
+
+@pytest.mark.parametrize('relation', ['paper_engine_orders', 'paper_engine_commands', 'paper_engine_events'])
+@pytest.mark.parametrize('kind', ['TABLE', 'VIEW', 'SEQUENCE'])
+def test_provisioning_refuses_any_existing_engine_relation_without_changes(empty_paper_database, relation, kind):
+    from psycopg import sql
+    admin_dsn = empty_paper_database.dsn
+    marker = 'preexisting-' + uuid4().hex
+    target = sql.Identifier('public', relation)
+    with psycopg.connect(admin_dsn) as conn:
+        if kind == 'TABLE':
+            conn.execute(sql.SQL('CREATE TABLE {} (marker TEXT NOT NULL)').format(target))
+            conn.execute(sql.SQL('INSERT INTO {} VALUES (%s)').format(target), (marker,))
+        elif kind == 'VIEW':
+            conn.execute(sql.SQL('CREATE VIEW {} AS SELECT {}::text AS marker').format(target, sql.Literal(marker)))
+        else:
+            conn.execute(sql.SQL('CREATE SEQUENCE {} START 73').format(target))
+        before = _public_schema_snapshot(conn)
+        data_before = conn.execute(sql.SQL('SELECT * FROM {}').format(target)).fetchall()
+    suffix = uuid4().hex[:12]
+    proposed_roles = ['paper_engine_runtime_' + suffix, 'paper_engine_events_' + suffix]
+    with pytest.raises(ValueError, match='existing public PAPER engine relation refused before migration'):
+        provision_paper_engine_roles(admin_dsn, isolated_paper=True,
+            runtime_role=proposed_roles[0], event_role=proposed_roles[1],
+            runtime_password=secrets.token_urlsafe(32), event_password=secrets.token_urlsafe(32))
+    with psycopg.connect(admin_dsn) as conn:
+        assert _public_schema_snapshot(conn) == before
+        assert conn.execute(sql.SQL('SELECT * FROM {}').format(target)).fetchall() == data_before
+        assert conn.execute('SELECT count(*) FROM pg_roles WHERE rolname=ANY(%s)', (proposed_roles,)).fetchone()[0] == 0
+
+
+def test_runtime_schema_and_privilege_lookups_ignore_untrusted_search_path(case):
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    shadow = 'paper_untrusted_' + uuid4().hex[:12]
+    with psycopg.connect(case.dsn) as conn:
+        runtime_role = conn.execute('SELECT current_user').fetchone()[0]
+    with psycopg.connect(os.environ['PAPER_ENGINE_ADMIN_DATABASE_DSN']) as conn:
+        conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(shadow)))
+        conn.execute(sql.SQL('CREATE TABLE {} (marker TEXT)').format(sql.Identifier(shadow, 'paper_engine_commands')))
+        conn.execute(sql.SQL('INSERT INTO {} VALUES (%s)').format(sql.Identifier(shadow, 'paper_engine_commands')),
+            ('untrusted-original-marker',))
+        conn.execute(sql.SQL('GRANT USAGE ON SCHEMA {} TO {}').format(
+            sql.Identifier(shadow), sql.Identifier(runtime_role)))
+        conn.execute(sql.SQL('GRANT SELECT,INSERT ON {} TO {}').format(
+            sql.Identifier(shadow, 'paper_engine_commands'), sql.Identifier(runtime_role)))
+    case.engine._dsn = make_conninfo(**dict(conninfo_to_dict(case.dsn),
+        options='-c search_path=' + shadow + ',public,pg_catalog'))
+    with case.engine._connect() as conn:
+        assert conn.execute('SHOW search_path').fetchone()['search_path'] == 'pg_catalog'
+    cmd, permit = case.command()
+    case.engine.submit(cmd, permit)
+    assert case.query(cmd).orders[0].order.identity.venue_client_order_id == cmd.venue_client_order_id
+    with psycopg.connect(os.environ['PAPER_ENGINE_ADMIN_DATABASE_DSN']) as conn:
+        assert conn.execute(sql.SQL('SELECT * FROM {}').format(
+            sql.Identifier(shadow, 'paper_engine_commands'))).fetchall() == [('untrusted-original-marker',)]
+
+
+def test_provisioning_migration_ignores_untrusted_admin_search_path(empty_paper_database):
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    admin_dsn = empty_paper_database.dsn
+    with psycopg.connect(admin_dsn) as conn:
+        conn.execute('CREATE SCHEMA untrusted_admin_path')
+    suffix = uuid4().hex[:12]
+    roles = provision_paper_engine_roles(make_conninfo(**dict(conninfo_to_dict(admin_dsn),
+        options='-c search_path=untrusted_admin_path,public,pg_catalog')), isolated_paper=True,
+        runtime_role='paper_engine_runtime_' + suffix, event_role='paper_engine_events_' + suffix,
+        runtime_password=secrets.token_urlsafe(32), event_password=secrets.token_urlsafe(32))
+    with psycopg.connect(admin_dsn) as conn:
+        assert conn.execute("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
+            "WHERE n.nspname='untrusted_admin_path'").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
+            "WHERE n.nspname='public' AND c.relname=ANY(%s) AND c.relkind='r'",
+            (['paper_engine_orders', 'paper_engine_commands', 'paper_engine_events'],)).fetchone()[0] == 3
+    engine = PaperEngine(t.ScopeKey(environment=t.Environment.PAPER, venue_account_id='synthetic-isolation',
+        product=t.Product.SPOT, instrument_uid='synthetic-BTCUSDT', venue_leg='BOTH'),
+        dsn=roles.runtime_dsn, authority_guard=lambda _: None,
+        owner_strategy_id='synthetic', quantity_unit='BTC', price_currency='USDT')
+    with engine._connect() as conn:
+        assert conn.execute('SELECT count(*) FROM public.paper_engine_orders').fetchone()['count'] == 0
