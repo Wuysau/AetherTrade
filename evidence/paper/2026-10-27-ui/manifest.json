@@ -1,0 +1,65 @@
+{
+  "source_commit": "4f22d2507efd4076f35a8154025d5c8beae6f18d",
+  "scope": "UI_FIXTURE_ONLY_NOT_POSTGRES_OR_TRADING_QUALIFICATION",
+  "checks": [
+    {
+      "command": "npm --prefix web run typecheck",
+      "exit": 0
+    },
+    {
+      "command": "npm --prefix web test",
+      "exit": 0,
+      "passed": 105
+    },
+    {
+      "command": "npm --prefix web run build",
+      "exit": 0,
+      "record": "tool result plus paper-rules-ui-build.log"
+    },
+    {
+      "command": "npm --prefix web test -- --run tests/paper-execution.test.tsx",
+      "phase": "receipt red",
+      "exit": "NOT_RECORDED: original compound shell returned tail command status",
+      "failed": 4,
+      "passed": 1
+    },
+    {
+      "command": "npm --prefix web test -- --run tests/paper-execution.test.tsx",
+      "phase": "rule red",
+      "exit": 1,
+      "failed": 2,
+      "passed": 5
+    }
+  ],
+  "render": {
+    "desktop": [
+      1440,
+      1000
+    ],
+    "mobile": [
+      390,
+      844
+    ],
+    "document_horizontal_overflow": false,
+    "fixture": "target1/inflight0.6/actual0.4/GAP/DAILY_LOSS/CANCEL_UNKNOWN"
+  },
+  "raw_sha256": {
+    "paper-ui-red.log": "41e914bfd706692157a365c9728260b9e6828c939b6eb4d5dfee9448b3044e7f",
+    "paper-rules-ui-red.log": "d20361c26ae72ac57f471885d28af90da1cde270cfdec3e6a474ca301f9f8571",
+    "paper-rules-ui-red.exit": "f1b2f662800122bed0ff255693df89c4487fbdcf453d3524a42d4ec20c3d9c04",
+    "paper-final-ui-typecheck.log": "bc649c160ed3caffd6fa45ab065a6e7c702472d7665e9a1122a393e0fc821094",
+    "paper-final-ui-typecheck.exit": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "paper-final-ui-tests.log": "74c93665ef949a3223f2c21b9e28f5a19bf2bbcb3ac80d8d4de32479e2a7465c",
+    "paper-final-ui-tests.exit": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "paper-rules-ui-build.log": "fe087dadbd99724bd0cfea8e2a55e88367158766b8c721ef57c1d690c1674900",
+    "paper-ui-detector.json": "71cd616ffa298b81b071cdc606a1160a794defffea0e0fbd273edacd7486c8c4",
+    "paper-ui-mobile.png": "3a4fa99c277887c952cf88cf4f167bff5dac5e358122d2eae674751dd46df0f8",
+    "paper-ui-desktop.png": "965f49afd0839944d190e28a7735750aea174a5e4329ad1914b87a3c12b684a3",
+    "paper-rules-mobile.png": "40b356dad5bb9c6866e58babd26c832c1aca8e0ae33f489a86c3f4b2e2283684"
+  },
+  "limitations": [
+    "No database or venue calls in these UI probes.",
+    "Raw receipt red exit not preserved; test failures preserved in log.",
+    "Backend acceptance and runtime execution require separate verification."
+  ]
+}
