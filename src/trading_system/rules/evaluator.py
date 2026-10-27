@@ -20,7 +20,10 @@ from typing import Mapping
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp
-from trading_system.contracts.wire import ContractCodec
+from trading_system.contracts.wire import (
+    ContractCodec, DecisionProposalEntry, DecisionProposalExitPlan,
+    DecisionProposalRationale, DecisionProposalTarget,
+)
 
 from .graph import (
     COMPILER_REVISION,
@@ -365,14 +368,14 @@ class RuleEvaluator:
             proposal_id=proposal_id,
             instrument_ref=graph.instrument_ref,
             action='SET_TARGET',
-            target=t.DecisionProposalTarget(side=side, sizing=graph.sizing,
+            target=DecisionProposalTarget(side=side, sizing=graph.sizing,
                                             value=format(magnitude, 'f')),
-            entry=t.DecisionProposalEntry(order_preference='MARKET',
+            entry=DecisionProposalEntry(order_preference='MARKET',
                                           limit_price=None,
                                           maximum_entry_slippage_bps='0',
                                           entry_deadline=decision_text,
                                           allow_partial=False),
-            exit_plan=t.DecisionProposalExitPlan(
+            exit_plan=DecisionProposalExitPlan(
                 stop_price=None, stop_trigger='LAST', review_due_at=decision_text,
                 # The approved graph carries no holding field; its explicit
                 # window is the only horizon, and it is never unbounded.
@@ -381,7 +384,7 @@ class RuleEvaluator:
                     f'rule {graph.rule_id} revision {graph.revision}: condition '
                     f'{condition_hash(graph.condition)[:16]} no longer holds')),
             evidence_refs=(evidence,),
-            rationale=t.DecisionProposalRationale(
+            rationale=DecisionProposalRationale(
                 summary=(f'rule {graph.rule_id} revision {graph.revision} '
                          f'{graph.trigger} trigger at {decision_text} on snapshot '
                          f'{evidence}'),
