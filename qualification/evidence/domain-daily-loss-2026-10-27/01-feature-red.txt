@@ -1,0 +1,11 @@
+{"platform": "linux", "python": "3.12.16", "postgresql": "17.11", "database": "ip08_test_group_c95ffe32b5d7"}
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_default_monitor_denies_new_risk_without_trusted_reader __________
+tests/integration/test_daily_loss_monitor.py:7: in test_default_monitor_denies_new_risk_without_trusted_reader
+    from trading_system.risk.daily_loss import DailyLossMonitor
+E   ModuleNotFoundError: No module named 'trading_system.risk.daily_loss'
+=========================== short test summary info ============================
+FAILED tests/integration/test_daily_loss_monitor.py::test_default_monitor_denies_new_risk_without_trusted_reader
+1 failed in 0.41s
+

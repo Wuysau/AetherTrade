@@ -1,0 +1,12 @@
+{"platform": "linux", "python": "3.12.16", "postgresql": "17.11", "database": "ip08_test_group_6d216fb1bb5f"}
+...............................................F                         [100%]
+=================================== FAILURES ===================================
+_ test_rollover_cannot_bypass_missing_review_watermark_after_source_resolution _
+tests/integration/test_daily_loss_monitor.py:509: in test_rollover_cannot_bypass_missing_review_watermark_after_source_resolution
+    assert not result.new_risk_allowed
+E   AssertionError: assert not True
+E    +  where True = DailyLossAssessment(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-1442db767aa44b469...'), currency='USDT'), latest_pnl=Money(amount=Decimal('20'), currency='USDT'), valid_until='2026-10-23T12:00:30+00:00').new_risk_allowed
+=========================== short test summary info ============================
+FAILED tests/integration/test_daily_loss_monitor.py::test_rollover_cannot_bypass_missing_review_watermark_after_source_resolution
+1 failed, 47 passed in 9.04s
+

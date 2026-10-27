@@ -1,0 +1,55 @@
+{
+  "directory": "/tmp/ip08_test_group_d884b41aa2d7",
+  "source_hashes": [
+    {
+      "path": "src/trading_system/storage/uow.py",
+      "sha256": "78d4e510e98e1c9e1d2fea17d207b2d1b456c405c2042a90460dc41d2b92efb2"
+    },
+    {
+      "path": "src/trading_system/risk/locks.py",
+      "sha256": "4d9c1e1104ab8d028f6d96ff9de5a839b29ba009a18782a4217de2a09eb90629"
+    },
+    {
+      "path": "src/trading_system/risk/locked_actions.py",
+      "sha256": "767984684a04ba4203a83abcbef24e623adff0126690c311e1ba9ad2c92ba576"
+    },
+    {
+      "path": "src/trading_system/risk/reservations.py",
+      "sha256": "01a2267d64bcd07fdde79c5fed8db2a078eb9bc18046e9b60c58817b054b2dac"
+    },
+    {
+      "path": "tests/integration/test_group_daily_locks.py",
+      "sha256": "9fef661bdb2426db2f520090528fe17cf4167d016feec46cc23aec25fd536921"
+    },
+    {
+      "path": "tests/unit/test_risk_applicability.py",
+      "sha256": "f13d221f99ed0ad473925343f4952a6039308dcd22a37a3930773f93da633f10"
+    },
+    {
+      "path": "migrations/0001_business_ledger.sql",
+      "sha256": "b3bfbaaec9dbeeb207297a395290dd4083d5b6101c98a11e240d36a9b32b5dc6"
+    },
+    {
+      "path": "migrations/0002_risk_resolution_authority.sql",
+      "sha256": "f2597dd09832aef2b4fa1a82f0152c10226b613cdbb5ffce24285ffc6b0793a4"
+    },
+    {
+      "path": "src/trading_system/risk/daily_loss.py",
+      "sha256": "940d0b8c9118765c1d69209b93113204242182830200ace9b8fe9858666b76b3"
+    },
+    {
+      "path": "tests/integration/test_daily_loss_monitor.py",
+      "sha256": "02ae3e21d6ca858cc16e744566b7d6fb90257fed9b4d776d3cdde646a62f0575"
+    }
+  ],
+  "database": "ip08_test_group_d884b41aa2d7",
+  "postgres_container": "aethertrade-paper-qualification-5fbf2cf3",
+  "runner": "aethertrade-pg-ledger-pgledger_7fa85478",
+  "tests": [
+    "tests/integration/test_daily_loss_monitor.py",
+    "tests/unit/test_locked_actions.py",
+    "tests/unit/test_risk_applicability.py",
+    "tests/unit/test_risk_evaluator.py"
+  ],
+  "source_commit": "472fd90fc6711e63512f05b0aeae24e89413d3d4"
+}

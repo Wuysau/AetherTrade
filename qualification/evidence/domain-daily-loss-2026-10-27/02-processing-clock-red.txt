@@ -1,0 +1,14 @@
+{"platform": "linux", "python": "3.12.16", "postgresql": "17.11", "database": "ip08_test_group_96fe57f7c8fa"}
+..............................F                                          [100%]
+=================================== FAILURES ===================================
+______ test_processing_delay_after_validation_is_rechecked_before_writes _______
+tests/integration/test_daily_loss_monitor.py:361: in test_processing_delay_after_validation_is_rechecked_before_writes
+    assert not result.new_risk_allowed and not c.locks()
+E   AssertionError: assert (not False and not (RiskLock(lock_id='7ff314ded85d434b8e6b9dbc9cec0264', scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_a...skPermission.NO_NEW_RISK: 'NO_NEW_RISK'>, required_evidence=('DAILY_LOSS_REVIEW',), raised_at='2026-10-22T12:00:00Z'),))
+E    +  where False = DailyLossAssessment(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-703fe757f5224b58a..., currency='USDT'), latest_pnl=Money(amount=Decimal('-2.1'), currency='USDT'), valid_until='2026-10-22T12:00:30+00:00').new_risk_allowed
+E    +  and   (RiskLock(lock_id='7ff314ded85d434b8e6b9dbc9cec0264', scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_a...skPermission.NO_NEW_RISK: 'NO_NEW_RISK'>, required_evidence=('DAILY_LOSS_REVIEW',), raised_at='2026-10-22T12:00:00Z'),) = locks()
+E    +    where locks = <test_daily_loss_monitor.MonitorCase object at 0x747dec9ba2d0>.locks
+=========================== short test summary info ============================
+FAILED tests/integration/test_daily_loss_monitor.py::test_processing_delay_after_validation_is_rechecked_before_writes
+1 failed, 30 passed in 6.13s
+
