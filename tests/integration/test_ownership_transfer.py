@@ -956,7 +956,10 @@ def test_postgres_cas_cannot_bypass_final_guard(ip16_database, attack):
         return updated
 
     c.service._persist = after_correct_projections
-    with pytest.raises(psycopg.errors.CheckViolation):
+    # DDL is denied at the exact attempted temporary-object creation. Other
+    # attacks must still be rejected by the business-ledger constraint guard.
+    expected = psycopg.errors.InsufficientPrivilege if attack == 'late-deferred-expiry' else psycopg.errors.CheckViolation
+    with pytest.raises(expected):
         c.service.advance(c.transfer_id, c.evidence())
     assert reached_final_projections, 'the attack must execute after real CAS and both correct projections'
     assert crash_ledger_json(c) == before

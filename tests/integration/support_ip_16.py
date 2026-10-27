@@ -247,6 +247,7 @@ def ip16_database():
         conn.execute((root / 'migrations/0002_risk_resolution_authority.sql').read_text(encoding='utf-8'))
         conn.execute((root / 'migrations/0004_command_abort_guard.sql').read_text(encoding='utf-8'))
         conn.execute((root / 'migrations/0005_owner_cas_authority.sql').read_text(encoding='utf-8'))
+        conn.execute((root / 'migrations/0007_owner_controller_ddl_guard.sql').read_text(encoding='utf-8'))
     return dsn
 
 
