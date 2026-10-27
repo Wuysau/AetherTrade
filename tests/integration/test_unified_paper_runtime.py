@@ -246,3 +246,41 @@ def test_balance_reattestation_cannot_release_a_held_command(runtime, monkeypatc
         runtime.accept(dict(symbol='ETHUSDT', side='BUY', quantity='1'), 'cannot-free-first', second_market, 90, data())
     assert 'RELEASE_BALANCE_ATTESTATION_INVALID' in failure.value.message
     assert [c['command_id'] for c in runtime.projection()['commands']] == [first['command_id']]
+
+
+def test_separate_reviewer_resolves_verified_duty_and_allows_next_flat_cycle(tmp_path):
+    from trading_system.server.paper_provision import provision
+    profile = provision(os.environ['PAPER_RUNTIME_ADMIN_DSN'], initial_cash='10000',
+        journal_directory=tmp_path / 'review', isolated_paper=True)
+    runtime = UnifiedPaperRuntime(**profile.runtime_kwargs())
+    entry = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'review-entry', market(), 90, data())
+    runtime.dispatch(entry['command_id'])
+    runtime.inject(entry['command_id'], dict(event_id='review-fill', status='FILLED', cumulative_quantity='1', price='100'))
+    stop = runtime.protect(entry['command_id'], 'review-stop')
+    runtime.dispatch(stop['command_id'])
+    runtime.inject(stop['command_id'], dict(event_id='review-stop-ok', status='PROTECTION_VERIFIED', cumulative_quantity='0'))
+    with pytest.raises(ValueError, match='SEPARATE_RESTRICTED_REVIEW_LOGIN_REQUIRED'):
+        runtime.recover(entry['command_id'], resolver_dsn=profile.ledger_dsn)
+    assert runtime.projection()['risk_locks']
+    review = runtime.recover(entry['command_id'], resolver_dsn=profile.resolver_dsn)
+    assert review['resolutions'] and all(item['resolved'] for item in review['resolutions']), review['review_diagnostics']
+    assert runtime.projection()['risk_locks'] == []
+    runtime.inject(stop['command_id'], dict(event_id='review-stop-filled', status='FILLED', cumulative_quantity='1', price='95'))
+    assert runtime.account_view()['positions'] == []
+    assert runtime.projection()['targets'][0]['protected_quantity'] == '0'
+    next_cycle = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'next-cycle', market(), 90, data())
+    assert next_cycle['status'] == 'PENDING'
+
+
+def test_separate_reviewer_resolves_original_unknown_without_releasing_working_hold(tmp_path):
+    from trading_system.server.paper_provision import provision
+    from trading_system.server.paper_runtime import scope_for
+    from trading_system.risk.reservation_repository import ReservationRepository
+    profile = provision(os.environ['PAPER_RUNTIME_ADMIN_DSN'], initial_cash='10000', journal_directory=tmp_path / 'unknown-review', isolated_paper=True)
+    runtime = UnifiedPaperRuntime(**profile.runtime_kwargs())
+    entry = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'unknown-review', market(), 90, data())
+    assert runtime.dispatch(entry['command_id'], lose_ack=True)['status'] == 'UNKNOWN'
+    review = runtime.recover(entry['command_id'], resolver_dsn=profile.resolver_dsn)
+    assert review['resolutions'] and all(item['resolved'] for item in review['resolutions'])
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        assert sum(p.held for p in ReservationRepository(tx).group()) > 100

@@ -23,6 +23,7 @@ class ProvisionedPaper:
     venue_dsn: str = field(repr=False)
     event_dsn: str = field(repr=False)
     console_database_url: str = field(repr=False)
+    resolver_dsn: str = field(repr=False)
     journal_directory: str
 
     def runtime_kwargs(self):
@@ -34,7 +35,8 @@ def provision(admin_dsn, *, initial_cash, journal_directory, isolated_paper=Fals
     if isolated_paper is not True:
         raise ValueError('explicit isolated PAPER provisioning required')
     output = Path(output_path).resolve() if output_path else None
-    if output and output.exists():
+    resolver_output = output.with_suffix('.resolver.json') if output else None
+    if output and (output.exists() or resolver_output.exists()):
         raise ValueError('configuration destination already exists; never overwrite credentials')
     # Provisioning is a repository administrator operation; the application
     # never imports or invokes it during an order or ordinary startup.
@@ -60,6 +62,11 @@ def provision(admin_dsn, *, initial_cash, journal_directory, isolated_paper=Fals
         conn.execute('REVOKE CREATE ON SCHEMA public FROM PUBLIC')
         conn.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(business), sql.Identifier(role)))
         conn.execute(sql.SQL('GRANT ledger_owner TO {}').format(sql.Identifier(role)))
+        resolver_role, resolver_password = 'paper_review_' + suffix, secrets.token_urlsafe(32)
+        conn.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE '
+            'NOINHERIT NOREPLICATION NOBYPASSRLS').format(sql.Identifier(resolver_role), sql.Literal(resolver_password)))
+        conn.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(business), sql.Identifier(resolver_role)))
+        conn.execute(sql.SQL('GRANT ledger_risk_resolver TO {}').format(sql.Identifier(resolver_role)))
     UnifiedPaperRuntime.provision(business_admin, initial_cash=initial_cash)
     venue_roles = provision_paper_engine_roles(make_conninfo(**dict(base, dbname=venue)), isolated_paper=True,
         runtime_role='paper_engine_run_' + suffix, event_role='paper_engine_evt_' + suffix,
@@ -74,14 +81,18 @@ def provision(admin_dsn, *, initial_cash, journal_directory, isolated_paper=Fals
         host=base.get('host'), port=int(base.get('port', '5432')), database=console).render_as_string(hide_password=False)
     result = ProvisionedPaper(ledger_dsn=make_conninfo(**dict(base, dbname=business, user=role, password=password)),
         venue_dsn=venue_roles.runtime_dsn, event_dsn=venue_roles.event_dsn,
+        resolver_dsn=make_conninfo(**dict(base, dbname=business, user=resolver_role, password=resolver_password)),
         console_database_url=console_url, journal_directory=str(Path(journal_directory).resolve()))
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)
         # Exclusive creation avoids overwriting another provisioning result.
         with output.open('x', encoding='utf-8') as stream:
             json.dump(dict(database_url=result.console_database_url, **result.runtime_kwargs(), initial_cash=initial_cash), stream, indent=2)
+        with resolver_output.open('x', encoding='utf-8') as stream:
+            json.dump({'resolver_dsn': result.resolver_dsn, 'purpose': 'EXPLICIT_TRUSTED_LOCAL_PAPER_REVIEW_ONLY'}, stream, indent=2)
         try:
             output.chmod(0o600)
+            resolver_output.chmod(0o600)
         except OSError:
             pass  # Windows ACLs are inherited from the explicitly chosen folder.
     return result

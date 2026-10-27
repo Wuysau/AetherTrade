@@ -14,6 +14,7 @@ from .config import Settings
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="aethertrade", description="AetherTrade local PAPER console")
     parser.add_argument('--paper-config', type=Path, help='Explicit isolated PAPER JSON configuration (contains secrets)')
+    parser.add_argument('--resolver-profile', type=Path, help='Separate trusted review profile; never loaded by serve/paper-run')
     commands = parser.add_subparsers(dest="command", required=True)
     serve = commands.add_parser("serve", help="Start the API and built browser UI")
     serve.add_argument("--port", type=int, help="Loopback HTTP port (default 8787)")
@@ -26,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     provision.add_argument('--output', type=Path, required=True)
     commands.add_parser('paper-status', help='Read the same durable PAPER projection as the browser')
     commands.add_parser('paper-run', help='Run the independent local PAPER execution/reconciliation worker')
-    for operation in ('dispatch', 'reconcile', 'cancel', 'protect'):
+    for operation in ('dispatch', 'reconcile', 'cancel', 'protect', 'recover'):
         command = commands.add_parser('paper-' + operation, help='Local synthetic PAPER ' + operation)
         command.add_argument('command_id')
         if operation in ('cancel', 'protect'):
@@ -91,6 +92,11 @@ def main(argv: list[str] | None = None) -> int:
                         cumulative_quantity=args.cumulative, price=args.price))
                 elif args.command in ('paper-cancel', 'paper-protect'):
                     result = getattr(runtime, args.command.removeprefix('paper-'))(args.command_id, args.key)
+                elif args.command == 'paper-recover':
+                    if not args.resolver_profile:
+                        raise ValueError('A separate trusted resolver profile is required')
+                    reviewer = json.loads(args.resolver_profile.read_text(encoding='utf-8'))
+                    result = runtime.recover(args.command_id, resolver_dsn=reviewer['resolver_dsn'])
                 else:
                     result = getattr(runtime, args.command.removeprefix('paper-'))(args.command_id)
                 print(json.dumps(result, ensure_ascii=False, indent=2))

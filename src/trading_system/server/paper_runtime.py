@@ -102,6 +102,7 @@ def attach_console_runtime(store, runtime, quote_snapshot):
                 if not strategy or strategy['revision'] != request.strategy_revision or strategy['status'] == 'PAUSED':
                     raise ApiError('STALE_STRATEGY', '策略授权已变更。', 409)
     runtime.current_control = current_control
+    runtime.console_store = store
     store.execution = runtime
     return runtime
 
@@ -130,6 +131,19 @@ class RuntimeRequest:
     rationale: str
     authorization: AuthorizationBinding
     intent: TradeIntent
+
+
+@dataclass(frozen=True, kw_only=True)
+class RuntimeRecoveryArchive:
+    scope: t.ScopeKey
+    book_hash: str
+    normalized_report: t.VenueReport
+    queried_commands: tuple[str, ...]
+    protection_command_id: str | None
+    protection_quantity: t.Quantity | None
+    protection_stop_price: t.Price | None
+    source_evidence: tuple[t.EvidenceRef, ...]
+    recorded_at: str
 
 
 class UnifiedPaperRuntime:
@@ -884,6 +898,151 @@ class UnifiedPaperRuntime:
         with self._composition(scope, symbol) as (engine, dispatcher, lease):
             return self._reconcile(engine, scope, command_id)
 
+    @staticmethod
+    def _resolver_connection(dsn):
+        conn = psycopg.connect(dsn)
+        try:
+            unsafe = conn.execute("SELECT r.rolsuper OR r.rolcreatedb OR r.rolcreaterole OR r.rolreplication "
+                "OR r.rolbypassrls OR r.rolinherit OR pg_has_role(session_user,'ledger_owner','MEMBER') "
+                "OR EXISTS (SELECT 1 FROM pg_database WHERE datname=current_database() AND datdba=r.oid) "
+                "OR has_schema_privilege(session_user,'ledger','CREATE') OR has_schema_privilege(session_user,'public','CREATE') "
+                "OR has_database_privilege(session_user,current_database(),'TEMP') FROM pg_roles r WHERE rolname=session_user").fetchone()[0]
+            if unsafe:
+                raise ValueError('SEPARATE_RESTRICTED_REVIEW_LOGIN_REQUIRED')
+            conn.execute('SET ROLE ledger_risk_resolver')
+            conn.commit()
+            return conn
+        except BaseException:
+            conn.close()
+            raise
+
+    def _ensure_lock_event(self, tx, lock, evidence):
+        head = tx.execute('SELECT sequence FROM ledger.aggregate_heads WHERE scope_id=%s AND aggregate_id=%s',
+            (scope_id(lock.scope), 'events:risk-lock:' + lock.lock_id)).fetchone()
+        if head is None:
+            # Earlier command/console paths persisted the cause projection but
+            # had no event outbox. Reconstruct only that existing business fact,
+            # with explicit current archive provenance, never a fill/venue fact.
+            EventStore().append(tx, t.DomainEvent(event_id=uuid4().hex, scope=lock.scope,
+                aggregate_id='risk-lock:' + lock.lock_id, revision=1, occurred_at=lock.raised_at,
+                evidence=(evidence,), payload=lock), 0)
+
+    def recover(self, command_id, *, resolver_dsn):
+        """Explicit trusted review process; ordinary owner cannot clear locks.
+
+        A separate restricted reviewer login is mandatory. The complete virtual
+        venue history, account ledger and exact stop terms are queried before
+        resolving only fulfilled non-daily causes. No credentials are retained
+        on this runtime object or accepted from an HTTP request.
+        """
+        from trading_system.risk.locks import RiskLockService
+        scope, symbol = self._scope_command(command_id)
+        with self._composition(scope, symbol) as (engine, dispatcher, lease):
+            source_by_scope, protection = {}, None
+            for current_symbol in SYMBOLS:
+                current_scope = scope_for(current_symbol)
+                query_engine = engine if current_scope == scope else PaperEngine(current_scope,
+                    dsn=self.venue_dsn, authority_guard=lambda command_id: None,
+                    owner_strategy_id=OWNER, quantity_unit='BASE', price_currency='USDT', clock=self.clock)
+                with self.uow.transaction(current_scope) as tx:
+                    ids = [row[0] for row in tx.execute('SELECT record_id FROM ledger.commands WHERE scope_id=%s AND sequence=1',
+                        (scope_id(current_scope),)).fetchall()]
+                for identifier in ids:
+                    self._reconcile(query_engine, current_scope, identifier)
+                source = query_engine.query(replace(self._query_case(current_scope, command_id), command_ids=()))
+                if not source.coverage.query_succeeded or not source.coverage.pagination_complete:
+                    raise ApiError('RECOVERY_SOURCE_INCOMPLETE', '模拟平台完整查询失败；风险锁继续生效。', 409)
+                source_by_scope[current_scope] = source
+            with self.uow.transaction(scope) as tx:
+                book = self._book(tx, scope, refresh=True)
+                plan = tx._latest('protection_plans', 'protection:' + scope_id(scope), t.ProtectionPlan)
+            if plan and plan.native_order_ids:
+                protective_id = plan.native_order_ids[0].identity.logical_client_order_id.removeprefix('logical:')
+                protection = engine.protection_evidence(protective_id)
+            else:
+                protective_id = None
+            source = source_by_scope[scope]
+            source_refs = tuple(ref for report in source_by_scope.values() for ref in report.evidence)
+            if protection:
+                source_refs += (protection.evidence,)
+            normalized = t.VenueReport(coverage=book.coverage, orders=source.orders, positions=book.positions,
+                balances=book.balances, fills=source.fills, evidence=book.evidence + source_refs,
+                next_cursor=None, as_of=self.clock().utc_now)
+            archive = RuntimeRecoveryArchive(scope=scope, book_hash=digest(book), normalized_report=normalized,
+                queried_commands=tuple(ids := self._command_ids(scope)), protection_command_id=protective_id,
+                protection_quantity=protection.quantity if protection else None,
+                protection_stop_price=protection.stop_price if protection else None,
+                source_evidence=source_refs, recorded_at=self.clock().utc_now)
+            identifier = 'console:recovery:' + uuid4().hex
+            ref = self._ref(identifier, domain_payload(archive))
+            with self.uow.transaction(scope) as tx:
+                tx._append('audit_events', identifier, archive, 0)
+                locks = tuple(lock for lock in tx.risk_locks.applicable(scope) if lock.scope == scope and lock.cause != 'DAILY_LOSS')
+                for lock in locks:
+                    self._ensure_lock_event(tx, lock, ref)
+
+            review_diagnostics = []
+            def verify(tx, lock, requirement, evidence):
+                def refused(code):
+                    review_diagnostics.append(code)
+                    return False
+                recorded = tx._latest('audit_events', identifier, RuntimeRecoveryArchive)
+                current = tx.projections.book(scope)
+                if (recorded != archive or digest(recorded) != ref.hash or digest(current) != archive.book_hash
+                        or normalized.positions != current.positions or normalized.balances != current.balances
+                        or {m.currency: m.amount for m in current.balances}.get('USDT') != self._cash(tx)):
+                    return refused('RECOVERY_ARCHIVE_OR_BALANCE_MISMATCH')
+                # Independently compare every venue fill and order with current
+                # business facts; a submit ACK cannot satisfy this proof.
+                ledger_fills = tuple(decode(t.Fill, row[0]) for row in tx.execute('SELECT payload FROM ledger.fills WHERE scope_id=%s',
+                    (scope_id(scope),)).fetchall())
+                known_fills = {f.fill_id: f for f in ledger_fills}
+                # Query visibility is fresh on each report. Event identity,
+                # payload hash and every economic field must remain identical.
+                source_fills = tuple(replace(f, evidence=replace(f.evidence,
+                    visible_at=known_fills[f.fill_id].evidence.visible_at)) if f.fill_id in known_fills else f
+                    for f in source.fills)
+                if sorted(ledger_fills, key=lambda f: f.fill_id) != sorted(source_fills, key=lambda f: f.fill_id):
+                    return refused('RECOVERY_FILL_HISTORY_MISMATCH')
+                for order in source.orders:
+                    saved = tx._latest('order_projections', order.order.identity.logical_client_order_id, t.OrderProjection)
+                    if saved is None or replace(order, sequence=saved.sequence) != saved:
+                        return refused('RECOVERY_ORDER_PROJECTION_MISMATCH')
+                actual = sum((p.actual_quantity.value for p in current.positions), D(0))
+                flat = actual == 0 and not current.active_orders
+                verified_stop = (protection is not None and protection.quantity.value == actual and actual > 0
+                    and plan is not None and protection.stop_price == plan.stop_price
+                    and protection.order.order.owner_strategy_id == OWNER
+                    and protection.order.order.ownership_epoch == 1)
+                if requirement in ('PROTECTION_CONFIRMED', 'PROTECTION_OR_EXIT_CONFIRMED'):
+                    return True if flat or verified_stop else refused('CURRENT_STOP_OR_FLAT_NOT_VERIFIED')
+                if requirement == 'ORIGINAL_COMMAND_RECONCILIATION':
+                    original_id = lock.lock_id.removeprefix('ip10:unknown:')
+                    original = CommandRepository(tx).get(original_id)
+                    return bool(original and original_id in archive.queried_commands
+                        and original.state in ('VENUE_CONFIRMED', 'VENUE_REJECTED')
+                        and all(o.command_certainty == 'CONFIRMED' and o.pending_operation == 'NONE' for o in source.orders))
+                if requirement in ('command_terminal', 'fills_and_balance_reconciled'):
+                    reservation_id = lock.lock_id.removeprefix('ip07:unknown:')
+                    reservation = ReservationRepository(tx).get(reservation_id)
+                    return reservation.reservation.state == t.ReservationState.RELEASED and reservation.held == 0
+                return False
+
+            resolver = RiskLockService(self.uow, clock=lambda: self.clock().utc_now, verify=verify,
+                resolver_uow=UnitOfWork(lambda: self._resolver_connection(resolver_dsn)))
+            results = []
+            for lock in locks:
+                with dispatcher.owner_guard(lease):
+                    result = resolver.resolve(lock.lock_id, t.ResolutionEvidence(lock_id=lock.lock_id, scope=scope,
+                        evidence=(ref,), authorization_id='local-trusted-paper-review'))
+                results.append(domain_payload(result))
+            return {'command_id': command_id, 'resolutions': results, 'review_diagnostics': review_diagnostics, 'simulation_notice': NOTICE}
+
+    def _command_ids(self, scope):
+        with self.uow.transaction(scope) as tx:
+            return tuple(row[0] for row in tx.execute('SELECT record_id FROM ledger.commands WHERE scope_id=%s AND sequence=1',
+                (scope_id(scope),)).fetchall())
+
     def tick(self):
         """A standalone owner process can outlive the browser/control API.
 
@@ -995,6 +1154,10 @@ class UnifiedPaperRuntime:
                     permission, required = POLICIES[cause]
                     tx.risk_locks.append(t.RiskLock(lock_id=lock_id, scope=scope, cause=cause, state='ACTIVE',
                         permission=permission, required_evidence=required, raised_at=now), 0)
+            elif plan is not None and plan.state != t.ProtectionState.FLAT_VERIFIED:
+                tx._append('protection_plans', plan_id, replace(plan, coverage_quantity=t.Quantity(value=D(0), unit='BASE'),
+                    state=t.ProtectionState.FLAT_VERIFIED, native_order_ids=(), last_verified_at=now,
+                    coverage_gap_since=None, replacement_revision=plan.replacement_revision + 1), plan.replacement_revision)
             position_sequence = tx.execute('SELECT count(*) FROM ledger.positions WHERE scope_id=%s AND record_id=%s',
                 (scope_id(scope), position.position_id)).fetchone()[0]
             tx._append('positions', position.position_id, position, position_sequence)
@@ -1074,7 +1237,7 @@ class UnifiedPaperRuntime:
                         latest_target = dict(symbol=symbol, strategy_id=request.strategy_id, target_quantity=request.intent.target_quantity,
                         actual_quantity=number(actual), in_flight_quantity=number(leaves if status not in ('FILLED', 'CANCELED', 'REJECTED', 'EXPIRED') else D(0)),
                         protection_state=('VERIFIED_SYNTHETIC' if plan.state == 'VERIFIED_NATIVE' else str(plan.state)) if plan and actual else 'NO_POSITION',
-                        protected_quantity=number(plan.coverage_quantity.value) if plan and plan.state == 'VERIFIED_NATIVE' else '0',
+                        protected_quantity=number(plan.coverage_quantity.value) if actual and plan and plan.state == 'VERIFIED_NATIVE' else '0',
                         command_id=command.command_id, reason=request.rationale + ('；人工减仓后需重新激活旧自动目标。' if request.mode == 'MANUAL' and request.side == 'SELL' else ''))
                         fill_rows = tx.execute("SELECT payload FROM ledger.fills WHERE scope_id=%s "
                             "AND payload->'order'->>'logical_client_order_id'=%s", (scope_id(scope), command.logical_client_order_id)).fetchall()
