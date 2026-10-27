@@ -275,22 +275,24 @@ def connect_role(dsn, role):
     return conn
 
 
-def connect_untrusted_owner(dsn):
+def connect_untrusted_owner(dsn, *, role='ledger_owner'):
     """Real unprivileged session_user: SET ROLE cannot reuse admin identity."""
     import secrets
     from uuid import uuid4
     import psycopg
     from psycopg import sql
     from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    if role not in {'ledger_owner', 'ledger_owner_controller'}:
+        raise ValueError('unsupported unprivileged fixture role')
     login, password = 'cas_test_' + uuid4().hex[:20], secrets.token_urlsafe(32)
     with psycopg.connect(dsn) as admin:
         admin.execute(sql.SQL('CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS PASSWORD {}')
             .format(sql.Identifier(login), sql.Literal(password)))
-        admin.execute(sql.SQL('GRANT ledger_owner TO {}').format(sql.Identifier(login)))
+        admin.execute(sql.SQL('GRANT {} TO {}').format(sql.Identifier(role), sql.Identifier(login)))
     settings = conninfo_to_dict(dsn)
     settings.update(user=login, password=password)
     conn = psycopg.connect(make_conninfo(**settings))
-    conn.execute('SET ROLE ledger_owner')
+    conn.execute(sql.SQL('SET ROLE {}').format(sql.Identifier(role)))
     conn.commit()
     return conn
 

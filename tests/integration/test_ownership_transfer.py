@@ -963,3 +963,41 @@ def test_postgres_cas_cannot_bypass_final_guard(ip16_database, attack):
         c.service.advance(c.transfer_id, c.evidence())
     assert reached_final_projections, 'the attack must execute after real CAS and both correct projections'
     assert crash_ledger_json(c) == before
+
+
+@pytest.mark.parametrize('attack', [None, 'CREATE TEMP TABLE cas_untrusted_delay(value integer)',
+                                  'SET ROLE paper_admin', 'SET ROLE ledger_owner_verifier',
+                                  'RESET ROLE; SET ROLE paper_admin'])
+def test_postgres_restricted_login_controller_boundary(ip16_database, attack):
+    """A real restricted session can complete CAS but cannot add DDL or elevate."""
+    import psycopg
+    from trading_system.storage.uow import UnitOfWork
+    c, scenario = ready_postgres_cas(ip16_database)
+    attest_cas(c, ip16_database)
+    before = crash_ledger_json(c)
+    c.registry.uow = UnitOfWork(lambda: connect_untrusted_owner(
+        ip16_database, role='ledger_owner_controller'))
+    persist = c.service._persist
+    reached_final_projections = False
+
+    def after_correct_projections(tx, *args, **kwargs):
+        nonlocal reached_final_projections
+        updated = persist(tx, *args, **kwargs)
+        if updated.projection.state == t.TransferState.ACTIVE:
+            reached_final_projections = True
+            session, role, superuser = tx.tx.execute(
+                'SELECT session_user,current_user,(SELECT rolsuper FROM pg_roles WHERE rolname=session_user)').fetchone()
+            assert session != 'paper_admin' and role == 'ledger_owner_controller' and not superuser
+            if attack:
+                tx.tx.execute(attack)
+        return updated
+
+    c.service._persist = after_correct_projections
+    if attack:
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            c.service.advance(c.transfer_id, c.evidence())
+        assert crash_ledger_json(c) == before
+    else:
+        assert c.service.advance(c.transfer_id, c.evidence()).state == t.TransferState.ACTIVE
+        assert c.registry.read(c.scope).position.ownership_epoch == 2
+    assert reached_final_projections, 'exercise the login boundary after genuine CAS and both projections'
