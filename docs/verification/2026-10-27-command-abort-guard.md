@@ -1,5 +1,9 @@
 # Authoritative unsent-abort security follow-up
 
+**Later isolation review:** The mutex alone left a direct-SQL stale-snapshot
+race at stronger isolation levels. The amended database isolation contract and
+194-test evidence are recorded in [the isolation follow-up](2026-10-27-command-isolation-guard.md).
+
 Independent review found a P1 in `366976f`: audit-only `ABORTED_UNSENT` prevented
 the IP-10 dispatcher from sending, but the base `LedgerTx.commands` port still saw
 the raw READY command. After a legitimate reservation release it could issue a

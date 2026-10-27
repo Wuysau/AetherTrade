@@ -14,6 +14,8 @@ from trading_system.risk.reservations import ReservationService
 from trading_system.risk.evaluator import RiskEvaluator
 from trading_system.storage.models import MissingEvidence, SequenceConflict, scope_id, encode
 from trading_system.execution.commands import CommandRepository, CommandOutcome, OUTCOME_PREFIX, command_hash
+from trading_system.storage.command_state import command_request
+from trading_system.contracts.canonical import canonical_json
 
 
 def test_two_strategies_compete(reservation_case, ip07_database):
@@ -444,6 +446,52 @@ def test_audit_only_unsent_forgery_does_not_release_backing(reservation_case):
     with pytest.raises(MissingEvidence, match='authoritative abort'):
         c.service.reconcile(evidence)
     assert c.projection(r.reservation_id).held == 70
+
+
+@pytest.mark.parametrize('isolation', ['REPEATABLE READ', 'SERIALIZABLE'])
+@pytest.mark.parametrize('committed', ['abort', 'send'])
+def test_stale_owner_sql_snapshot_cannot_cross_abort_send_boundary(reservation_case, isolation, committed):
+    import psycopg
+    c = reservation_case
+    r = c.reserve().reservations[0].reservation
+    with c.ledger.connect_owner() as stale:
+        # Establish a real snapshot before the other owner session commits.
+        stale.execute('SET TRANSACTION ISOLATION LEVEL ' + isolation)
+        assert stale.execute('SHOW transaction_isolation').fetchone()[0] == isolation.lower()
+        assert stale.execute('SELECT current_user').fetchone()[0] == 'ledger_owner'
+        assert stale.execute('SELECT payload->>\'state\' FROM ledger.commands '
+            'WHERE scope_id=%s AND record_id=%s',
+            (scope_id(c.scope), c.command.command_id)).fetchone()[0] == 'DURABLE_READY'
+        if committed == 'abort':
+            c.command_state('ABORTED_UNSENT')
+            proof = c.evidence(r, reflected='0', terminal=True, certainty='NOT_SENT')
+            assert c.service.reconcile(proof).held == 0
+            with pytest.raises(psycopg.errors.CheckViolation, match='READ COMMITTED'):
+                stale.execute('INSERT INTO ledger.commands '
+                    '(scope_id,record_id,sequence,payload,transaction_id) VALUES (%s,%s,2,%s::jsonb,%s)',
+                    (scope_id(c.scope), c.command.command_id,
+                     encode(replace(c.command, state='MAY_HAVE_SENT', durable_record_ref='postgres:stale')),
+                     'stale-snapshot-send'))
+        else:
+            with c.ledger.uow.transaction(c.scope) as tx:
+                tx.commands.mark_may_have_sent(tx, c.command.command_id, 'DURABLE_READY')
+            receipt = t.CommandReceipt(receipt_id='stale-abort', command_id=c.command.command_id,
+                status=t.CommandState.ABORTED_UNSENT, reason='STALE_SNAPSHOT',
+                existing_result_ref=c.command.durable_record_ref)
+            outcome = CommandOutcome(command_id=c.command.command_id, request_hash=command_hash(c.command),
+                durable_record_ref=c.command.durable_record_ref, receipt=receipt, provenance='LOCAL_UNSENT_ABORT')
+            with pytest.raises(psycopg.errors.CheckViolation, match='READ COMMITTED'):
+                stale.execute('SELECT ledger.abort_unsent_command(%s,%s,%s::jsonb,%s,%s::jsonb,%s)',
+                    (scope_id(c.scope), c.command.command_id, encode(c.command),
+                     canonical_json(command_request(c.command)), encode(outcome), 'stale-snapshot-abort'))
+        stale.rollback()
+    with c.ledger.uow.transaction(c.scope) as tx:
+        assert tx.execute('SHOW transaction_isolation').fetchone()[0] == 'read committed'
+        assert tx.commands.get(c.command.command_id).state == (
+            'ABORTED_UNSENT' if committed == 'abort' else 'MAY_HAVE_SENT')
+        assert tx.execute('SELECT count(*) FROM ledger.command_aborts WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchone()[0] == (1 if committed == 'abort' else 0)
+    assert c.projection(r.reservation_id).held == (0 if committed == 'abort' else 70)
 
 
 @pytest.mark.parametrize('fault', ['hash', 'future', 'source', 'watermark', 'coverage'])

@@ -23,6 +23,11 @@ CREATE FUNCTION ledger.abort_unsent_command(p_scope text,p_id text,p_command jso
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
 DECLARE prior jsonb; prior_sequence bigint;
 BEGIN
+    -- A transaction snapshot taken before waiting on the mutex could hide a
+    -- committed send. Direct SQL callers must obey the UoW isolation contract.
+    IF current_setting('transaction_isolation') IS DISTINCT FROM 'read committed' THEN
+        RAISE EXCEPTION 'READ COMMITTED isolation required for command abort' USING ERRCODE='23514';
+    END IF;
     -- Same mutex as UnitOfWork, also acquired by the SQL send guard below.
     -- Acquire it before reading command state so raw SQL cannot race an abort.
     PERFORM 1 FROM ledger.collateral_mutex m JOIN ledger.account_bindings b
@@ -70,6 +75,10 @@ CREATE FUNCTION ledger.check_command_abort() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
 BEGIN
     IF NEW.payload->>'state'='MAY_HAVE_SENT' THEN
+        -- Row locks alone do not refresh REPEATABLE READ/SERIALIZABLE snapshots.
+        IF current_setting('transaction_isolation') IS DISTINCT FROM 'read committed' THEN
+            RAISE EXCEPTION 'READ COMMITTED isolation required for command send' USING ERRCODE='23514';
+        END IF;
         PERFORM 1 FROM ledger.collateral_mutex m JOIN ledger.account_bindings b
             ON b.environment=m.environment AND b.collateral_group_id=m.group_id
             WHERE b.environment=NEW.payload->>'environment'
