@@ -83,7 +83,7 @@ def test_pending_receipt_submit_partial_fill_and_restart(runtime, runtime_config
     restarted = UnifiedPaperRuntime(**runtime_config)
     result = restarted.reconcile(command_id)
     assert result['filled_quantity'] == '0.4' and result['leaves_quantity'] == '0.6'
-    assert restarted.projection()['risk_locks'][0]['cause'] == 'PROTECTION_GAP'
+    assert restarted.projection()['risk_locks'][0]['cause'] == 'PROTECTION_PENDING'
     final = restarted.inject(command_id, dict(event_id='final-first', status='FILLED', cumulative_quantity='1', price='101'))
     assert final['status'] == 'FILLED'
     assert restarted.projection()['targets'][0]['actual_quantity'] == '1'
@@ -107,7 +107,7 @@ def test_lost_ack_queries_same_id_after_restart_and_never_resubmits(runtime, run
         assert conn.execute('SELECT count(*) FROM paper_engine_commands').fetchone()[0] == 1
 
 
-def test_partial_cancel_unknown_keeps_full_reservation_and_protection_duty(runtime, runtime_config):
+def test_partial_cancel_unknown_keeps_full_reservation_and_protection_duty(runtime, runtime_config, monkeypatch):
     from trading_system.server.paper_runtime import scope_for
     from trading_system.risk.reservation_repository import ReservationRepository
     initial = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'partial-cancel', market(), 90, data())
@@ -115,16 +115,99 @@ def test_partial_cancel_unknown_keeps_full_reservation_and_protection_duty(runti
     assert runtime.dispatch(command_id)['status'] == 'VENUE_CONFIRMED'
     runtime.inject(command_id, dict(event_id='partial', status='PARTIALLY_FILLED', cumulative_quantity='0.4', price='100'))
     cancel = runtime.cancel(command_id, 'cancel-original')
+    from trading_system.execution.dispatcher import CommandDispatcher
+    diagnostic = []
+    original_check = CommandDispatcher._check
+    def traced_check(self, *args, **kwargs):
+        try:
+            return original_check(self, *args, **kwargs)
+        except Exception as exc:
+            diagnostic.append(type(exc).__name__ + ':' + str(exc))
+            raise
+    monkeypatch.setattr(CommandDispatcher, '_check', traced_check)
     result = runtime.dispatch(cancel['command_id'])
     assert result['status'] == 'UNKNOWN'
+    with psycopg.connect(runtime_config['venue_dsn']) as conn:
+        assert conn.execute('SELECT pending FROM paper_engine_orders').fetchone()[0] == 'CANCEL', diagnostic
     runtime.inject(cancel['command_id'], dict(event_id='cancel-timeout', status='CANCEL_UNKNOWN', cumulative_quantity='0.4'))
     restarted = UnifiedPaperRuntime(**runtime_config)
     assert restarted.reconcile(cancel['command_id'])['filled_quantity'] == '0.4'
     with restarted.uow.transaction(scope_for('BTCUSDT')) as tx:
         holds = ReservationRepository(tx).group()
         assert sum(p.held for p in holds) > 100
-        assert any(lock.cause == 'PROTECTION_GAP' for lock in tx.risk_locks.applicable(tx.scope))
+        assert any(lock.cause == 'PROTECTION_PENDING' for lock in tx.risk_locks.applicable(tx.scope))
     result = restarted.inject(cancel['command_id'], dict(event_id='cancel-confirmed', status='CANCELED', cumulative_quantity='0.4'))
     assert result['status'] == 'CANCELED'
     with restarted.uow.transaction(scope_for('BTCUSDT')) as tx:
         assert sum(p.held for p in ReservationRepository(tx).group()) == 0
+
+
+def test_partial_protection_ack_is_not_verification_and_exact_event_verifies(runtime):
+    entry = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'protected-partial', market(), 90, data())
+    assert runtime.dispatch(entry['command_id'])['status'] == 'VENUE_CONFIRMED'
+    runtime.inject(entry['command_id'], dict(event_id='forty', status='PARTIALLY_FILLED', cumulative_quantity='0.4', price='100'))
+    protection = runtime.protect(entry['command_id'], 'protect-forty')
+    assert runtime.dispatch(protection['command_id'])['status'] == 'VENUE_CONFIRMED'
+    assert runtime.projection()['targets'][0]['protected_quantity'] == '0'
+    result = runtime.inject(protection['command_id'], dict(event_id='verify-stop', status='PROTECTION_VERIFIED', cumulative_quantity='0'))
+    assert result['protection_state'] == 'VERIFIED_SYNTHETIC'
+    target = runtime.projection()['targets'][0]
+    assert target['protected_quantity'] == '0.4' and target['in_flight_quantity'] == '0.6'
+
+
+def test_stop_failure_and_exit_rejection_persist_exit_only_after_restart(runtime, runtime_config):
+    entry = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'failed-protect', market(), 90, data())
+    assert runtime.dispatch(entry['command_id'])['status'] == 'VENUE_CONFIRMED'
+    runtime.inject(entry['command_id'], dict(event_id='entry-fill', status='FILLED', cumulative_quantity='1', price='100'))
+    protection = runtime.protect(entry['command_id'], 'stop-will-fail')
+    assert runtime.dispatch(protection['command_id'])['status'] == 'VENUE_CONFIRMED'
+    runtime.inject(protection['command_id'], dict(event_id='stop-failure', status='PROTECTION_FAILED', cumulative_quantity='0'))
+    assert any(lock['cause'] == 'PROTECTION_GAP' and lock['permission'] == 'EXIT_ONLY' for lock in runtime.projection()['risk_locks'])
+    with pytest.raises(ApiError) as error:
+        runtime.protect(entry['command_id'], 'no-repair-under-exit-only')
+    assert error.value.code == 'PROTECTION_REPAIR_LOCKED'
+    exit_order = runtime.accept(dict(symbol='BTCUSDT', side='SELL', quantity='1'), 'bounded-exit', market(), 90, data())
+    assert runtime.dispatch(exit_order['command_id'])['status'] == 'VENUE_CONFIRMED'
+    runtime.inject(exit_order['command_id'], dict(event_id='exit-failure', status='REJECTED', cumulative_quantity='0'))
+    restarted = UnifiedPaperRuntime(**runtime_config)
+    assert restarted.account_view()['positions'][0]['quantity'] == '1'
+    assert any(lock['permission'] == 'EXIT_ONLY' for lock in restarted.projection()['risk_locks'])
+    with pytest.raises(ApiError):
+        restarted.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'forbid-new-risk', market(), 90, data())
+
+
+def test_production_provisioner_creates_separate_restricted_connections(tmp_path):
+    from trading_system.server.paper_provision import provision
+    result = provision(os.environ['PAPER_RUNTIME_ADMIN_DSN'], initial_cash='10000',
+        journal_directory=tmp_path / 'journal', output_path=tmp_path / 'config.json', isolated_paper=True)
+    runtime = UnifiedPaperRuntime(**result.runtime_kwargs())
+    assert runtime.account_view()['cash'] == '10000'
+    with runtime.connect() as conn:
+        assert conn.execute('SELECT current_user<>session_user').fetchone()[0]
+    assert 'password' not in repr(result)
+
+
+def test_expired_five_second_paper_permit_cannot_cross_side_effect_guard(runtime, runtime_config, monkeypatch):
+    from contextlib import contextmanager
+    import time
+    from trading_system.execution.dispatcher import CommandDispatcher
+    from trading_system.server.paper_runtime import scope_for
+    from trading_system.risk.reservation_repository import ReservationRepository
+    original = CommandDispatcher.__init__
+    def slow_guard_init(self, *args, **kwargs):
+        guard = kwargs['side_effect_guard']
+        @contextmanager
+        def slow(command, permit, lease):
+            with guard(command, permit, lease):
+                time.sleep(5.1)
+                yield
+        kwargs['side_effect_guard'] = slow
+        original(self, *args, **kwargs)
+    monkeypatch.setattr(CommandDispatcher, '__init__', slow_guard_init)
+    order = runtime.accept(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'expired-permit', market(), 90, data())
+    result = runtime.dispatch(order['command_id'])
+    assert result['status'] == 'UNKNOWN'
+    with psycopg.connect(runtime_config['venue_dsn']) as conn:
+        assert conn.execute('SELECT count(*) FROM paper_engine_commands').fetchone()[0] == 0
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        assert sum(p.held for p in ReservationRepository(tx).group()) > 100

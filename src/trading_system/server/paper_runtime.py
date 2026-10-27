@@ -33,7 +33,7 @@ from trading_system.risk.exposure import ExposureMark, WorkingOrder
 from trading_system.risk.reservations import ReservationService, ReservationInputs
 from trading_system.risk.reservations import ReconciliationProof
 from trading_system.risk.reservation_repository import ReservationRepository
-from trading_system.risk.target_guard import TargetReport, validate_report, roots, digest
+from trading_system.risk.target_guard import TargetReport, TargetBasis, validate_report, roots, digest
 from trading_system.risk.locked_actions import ActionProof, WorkingTerms
 from trading_system.risk.locks import POLICIES
 from trading_system.runtime.execution_owner import ExecutionOwner
@@ -64,6 +64,46 @@ def scope_for(symbol):
 
 def coverage(scope):
     return t.Coverage(scope=scope, query_succeeded=True, pagination_complete=True, supported=True, missing=())
+
+
+def authority_deadline(reading, request, *, quote_required=True):
+    limits = [request.intent.valid_until, request.authorization.authorization.expires_at]
+    if quote_required:
+        limits.append((utc_timestamp(request.quote_at) + timedelta(seconds=request.maximum_age)).isoformat())
+    delta = min(map(utc_timestamp, limits)) - utc_timestamp(reading.utc_now)
+    ns = (delta.days * 86400 + delta.seconds) * 1_000_000_000 + delta.microseconds * 1000
+    return reading.monotonic_ns + max(0, ns)
+
+
+def attach_console_runtime(store, runtime, quote_snapshot):
+    """Use the production authority reader in both app and explicit local CLI."""
+    if store.sqlite:
+        raise ValueError('SQLite console is interaction-only; unified PAPER requires PostgreSQL console storage')
+    from sqlalchemy import select
+    from .store import state, strategies
+
+    def current_control(request, command):
+        # The owner's business-ledger session lock fences every Store control
+        # transaction, even when console and business databases are separate.
+        with store.engine.connect() as connection:
+            data = connection.execute(select(state.c.data).where(state.c.id == 1)).scalar_one()
+            if command.canonical_payload.side == 'BUY' and data['account']['paused']:
+                raise ApiError('ENTRIES_PAUSED', '新增风险已暂停。', 409)
+            if data['risk']['revision'] != request.risk_revision:
+                raise ApiError('STALE_RISK_POLICY', '风险政策已更改，请重新评估。', 409)
+            market = quote_snapshot()
+            price = store._price(market, request.symbol, request.maximum_age)
+            quote = next(item for item in market['quotes'] if item['symbol'] == request.symbol)
+            if (utc_timestamp(quote['as_of']) < utc_timestamp(request.quote_at)
+                    or abs(price / D(request.quote_price) - 1) > D('.002')):
+                raise ApiError('MARKET_REPLAN_REQUIRED', '行情乱序或超出原订单价格界限。', 409)
+            if request.strategy_id:
+                strategy = connection.execute(select(strategies.c.data).where(strategies.c.id == request.strategy_id)).scalar_one_or_none()
+                if not strategy or strategy['revision'] != request.strategy_revision or strategy['status'] == 'PAUSED':
+                    raise ApiError('STALE_STRATEGY', '策略授权已变更。', 409)
+    runtime.current_control = current_control
+    store.execution = runtime
+    return runtime
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -101,7 +141,11 @@ class UnifiedPaperRuntime:
         self.directory = Path(journal_directory)
         self.directory.mkdir(parents=True, exist_ok=True)
         self.current_control, self.clock = current_control, clock
-        self.uow = UnitOfWork(self.connect)
+        # Synthetic venue commits deliberately perform repeated independent
+        # PostgreSQL authority reads. This bounded PAPER profile has a 5s
+        # permit; every use remains capped by current grant/intent/quote TTL.
+        # Other domain/native compositions retain the default 1s profile.
+        self.uow = UnitOfWork(self.connect, permit_ttl_ms=5000)
         self._control = local()
 
     def connect(self):
@@ -472,11 +516,80 @@ class UnifiedPaperRuntime:
 
     def exit_owned(self, key, market, maximum_age, data):
         held = self.account_view()['positions']
+        # Validate every quote before creating the first durable command.
+        for position in held:
+            quotes = [q for q in market.get('quotes', []) if q.get('symbol') == position['symbol']]
+            if (len(quotes) != 1 or quotes[0].get('stale') is not False
+                    or market.get('status') not in ('CONNECTED', 'PARTIAL')):
+                raise ApiError('QUOTE_UNAVAILABLE', '批量退出缺少完整的新鲜行情；未创建命令。', 409)
+            amount(quotes[0].get('price'), scale=18)
+            if not 0 <= (utc_timestamp(self.clock().utc_now) - utc_timestamp(quotes[0]['as_of'])).total_seconds() <= maximum_age:
+                raise ApiError('QUOTE_UNAVAILABLE', '批量退出包含过期行情；未创建命令。', 409)
         # One deterministic receipt per scope. A crash resumes original IDs.
         for position in held:
             self.accept(dict(symbol=position['symbol'], side='SELL', quantity=position['quantity'],
                 strategy_id=position.get('strategy_id')), key + ':' + position['symbol'], market, maximum_age, data)
         return len(held)
+
+    def protect(self, command_id, key):
+        """Compile only the server-held exit plan for already-owned exposure."""
+        with self.control_guard():
+            scope, symbol = self._scope_command(command_id)
+            with self.uow.transaction(scope) as tx:
+                parent = CommandRepository(tx).get(command_id)
+                original = self._request(tx, command_id)
+                if parent is None or parent.operation not in ('SUBMIT', 'CLOSE'):
+                    raise ApiError('PROTECTION_PARENT_REQUIRED', '保护需关联原已受权仓位命令。', 409)
+                book = self._book(tx, scope, refresh=True)
+                actual = sum((p.actual_quantity.value for p in book.positions), D(0))
+                plan = tx._latest('protection_plans', 'protection:' + scope_id(scope), t.ProtectionPlan)
+                if actual <= 0 or plan is None or plan.state not in ('GAP', 'REPAIRING'):
+                    raise ApiError('PROTECTION_DUTY_REQUIRED', '当前没有已持久化且可修复的保护责任。', 409)
+                if any(lock.permission in (t.RiskPermission.EXIT_ONLY, t.RiskPermission.RECOVERY_REQUIRED)
+                        for lock in tx.risk_locks.applicable(scope)):
+                    raise ApiError('PROTECTION_REPAIR_LOCKED', '当前风险锁仅允许减仓或恢复；未创建新的保护命令。', 409)
+                now = self.clock()
+                management_until = utc_timestamp(original.intent.created_at) + timedelta(seconds=original.intent.exit_plan.maximum_holding_seconds)
+                if utc_timestamp(now.utc_now) >= management_until:
+                    raise ApiError('MANAGEMENT_GRANT_EXPIRED', '原保护授权已超出持仓期限，需要独立退出审查。', 409)
+                new_id = 'console-protect:' + canonical_hash({'parent': command_id, 'key': key})
+                existing = self._request(tx, new_id)
+                if existing:
+                    return self._receipt(existing)
+                expiry = min(utc_timestamp(now.utc_now) + timedelta(seconds=30), management_until).isoformat()
+                auth = replace(original.authorization.authorization, authorization_id='grant:' + new_id,
+                    valid_from=now.utc_now, expires_at=expiry)
+                ref = self._ref('approved-exit-plan:' + new_id, {'plan': domain_payload(plan),
+                    'source_request': original.fingerprint, 'actual': number(actual)}, now.utc_now)
+                binding = replace(original.authorization, authorization=auth, evidence=(ref,))
+                intent = replace(original.intent, intent_id='intent:' + new_id, authorization_id=auth.authorization_id,
+                    basis_fingerprint=book.basis_fingerprint, created_at=now.utc_now, valid_until=expiry,
+                    target_quantity=format(actual, 'f'), target_side='LONG',
+                    execution=replace(original.intent.execution, entry_deadline=expiry),
+                    exit_plan=replace(original.intent.exit_plan, stop_price=format(plan.stop_price.value, 'f')),
+                    decision_run_id='protection-duty:' + new_id, supersedes_intent_id=original.intent.intent_id)
+                logical = 'logical:' + new_id
+                body = dict(side='SELL', order_type='STOP_MARKET', quantity=format(actual, 'f'),
+                    trigger_price=format(plan.stop_price.value, 'f'), position_side='BOTH', reduce_only=False,
+                    full_position_exit=False)
+                raw = ContractCodec().encode(parent)
+                raw.update(command_id=new_id, intent_id=intent.intent_id, attempt_id='attempt:' + new_id,
+                    parent_command_id=command_id, logical_client_order_id=logical,
+                    venue_client_order_id=paper_client_order_id(scope, logical, 'SET_PROTECTION'), operation='SET_PROTECTION',
+                    target_order_id=None, venue_order_id=None, state='DURABLE_READY', outcome_provenance='NONE',
+                    durable_record_ref='pending-atomic-protection', created_at=now.utc_now,
+                    canonical_payload=body, payload_hash=canonical_hash(body))
+                command = ContractCodec().decode('execution-command', raw)
+                request = replace(original, key=key, fingerprint=canonical_hash({'protect': command_id, 'plan': domain_payload(plan)}),
+                    mode='MAINTENANCE', side='SELL', quantity=format(actual, 'f'), command_id=new_id,
+                    intent_id=intent.intent_id, requested_at=now.utc_now, intent=intent, authorization=binding,
+                    rationale='原退出计划的已成交数量保护；提交 ACK 不代表保护已验证。')
+                tx.intents.append(intent)
+                tx._append('audit_events', 'console:request:' + new_id, request, 0)
+                tx._append('audit_events', 'ip07:target-basis:' + new_id, TargetBasis(command_id=new_id,
+                    book_sequence=book.sequence, actual=t.Quantity(value=actual, unit='BASE'), instrument=self._spec(symbol)), 0)
+                CommandRepository(tx).append(command)
+            return self._receipt(request)
 
     def account_view(self):
         positions = []
@@ -600,9 +713,33 @@ class UnifiedPaperRuntime:
             request = self._request(tx, command.command_id)
             if request is None:
                 raise ValueError('SERVER_REQUEST_AUTHORITY_REQUIRED')
-            if self.current_control and command.operation != 'CANCEL':
+            if self.current_control and command.operation not in ('CANCEL', 'SET_PROTECTION'):
                 self.current_control(request, command)
             now = self.clock()
+            if command.operation == 'SET_PROTECTION':
+                book = tx.projections.book(scope)
+                actual = sum((p.actual_quantity.value for p in book.positions), D(0))
+                plan = tx._latest('protection_plans', 'protection:' + scope_id(scope), t.ProtectionPlan)
+                quantity = D(command.canonical_payload.quantity)
+                if (plan is None or plan.state not in ('GAP', 'REPAIRING') or command.canonical_payload.side != 'SELL'
+                        or command.canonical_payload.order_type != 'STOP_MARKET' or not 0 < quantity <= actual
+                        or quantity != plan.coverage_quantity.value
+                        or command.canonical_payload.trigger_price != format(plan.stop_price.value, 'f')
+                        or intent.exit_plan.stop_price != command.canonical_payload.trigger_price
+                        or quantity % self._spec(symbol).quantity_step.value
+                        or plan.stop_price.value % self._spec(symbol).tick_size.value):
+                    raise ValueError('CURRENT_BOUNDED_PROTECTION_REQUIRED')
+                for working in book.active_orders:
+                    raw = tx.execute("SELECT payload->'canonical_payload'->>'side' FROM ledger.commands WHERE scope_id=%s "
+                        "AND sequence=1 AND payload->>'logical_client_order_id'=%s", (scope_id(scope),
+                            working.order.identity.logical_client_order_id)).fetchone()
+                    if (raw is None or raw[0] != 'BUY' or working.order.owner_strategy_id != OWNER
+                            or working.order.ownership_epoch != intent.ownership_epoch
+                            or working.command_certainty != 'CONFIRMED' or working.pending_operation != 'NONE'):
+                        raise ValueError('EXISTING_CLOSE_OR_PROTECTION_REQUIRES_RECONCILIATION')
+                return DispatchFacts(binding=request.authorization, lease=lease, request_hash=command_hash(command),
+                    valid_until=intent.valid_until, deadline_monotonic_ns=authority_deadline(now, request, quote_required=False),
+                    checks=REQUIRED_CHECKS | {'OWNED_TARGET'})
             if command.operation == 'CANCEL':
                 # No price is needed to remove an owned opening remainder.
                 # Current exact ownership and pending state remain mandatory.
@@ -617,7 +754,7 @@ class UnifiedPaperRuntime:
                         or targets[0].leaves_quantity.value <= 0):
                     raise ValueError('CURRENT_CANCEL_TARGET_REQUIRED')
                 return DispatchFacts(binding=request.authorization, lease=lease, request_hash=command_hash(command),
-                    valid_until=intent.valid_until, deadline_monotonic_ns=now.monotonic_ns + 1_000_000_000,
+                    valid_until=intent.valid_until, deadline_monotonic_ns=authority_deadline(now, request, quote_required=False),
                     checks=REQUIRED_CHECKS | {'OWNED_TARGET'})
             if not 0 <= (utc_timestamp(now.utc_now) - utc_timestamp(request.quote_at)).total_seconds() <= request.maximum_age:
                 raise ValueError('QUOTE_STALE')
@@ -652,7 +789,7 @@ class UnifiedPaperRuntime:
                 if self._cash(tx) < 0 or balances.get(asset, D(0)) - others < required:
                     raise ValueError('CURRENT_CAPACITY_EXCEEDED')
             return DispatchFacts(binding=request.authorization, lease=lease, request_hash=command_hash(command),
-                valid_until=intent.valid_until, deadline_monotonic_ns=now.monotonic_ns + 1_000_000_000,
+                valid_until=intent.valid_until, deadline_monotonic_ns=authority_deadline(now, request),
                 checks=REQUIRED_CHECKS | {'OWNED_TARGET'})
 
         engine = PaperEngine(scope, dsn=self.venue_dsn, authority_guard=authority,
@@ -705,6 +842,25 @@ class UnifiedPaperRuntime:
         with self._composition(scope, symbol) as (engine, dispatcher, lease):
             return self._reconcile(engine, scope, command_id)
 
+    def tick(self):
+        """A standalone owner process can outlive the browser/control API.
+
+        The durable outbox is at least once. Each delivery re-reads command
+        state, queries its original identity, and sends only an eligible READY
+        request. No model calls or automatic synthetic fills occur here.
+        """
+        with self.connect() as connection:
+            commands = connection.execute("SELECT record_id FROM ledger.commands WHERE sequence=1 ORDER BY processed_at").fetchall()
+        results = []
+        for command_id, in commands:
+            try:
+                results.append(self.dispatch(command_id))
+            except Exception as exc:
+                # Preserve durable pending/unknown work; worker error text may
+                # contain database secrets, so expose the type only.
+                results.append({'command_id': command_id, 'status': 'RECONCILIATION_REQUIRED', 'error_type': type(exc).__name__})
+        return results
+
     def inject(self, command_id, payload):
         scope, symbol = self._scope_command(command_id)
         with self._composition(scope, symbol) as (engine, dispatcher, lease):
@@ -728,6 +884,12 @@ class UnifiedPaperRuntime:
         if not report.coverage.query_succeeded or not report.orders:
             # Query absence is never NOT_SENT proof and never permits a resend.
             return {'command_id': command_id, 'status': 'UNKNOWN', 'reason': 'QUERY_ORIGINAL_ID_REQUIRED'}
+        protection_proof = engine.protection_evidence(command_id)
+        with self.uow.transaction(scope) as tx:
+            known_plan = tx._latest('protection_plans', 'protection:' + scope_id(scope), t.ProtectionPlan)
+        if protection_proof is None and known_plan and known_plan.native_order_ids:
+            known_id = known_plan.native_order_ids[0].identity.logical_client_order_id.removeprefix('logical:')
+            protection_proof = engine.protection_evidence(known_id)
         with self.uow.transaction(scope) as tx:
             repo = CommandRepository(tx)
             command = repo.get(command_id)
@@ -767,19 +929,29 @@ class UnifiedPaperRuntime:
                 owner_book_id='console-authoritative-paper', ownership_epoch=1, cost_evidence=coverage(scope),
                 realized_pnl=None, unrealized_valuation=None, active_exit_plan_id=plan_id, risk_locks=())
             if actual:
+                verified = (protection_proof is not None and protection_proof.order.order.owner_strategy_id == OWNER
+                    and protection_proof.order.order.ownership_epoch == position.ownership_epoch
+                    and protection_proof.order.order.identity.scope == scope
+                    and protection_proof.quantity.value == actual
+                    and protection_proof.stop_price == (plan.stop_price if plan else t.Price(value=D(request.intent.exit_plan.stop_price), currency='USDT')))
+                protection_failed = (command.operation == 'SET_PROTECTION' and current.lifecycle_state in ('REJECTED', 'EXPIRED', 'CANCELED'))
                 next_plan = t.ProtectionPlan(plan_id=plan_id, mode='NATIVE', scope=scope,
                     coverage_quantity=t.Quantity(value=actual, unit='BASE'),
-                    stop_price=t.Price(value=D(request.intent.exit_plan.stop_price), currency='USDT'), stop_trigger='LAST',
-                    native_order_ids=(), monitor_id=None, state=t.ProtectionState.GAP,
-                    last_verified_at=None, coverage_gap_since=plan.coverage_gap_since if plan else now,
+                    stop_price=plan.stop_price if plan else t.Price(value=D(request.intent.exit_plan.stop_price), currency='USDT'), stop_trigger='LAST',
+                    native_order_ids=(protection_proof.order.order,) if verified else (), monitor_id=None,
+                    state=t.ProtectionState.VERIFIED_NATIVE if verified else t.ProtectionState.GAP,
+                    last_verified_at=now if verified else None,
+                    coverage_gap_since=None if verified else ((plan.coverage_gap_since if plan else None) or now),
                     replacement_revision=1 if plan is None else plan.replacement_revision + 1,
                     on_gap_policy='NO_NEW_RISK_REQUIRE_REPAIR_OR_EXIT')
-                if plan is None or plan.coverage_quantity != next_plan.coverage_quantity:
+                if (plan is None or replace(next_plan, replacement_revision=plan.replacement_revision,
+                        last_verified_at=plan.last_verified_at) != plan):
                     tx._append('protection_plans', plan_id, next_plan, 0 if plan is None else plan.replacement_revision)
-                lock_id = 'protection-gap:' + scope_id(scope)
+                cause = 'PROTECTION_GAP' if protection_failed else 'PROTECTION_PENDING'
+                lock_id = cause.lower() + ':' + scope_id(scope)
                 if tx._latest('risk_locks', lock_id, t.RiskLock) is None:
-                    permission, required = POLICIES['PROTECTION_GAP']
-                    tx.risk_locks.append(t.RiskLock(lock_id=lock_id, scope=scope, cause='PROTECTION_GAP', state='ACTIVE',
+                    permission, required = POLICIES[cause]
+                    tx.risk_locks.append(t.RiskLock(lock_id=lock_id, scope=scope, cause=cause, state='ACTIVE',
                         permission=permission, required_evidence=required, raised_at=now), 0)
             position_sequence = tx.execute('SELECT count(*) FROM ledger.positions WHERE scope_id=%s AND record_id=%s',
                 (scope_id(scope), position.position_id)).fetchone()[0]
@@ -811,7 +983,7 @@ class UnifiedPaperRuntime:
                 load_proof=lambda tx, ev: proof).reconcile(evidence)
         return {'command_id': command_id, 'status': str(current.lifecycle_state),
             'filled_quantity': number(current.filled_quantity.value), 'leaves_quantity': number(current.leaves_quantity.value),
-            'protection_state': 'GAP' if actual else 'NO_POSITION', 'simulation_notice': NOTICE}
+            'protection_state': 'VERIFIED_SYNTHETIC' if actual and verified else 'GAP' if actual else 'NO_POSITION', 'simulation_notice': NOTICE}
 
     def projection(self):
         targets, commands, locks, protections, orders_view = [], [], [], [], []
@@ -824,7 +996,8 @@ class UnifiedPaperRuntime:
                 actual = sum((p.actual_quantity.value for p in book.positions), D(0)) if book else D(0)
                 plan = tx._latest('protection_plans', 'protection:' + scope_id(scope), t.ProtectionPlan)
                 if plan:
-                    protections.append(domain_payload(plan))
+                    protections.append({**domain_payload(plan), 'state': 'VERIFIED_SYNTHETIC' if plan.state == 'VERIFIED_NATIVE' else str(plan.state),
+                        'provenance': 'UNIFIED_PAPER_SYNTHETIC'})
                 latest_target = None
                 for raw, in records:
                     request = decode(RuntimeRequest, raw)
@@ -841,10 +1014,11 @@ class UnifiedPaperRuntime:
                     commands.append(dict(command_id=command.command_id, symbol=symbol, state=command.state,
                         order_status=status, quantity=command.canonical_payload.quantity, filled_quantity=number(filled),
                         leaves_quantity=number(leaves), reason=request.rationale))
-                    if command.operation != 'CANCEL':
+                    if command.operation not in ('CANCEL', 'SET_PROTECTION'):
                         latest_target = dict(symbol=symbol, strategy_id=request.strategy_id, target_quantity=request.intent.target_quantity,
                         actual_quantity=number(actual), in_flight_quantity=number(leaves if status not in ('FILLED', 'CANCELED', 'REJECTED', 'EXPIRED') else D(0)),
-                        protection_state=str(plan.state) if plan and actual else 'NO_POSITION', protected_quantity='0',
+                        protection_state=('VERIFIED_SYNTHETIC' if plan.state == 'VERIFIED_NATIVE' else str(plan.state)) if plan and actual else 'NO_POSITION',
+                        protected_quantity=number(plan.coverage_quantity.value) if plan and plan.state == 'VERIFIED_NATIVE' else '0',
                         command_id=command.command_id, reason=request.rationale + ('；人工减仓后需重新激活旧自动目标。' if request.mode == 'MANUAL' and request.side == 'SELL' else ''))
                         fill_rows = tx.execute("SELECT payload FROM ledger.fills WHERE scope_id=%s "
                             "AND payload->'order'->>'logical_client_order_id'=%s", (scope_id(scope), command.logical_client_order_id)).fetchall()

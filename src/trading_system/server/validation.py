@@ -106,7 +106,7 @@ class PaperOrder(Payload):
 
 class PaperEvent(Payload):
     event_id: StrictStr = Field(min_length=1, max_length=100)
-    status: Literal['SUBMITTED', 'PARTIALLY_FILLED', 'FILLED', 'CANCEL_UNKNOWN', 'CANCELED', 'EXPIRED', 'REJECTED']
+    status: Literal['SUBMITTED', 'PARTIALLY_FILLED', 'FILLED', 'CANCEL_UNKNOWN', 'CANCELED', 'EXPIRED', 'REJECTED', 'PROTECTION_VERIFIED', 'PROTECTION_FAILED']
     cumulative_quantity: StrictStr
     price: StrictStr | None = None
     occurred_at: StrictStr | None = None

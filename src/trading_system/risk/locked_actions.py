@@ -202,6 +202,24 @@ class LockedActionVerifier:
         working = Fraction(0)
         for order in book.active_orders:
             details = [d for d in terms if type(d) is WorkingTerms and d.order == order.order]
+            if (command.operation == 'SET_PROTECTION' and len(details) == 1 and details[0].side != side
+                    and owned(order.order, position) and order.command_certainty == 'CONFIRMED'
+                    and order.pending_operation == 'NONE' and details[0].evidence in report.evidence):
+                # A partially-filled opening order does not consume closing
+                # quantity. Verify its exact durable root instead of allowing
+                # an arbitrary opposite-side working order to be ignored.
+                row = tx.execute("SELECT payload FROM ledger.commands WHERE scope_id=%s AND sequence=1 "
+                    "AND payload->>'logical_client_order_id'=%s", (scope_id(scope),
+                        order.order.identity.logical_client_order_id)).fetchone()
+                from trading_system.contracts.wire import ExecutionCommand
+                from trading_system.storage.models import decode
+                original = decode(ExecutionCommand, row[0]) if row else None
+                if (original is not None and original.operation == 'SUBMIT' and original.parent_command_id is None
+                        and original.canonical_payload.side == details[0].side
+                        and original.ownership_epoch == position.ownership_epoch
+                        and order.lifecycle_state in ('SUBMITTED', 'ACCEPTED', 'PARTIALLY_FILLED')):
+                    continue
+                return None
             if (len(details) != 1 or not owned(order.order, position)
                     or details[0].side != side or details[0].evidence not in report.evidence
                     or order.command_certainty != 'CONFIRMED' or order.pending_operation != 'NONE'

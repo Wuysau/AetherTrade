@@ -60,6 +60,14 @@ class SyntheticOrderEvent:
     command_id: str | None = None
 
 
+@dataclass(frozen=True, kw_only=True)
+class SyntheticProtectionEvidence:
+    order: t.OrderProjection
+    stop_price: t.Price
+    quantity: t.Quantity
+    evidence: t.EvidenceRef
+
+
 class PaperEngine:
     def __init__(self, scope: t.ScopeKey, *, dsn: str, authority_guard,
                  owner_strategy_id: str, quantity_unit: str, price_currency: str,
@@ -283,6 +291,18 @@ class PaperEngine:
                     if order['pending'] != 'CANCEL':
                         raise BridgeDenied('PENDING_CANCEL_REQUIRED')
                     lifecycle, pending, certainty = order['lifecycle'], 'CANCEL', 'UNKNOWN'
+                elif status in {'PROTECTION_VERIFIED', 'PROTECTION_FAILED'}:
+                    stop = conn.execute('SELECT request FROM public.paper_engine_commands WHERE scope_key=%s '
+                        'AND target_client_id=%s AND operation=%s',
+                        (self._scope_key, order['client_id'], 'SET_PROTECTION')).fetchone()
+                    if stop is None or order['filled'] != 0 or order['pending'] != 'NONE':
+                        raise BridgeDenied('CURRENT_UNFILLED_PROTECTIVE_ORDER_REQUIRED')
+                    terms = stop['request']['canonical_payload']
+                    if (terms.get('side') != 'SELL' or terms.get('order_type') != 'STOP_MARKET'
+                            or self._quantity(terms.get('trigger_price')) <= 0):
+                        raise BridgeDenied('EXACT_PROTECTIVE_TERMS_REQUIRED')
+                    lifecycle = order['lifecycle'] if status == 'PROTECTION_VERIFIED' else 'REJECTED'
+                    pending, certainty = 'NONE', 'CONFIRMED'
                 elif status == 'AMENDED':
                     amendment = conn.execute('SELECT request FROM public.paper_engine_commands WHERE scope_key=%s '
                         'AND command_id=%s AND target_client_id=%s AND operation=%s',
@@ -333,6 +353,36 @@ class PaperEngine:
         return t.OrderIdentity(scope=self.scope, logical_client_order_id=row['logical_id'],
             native_client_order_id='paper-native:' + row['client_id'],
             venue_client_order_id=row['client_id'], venue_order_id=row['order_id'])
+
+    def protection_evidence(self, command_id: str) -> SyntheticProtectionEvidence | None:
+        """A synthetic controller verification event, never the submit ACK.
+
+        Exact terms and working quantity are independently queried from the
+        restricted venue database. This proves only the declared virtual stop.
+        """
+        with self._connect() as conn:
+            conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+            command = conn.execute('SELECT * FROM public.paper_engine_commands WHERE scope_key=%s '
+                'AND command_id=%s AND operation=%s', (self._scope_key, command_id, 'SET_PROTECTION')).fetchone()
+            if command is None:
+                return None
+            row = conn.execute('SELECT * FROM public.paper_engine_orders WHERE scope_key=%s AND client_id=%s',
+                (self._scope_key, command['target_client_id'])).fetchone()
+            event = conn.execute("SELECT * FROM public.paper_engine_events WHERE scope_key=%s AND client_id=%s "
+                "AND payload->>'status'='PROTECTION_VERIFIED' ORDER BY occurred_at DESC,event_id DESC LIMIT 1",
+                (self._scope_key, command['target_client_id'])).fetchone()
+            if (row is None or event is None or row['lifecycle'] != 'SUBMITTED' or row['filled'] != 0
+                    or row['pending'] != 'NONE' or row['certainty'] != 'CONFIRMED'):
+                return None
+            terms = command['request']['canonical_payload']
+            if (terms.get('side') != 'SELL' or terms.get('order_type') != 'STOP_MARKET'
+                    or self._quantity(terms.get('quantity')) != row['quantity']):
+                return None
+            ref = self._ref('paper-protection:' + event['event_id'],
+                {'event': event['payload'], 'request': command['request'], 'order_revision': row['revision']}, self._clock().utc_now)
+            return SyntheticProtectionEvidence(order=self._projection(row),
+                stop_price=t.Price(value=self._quantity(terms['trigger_price']), currency=row['price_currency']),
+                quantity=t.Quantity(value=row['quantity'], unit=row['quantity_unit']), evidence=ref)
 
     def _projection(self, row):
         # Leaves is executable remaining quantity. A confirmed terminal order

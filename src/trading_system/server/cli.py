@@ -4,21 +4,99 @@ from __future__ import annotations
 import argparse
 from dataclasses import replace
 import sys
+import json
+import os
+from pathlib import Path
 
 from .config import Settings
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="aethertrade", description="AetherTrade local PAPER console")
+    parser.add_argument('--paper-config', type=Path, help='Explicit isolated PAPER JSON configuration (contains secrets)')
     commands = parser.add_subparsers(dest="command", required=True)
     serve = commands.add_parser("serve", help="Start the API and built browser UI")
     serve.add_argument("--port", type=int, help="Loopback HTTP port (default 8787)")
     serve.add_argument("--no-market", action="store_true", help="Disable public quote streams and polling")
     commands.add_parser("init-db", help="Initialize console-owned tables without resetting data")
     commands.add_parser("doctor", help="Check database connectivity and browser build")
+    provision = commands.add_parser('paper-provision', help='Create fresh isolated virtual PAPER databases; never migrates existing accounts')
+    provision.add_argument('--isolated-paper', action='store_true', required=True)
+    provision.add_argument('--initial-cash', default='100000')
+    provision.add_argument('--output', type=Path, required=True)
+    commands.add_parser('paper-status', help='Read the same durable PAPER projection as the browser')
+    commands.add_parser('paper-run', help='Run the independent local PAPER execution/reconciliation worker')
+    for operation in ('dispatch', 'reconcile', 'cancel', 'protect'):
+        command = commands.add_parser('paper-' + operation, help='Local synthetic PAPER ' + operation)
+        command.add_argument('command_id')
+        if operation in ('cancel', 'protect'):
+            command.add_argument('--key', required=True)
+    event = commands.add_parser('paper-event', help='Explicitly inject a virtual venue event; never a real venue')
+    event.add_argument('command_id')
+    event.add_argument('--event-id', required=True)
+    event.add_argument('--status', required=True, choices=('SUBMITTED', 'PARTIALLY_FILLED', 'FILLED',
+        'CANCEL_UNKNOWN', 'CANCELED', 'EXPIRED', 'REJECTED', 'PROTECTION_VERIFIED', 'PROTECTION_FAILED'))
+    event.add_argument('--cumulative', required=True)
+    event.add_argument('--price')
     args = parser.parse_args(argv)
     try:
+        if args.command == 'paper-provision':
+            from .paper_provision import provision
+            admin = os.environ.get('PAPER_RUNTIME_ADMIN_DSN')
+            if not admin:
+                raise ValueError('PAPER_RUNTIME_ADMIN_DSN is required only for explicit provisioning')
+            provision(admin, initial_cash=args.initial_cash,
+                journal_directory=args.output.resolve().parent / 'paper-owner',
+                output_path=args.output, isolated_paper=args.isolated_paper)
+            print('Fresh virtual PAPER databases created. Secret configuration: ' + str(args.output.resolve()))
+            print('Set up the new console using the SAME initial cash: ' + args.initial_cash)
+            return 0
         settings = Settings.from_env()
+        if args.paper_config:
+            config = json.loads(args.paper_config.read_text(encoding='utf-8'))
+            settings = replace(settings, database_url=config['database_url'],
+                paper_ledger_dsn=config['ledger_dsn'], paper_venue_dsn=config['venue_dsn'],
+                paper_event_dsn=config['event_dsn'], paper_journal_directory=Path(config['journal_directory']))
+        if args.command.startswith('paper-'):
+            if not settings.paper_ledger_dsn:
+                raise ValueError('Explicit unified PAPER configuration is required')
+            from .paper_runtime import UnifiedPaperRuntime, attach_console_runtime
+            from .store import Store
+            from trading_system.storage.models import decode
+            from .paper_runtime import RuntimeRequest
+            runtime = UnifiedPaperRuntime(ledger_dsn=settings.paper_ledger_dsn,
+                venue_dsn=settings.paper_venue_dsn, event_dsn=settings.paper_event_dsn,
+                journal_directory=settings.paper_journal_directory)
+            store = Store(settings.database_url)
+            store.initialize()
+            def saved_quotes():
+                with runtime.connect() as connection:
+                    records = connection.execute("SELECT DISTINCT ON (payload->>'symbol') payload FROM ledger.audit_events "
+                        "WHERE record_id LIKE 'console:request:%%' AND sequence=1 ORDER BY payload->>'symbol',processed_at DESC").fetchall()
+                requests = [decode(RuntimeRequest, raw) for raw, in records]
+                return {'status': 'PARTIAL', 'quotes': [dict(symbol=r.symbol, price=r.quote_price,
+                    as_of=r.quote_at, stale=False) for r in requests]}
+            attach_console_runtime(store, runtime, saved_quotes)
+            try:
+                if args.command == 'paper-run':
+                    import time
+                    print('Independent local PAPER owner running; explicit virtual events only.', flush=True)
+                    while True:
+                        runtime.tick()
+                        time.sleep(1)
+                if args.command == 'paper-status':
+                    result = runtime.projection()
+                elif args.command == 'paper-event':
+                    result = runtime.inject(args.command_id, dict(event_id=args.event_id, status=args.status,
+                        cumulative_quantity=args.cumulative, price=args.price))
+                elif args.command in ('paper-cancel', 'paper-protect'):
+                    result = getattr(runtime, args.command.removeprefix('paper-'))(args.command_id, args.key)
+                else:
+                    result = getattr(runtime, args.command.removeprefix('paper-'))(args.command_id)
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 0
+            finally:
+                store.close()
         if args.command == "serve":
             if args.port:
                 settings = replace(settings, port=args.port,

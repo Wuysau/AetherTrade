@@ -15,6 +15,7 @@ from trading_system.storage.models import encode, scope_id
 
 
 POLICIES = {
+    'PROTECTION_PENDING': (t.RiskPermission.NO_NEW_RISK, ('PROTECTION_CONFIRMED',)),
     'MODEL_HEALTH': (t.RiskPermission.NO_NEW_RISK, ('VALID_MODEL_OUTPUT',)),
     'DAILY_LOSS': (t.RiskPermission.NO_NEW_RISK, ('DAILY_LOSS_REVIEW',)),
     'TOTAL_DRAWDOWN': (t.RiskPermission.EXIT_ONLY, ('USER_REVIEW', 'NEW_AUTHORIZATION')),

@@ -43,7 +43,8 @@ def digest(value):
 
 def roots(tx):
     rows = tx.execute("SELECT record_id FROM ledger.commands WHERE scope_id=%s AND sequence=1 "
-        "AND payload->>'operation' IN ('SUBMIT','CLOSE') AND payload->>'parent_command_id' IS NULL "
+        "AND ((payload->>'operation' IN ('SUBMIT','CLOSE') AND payload->>'parent_command_id' IS NULL) "
+        "OR payload->>'operation'='SET_PROTECTION') "
         "ORDER BY record_id", (scope_id(tx.scope),)).fetchall()
     commands = CommandRepository(tx)
     return tuple(commands.get(row[0]) for row in rows)

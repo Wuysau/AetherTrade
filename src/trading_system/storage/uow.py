@@ -20,10 +20,11 @@ from .command_state import CommandOutcome, command_hash
 
 
 class LedgerTx:
-    def __init__(self, connection, scope, group_id):
+    def __init__(self, connection, scope, group_id, *, permit_ttl_ms=1000):
         self._connection = connection
         self.scope = scope
         self.group_id = group_id
+        self.permit_ttl_ms = permit_ttl_ms
         self.transaction_id = str(uuid4())
         self.active = True
         self.committed = False
@@ -91,8 +92,11 @@ class LedgerTx:
 
 
 class UnitOfWork:
-    def __init__(self, connection_factory):
+    def __init__(self, connection_factory, *, permit_ttl_ms=1000):
+        if type(permit_ttl_ms) is not int or not 1 <= permit_ttl_ms <= 5000:
+            raise ValueError('durable permit TTL must be 1..5000 milliseconds')
         self.connection_factory = connection_factory
+        self.permit_ttl_ms = permit_ttl_ms
 
     @contextmanager
     def transaction(self, scope: t.ScopeKey):
@@ -119,7 +123,7 @@ class UnitOfWork:
                                (str(scope.environment), group)).fetchone()
             if mutex is None:
                 raise MissingEvidence('collateral mutex is required')
-            tx = LedgerTx(connection, scope, group)
+            tx = LedgerTx(connection, scope, group, permit_ttl_ms=self.permit_ttl_ms)
             yield tx
             if tx.active:
                 tx._commit()
@@ -224,8 +228,8 @@ class CommandRepository:
         record_ref = 'postgres:' + tx.transaction_id
         updated = replace(command, state='MAY_HAVE_SENT', durable_record_ref=record_ref)
         tx._append('commands', command_id, updated, 1)
-        deadline = monotonic_ns() + 1_000_000_000
-        expires = (datetime.now(timezone.utc) + timedelta(seconds=1)).isoformat()
+        deadline = monotonic_ns() + tx.permit_ttl_ms * 1_000_000
+        expires = (datetime.now(timezone.utc) + timedelta(milliseconds=tx.permit_ttl_ms)).isoformat()
         tx._commit()
         return t.DurablePermit(durable_record_ref=record_ref, command_id=command_id,
             payload_hash=command.payload_hash, scope=tx.scope,
