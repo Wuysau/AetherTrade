@@ -6,7 +6,7 @@ revocation through the write call. A lease alone is not an external fence.
 IP-11/17 must supply and independently qualify that integration. Callbacks never
 come from model/user payloads, and must not perform network I/O inside a ledger tx.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from time import monotonic_ns
 
@@ -15,6 +15,7 @@ from trading_system.contracts import types as t
 from trading_system.contracts.canonical import utc_timestamp
 from trading_system.contracts.ports import EnginePort
 from trading_system.storage.models import MissingEvidence
+from trading_system.risk.locked_actions import LockedActionVerifier
 from .commands import CommandRepository, command_hash
 
 
@@ -48,11 +49,12 @@ def clock_now() -> t.ClockReading:
 
 class CommandDispatcher:
     def __init__(self, uow, scope: t.ScopeKey, engine: EnginePort | None = None, *,
-                 load_facts=None, owner_guard=None, clock=clock_now):
+                 load_facts=None, owner_guard=None, clock=clock_now, load_action_proof=None):
         if scope.environment not in (t.Environment.PAPER, t.Environment.RESEARCH):
             raise DispatchDenied('only offline PAPER/RESEARCH composition is enabled')
         self.uow, self.scope, self.engine = uow, scope, engine
         self.load_facts, self.owner_guard, self.clock = load_facts, owner_guard, clock
+        self.load_action_proof = load_action_proof
 
     def _clock_check(self, lease, facts=None, permit=None):
         reading = self.clock()
@@ -91,8 +93,14 @@ class CommandDispatcher:
         required = REQUIRED_CHECKS | ({'OWNED_TARGET'} if command.operation in ('CANCEL', 'AMEND') else set())
         if facts.request_hash != command_hash(command) or not required <= facts.checks:
             raise DispatchDenied('CURRENT_RISK_RULES_OR_TARGET_NOT_VERIFIED')
-        if tx.risk_locks.active(scope) or repo.unresolved_in_group(command.command_id):
+        if repo.unresolved_in_group(command.command_id):
             raise DispatchDenied('RISK_LOCK_OR_GROUP_COMMAND_UNRESOLVED')
+        action_until = LockedActionVerifier(self.load_action_proof).verify(
+            tx, command, intent, now.isoformat())
+        if action_until is None:
+            raise DispatchDenied('RISK_LOCK_OR_GROUP_COMMAND_UNRESOLVED')
+        facts = replace(facts, valid_until=min(facts.valid_until, action_until, key=utc_timestamp))
+        self._clock_check(lease, facts, permit)
         if permit is not None and (
                 command.state != 'MAY_HAVE_SENT' or permit.command_id != command.command_id
                 or permit.payload_hash != command.payload_hash or permit.scope != scope

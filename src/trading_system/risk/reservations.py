@@ -15,8 +15,10 @@ from trading_system.contracts.wire import TradeIntent, ExecutionCommand, RiskPol
 from trading_system.accounts.authorization import valid_evidence
 from trading_system.storage.events import EventStore
 from trading_system.storage.models import ScopeMismatch, MissingEvidence, account_key
+from trading_system.execution.commands import CommandRepository
 from .evaluator import RiskEvaluator, RiskInputs
 from .reservation_repository import ReservationRepository, merge_holds, balance_watermark
+from .locked_actions import LockedActionVerifier
 
 D = Decimal
 
@@ -69,13 +71,14 @@ def complete(coverage, scope):
 
 class ReservationService:
     def __init__(self, uow, scope: t.ScopeKey, load_inputs, *, clock,
-                 load_proof=None, maximum_attempts=3):
+                 load_proof=None, maximum_attempts=3, load_action_proof=None):
         if scope.environment == t.Environment.LIVE:
             raise ValueError('LIVE_DISABLED')
         if type(maximum_attempts) is not int or not 1 <= maximum_attempts <= 10:
             raise ValueError('invalid retry bound')
         self.uow, self.scope, self.load_inputs = uow, scope, load_inputs
         self.clock, self.load_proof = clock, load_proof
+        self.load_action_proof = load_action_proof
         self.maximum_attempts = maximum_attempts
 
     def reserve(self, intent: TradeIntent, expected_book_sequence: int) -> t.ReservationOutcome:
@@ -149,7 +152,9 @@ class ReservationService:
                 or not inputs.authorization.evidence or any(not valid_evidence(e, self.scope.environment, now)
                     for e in inputs.authorization.evidence)):
             return deny('AUTHORIZATION_REQUIRED')
-        if tx.risk_locks.active(self.scope):
+        if (CommandRepository(tx).unresolved_in_group(inputs.command.command_id)
+                or LockedActionVerifier(self.load_action_proof).verify(
+                    tx, inputs.command, intent, reading, book=book) is None):
             return deny('ACTIVE_RISK_LOCK')
         owner = tx.execute('SELECT owner_strategy_id,ownership_epoch,policy_revision FROM ledger.active_owners '
             'WHERE environment=%s AND account_id=%s AND product=%s AND instrument_uid=%s AND venue_leg=%s FOR SHARE',
