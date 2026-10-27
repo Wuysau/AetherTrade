@@ -111,3 +111,43 @@ Publication checks confirmed that the generated password and isolation marker
 are absent from all exported files and decompressed synthetic snapshots. The
 ordinary pytest XML contains only checked-in dummy `test`/`synthetic` DSNs in
 parameter names. Credential files are excluded from every archive.
+
+## Independent unified-runtime counterexamples
+
+`runtime-counterexamples.zip` and its manifest retain four fixed-source, actual
+Linux/PostgreSQL diagnostic runs. The latest red source,
+`5ac12f05e52018bbdd82185d7ab2fa0bffc04de4`, has 7 passes, 3 failures, and zero
+skips/errors. It includes runtime implementation `00d3955`, before its followup
+fixes. The three remaining failures are:
+
+1. A resumed READY command calls the real PaperEngine submit before querying its
+   original identity. Instrumentation records actual delegated method calls;
+   neither SQL nor the PaperEngine result is mocked.
+2. A real Store pause transaction in a distinct console database completes while
+   the business-ledger execution owner advisory lock is held. Equal advisory-lock
+   strings in separate PostgreSQL databases provide no shared guard.
+3. An old automatic target following a filled manual reduction is rejected by the
+   protection-gap risk lock but lacks the independently persistent manual-override
+   rejection `MANUAL_REDUCTION_REAUTH_REQUIRED`. This result does not demonstrate
+   a successful refill; existing protection-gap safety still rejected the order.
+
+The seven passing cases cover real spawned-child SIGKILL at READY durable,
+MAY_HAVE_SENT before venue I/O, after venue commit, after ACK before projection,
+and after staging the protection plan within a transaction. They verify the
+original identity, no duplicate side effects, UNKNOWN retention when a query
+cannot prove submission, rollback of partial fill/protection projection, and
+exactly one fill after recovery. Two competing strategies cannot reserve the same
+collateral, and a stale quote cannot create a command or reservation.
+
+Per-case synthetic ledger and simulated venue JSON records preserve actual
+before/crash/recovery states, including commands, reservations, projections,
+fills, protection plans, positions, locks, and later audit/domain event histories.
+Each case provisions fresh runtime and venue databases, with an additional fresh
+console database for the authority-race probe. Database names and applied source
+hashes are captured by the runner; credentials are not exported.
+
+Two test-fixture mistakes are retained and distinguished in the manifest: an
+existing zero-quantity position was initially mistaken for a partial transaction
+write (corrected to compare against its actual before snapshot); `.25` was an
+invalid wire decimal spelling (corrected to `0.25`). No production safety
+assertion was removed. Green verification of the runtime followup is pending.
