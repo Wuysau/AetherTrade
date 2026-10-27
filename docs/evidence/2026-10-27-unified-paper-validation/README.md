@@ -150,4 +150,25 @@ Two test-fixture mistakes are retained and distinguished in the manifest: an
 existing zero-quantity position was initially mistaken for a partial transaction
 write (corrected to compare against its actual before snapshot); `.25` was an
 invalid wire decimal spelling (corrected to `0.25`). No production safety
-assertion was removed. Green verification of the runtime followup is pending.
+assertion was removed.
+
+`runtime-followup.zip` and its manifest preserve the subsequent red/green steps.
+With runtime followup `7e26648`, the actual separate-database guard and persistent
+manual override both passed; only the query-order regression remained red (9
+passes, 1 failure). With followup `a5fa514`, the query-order regression also passed.
+The added ACK boundary hook initially inspected the conservative raw command row,
+which intentionally remains MAY_HAVE_SENT; reading the effective append-only
+outcome through CommandRepository corrected that test instrumentation.
+
+At fixed source `36322b8ffcbd4b6dd6ccd5662a8343e2d27681d3`, all **10 independent
+runtime fault cases passed, with zero skips/errors, exit 0**. At source
+`e5d895911af4e6bfd34ba961df40a8de3cf194db` (identical production runtime, before
+the instrumentation-only correction), all **3 primary runtime cases passed**, zero
+skips/errors, exit 0, including 40% partial fill plus CANCEL_UNKNOWN with full
+reservation retention and immediate protection-gap responsibility. Both are
+diagnostic runs; neither changes the full-gate qualification field to passed.
+
+Full fixed-commit integration, ordinary CI fixture migration, and a fresh whole
+PostgreSQL run remain required. Runtime protection repair/verification and
+failed-protection-plus-failed-exit evidence are not demonstrated by these
+diagnostics; protection remains explicitly GAP with protected quantity zero.
