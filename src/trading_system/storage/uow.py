@@ -16,6 +16,7 @@ from trading_system.contracts.canonical import canonical_hash, domain_payload
 from trading_system.contracts.wire import ExecutionCommand, TradeIntent, ContractCodec
 from .models import (encode, decode, scope_id, account_key, SequenceConflict,
                      ScopeMismatch, MissingEvidence, atomic_write)
+from .command_state import CommandOutcome, command_hash
 
 
 class LedgerTx:
@@ -153,7 +154,21 @@ class CommandRepository:
         self.tx = tx
 
     def get(self, command_id):
-        return self.tx._latest('commands', command_id, ExecutionCommand)
+        command = self.tx._latest('commands', command_id, ExecutionCommand)
+        row = self.tx.execute('SELECT command_payload,outcome FROM ledger.command_aborts '
+            'WHERE scope_id=%s AND command_id=%s', (scope_id(self.tx.scope), command_id)).fetchone()
+        if row is None:
+            return command
+        abort = decode(CommandOutcome, row[1])
+        if (command is None or command.state != 'DURABLE_READY'
+                or ContractCodec().encode(command) != row[0]
+                or abort.command_id != command_id or abort.receipt.command_id != command_id
+                or abort.request_hash != command_hash(command)
+                or abort.durable_record_ref != command.durable_record_ref
+                or abort.receipt.status != t.CommandState.ABORTED_UNSENT
+                or abort.provenance != 'LOCAL_UNSENT_ABORT'):
+            raise MissingEvidence('authoritative abort binding mismatch')
+        return replace(command, state='ABORTED_UNSENT', outcome_provenance='LOCAL_POLICY')
 
     @atomic_write
     def append(self, command: ExecutionCommand, expected_sequence: int):

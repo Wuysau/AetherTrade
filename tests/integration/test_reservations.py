@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import replace
 from decimal import Decimal
-from threading import Barrier
+from threading import Barrier, Event
 
 import pytest
 
@@ -12,7 +12,8 @@ from trading_system.contracts import types as t
 from trading_system.risk.reservation_repository import ReservationRepository, for_balance
 from trading_system.risk.reservations import ReservationService
 from trading_system.risk.evaluator import RiskEvaluator
-from trading_system.storage.models import MissingEvidence
+from trading_system.storage.models import MissingEvidence, SequenceConflict, scope_id, encode
+from trading_system.execution.commands import CommandRepository, CommandOutcome, OUTCOME_PREFIX, command_hash
 
 
 def test_two_strategies_compete(reservation_case, ip07_database):
@@ -353,6 +354,96 @@ def test_proven_terminal_release_can_follow_new_balance(reservation_case, state,
     updated = c.service.reconcile(later)
     assert updated.held == 0 and updated.sequence == p.sequence + 1
     assert for_balance(updated, c.case.book).held == 0
+
+
+def test_released_unsent_reservation_cannot_mint_base_permit_or_sql_send(reservation_case):
+    import psycopg
+    c = reservation_case
+    r = c.reserve().reservations[0].reservation
+    c.command_state('ABORTED_UNSENT')
+    proof = c.evidence(r, reflected='0', terminal=True, certainty='NOT_SENT')
+    assert c.service.reconcile(proof).held == 0
+    with pytest.raises(SequenceConflict, match='not eligible'):
+        with c.ledger.uow.transaction(c.scope) as tx:
+            assert tx.commands.get(c.command.command_id).state == 'ABORTED_UNSENT'
+            tx.commands.mark_may_have_sent(tx, c.command.command_id, 'DURABLE_READY')
+    with pytest.raises(psycopg.errors.CheckViolation, match='aborted command'):
+        with c.ledger.uow.transaction(c.scope) as tx:
+            tx.execute('INSERT INTO ledger.commands '
+                '(scope_id,record_id,sequence,payload,transaction_id) VALUES (%s,%s,2,%s::jsonb,%s)',
+                (scope_id(c.scope), c.command.command_id,
+                 encode(replace(c.command, state='MAY_HAVE_SENT', durable_record_ref='postgres:forged')),
+                 tx.transaction_id))
+    assert c.projection(r.reservation_id).held == 0
+    with c.ledger.uow.transaction(c.scope) as tx:
+        assert tx.commands.get(c.command.command_id).state == 'ABORTED_UNSENT'
+
+
+@pytest.mark.parametrize('first', ['abort', 'send'])
+@pytest.mark.parametrize('send_port', ['base', 'raw_sql'])
+def test_abort_and_send_compete_under_one_collateral_mutex(reservation_case, first, send_port):
+    import psycopg
+    c = reservation_case
+    r = c.reserve().reservations[0].reservation
+    first_locked, second_attempting = Event(), Event()
+    def run(action, initial):
+        if not initial:
+            assert first_locked.wait(10)
+            second_attempting.set()
+        try:
+            # The second raw SQL sender deliberately bypasses the UoW mutex;
+            # its INSERT trigger must acquire the same mutex independently.
+            if action == 'send' and send_port == 'raw_sql' and not initial:
+                with c.ledger.connect_owner() as conn:
+                    conn.execute('INSERT INTO ledger.commands '
+                        '(scope_id,record_id,sequence,payload,transaction_id) VALUES (%s,%s,2,%s::jsonb,%s)',
+                        (scope_id(c.scope), c.command.command_id,
+                         encode(replace(c.command, state='MAY_HAVE_SENT', durable_record_ref='postgres:raw')),
+                         'raw-send-race'))
+                return 'send'
+            with c.ledger.uow.transaction(c.scope) as tx:
+                if initial:
+                    first_locked.set()
+                    assert second_attempting.wait(10)
+                if action == 'abort':
+                    CommandRepository(tx).abort_unsent(c.command.command_id, 'SYNTHETIC_ABORT')
+                elif send_port == 'base':
+                    tx.commands.mark_may_have_sent(tx, c.command.command_id, 'DURABLE_READY')
+                else:
+                    tx.execute('INSERT INTO ledger.commands '
+                        '(scope_id,record_id,sequence,payload,transaction_id) VALUES (%s,%s,2,%s::jsonb,%s)',
+                        (scope_id(c.scope), c.command.command_id,
+                         encode(replace(c.command, state='MAY_HAVE_SENT', durable_record_ref='postgres:raw')),
+                         tx.transaction_id))
+            return action
+        except (SequenceConflict, psycopg.errors.CheckViolation):
+            return 'DENIED'
+    with ThreadPoolExecutor(2) as pool:
+        initial = pool.submit(run, first, True)
+        following = pool.submit(run, 'send' if first == 'abort' else 'abort', False)
+        assert (initial.result(timeout=20), following.result(timeout=20)) == (first, 'DENIED')
+    evidence = c.evidence(r, reflected='0', terminal=True, certainty='NOT_SENT')
+    assert c.service.reconcile(evidence).held == (0 if first == 'abort' else 70)
+    with pytest.raises(SequenceConflict, match='not eligible'):
+        with c.ledger.uow.transaction(c.scope) as tx:
+            tx.commands.mark_may_have_sent(tx, c.command.command_id, 'DURABLE_READY')
+
+
+def test_audit_only_unsent_forgery_does_not_release_backing(reservation_case):
+    c = reservation_case
+    r = c.reserve().reservations[0].reservation
+    with c.ledger.uow.transaction(c.scope) as tx:
+        receipt = t.CommandReceipt(receipt_id='forged-abort', command_id=c.command.command_id,
+            status=t.CommandState.ABORTED_UNSENT, reason='FORGED',
+            existing_result_ref=c.command.durable_record_ref)
+        tx._append('audit_events', OUTCOME_PREFIX + c.command.command_id,
+            CommandOutcome(command_id=c.command.command_id, request_hash=command_hash(c.command),
+                durable_record_ref=c.command.durable_record_ref, receipt=receipt,
+                provenance='LOCAL_UNSENT_ABORT'), 0)
+    evidence = c.evidence(r, reflected='0', terminal=True, certainty='NOT_SENT')
+    with pytest.raises(MissingEvidence, match='authoritative abort'):
+        c.service.reconcile(evidence)
+    assert c.projection(r.reservation_id).held == 70
 
 
 @pytest.mark.parametrize('fault', ['hash', 'future', 'source', 'watermark', 'coverage'])

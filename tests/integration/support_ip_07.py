@@ -38,6 +38,7 @@ def ip07_database():
             pytest.fail('fresh database required; refusing existing ledger')
         conn.execute((ROOT / 'migrations/0001_business_ledger.sql').read_text(encoding='utf-8'))
         conn.execute((ROOT / 'deploy/db/roles.sql').read_text(encoding='utf-8'))
+        conn.execute((ROOT / 'migrations/0004_command_abort_guard.sql').read_text(encoding='utf-8'))
     return dsn
 
 

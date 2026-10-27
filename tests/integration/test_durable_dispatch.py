@@ -10,10 +10,12 @@ from integration.support_ip_10 import (
     DispatchCase, crash_before_wire_worker, dispatch_case, ip10_database,
 )
 from trading_system.contracts import types as t
-from trading_system.execution.commands import CommandRepository, IdempotencyConflict, command_hash
+from trading_system.execution.commands import CommandRepository, IdempotencyConflict, command_hash, CommandOutcome
+from trading_system.storage.command_state import command_request
+from trading_system.contracts.canonical import canonical_json
 from trading_system.execution.dispatcher import CommandDispatcher, DispatchDenied
 from trading_system.execution.outbox import OutboxConsumer
-from trading_system.storage.models import MissingEvidence, SequenceConflict, scope_id
+from trading_system.storage.models import MissingEvidence, SequenceConflict, scope_id, encode
 
 
 def test_commit_before_send(dispatch_case):
@@ -404,6 +406,62 @@ def test_unsent_abort_cannot_relabel_send_boundary(dispatch_case, state):
         with c.ledger.uow.transaction(c.scope) as tx:
             CommandRepository(tx).abort_unsent(c.command.command_id, 'LOCAL_TIMEOUT')
     assert c.get().state == state
+
+
+def test_abort_failure_rolls_back_authoritative_record_and_audit(dispatch_case, monkeypatch):
+    from trading_system.storage.uow import LedgerTx
+    c = dispatch_case
+    original = LedgerTx._append
+    def fail_audit(tx, table, record_id, record, expected):
+        if table == 'audit_events' and record_id == 'ip10:outcome:' + c.command.command_id:
+            raise RuntimeError('injected abort audit failure')
+        return original(tx, table, record_id, record, expected)
+    with monkeypatch.context() as patch:
+        patch.setattr(LedgerTx, '_append', fail_audit)
+        with pytest.raises(RuntimeError, match='abort audit failure'):
+            with c.ledger.uow.transaction(c.scope) as tx:
+                CommandRepository(tx).abort_unsent(c.command.command_id, 'REVOKED')
+    with c.ledger.uow.transaction(c.scope) as tx:
+        assert tx.commands.get(c.command.command_id).state == 'DURABLE_READY'
+        assert tx.execute('SELECT count(*) FROM ledger.command_aborts WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchone()[0] == 0
+    assert c.dispatch().status == t.CommandState.VENUE_CONFIRMED
+    assert len(c.engine.transport.writes) == 1
+
+
+@pytest.mark.parametrize('fault', ['scope', 'command', 'request', 'hash', 'receipt', 'record_insert'])
+def test_owner_cannot_forge_authoritative_abort_binding(dispatch_case, fault):
+    import psycopg
+    c = dispatch_case
+    receipt = t.CommandReceipt(receipt_id='synthetic-abort', command_id=c.command.command_id,
+        status=t.CommandState.ABORTED_UNSENT, reason='SYNTHETIC',
+        existing_result_ref=c.command.durable_record_ref)
+    outcome = CommandOutcome(command_id=c.command.command_id, request_hash=command_hash(c.command),
+        durable_record_ref=c.command.durable_record_ref, receipt=receipt, provenance='LOCAL_UNSENT_ABORT')
+    request = canonical_json(command_request(c.command))
+    command = c.command
+    scope = scope_id(c.scope)
+    if fault == 'scope':
+        scope = 'foreign-scope'
+    elif fault == 'command':
+        command = replace(command, attempt_id='different-attempt')
+    elif fault == 'request':
+        request = canonical_json(command_request(replace(command, operation='CLOSE')))
+    elif fault == 'hash':
+        outcome = replace(outcome, request_hash='0' * 64)
+    elif fault == 'receipt':
+        outcome = replace(outcome, receipt=replace(receipt, command_id='foreign-command'))
+    error = psycopg.errors.InsufficientPrivilege if fault == 'record_insert' else psycopg.errors.CheckViolation
+    with pytest.raises(error):
+        with c.ledger.uow.transaction(c.scope) as tx:
+            if fault == 'record_insert':
+                tx.execute('INSERT INTO ledger.command_aborts VALUES (%s,%s,%s::jsonb,%s::jsonb,%s)',
+                    (scope, command.command_id, encode(command), encode(outcome), tx.transaction_id))
+            else:
+                tx.execute('SELECT ledger.abort_unsent_command(%s,%s,%s::jsonb,%s,%s::jsonb,%s)',
+                    (scope, command.command_id, encode(command), request, encode(outcome), tx.transaction_id))
+    with c.ledger.uow.transaction(c.scope) as tx:
+        assert tx.commands.get(c.command.command_id).state == 'DURABLE_READY'
 
 
 def test_outbox_batch_limit_and_consumer_identity(dispatch_case):

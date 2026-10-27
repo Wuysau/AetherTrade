@@ -241,6 +241,7 @@ def ip16_database():
             pytest.fail('refusing an existing ledger; provision a fresh database')
         conn.execute((root / 'migrations/0001_business_ledger.sql').read_text(encoding='utf-8'))
         conn.execute((root / 'deploy/db/roles.sql').read_text(encoding='utf-8'))
+        conn.execute((root / 'migrations/0004_command_abort_guard.sql').read_text(encoding='utf-8'))
     return dsn
 
 

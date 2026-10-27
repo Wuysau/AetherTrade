@@ -5,15 +5,16 @@ Later outcomes live in typed, append-only audit records. Consumers needing the
 effective state MUST use this repository; the raw IP-03 row remains conservative.
 No migration, credentials, transport, or automatic retry is provided here.
 """
-from dataclasses import dataclass, replace
+from dataclasses import replace
 
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import canonical_hash
+from trading_system.contracts.canonical import canonical_hash, canonical_json
 from trading_system.contracts.wire import ContractCodec, ExecutionCommand, TradeIntent
 from trading_system.storage.models import (
     MissingEvidence, ScopeMismatch, SequenceConflict, account_key, atomic_write,
-    decode, scope_id,
+    decode, encode, scope_id,
 )
+from trading_system.storage.command_state import CommandOutcome, command_hash, command_request
 from trading_system.storage.uow import CommandRepository as LedgerCommands, LedgerTx
 
 
@@ -22,27 +23,6 @@ OUTCOME_PREFIX = 'ip10:outcome:'
 
 class IdempotencyConflict(SequenceConflict):
     pass
-
-
-def command_hash(command: ExecutionCommand) -> str:
-    """Whole immutable request, including operation/target/IDs/attempt/epochs.
-
-payload_hash alone covers business parameters and cannot detect a changed target
-or operation. The approved payload schema excludes authentication material.
-    """
-    body = ContractCodec().encode(command)
-    for key in ('state', 'outcome_provenance', 'durable_record_ref'):
-        del body[key]
-    return canonical_hash(body)
-
-
-@dataclass(frozen=True, kw_only=True)
-class CommandOutcome:
-    command_id: str
-    request_hash: str
-    durable_record_ref: str
-    receipt: t.CommandReceipt
-    provenance: str
 
 
 class CommandRepository(LedgerCommands):
@@ -56,7 +36,15 @@ class CommandRepository(LedgerCommands):
                 or outcome.request_hash != command_hash(command)
                 or outcome.durable_record_ref != command.durable_record_ref):
             raise MissingEvidence('command outcome binding mismatch')
-        return replace(command, state=str(outcome.receipt.status), outcome_provenance=outcome.provenance)
+        if outcome.receipt.status in (t.CommandState.ABORTED_UNSENT, t.CommandState.NOT_SENT):
+            if (command.state != 'ABORTED_UNSENT'
+                    or outcome.receipt.status != t.CommandState.ABORTED_UNSENT
+                    or outcome.provenance != 'LOCAL_UNSENT_ABORT'):
+                raise MissingEvidence('unsent outcome lacks authoritative abort')
+        elif command.state == 'ABORTED_UNSENT':
+            raise MissingEvidence('outcome contradicts authoritative abort')
+        provenance = 'LOCAL_POLICY' if outcome.provenance == 'LOCAL_UNSENT_ABORT' else outcome.provenance
+        return replace(command, state=str(outcome.receipt.status), outcome_provenance=provenance)
 
     def receipt(self, command_id: str, reason: str | None = None) -> t.CommandReceipt:
         command = self.get(command_id)
@@ -210,10 +198,13 @@ Unknown holds are never released here; every operation is conservatively blocked
         receipt = t.CommandReceipt(receipt_id='ip10:abort:' + command_id,
             command_id=command_id, status=t.CommandState.ABORTED_UNSENT,
             reason=reason, existing_result_ref=command.durable_record_ref)
-        self.tx._append('audit_events', OUTCOME_PREFIX + command_id,
-            CommandOutcome(command_id=command_id, request_hash=command_hash(command),
-                durable_record_ref=command.durable_record_ref, receipt=receipt,
-                provenance='LOCAL_UNSENT_ABORT'), 0)
+        outcome = CommandOutcome(command_id=command_id, request_hash=command_hash(command),
+            durable_record_ref=command.durable_record_ref, receipt=receipt,
+            provenance='LOCAL_UNSENT_ABORT')
+        self.tx.execute('SELECT ledger.abort_unsent_command(%s,%s,%s::jsonb,%s,%s::jsonb,%s)',
+            (scope_id(self.tx.scope), command_id, encode(command), canonical_json(command_request(command)),
+             encode(outcome), self.tx.transaction_id))
+        self.tx._append('audit_events', OUTCOME_PREFIX + command_id, outcome, 0)
         return receipt
 
     @atomic_write
