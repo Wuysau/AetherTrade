@@ -299,6 +299,7 @@ def test_paper_rejects_foreign_or_inconsistent_host_inputs(change, reason):
 @pytest.mark.parametrize('change,reason', [
     ('risk_lock', 'NEW_RISK_LOCKED'), ('fee', 'FEE_OR_FUNDING_EVIDENCE_MISSING'),
     ('revoked', 'AUTHORIZATION_REQUIRED'), ('future', 'FUTURE_EVIDENCE'),
+    ('future_ref', 'AUTHORIZATION_REQUIRED'),
     ('oversize', 'ORDER_NOTIONAL'),
 ])
 def test_paper_domain_rejections_do_not_queue_or_reserve(change, reason):
@@ -312,10 +313,13 @@ def test_paper_domain_rejections_do_not_queue_or_reserve(change, reason):
         auth = frame.binding.authorization
         frame = replace(frame, binding=replace(frame.binding, authorization=replace(auth,
             authorization=replace(auth.authorization, revoked_at=START))))
-    elif change == 'future':
+    elif change in ('future', 'future_ref'):
         packet = frame.binding.snapshot
-        packet = replace(packet, quote=replace(packet.quote, received_at=END))
-        packet = replace(packet, ref=replace(packet.ref, hash=snapshot_content_hash(packet)))
+        if change == 'future':
+            packet = replace(packet, quote=replace(packet.quote, received_at=END))
+            packet = replace(packet, ref=replace(packet.ref, hash=snapshot_content_hash(packet)))
+        else:
+            packet = replace(packet, ref=replace(packet.ref, visible_at=END))
         context = replace(frame.context, snapshot_ref=packet.ref)
         frame = replace(frame, context=context, binding=replace(frame.binding, snapshot=packet,
             evidence=(packet.ref, evidence())), target=replace(frame.target, context=context),
