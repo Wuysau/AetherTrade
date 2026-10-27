@@ -317,6 +317,9 @@ class UnifiedPaperRuntime:
                     raise ApiError('PAPER_REQUEST_NOT_ACCEPTED', '原请求未通过原子风控；没有可执行命令，请使用新的请求标识重新评估。', 409)
                 return self._receipt(existing)
             book = self._book(tx, scope, refresh=True)
+            seed = tx.execute("SELECT payload->>'initial_cash' FROM ledger.audit_events WHERE record_id='console:seed'").fetchone()
+            if seed is None or D(seed[0]) != D(data['account']['initial_cash']):
+                raise ApiError('PAPER_CAPITAL_MISMATCH', '控制台初始虚拟资金与独立业务账本不一致；禁止隐式迁移。', 409)
             reading = self.clock()
             actual = sum((p.actual_quantity.value for p in book.positions), D(0))
             if strategy:
@@ -424,6 +427,10 @@ class UnifiedPaperRuntime:
         return count
 
     def cancel(self, command_id, key):
+        with self.control_guard():
+            return self._cancel(command_id, key)
+
+    def _cancel(self, command_id, key):
         scope, symbol = self._scope_command(command_id)
         now = self.clock()
         with self.uow.transaction(scope) as tx:
@@ -661,12 +668,37 @@ class UnifiedPaperRuntime:
     def dispatch(self, command_id, *, lose_ack=False):
         scope, symbol = self._scope_command(command_id)
         with self._composition(scope, symbol) as (engine, dispatcher, lease):
+            # Every resumed command queries its original identity FIRST,
+            # including a crash immediately after the READY commit. Only this
+            # synthetic venue's successful complete absence permits first send.
+            probe = engine.query(self._query_case(scope, command_id))
+            if not probe.coverage.query_succeeded:
+                return {'command_id': command_id, 'status': 'UNKNOWN', 'reason': 'ORIGINAL_ID_QUERY_UNAVAILABLE'}
+            with self.uow.transaction(scope) as tx:
+                command = CommandRepository(tx).get(command_id)
+                if command is None:
+                    raise ApiError('COMMAND_NOT_ACCEPTED', '原请求没有通过原子风控。', 409)
+                ready = command.state == 'DURABLE_READY'
+            if probe.orders:
+                if ready:
+                    raise ApiError('DURABLE_BOUNDARY_INCONSISTENT', '原标识已被平台观察但本地仍未提交；需恢复审查，禁止重发。', 409)
+                self._reconcile(engine, scope, command_id)
+                with self.uow.transaction(scope) as tx:
+                    return domain_payload(CommandRepository(tx).receipt(command_id))
+            if not ready:
+                return {'command_id': command_id, 'status': 'UNKNOWN', 'reason': 'MAY_HAVE_SENT_QUERY_ORIGINAL_ID_NO_RESEND'}
             if lose_ack:
                 # Explicit local fault control; no real transport exists.
                 engine._lose_ack_for = frozenset({command_id})
             receipt = dispatcher.dispatch(command_id, lease)
             self._reconcile(engine, scope, command_id)
         return domain_payload(receipt)
+
+    def _query_case(self, scope, command_id):
+        return t.ReconciliationCase(case_id='console-query:' + uuid4().hex,
+            scope=scope, command_ids=(command_id,), position_ids=(), missing=(),
+            query_budget=t.QueryBudget(maximum_requests=1, window_seconds=60, minimum_interval_ms=1000, retry_after=None),
+            attempts=0, next_query_at=self.clock().utc_now, state='OPEN')
 
     def reconcile(self, command_id):
         scope, symbol = self._scope_command(command_id)
@@ -692,10 +724,7 @@ class UnifiedPaperRuntime:
 
     def _reconcile(self, engine, scope, command_id):
         now = self.clock().utc_now
-        report = engine.query(t.ReconciliationCase(case_id='console-query:' + uuid4().hex,
-            scope=scope, command_ids=(command_id,), position_ids=(), missing=(),
-            query_budget=t.QueryBudget(maximum_requests=1, window_seconds=60, minimum_interval_ms=1000, retry_after=None),
-            attempts=0, next_query_at=now, state='OPEN'))
+        report = engine.query(self._query_case(scope, command_id))
         if not report.coverage.query_succeeded or not report.orders:
             # Query absence is never NOT_SENT proof and never permits a resend.
             return {'command_id': command_id, 'status': 'UNKNOWN', 'reason': 'QUERY_ORIGINAL_ID_REQUIRED'}
@@ -821,6 +850,7 @@ class UnifiedPaperRuntime:
                             "AND payload->'order'->>'logical_client_order_id'=%s", (scope_id(scope), command.logical_client_order_id)).fetchall()
                         notional = sum((decode(t.Fill, row[0]).quantity.value * decode(t.Fill, row[0]).price.value for row in fill_rows), D(0))
                         orders_view.append(dict(id=command.command_id, command_id=command.command_id, symbol=symbol,
+                            provenance='UNIFIED_PAPER_SYNTHETIC',
                             side=command.canonical_payload.side, quantity=command.canonical_payload.quantity,
                             filled_quantity=number(filled), price=number(notional / filled) if filled else request.quote_price,
                             notional=number(notional), fee=number(notional * D('.001')), status=status,

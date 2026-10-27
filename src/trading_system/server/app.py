@@ -290,6 +290,12 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     def paper_reconcile(command_id: str, _=Depends(mutation)):
         return paper_runtime().reconcile(command_id)
 
+    @app.post('/api/paper/{command_id}/cancel', status_code=202)
+    def paper_cancel(command_id: str, idempotency_key: str | None = Header(default=None), _=Depends(mutation)):
+        if not idempotency_key or len(idempotency_key) > 128:
+            raise ApiError('IDEMPOTENCY_REQUIRED', '撤单需要有效的 Idempotency-Key。')
+        return {'order': paper_runtime().cancel(command_id, idempotency_key)}
+
     @app.post('/api/paper/{command_id}/events')
     def paper_event(command_id: str, payload: dict, _=Depends(mutation)):
         from .validation import PaperEvent

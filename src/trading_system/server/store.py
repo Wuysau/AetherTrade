@@ -599,6 +599,7 @@ class Store:
             history = [{"at": item.at, "equity": item.equity} for item in connection.execute(select(observations.c.at, observations.c.equity).order_by(observations.c.at))]
             cutoff = (now() - timedelta(days=days[period])).isoformat()
             trades = sorted(rows(connection, orders), key=lambda item: item["created_at"], reverse=True)
+            trades = [{**item, 'provenance': 'LEGACY_LOCAL_PAPER'} for item in trades]
             if self.execution and not trades:
                 trades = sorted(self.execution.projection()['orders'], key=lambda item: item['created_at'], reverse=True)
             closed = [Decimal(item["realized_pnl"]) for item in trades if item.get("realized_pnl") is not None]
@@ -625,7 +626,7 @@ class Store:
                                  {"id": "native", "label": "自动执行与保护", "status": "NOT_CONFIGURED", "detail": "未连接自动执行服务；持仓尚未配置自动止损或止盈。", "updated_at": None}],
                     "market": market, "research": {"total_return_pct": number((equity - initial) / initial * 100), "max_drawdown_pct": number(drawdown),
                     "win_rate": number(Decimal(sum(value > 0 for value in closed)) / len(closed) * 100) if closed else None,
-                    "trade_count": len(trades), "fees": number(sum((Decimal(item["fee"]) for item in trades), Decimal(0)))}}
+                    "trade_count": sum(Decimal(item.get('filled_quantity', item['quantity'] if item['status'] == 'FILLED' else '0')) > 0 for item in trades), "fees": number(sum((Decimal(item["fee"]) for item in trades), Decimal(0)))}}
 
     def record_observation(self, market, maximum_age):
         """Observe only actual current prices; no backfilled or invented history."""
@@ -676,8 +677,9 @@ class Store:
                  f"初始虚拟资金：{account['initial_cash']} USDT", f"现金：{account['cash']} USDT", f"观察权益：{account['equity']} USDT",
                  f"行情状态：{market.get('status', 'UNAVAILABLE')}；缺少行情时估值沿用最后实际观察价格。",
                  f"成交笔数：{data['research']['trade_count']}；模拟手续费：{data['research']['fees']} USDT", "", "实际 PAPER 成交："]
-        lines += [f"{item['created_at']} {item['symbol']} {item['side']} {item['quantity']} @ {item['price']} fee={item['fee']} id={item['id']}" for item in reversed(data["orders"])]
-        if not data["orders"]:
+        fills = [item for item in data['orders'] if Decimal(item.get('filled_quantity', item['quantity'] if item['status'] == 'FILLED' else '0')) > 0]
+        lines += [f"{item['created_at']} {item['symbol']} {item['side']} {item.get('filled_quantity', item['quantity'])} @ {item['price']} fee={item['fee']} id={item['id']} source={item.get('provenance', 'LEGACY_LOCAL_PAPER')}" for item in reversed(fills)]
+        if not fills:
             lines.append("尚无成交。")
         lines += ["", "AI 分析与自动交易相互独立。研究指标仅基于已记录的 PAPER 活动和行情观察。"]
         return "\n".join(lines) + "\n"
