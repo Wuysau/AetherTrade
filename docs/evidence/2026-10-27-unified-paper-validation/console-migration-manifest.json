@@ -1,0 +1,101 @@
+{
+  "archive": "console-migration-red.zip",
+  "archive_sha256": "bcf373939051f0be521e79f6f5a302ce8eb49727453a41973c29b01e546881b2",
+  "files_sha256": {
+    "console-contract-red/1f0d76b4499a-6256168abd3d/console.log": "1fbde82e243da70ee644c81984d6e48ddeef33018a7e5ab076efacf92b34e5b7",
+    "console-contract-red/1f0d76b4499a-6256168abd3d/console.xml": "007a324f2f8a033ce3eff8e83f922f010fa800a3c836724ca3587d86fd45a69d",
+    "console-contract-red/1f0d76b4499a-6256168abd3d/summary.json": "fa5d91b28ddc538300a94efe505037debb49d7b5da1d16128b1df90c19d48d7a",
+    "console-contract-red-run.txt": "7e9a74cdc671ccece9752840f2e792ce91c6d98a8bc707667d26ffaae2e261de",
+    "console-contract-red-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "server-store-contract-red/1f0d76b4499a-9b45bb4f03e9/console-contract.log": "1955efa36e607132990772630eecaf7c57af7ebeaef2cae6841c625a90f9c686",
+    "server-store-contract-red/1f0d76b4499a-9b45bb4f03e9/console-contract.xml": "ca5b2a98a5b0e445efccfb8af2cbc7aaa7f84942874661cafc68de00711067df",
+    "server-store-contract-red/1f0d76b4499a-9b45bb4f03e9/summary.json": "32ee2774f7c39b9db87395c5060c30c47e3b90faf22b8164286e7c1f68abef64",
+    "server-store-contract-red-run.txt": "3dc80e6cc4603599d305b42284a10418f5725c19dbb4c8fe0316602001f9e950",
+    "server-store-contract-red-exit.txt": "f1b2f662800122bed0ff255693df89c4487fbdcf453d3524a42d4ec20c3d9c04",
+    "server-store-sqlite.txt": "750d69d3f5272ba05457de07cca04ff497d95de3d01776b9b92d5745d0750b55",
+    "server-store-sqlite.xml": "cd757ee33cb34f96941b5bc3718b8da7d40566f245b31079c72293c2eabad488",
+    "server-store-sqlite-exit.txt": "f1b2f662800122bed0ff255693df89c4487fbdcf453d3524a42d4ec20c3d9c04",
+    "partial-sell-debug.json": "246f917ed79b1888446d9baceda8e82459ce7335c61bfa4b988e8d586c40b64d"
+  },
+  "runs": [
+    {
+      "source_commit": "1f0d76b4499a9b485663ecf1a9b72cc404f440c7",
+      "suite": "console",
+      "evidence_subdirectory": "console-contract-red",
+      "results": {
+        "passed": 3,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "accepted": true
+      },
+      "exit_code": 0,
+      "command": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=1f0d76b4499a9b485663ecf1a9b72cc404f440c7",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-6f1db19c6a28",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "console",
+        "--evidence-dir",
+        "/handoff/evidence/console-contract-red"
+      ]
+    },
+    {
+      "source_commit": "1f0d76b4499a9b485663ecf1a9b72cc404f440c7",
+      "suite": "console-contract",
+      "evidence_subdirectory": "server-store-contract-red",
+      "results": {
+        "passed": 7,
+        "failed": 3,
+        "errors": 0,
+        "skipped": 0,
+        "exit_code": 1,
+        "accepted": false
+      },
+      "exit_code": 1,
+      "command": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=1f0d76b4499a9b485663ecf1a9b72cc404f440c7",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-6f1db19c6a28",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "console-contract",
+        "--evidence-dir",
+        "/handoff/evidence/server-store-contract-red"
+      ]
+    }
+  ],
+  "sqlite_regression": {
+    "source_commit": "1f0d76b4499a9b485663ecf1a9b72cc404f440c7",
+    "results": "11 passed, 1 failed, 10 deselected; old SQLite SELL expectation must become fail-closed UNIFIED_PAPER_REQUIRED; real no-short assertion retained in PostgreSQL module.",
+    "command": [
+      "docker",
+      "exec",
+      "-w",
+      "/tmp/source",
+      "aethertrade-qualification-runner-6f1db19c6a28",
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "tests/server/test_store.py",
+      "-m",
+      "not paper_runtime",
+      "--tb=short",
+      "--junitxml=/handoff/evidence/server-store-sqlite.xml"
+    ],
+    "exit_code": 1
+  }
+}
