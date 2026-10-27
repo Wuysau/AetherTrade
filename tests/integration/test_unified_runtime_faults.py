@@ -58,6 +58,7 @@ def preserve(name, states):
 def kill_worker(config, phase, command_id, marker):
     """Terminate only this spawned child at a real durable/side-effect boundary."""
     from trading_system.engine.paper import PaperEngine
+    from trading_system.execution.commands import CommandRepository
     from trading_system.storage.uow import LedgerTx
 
     def die():
@@ -84,9 +85,10 @@ def kill_worker(config, phase, command_id, marker):
         original = current._reconcile
 
         def after_ack(*args, **kwargs):
-            with current.connect() as conn:
-                state = conn.execute("SELECT payload->>'state' FROM ledger.commands WHERE record_id=%s "
-                    'ORDER BY sequence DESC LIMIT 1', (command_id,)).fetchone()[0]
+            # Effective ACK state is an append-only outcome overlay; the raw
+            # conservative command row intentionally remains MAY_HAVE_SENT.
+            with current.uow.transaction(scope_for('BTCUSDT')) as tx:
+                state = CommandRepository(tx).get(command_id).state
             if state == 'VENUE_CONFIRMED':
                 die()
             return original(*args, **kwargs)
