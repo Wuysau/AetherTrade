@@ -18,7 +18,7 @@ export interface Position {
 }
 export interface Order {
   id: string; symbol: SymbolName; side: 'BUY' | 'SELL'; quantity: string;
-  price: string; notional: string; fee: string; status: 'FILLED' | 'SUBMITTED' | 'PARTIALLY_FILLED' | 'CANCEL_UNKNOWN' | 'EXPIRED' | 'REJECTED' | 'CANCELED' | 'UNKNOWN';
+  price: string; notional: string; fee: string; status: 'FILLED' | 'PENDING' | 'SUBMITTED' | 'PARTIALLY_FILLED' | 'CANCEL_UNKNOWN' | 'EXPIRED' | 'REJECTED' | 'CANCELED' | 'UNKNOWN';
   filled_quantity?: string; leaves_quantity?: string; provenance?: string;
   strategy_id: string | null; created_at: string;
 }
@@ -37,7 +37,8 @@ export interface TokenUsage { input_tokens: number | null; output_tokens: number
 export interface ModelResult { profile_id: string; profile_name: string; model: string; config_revision: number; status: 'SUCCEEDED' | 'FAILED'; decision?: Partial<Decision>; error?: string; usage?: TokenUsage | null }
 export interface AnalysisInput { symbol: SymbolName; analysis_mode: AnalysisMode; model_profile_ids: string[]; expected_revisions: Record<string, number>; acknowledge_cost: true }
 export type StrategyStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED';
-export interface StrategyInput { status?: StrategyStatus; analysis_mode?: AnalysisMode; model_profile_ids?: string[]; analysis_interval_seconds?: number; auto_execute?: boolean; acknowledge_model_cost?: boolean; name: string; symbol: SymbolName; mode: Mode; budget: string; target_pct: string }
+export interface PriceRule { kind: 'PRICE_THRESHOLD'; operator: 'LTE' | 'GTE'; price: string; stop_loss_pct: string }
+export interface StrategyInput { status?: StrategyStatus; rule?: PriceRule; acknowledge_paper_automation?: boolean; analysis_mode?: AnalysisMode; model_profile_ids?: string[]; analysis_interval_seconds?: number; auto_execute?: boolean; acknowledge_model_cost?: boolean; name: string; symbol: SymbolName; mode: Mode; budget: string; target_pct: string }
 export interface Strategy extends StrategyInput {
   id: string; status: StrategyStatus; runtime_status?: string; next_analysis_at?: string | null; last_analysis_at?: string | null; last_analysis_error?: string | null; revision: number; created_at: string; updated_at: string;
 }

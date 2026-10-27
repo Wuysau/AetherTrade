@@ -2,9 +2,9 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { PaperExecutionView } from '../src/runtime/paperexecution';
-import { OrderDialog } from '../src/runtime/forms';
+import { OrderDialog, StrategyDialog } from '../src/runtime/forms';
 import { RuntimeApi } from '../src/runtime/api';
-import type { Dashboard } from '../src/runtime/types';
+import type { Dashboard, Strategy } from '../src/runtime/types';
 
 function snapshot(): Dashboard {
   return { as_of: new Date().toISOString(),
@@ -41,4 +41,28 @@ it.each(['PENDING','SUBMITTED','UNKNOWN', undefined])('does not announce an acce
   fireEvent.submit(screen.getByRole('button', {name:/确认模拟/}).closest('form')!);
   await waitFor(() => expect(saved).toHaveBeenCalled());
   expect(saved.mock.calls[0][0]).not.toContain('已成交');
+});
+
+it('can explicitly activate a bounded RULE without acknowledging a model call', async () => {
+  const api = new RuntimeApi();
+  const save = vi.spyOn(api, 'saveStrategy').mockResolvedValue({} as Strategy);
+  render(<StrategyDialog mode="RULE" api={api} onClose={vi.fn()} onSaved={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText('策略名称'), {target:{value:'规则观察'}});
+  fireEvent.change(screen.getByLabelText('规则触发价格'), {target:{value:'49000'}});
+  fireEvent.change(screen.getByLabelText('配置状态'), {target:{value:'ACTIVE'}});
+  fireEvent.click(screen.getByRole('button', {name:'保存策略'}));
+  await waitFor(() => expect(save).toHaveBeenCalled());
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({mode:'RULE',
+    acknowledge_model_cost:false, acknowledge_paper_automation:true,
+    rule:{kind:'PRICE_THRESHOLD',operator:'LTE',price:'49000',stop_loss_pct:'5'}}), undefined, 'ACTIVE');
+});
+
+it('requires a configured rule before activating HYBRID', async () => {
+  const api = new RuntimeApi(), save = vi.spyOn(api, 'saveStrategy');
+  render(<StrategyDialog mode="HYBRID" api={api} onClose={vi.fn()} onSaved={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText('策略名称'), {target:{value:'混合观察'}});
+  fireEvent.change(screen.getByLabelText('配置状态'), {target:{value:'ACTIVE'}});
+  fireEvent.click(screen.getByRole('button', {name:'保存策略'}));
+  await screen.findByRole('alert');
+  expect(save).not.toHaveBeenCalled();
 });
