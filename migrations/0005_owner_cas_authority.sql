@@ -359,7 +359,7 @@ BEGIN
     -- setting, SQL function/procedure, multi-statement query, or early check.
     -- Unsupported transaction-control spellings fail closed. current_query()
     -- is the server's submitted query text, not a caller-writable GUC.
-    IF pg_catalog.current_query() !~* '^\s*(COMMIT|END)(\s+(WORK|TRANSACTION))?\s*;?\s*$'
+    IF COALESCE(pg_catalog.current_query(),'') !~* '^\s*(COMMIT|END)(\s+(WORK|TRANSACTION))?\s*;?\s*$'
         OR current_setting('synchronous_commit') IS DISTINCT FROM 'on' THEN
         RAISE EXCEPTION 'owner CAS requires final top-level synchronous COMMIT' USING ERRCODE='23514';
     END IF;
@@ -398,6 +398,15 @@ BEGIN
         OR NOT EXISTS (SELECT FROM ledger.ownership_transfers WHERE scope_id=NEW.scope_id AND payload=p
             AND sequence=(p->>'sequence')::bigint AND transaction_id=NEW.transaction_id) THEN
         RAISE EXCEPTION 'atomic owner and transfer projections required' USING ERRCODE='23514';
+    END IF;
+    -- Sample again after all potentially expensive snapshot/projection reads.
+    -- Cover earlier approvals as well if a raw controller uses multiple scopes
+    -- in one transaction. This remains a pre-WAL check, not a post-flush hook.
+    IF EXISTS (SELECT FROM ledger.owner_cas_approvals approval
+        JOIN ledger.owner_cas_authorities authority USING(authority_id)
+        WHERE approval.database_transaction=pg_current_xact_id()
+            AND authority.expires_at<=clock_timestamp()) THEN
+        RAISE EXCEPTION 'owner CAS authority expired at final commit check' USING ERRCODE='23514';
     END IF;
     RETURN NULL;
 END $$;
