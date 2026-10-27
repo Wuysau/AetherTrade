@@ -120,30 +120,39 @@ def resolver_uow(case):
     return UnitOfWork(connect)
 
 
-def test_only_source_lock_resolves_with_durable_review_and_distinct_authority(ip08_postgres):
+@pytest.fixture(scope='module')
+def private_daily_review_archive(ip08_postgres):
     import psycopg
-    case = eth_case(ip08_postgres)
-    lock = raise_daily(case)
-    supplied = t.ResolutionEvidence(lock_id=lock.lock_id, scope=lock.scope,
-        evidence=(ref('approved-review'),), authorization_id='review-authorization')
-    resolver = resolver_uow(case)
     # The execution owner can insert ordinary audit rows, so those rows are not
     # reviewer authority. This fixture's review archive is explicitly private
     # to the separately provisioned resolver identity.
-    with case.ledger.connect_admin() as conn:
+    with psycopg.connect(ip08_postgres) as conn:
         conn.execute('CREATE TABLE ledger.test_daily_reviews '
             '(scope_id text NOT NULL,lock_id text NOT NULL,payload jsonb NOT NULL,PRIMARY KEY(scope_id,lock_id))')
         conn.execute('REVOKE ALL ON ledger.test_daily_reviews FROM PUBLIC,ledger_owner,ledger_control,ledger_decision')
         conn.execute('GRANT SELECT,INSERT ON ledger.test_daily_reviews TO ledger_risk_resolver')
         conn.execute('CREATE TRIGGER immutable_history BEFORE UPDATE OR DELETE OR TRUNCATE '
             'ON ledger.test_daily_reviews FOR EACH STATEMENT EXECUTE FUNCTION ledger.reject_mutation()')
+
+
+def verify_daily_review(tx, original, requirement, evidence):
+    row = tx.execute('SELECT payload FROM ledger.test_daily_reviews WHERE scope_id=%s AND lock_id=%s',
+                     (scope_id(original.scope), original.lock_id)).fetchone()
+    review = None if row is None else decode(DailyReview, row[0])
+    return (requirement == 'DAILY_LOSS_REVIEW' and review is not None
+        and review.lock == original and review.authorization_id == evidence.authorization_id
+        and review.evidence in evidence.evidence and evidence.scope == original.scope)
+
+
+def test_only_source_lock_resolves_with_durable_review_and_distinct_authority(ip08_postgres, private_daily_review_archive):
+    import psycopg
+    case = eth_case(ip08_postgres)
+    lock = raise_daily(case)
+    supplied = t.ResolutionEvidence(lock_id=lock.lock_id, scope=lock.scope,
+        evidence=(ref('approved-review'),), authorization_id='review-authorization')
+    resolver = resolver_uow(case)
     def verify(tx, original, requirement, evidence):
-        row = tx.execute('SELECT payload FROM ledger.test_daily_reviews WHERE scope_id=%s AND lock_id=%s',
-                         (scope_id(original.scope), original.lock_id)).fetchone()
-        review = None if row is None else decode(DailyReview, row[0])
-        return (requirement == 'DAILY_LOSS_REVIEW' and review is not None
-            and review.lock == original and review.authorization_id == evidence.authorization_id
-            and review.evidence in evidence.evidence and evidence.scope == original.scope)
+        return verify_daily_review(tx, original, requirement, evidence)
     service = RiskLockService(case.ledger.uow, clock=lambda: NOW, verify=verify, resolver_uow=resolver)
     assert not service.resolve(lock.lock_id, supplied).resolved  # no ledger review
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
@@ -259,3 +268,45 @@ def test_shared_daily_lock_allows_bounded_protection_but_local_exit_only_interse
     with case.ledger.uow.transaction(case.scope) as tx:
         assert verifier.verify(tx, command, case.case.intent, NOW) is None
         assert verifier.verify(tx, case.command, case.case.intent, NOW) is not None
+
+
+def test_unrelated_group_resolution_between_candidate_and_history_reads_does_not_deny(
+        ip08_postgres, private_daily_review_archive):
+    source = eth_case(ip08_postgres)
+    lock = raise_daily(source)
+    target = ReservationCase(ip08_postgres)
+    assert target.group != source.group
+    supplied = t.ResolutionEvidence(lock_id=lock.lock_id, scope=lock.scope,
+        evidence=(ref('interleaved-review'),), authorization_id='interleaved-authorization')
+    resolver = resolver_uow(source)
+    with resolver.transaction(lock.scope) as tx:
+        tx.execute('INSERT INTO ledger.test_daily_reviews VALUES (%s,%s,%s::jsonb)',
+            (scope_id(lock.scope), lock.lock_id, encode(DailyReview(lock,
+                supplied.authorization_id, supplied.evidence[0]))))
+    source_service = RiskLockService(source.ledger.uow, clock=lambda: NOW,
+        verify=verify_daily_review, resolver_uow=resolver)
+    observed = []
+    with target.ledger.uow.transaction(target.scope) as tx:
+        execute = tx.execute
+        def interleave(sql, params=()):
+            result = execute(sql, params)
+            if 'SELECT DISTINCT ON (l.scope_id,l.record_id)' in sql:
+                # Materialize statement-one's real READ COMMITTED snapshot, then
+                # commit group B's valid resolution on another role/connection.
+                rows = result.fetchall()
+                matches = [row for row in rows if row[1] == lock.lock_id]
+                assert len(matches) == 1 and matches[0][2] == 1 and matches[0][3]['state'] == 'ACTIVE'
+                observed.append((matches[0][2], matches[0][3]['state']))
+                assert source_service.resolve(lock.lock_id, supplied).resolved
+                from types import SimpleNamespace
+                return SimpleNamespace(fetchall=lambda: rows)
+            return result
+        tx.execute = interleave
+        assert tx.risk_locks.applicable(target.scope) == ()
+    assert observed == [(1, 'ACTIVE')]
+    with source.ledger.connect_admin() as conn:
+        assert conn.execute('SELECT sequence,payload->>\'state\' FROM ledger.risk_locks '
+            'WHERE scope_id=%s AND record_id=%s ORDER BY sequence',
+            (scope_id(lock.scope), lock.lock_id)).fetchall() == [(1, 'ACTIVE'), (2, 'RESOLVED')]
+    assert 'NEW_RISK' in RiskLockService(target.ledger.uow).allowed_actions(target.scope)
+    assert target.reserve().accepted

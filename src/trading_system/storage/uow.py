@@ -317,6 +317,19 @@ class RiskLockRepository:
                         or len(set(lock.required_evidence)) != len(lock.required_evidence)):
                     raise ValueError('risk lock identity is inconsistent')
                 utc_timestamp(lock.raised_at)
+                source = self.tx.execute('SELECT collateral_group_id FROM ledger.account_bindings '
+                    'WHERE environment=%s AND account_id=%s AND product=%s FOR SHARE',
+                    account_key(lock.scope)).fetchall()
+                if len(source) != 1 or not source[0][0]:
+                    raise ValueError('risk lock source collateral binding is missing')
+                # Only our group is serialized by this transaction's mutex.
+                # Exclude a verifiably unrelated source before its history read:
+                # another group's legitimate resolution may commit between SQL
+                # statements under READ COMMITTED. Membership itself must still
+                # be verified; missing bindings are never proof of irrelevance.
+                if (stored_scope != scope_id(scope) and (lock.scope.environment != scope.environment
+                        or source[0][0] != self.tx.group_id)):
+                    continue
                 history = self.tx.execute('SELECT sequence,payload FROM ledger.risk_locks '
                     'WHERE scope_id=%s AND record_id=%s ORDER BY sequence', (stored_scope, record_id)).fetchall()
                 initial = decode(t.RiskLock, history[0][1])
@@ -327,11 +340,6 @@ class RiskLockRepository:
                             initial if index == 0 else replace(initial, state='RESOLVED'))
                             for index, (number, payload) in enumerate(history))):
                     raise ValueError('risk lock history is inconsistent')
-                source = self.tx.execute('SELECT collateral_group_id FROM ledger.account_bindings '
-                    'WHERE environment=%s AND account_id=%s AND product=%s FOR SHARE',
-                    account_key(lock.scope)).fetchall()
-                if len(source) != 1 or not source[0][0]:
-                    raise ValueError('risk lock source collateral binding is missing')
                 if lock.cause == 'DAILY_LOSS' and (
                         lock.permission != t.RiskPermission.NO_NEW_RISK
                         or lock.required_evidence != ('DAILY_LOSS_REVIEW',)):

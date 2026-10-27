@@ -97,3 +97,25 @@ def test_position_cannot_assert_unverified_foreign_daily_scope():
     from trading_system.execution.dispatcher import DispatchDenied
     with pytest.raises(DispatchDenied):
         case.check()
+
+
+@pytest.mark.parametrize('resolved_between_reads', [False, True])
+def test_verified_unrelated_group_is_ignored_during_its_resolution(resolved_between_reads):
+    case = ApplicabilityCase()
+    case.source = replace(case.source, venue_account_id='unrelated-account')
+    case.lock = replace(case.lock, scope=case.source)
+    case.bindings[account_key(case.source)] = [('unrelated-group',)]
+    case.rows = [(scope_id(case.source), case.lock.lock_id, 1, case.lock)]
+    history = [(1, case.lock)]
+    if resolved_between_reads:
+        history.append((2, replace(case.lock, state='RESOLVED')))
+    case.histories = {(scope_id(case.source), case.lock.lock_id): history}
+    assert case.repo.applicable(case.target) == ()
+
+
+def test_relevant_group_inconsistent_history_remains_fail_closed():
+    case = ApplicabilityCase()
+    case.histories[(scope_id(case.source), case.lock.lock_id)].append(
+        (2, replace(case.lock, state='RESOLVED')))
+    with pytest.raises(MissingEvidence):
+        case.repo.applicable(case.target)
