@@ -52,7 +52,7 @@ class LockedCase:
         self.tx = SimpleNamespace(scope=self.scope, group_id=self.intent.collateral_group_id,
             transaction_id='fixture-transaction',
             projections=SimpleNamespace(book=lambda scope: self.book),
-            risk_locks=SimpleNamespace(active=lambda scope: self.locks),
+            risk_locks=SimpleNamespace(active=lambda scope: self.locks, applicable=lambda scope: self.locks),
             _latest=self.latest, execute=self.execute)
         self.lease = t.OwnerLease(shard=t.ExecutionShard(environment=self.scope.environment,
             venue_account_id=self.scope.venue_account_id, product=self.scope.product,

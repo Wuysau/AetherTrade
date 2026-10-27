@@ -81,7 +81,7 @@ class RiskLockService:
 
     def active(self, scope):
         with self.uow.transaction(scope) as tx:
-            return tx.risk_locks.active(scope)
+            return tx.risk_locks.applicable(scope)
 
     def allowed_actions(self, scope):
         allowed = ACTIONS[t.RiskPermission.NORMAL]
@@ -93,7 +93,7 @@ class RiskLockService:
         # Scope comes from the authenticated caller's evidence, never a global
         # lock-id search. The collateral mutex covers validation and both writes.
         with (self.resolver_uow or self.uow).transaction(evidence.scope) as tx:
-            active = tx.risk_locks.active(evidence.scope)
+            active = tx.risk_locks.applicable(evidence.scope)
             lock = tx._latest('risk_locks', lock_id, t.RiskLock)
             missing = []
             now = self.clock()
