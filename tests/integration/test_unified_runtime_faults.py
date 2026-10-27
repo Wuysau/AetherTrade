@@ -161,7 +161,7 @@ def test_process_kill_rolls_back_partial_protection_projection_and_recovers_fill
         states['after_crash'] = snapshot(runtime_config)
         assert len(states['after_crash']['venue']['paper_engine_events']) == 1
         for table in ('fills', 'positions', 'protection_plans'):
-            assert not states['after_crash']['ledger'][table]
+            assert states['after_crash']['ledger'][table] == states['before']['ledger'][table]
         restarted = UnifiedPaperRuntime(**runtime_config)
         assert restarted.reconcile(command_id)['filled_quantity'] == '1'
         assert restarted.reconcile(command_id)['filled_quantity'] == '1'
