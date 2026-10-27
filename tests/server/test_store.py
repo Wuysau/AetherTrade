@@ -282,6 +282,20 @@ def test_postgresql_race_restart_and_concurrent_transaction_receipts():
             action = {"action": "exit_owned", "expected_revision": result["account"]["revision"], "confirmation": "EXIT PAPER"}
             assert restored.action(action, "pg-exit", market(), 90)["affected_count"] == 1
             assert restored.dashboard(market(), "24H")["positions"] == []
+            restored.order(buy(), 'pg-latch-entry', market(), 90)
+            with pytest.raises(ApiError, match='DAILY_LOSS_LIMIT'):
+                restored.order(buy('0.01'), 'pg-latch-loss', market('10000'), 90)
+            # Denial rolled its operation back, while its cause committed.
+            reopened = Store(url)
+            reopened.initialize()
+            try:
+                with pytest.raises(ApiError, match='DAILY_LOSS_LIMIT'):
+                    reopened.order(buy('0.01'), 'pg-latch-rebound', market(), 90)
+                assert reopened.dashboard(market())['risk_locks'][0]['cause'] == 'DAILY_LOSS'
+                reopened.order(dict(symbol='BTCUSDT', side='SELL', quantity='0.1', strategy_id=None),
+                    'pg-latch-reduce', market(), 90)
+            finally:
+                reopened.close()
         finally:
             restored.close()
     finally:

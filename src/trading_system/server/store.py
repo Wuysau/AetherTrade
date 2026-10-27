@@ -13,6 +13,7 @@ from pathlib import Path
 import secrets
 import threading
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import (JSON, Boolean, Column, Integer, MetaData, String, Table,
                         create_engine, delete, insert, select, update)
@@ -20,7 +21,9 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.pool import StaticPool
 
-from trading_system.contracts.canonical import canonical_hash, utc_timestamp
+from trading_system.contracts.canonical import canonical_hash, utc_timestamp, domain_payload
+from trading_system.contracts import types as t
+from trading_system.risk.locks import POLICIES
 from .errors import ApiError
 from .security import csrf_token, password_hash, password_matches, token_hash
 from .validation import SYMBOLS, amount, number
@@ -42,6 +45,8 @@ observations = Table("console_observations", metadata, Column("id", String(64), 
                      Column("at", String(40), nullable=False, index=True), Column("equity", String(96), nullable=False))
 receipts = Table("console_receipts", metadata, Column("key", String(128), primary_key=True),
                  Column("fingerprint", String(64), nullable=False), Column("data", JSON, nullable=False))
+cause_locks = Table("console_cause_locks", metadata, Column("id", String(96), primary_key=True),
+                    Column("data", JSON, nullable=False))
 FEE = Decimal("0.001")
 
 
@@ -110,8 +115,22 @@ class Store:
                 connection.execute(select(state.c.id).where(state.c.id == 1).with_for_update()).first()
                 yield connection
                 connection.commit()
-            except BaseException:
+            except BaseException as exc:
                 connection.rollback()
+                # Persist only the observed cause after rolling back a rejected
+                # order/job. Never commit any of that failed operation's writes.
+                if isinstance(exc, ApiError) and getattr(exc, 'daily_loss_lock', None):
+                    if self.sqlite:
+                        connection.exec_driver_sql('BEGIN IMMEDIATE')
+                    else:
+                        connection.begin()
+                    try:
+                        connection.execute(select(state.c.id).where(state.c.id == 1).with_for_update()).first()
+                        self._save_daily_lock(connection, exc.daily_loss_lock)
+                        connection.commit()
+                    except BaseException:
+                        connection.rollback()
+                        raise
                 raise
 
     def needs_setup(self) -> bool:
@@ -349,11 +368,44 @@ class Store:
         connection.execute(insert(observations).values(id=str(uuid4()), at=stamp(), equity=number(equity)))
 
     def _day_start(self, connection, initial):
-        midnight = now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        zone = self._state(connection)['risk'].get('risk_day_timezone', 'Asia/Shanghai')
+        midnight = now().astimezone(ZoneInfo(zone)).replace(hour=0, minute=0, second=0,
+            microsecond=0).astimezone(timezone.utc).isoformat()
         before = connection.execute(select(observations.c.equity).where(observations.c.at <= midnight).order_by(observations.c.at.desc()).limit(1)).scalar_one_or_none()
         if before is None:
             before = connection.execute(select(observations.c.equity).order_by(observations.c.at).limit(1)).scalar_one_or_none()
         return Decimal(before or initial)
+
+    def _save_daily_lock(self, connection, record):
+        if connection.execute(select(cause_locks.c.id).where(cause_locks.c.id == record['lock_id'])).first() is None:
+            connection.execute(insert(cause_locks).values(id=record['lock_id'], data=record))
+            self._event(connection, 'RISK_LOCK', '日亏损风险锁已持久化',
+                '价格回升、暂停恢复或风险日切换不会解除；需要独立 DAILY_LOSS_REVIEW 授权证据。')
+
+    def _daily_loss(self, connection, data, equity, *, prospective_fee=Decimal(0), deny=False):
+        active = [item for item in rows(connection, cause_locks) if item['state'] == 'ACTIVE']
+        loss = self._day_start(connection, data['account']['initial_cash']) - equity
+        breached = loss + prospective_fee >= Decimal(data['risk']['max_daily_loss'])
+        record = None
+        if breached and not active:
+            zone = data['risk'].get('risk_day_timezone', 'Asia/Shanghai')
+            day = now().astimezone(ZoneInfo(zone)).date().isoformat()
+            permission, required = POLICIES['DAILY_LOSS']
+            record = domain_payload(t.RiskLock(lock_id='console-daily:' + day,
+                scope=t.ScopeKey(environment=t.Environment.PAPER, venue_account_id=data['account']['id'],
+                    product=t.Product.SPOT, instrument_uid='console-account', venue_leg='BOTH'),
+                cause='DAILY_LOSS', state='ACTIVE', permission=permission,
+                required_evidence=required, raised_at=stamp()))
+            record.update(risk_day=day, risk_day_timezone=zone, observed_equity=number(equity),
+                baseline=number(self._day_start(connection, data['account']['initial_cash'])),
+                prospective_fee=number(prospective_fee), policy_revision=data['risk']['revision'])
+        if deny and (active or breached):
+            exc = ApiError('DAILY_LOSS_LIMIT', 'PAPER 日亏损风险锁生效；价格回升不会解除。', 409)
+            exc.daily_loss_lock = record
+            raise exc
+        if record:
+            self._save_daily_lock(connection, record)
+        return active + ([record] if record else [])
 
     def _cached(self, connection, key, operation, payload):
         if not isinstance(key, str) or not 1 <= len(key) <= 128 or any(ord(char) < 33 or ord(char) > 126 for char in key):
@@ -431,9 +483,7 @@ class Store:
             if account["paused"]:
                 raise ApiError("ENTRIES_PAUSED", "PAPER 新开仓已暂停；仍可卖出已有持仓。", 409)
             equity, held = self._valuation(connection, account, market, fresh=True, maximum_age=maximum_age)
-            projected_loss = self._day_start(connection, account["initial_cash"]) - equity + quantity * price * FEE
-            if projected_loss >= Decimal(data["risk"]["max_daily_loss"]):
-                raise ApiError("DAILY_LOSS_LIMIT", "PAPER 当日亏损已达到限制。", 409)
+            self._daily_loss(connection, data, equity, prospective_fee=quantity * price * FEE, deny=True)
             previous = next((Decimal(item["market_value"]) for item in held if item["symbol"] == symbol), Decimal(0))
             post_equity = equity - quantity * price * FEE
             if post_equity <= 0 or (previous + quantity * price) * 100 > post_equity * Decimal(data["risk"]["max_position_pct"]):
@@ -500,6 +550,11 @@ class Store:
             data = self._state(connection)
             account = data["account"]
             equity, held = self._valuation(connection, account, market)
+            try:
+                fresh_equity, _ = self._valuation(connection, account, market, fresh=True)
+                self._daily_loss(connection, data, fresh_equity)
+            except ApiError:
+                pass
             initial, cash = Decimal(account["initial_cash"]), Decimal(account["cash"])
             baseline = self._day_start(connection, account["initial_cash"])
             pnl = equity - baseline
@@ -521,6 +576,7 @@ class Store:
                     "orders": [{key: value for key, value in item.items() if key != "realized_pnl"} for item in trades],
                     "decisions": [], "strategies": sorted(rows(connection, strategies), key=lambda item: item["created_at"], reverse=True),
                     "events": sorted(rows(connection, events), key=lambda item: item["created_at"], reverse=True)[:100], "risk": data["risk"],
+                    "risk_locks": rows(connection, cause_locks),
                     "services": [{"id": "database", "label": "本地账本", "status": "CONNECTED", "detail": "PostgreSQL" if not self.sqlite else "SQLite · 本地模式", "updated_at": stamp()},
                                  {"id": "paper", "label": "PAPER 执行", "status": "CONNECTED", "detail": "仅本地模拟成交；未接入交易所交易接口。", "updated_at": stamp()},
                                  {"id": "ai", "label": "AI 决策", "status": "NOT_CONFIGURED", "detail": "未配置模型；没有生成或自动执行决策。", "updated_at": None},
@@ -546,6 +602,8 @@ class Store:
             for item in held:
                 connection.execute(update(positions).where(positions.c.symbol == item["symbol"]).values(data=item))
             self._observe(connection, equity)
+
+            self._daily_loss(connection, data, equity)
 
     def analysis_context(self, symbol, market, maximum_age):
         """Minimal PAPER context; no identity, credential, connection or session data.
