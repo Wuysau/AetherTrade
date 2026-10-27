@@ -1,0 +1,223 @@
+[
+  {
+    "kind": "owner-red",
+    "source_commit": "2920641c5326690969d1075d9e2f17eb466b194a",
+    "archive": "owner-red.zip",
+    "archive_sha256": "9ad58132dc8366a14344d97d51a976f8e520e5e5410d7d41cc0d79c0644cc55c",
+    "files_sha256": {
+      "2920641c5326-e461323e10ac/ownership.log": "dba5487748d094c5e2e2bb917d195b04c651f30a0327357382b8e7192d3e4eac",
+      "2920641c5326-e461323e10ac/ownership.xml": "40d5d2dcba5d3f5f907301fba592865ac6bcefb98ccb67ce48822b0e5ddf195b",
+      "2920641c5326-e461323e10ac/summary.json": "d944feb7f868bc4eb5a88c2995dba94eb6ebbe97ea4d44fc8e165061e316e404"
+    },
+    "migrations": {
+      "0001_business_ledger.sql": "b3bfbaaec9dbeeb207297a395290dd4083d5b6101c98a11e240d36a9b32b5dc6",
+      "0002_risk_resolution_authority.sql": "f2597dd09832aef2b4fa1a82f0152c10226b613cdbb5ffce24285ffc6b0793a4",
+      "0003_paper_engine.sql": "4028e5495f2f6fa8973d8e1d3f3ae9cdfada83b1c3032db08303a5a41e725692",
+      "0004_command_abort_guard.sql": "19017e040298f0a0f814312252d4c3f3bce25298f3e58512c6d9e8efcf4b73b6",
+      "0005_owner_cas_authority.sql": "47e977e6406b117f058af38b0d3aeed4ae038d2e368609023e9b59589bacb5ac",
+      "0006_proposal_intake_role.sql": "57636b05884734e6abfe805a2749399b4e069750e268f5995cf2b38e8ff0d101"
+    },
+    "suites": [
+      {
+        "suite": "ownership",
+        "xml_results": {
+          "passed": 133,
+          "failed": 1,
+          "errors": 0,
+          "skipped": 0
+        }
+      }
+    ],
+    "command_and_exit_metadata": "Original summary.json inside archive",
+    "qualification": "NOT_QUALIFIED_HISTORICAL_RED_OR_PARTIAL",
+    "recovered_parent_tool_metadata": {
+      "command": [
+        "docker",
+        "exec",
+        "--env-file",
+        ".runtime/paper-ci-safe.env",
+        "-w",
+        "/tmp/paper-resume/work",
+        "aethertrade-paper-ci-runner-ac35d74b",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "ownership",
+        "--evidence-dir",
+        "/evidence/resume-owner-red"
+      ],
+      "overall_exit_code": 1,
+      "provenance": "Parent agent supplied retained tool invocation and exit code on 2026-10-27. This recovery is metadata, not newly generated original stdout."
+    }
+  },
+  {
+    "kind": "partial-integrated",
+    "source_commit": "66bd023449dc7e59ebc1d96d7c487618e1943936",
+    "archive": "partial-integrated.zip",
+    "archive_sha256": "ca05a78aca1dbc28fb38b3c9082feabb5aed2acf9571ed26082729148ffc375a",
+    "files_sha256": {
+      "66bd023449dc-05fff318baf4/child-cancel.log": "e35538f0a0fb4e3ff3821b36fd62d7ef59bcb8ac39bedd8b36f2111b3ccc7d82",
+      "66bd023449dc-05fff318baf4/child-cancel.xml": "585bc5e110aab2acbd877ce399467e88e3bffbeefb9d8af41e96137b728f8d70",
+      "66bd023449dc-05fff318baf4/dispatch.log": "3daa3a88874913b640176425b49a701287ad428ef9f4b22b9ee1bc870e1175d9",
+      "66bd023449dc-05fff318baf4/dispatch.xml": "188a1cc3de74b4c4dd4470a26038430f92c84dcfb36725873e02e74967e86ae7",
+      "66bd023449dc-05fff318baf4/duplicate-target.log": "1f1bd16c3f1f212a3a99f44816a85f58e237c654a23cb3449827ae2187960a49",
+      "66bd023449dc-05fff318baf4/duplicate-target.xml": "858b69f273e5f3b4dc3553721496cdc05b8156e7df0437a3a5c368ef35969db9",
+      "66bd023449dc-05fff318baf4/execution-evidence.log": "5bb920c804fd5b240b8d2d66a73a811beeb1d3d08111f0ae2c1efcdf5bfc8991",
+      "66bd023449dc-05fff318baf4/execution-evidence.xml": "54b1d39c8c7406531326e5b0a2210ad54717c0c22c5ce43a84e0406a7b3601c7",
+      "66bd023449dc-05fff318baf4/group-daily-loss.log": "8fa1ce7a9fa02ca814eec60363e7c8bef1d502ee4cb14aeca0856e8592fb514a",
+      "66bd023449dc-05fff318baf4/group-daily-loss.xml": "252baa276232ebe7b2dd84c53e65eb3f498e303204ff118f044a71bb8bbea565",
+      "66bd023449dc-05fff318baf4/ledger.log": "6e63ca9e3c79e1ddb10d5600aa2b57e18af0afc174047cce8e55669cdea779ff",
+      "66bd023449dc-05fff318baf4/ledger.xml": "1cb344e58fa4681bc33d4549224fd038da73dab9c4c4907fa9fd3218bc1f81cc",
+      "66bd023449dc-05fff318baf4/ownership.log": "6dd042428ff33dfff84b60331d5d4e5ee9787a54a60787ffaee38da1e9b10a31",
+      "66bd023449dc-05fff318baf4/ownership.xml": "9c5c70cc5988b422ff39d7740b74bd25127dd1834c352234ac6c18fedb2444d2",
+      "66bd023449dc-05fff318baf4/paper-engine.log": "31e2f0ae5424c145f1307956b48de7a78c549e8d262f9529cdc8f23167f74aff",
+      "66bd023449dc-05fff318baf4/paper-engine.xml": "fb3d3aeb600e2b8e350ceda243eedc37a4acb6ed419f91645d1fbf4773a23851",
+      "66bd023449dc-05fff318baf4/protection.log": "af90371a52f7c1b68d848d98698ee6f374569e43e1e113edcaa0be57c532f9ca",
+      "66bd023449dc-05fff318baf4/protection.xml": "8670ee8c195df2be568673dd7d7cf7ee683367d513c16b4bb7e0b30f77acb6ef",
+      "66bd023449dc-05fff318baf4/recovery.log": "5912f7aa308dc34b990b9cb8a5e1f5d5a0b0a08de4595b4dc4c6a83fce9e8c6f",
+      "66bd023449dc-05fff318baf4/recovery.xml": "91361eac3517a8ea7ee0bcb35499a2e9f165c046b3f06781357f49a2717d1869",
+      "66bd023449dc-05fff318baf4/reservations.log": "1d2b523f124a2239b56736cd6abb20ebc87a51f49fe207239716d59c77090d9b",
+      "66bd023449dc-05fff318baf4/reservations.xml": "ba6633506b63c7f3079a3e099e4a6aef951a41e2761360a9edc2b8d1d2451712",
+      "66bd023449dc-05fff318baf4/risk-locks.log": "33bb28f93da02397d3067d99447c12b9ce4e03b12db9ba1691e2577b0c6edf1a",
+      "66bd023449dc-05fff318baf4/risk-locks.xml": "08e548285fad0855dc626acbf4e82f039039060960865abd9b2af96fcbc755ee"
+    },
+    "migrations": {
+      "0001_business_ledger.sql": "b3bfbaaec9dbeeb207297a395290dd4083d5b6101c98a11e240d36a9b32b5dc6",
+      "0002_risk_resolution_authority.sql": "f2597dd09832aef2b4fa1a82f0152c10226b613cdbb5ffce24285ffc6b0793a4",
+      "0003_paper_engine.sql": "4028e5495f2f6fa8973d8e1d3f3ae9cdfada83b1c3032db08303a5a41e725692",
+      "0004_command_abort_guard.sql": "19017e040298f0a0f814312252d4c3f3bce25298f3e58512c6d9e8efcf4b73b6",
+      "0005_owner_cas_authority.sql": "47e977e6406b117f058af38b0d3aeed4ae038d2e368609023e9b59589bacb5ac",
+      "0006_proposal_intake_role.sql": "57636b05884734e6abfe805a2749399b4e069750e268f5995cf2b38e8ff0d101",
+      "0007_owner_controller_ddl_guard.sql": "e2d82d0892c5b510b0966832ecd3587ce96939c097f9ee7c768a4d1b74f3e4ec"
+    },
+    "suites": [
+      {
+        "suite": "child-cancel",
+        "xml_results": {
+          "passed": 19,
+          "failed": 0,
+          "errors": 30,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "dispatch",
+        "xml_results": {
+          "passed": 61,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "duplicate-target",
+        "xml_results": {
+          "passed": 29,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "execution-evidence",
+        "xml_results": {
+          "passed": 37,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "group-daily-loss",
+        "xml_results": {
+          "passed": 9,
+          "failed": 2,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "ledger",
+        "xml_results": {
+          "passed": 30,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "ownership",
+        "xml_results": {
+          "passed": 134,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "paper-engine",
+        "xml_results": {
+          "passed": 59,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "protection",
+        "xml_results": {
+          "passed": 74,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "recovery",
+        "xml_results": {
+          "passed": 94,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "reservations",
+        "xml_results": {
+          "passed": 67,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "suite": "risk-locks",
+        "xml_results": {
+          "passed": 36,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      }
+    ],
+    "command_and_exit_metadata": "NOT_RECORDED: run aborted on pre-existing console database before runner wrote summary; per-suite XML/log preserved; source runner command construction retained in fixed commit.",
+    "qualification": "NOT_QUALIFIED_HISTORICAL_RED_OR_PARTIAL",
+    "recovered_parent_tool_metadata": {
+      "command": [
+        "docker",
+        "exec",
+        "--env-file",
+        ".runtime/paper-ci-safe.env",
+        "-w",
+        "/tmp/paper-resume/work",
+        "aethertrade-paper-ci-runner-ac35d74b",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--evidence-dir",
+        "/evidence/resume-integrated"
+      ],
+      "overall_exit_code": 1,
+      "provenance": "Parent agent supplied retained tool invocation and exit code on 2026-10-27. This recovery is metadata, not newly generated original stdout."
+    }
+  }
+]
