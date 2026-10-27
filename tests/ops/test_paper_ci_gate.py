@@ -87,3 +87,17 @@ def test_console_credential_scratch_cannot_live_inside_artifacts(tmp_path, monke
         with console_scratch(options, 'aethertrade_tests', tmp_path):
             pytest.fail('artifact directory must not contain credentials')
     assert list(tmp_path.iterdir()) == []
+
+
+def test_sibling_of_run_directory_is_still_inside_upload_boundary(tmp_path, monkeypatch):
+    import tempfile
+    upload_root = tmp_path / 'uploaded'
+    upload_root.mkdir()
+    run_dir = upload_root / 'source-hash-and-run-id'
+    run_dir.mkdir()
+    monkeypatch.setattr(tempfile, 'tempdir', str(upload_root))
+    options = validated_admin_options('postgresql://paper_admin:synthetic@localhost:55432/paper_ci_admin')
+    with pytest.raises(GateError, match='outside uploaded evidence'):
+        with console_scratch(options, 'aethertrade_tests', upload_root):
+            pytest.fail('a sibling of the run directory is still uploaded')
+    assert list(upload_root.iterdir()) == [run_dir]

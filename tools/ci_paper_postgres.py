@@ -249,7 +249,9 @@ def main(argv=None):
                 dsn = make_conninfo(**{**values, 'dbname': dbname})
                 with ExitStack() as stack:
                     if number == 'CONSOLE':
-                        cwd = stack.enter_context(console_scratch(values, dbname, evidence))
+                        # GitHub uploads the entire evidence root, not just the
+                        # current run's child directory.
+                        cwd = stack.enter_context(console_scratch(values, dbname, evidence_root))
                         env['AETHERTRADE_RUN_POSTGRES_TESTS'] = '1'
                     else:
                         cwd = ROOT
