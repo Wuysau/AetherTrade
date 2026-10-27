@@ -35,6 +35,36 @@ VERSION = "0.1.0"
 def create_app(settings: Settings | None = None, *, quote_provider=None, model_client=None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = Store(settings.database_url)
+    if settings.paper_ledger_dsn:
+        from .paper_runtime import UnifiedPaperRuntime
+        from .store import state as console_state, strategies as console_strategies
+        from sqlalchemy import select
+
+        def current_control(request, command):
+            # The owner holds the advisory account lock; every console control
+            # transaction acquires the same lock before changing authority.
+            with store.engine.connect() as connection:
+                data = connection.execute(select(console_state.c.data).where(console_state.c.id == 1)).scalar_one()
+                if command.canonical_payload.side == 'BUY' and data['account']['paused']:
+                    raise ApiError('ENTRIES_PAUSED', '新增风险已暂停。', 409)
+                if data['risk']['revision'] != request.risk_revision:
+                    raise ApiError('STALE_RISK_POLICY', '风险政策已更改，请重新评估。', 409)
+                quote = market_snapshot()
+                price = store._price(quote, request.symbol, request.maximum_age)
+                current_quote = next(item for item in quote['quotes'] if item['symbol'] == request.symbol)
+                from trading_system.contracts.canonical import utc_timestamp
+                from decimal import Decimal
+                if (utc_timestamp(current_quote['as_of']) < utc_timestamp(request.quote_at)
+                        or abs(price / Decimal(request.quote_price) - 1) > Decimal('.002')):
+                    raise ApiError('MARKET_REPLAN_REQUIRED', '行情乱序或超出原订单价格界限。', 409)
+                if request.strategy_id:
+                    strategy = connection.execute(select(console_strategies.c.data).where(console_strategies.c.id == request.strategy_id)).scalar_one_or_none()
+                    if (not strategy or strategy['revision'] != request.strategy_revision
+                            or strategy['status'] == 'PAUSED'):
+                        raise ApiError('STALE_STRATEGY', '策略授权已变更。', 409)
+        store.execution = UnifiedPaperRuntime(ledger_dsn=settings.paper_ledger_dsn,
+            venue_dsn=settings.paper_venue_dsn, event_dsn=settings.paper_event_dsn,
+            journal_directory=settings.paper_journal_directory, current_control=current_control)
     market_config = MarketConfigService(store, settings.model_key_path)
     feed = quote_provider if quote_provider is not None else LiveMarketFeed(market_config, max_age_seconds=settings.quote_max_age_seconds)
     models = ModelService(store, settings.model_key_path, client=model_client)
@@ -244,6 +274,24 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     @app.get("/api/notifications")
     def get_notifications(_=Depends(authenticated)):
         return automation.notifications()
+
+    def paper_runtime():
+        if store.execution is None or store.sqlite:
+            raise ApiError('UNIFIED_PAPER_REQUIRED', '统一 PostgreSQL PAPER 执行尚未配置。', 503)
+        return store.execution
+
+    @app.post('/api/paper/{command_id}/dispatch')
+    def paper_dispatch(command_id: str, _=Depends(mutation)):
+        return paper_runtime().dispatch(command_id)
+
+    @app.post('/api/paper/{command_id}/reconcile')
+    def paper_reconcile(command_id: str, _=Depends(mutation)):
+        return paper_runtime().reconcile(command_id)
+
+    @app.post('/api/paper/{command_id}/events')
+    def paper_event(command_id: str, payload: dict, _=Depends(mutation)):
+        from .validation import PaperEvent
+        return paper_runtime().inject(command_id, PaperEvent.model_validate(payload).model_dump())
 
     @app.post("/api/notifications/read")
     def read_notifications(payload: dict, _=Depends(mutation)):

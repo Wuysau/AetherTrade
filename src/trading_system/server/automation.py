@@ -43,7 +43,7 @@ class AutomationService:
 
     @staticmethod
     def _active(strategy):
-        return strategy.get("status") == "ACTIVE" and strategy.get("mode") == "AI" and strategy.get("_activation_authorized") is True
+        return strategy.get("status") == "ACTIVE" and strategy.get("mode") in ("AI", "RULE", "HYBRID") and strategy.get("_activation_authorized") is True
 
     @staticmethod
     def _ready(config):
@@ -171,7 +171,7 @@ class AutomationService:
                 analysis_mode, identifiers = self._binding(strategy)
                 selected = [available.get(identifier) for identifier in identifiers]
                 current = [repository.read_profile(connection, identifier) for identifier in identifiers]
-                valid_count = len(identifiers) == 1 if analysis_mode == "single" else analysis_mode == "consensus" and 2 <= len(identifiers) <= 3
+                valid_count = (not identifiers) if strategy['mode'] == 'RULE' else (len(identifiers) == 1 if analysis_mode == "single" else analysis_mode == "consensus" and 2 <= len(identifiers) <= 3)
                 if (not valid_count or len(set(identifiers)) != len(identifiers)
                         or any(not self._ready(public) or not self._ready(saved) or public["revision"] != saved["revision"]
                                for public, saved in zip(selected, current))):
@@ -186,13 +186,14 @@ class AutomationService:
                     continue
                 identifier = str(uuid4())
                 job = dict(id=identifier, strategy_id=strategy["id"], strategy_name=strategy["name"],
+                           decision_mode=strategy['mode'], rule=strategy.get('rule'),
                            strategy_revision=strategy["revision"], analysis_mode=analysis_mode,
                            model_profile_ids=list(identifiers), profile_revisions={item["id"]: item["revision"] for item in current},
                            profile_names={item["id"]: item["name"] for item in current},
                            symbol=strategy["symbol"], auto_execute=strategy.get("auto_execute", False),
                            interval=strategy.get("analysis_interval_seconds", 300),
                            model_key="auto-analysis:" + identifier, worker_id=self.worker_id,
-                           created_at=current_time, lease_until=(now() + timedelta(seconds=max(180, max(item.get("timeout_seconds", 120) for item in current) + 60))).isoformat(), status="RUNNING")
+                           created_at=current_time, lease_until=(now() + timedelta(seconds=max(180, max((item.get("timeout_seconds", 120) for item in current), default=120) + 60))).isoformat(), status="RUNNING")
                 if identifiers == [repository.DEFAULT_PROFILE_ID]:
                     job["model_revision"] = current[0]["revision"]
                 put(connection, jobs, identifier, job)
@@ -209,9 +210,18 @@ class AutomationService:
             return "NO_ACTION", "模型建议观望；未下单。"
         account = self.store._state(connection)["account"]
         held = connection.execute(select(positions.c.data).where(positions.c.symbol == job["symbol"])).scalar_one_or_none()
+        if self.store.execution:
+            held = next((item for item in self.store.execution.account_view()['positions'] if item['symbol'] == job['symbol']), None)
         if held and held.get("strategy_id") != strategy["id"]:
             raise ApiError("POSITION_OWNERSHIP", "该品种持仓属于手动操作或其他策略；未自动下单。", 409)
         price = self.store._price(market, job["symbol"], self.settings.quote_max_age_seconds)
+        if strategy['mode'] in ('RULE', 'HYBRID') and action == 'BUY' and not self._rule_matches(strategy['rule'], price):
+            return 'NO_ACTION', '当前价格不满足服务端规则；未创建命令。'
+        if decision.get('created_at'):
+            from trading_system.contracts.canonical import utc_timestamp
+            age = (now() - utc_timestamp(decision['created_at'])).total_seconds()
+            if not 0 <= age <= 120:
+                raise ApiError('STALE_DECISION', '决策已过期或时间异常；未增加风险。', 409)
         if action == "SELL":
             if not held:
                 return "NO_ACTION", "策略没有可卖出的自有持仓。"
@@ -227,8 +237,12 @@ class AutomationService:
                 return "NO_ACTION", "策略已达到目标配置或可用资金不足最小下单精度。"
         result = self.store._order(connection, dict(symbol=job["symbol"], side=action, quantity=number(quantity), strategy_id=strategy["id"]),
                                    "auto-order:" + job["id"], market, self.settings.quote_max_age_seconds)
-        decision.update(order_id=result["order"]["id"], risk_status="PAPER_PASSED")
-        return "FILLED", "已通过本地 PAPER 风控并模拟成交；未向交易所发单。"
+        decision.update(order_id=result["order"]["id"], command_id=result['order']['command_id'], risk_status="PAPER_PASSED")
+        return "PENDING", "已通过统一 PAPER 风控并持久化命令；等待执行与成交事件。"
+
+    @staticmethod
+    def _rule_matches(rule, price):
+        return price <= Decimal(rule['price']) if rule['operator'] == 'LTE' else price >= Decimal(rule['price'])
 
     def _authorized(self, connection, job):
         strategy = read(connection, strategies, job["strategy_id"])
@@ -303,6 +317,10 @@ class AutomationService:
                     with connection.begin_nested():
                         status, reason = self._execute(connection, job, strategy, decision, market)
                 except ApiError as exc:
+                    # The savepoint has rolled back; persist the observed cause
+                    # in the outer account transaction before swallowing denial.
+                    if getattr(exc, 'daily_loss_lock', None):
+                        self.store._save_daily_lock(connection, exc.daily_loss_lock)
                     status, reason = "BLOCKED", exc.message
                     decision.update(risk_status="PAPER_REJECTED", order_id=None)
             self._complete(connection, job, decision, status, reason)
@@ -320,7 +338,13 @@ class AutomationService:
                 await run_in_threadpool(self._finish, job)
                 return job["id"]
             mode, identifiers, revisions = self._job_binding(job)
-            if hasattr(self.models, "analyze"):
+            if job.get('decision_mode') == 'RULE':
+                price = self.store._price(self.quote_snapshot(), job['symbol'], self.settings.quote_max_age_seconds)
+                action = 'BUY' if self._rule_matches(job['rule'], price) else 'HOLD'
+                result = {'decision': dict(id='rule:' + job['id'], symbol=job['symbol'], action=action,
+                    summary=f"价格 {price} {job['rule']['operator']} {job['rule']['price']}；服务端规则计算。",
+                    risk_status='NOT_EVALUATED', created_at=stamp())}
+            elif hasattr(self.models, "analyze"):
                 result = await self.models.analyze(job["symbol"], mode, identifiers, revisions, job["model_key"], context)
             elif mode == "single" and identifiers == [repository.DEFAULT_PROFILE_ID]:
                 result = await self.models.generate(job["symbol"], revisions[repository.DEFAULT_PROFILE_ID], job["model_key"], context)
@@ -383,7 +407,7 @@ class AutomationService:
             runtime = strategy["status"]
             if is_active:
                 runtime = schedule.get("runtime_status", "READY")
-                if not identifiers or any(not self._ready(available.get(identifier)) for identifier in identifiers):
+                if strategy['mode'] != 'RULE' and (not identifiers or any(not self._ready(available.get(identifier)) for identifier in identifiers)):
                     runtime = "WAITING_MODEL"
                 elif runtime != "RUNNING":
                     try:

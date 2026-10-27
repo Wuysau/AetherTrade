@@ -7,6 +7,7 @@ IP-11/17 must supply and independently qualify that integration. Callbacks never
 come from model/user payloads, and must not perform network I/O inside a ledger tx.
 """
 from dataclasses import dataclass, replace
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from time import monotonic_ns
 
@@ -49,12 +50,14 @@ def clock_now() -> t.ClockReading:
 
 class CommandDispatcher:
     def __init__(self, uow, scope: t.ScopeKey, engine: EnginePort | None = None, *,
-                 load_facts=None, owner_guard=None, clock=clock_now, load_action_proof=None):
+                 load_facts=None, owner_guard=None, clock=clock_now, load_action_proof=None,
+                 side_effect_guard=None):
         if scope.environment not in (t.Environment.PAPER, t.Environment.RESEARCH):
             raise DispatchDenied('only offline PAPER/RESEARCH composition is enabled')
         self.uow, self.scope, self.engine = uow, scope, engine
         self.load_facts, self.owner_guard, self.clock = load_facts, owner_guard, clock
         self.load_action_proof = load_action_proof
+        self.side_effect_guard = side_effect_guard
 
     def _clock_check(self, lease, facts=None, permit=None):
         reading = self.clock()
@@ -148,7 +151,8 @@ class CommandDispatcher:
                     'AMEND': self.engine.amend}[command.operation]
                 # Signing/authentication timestamps, if ever qualified, belong
                 # exclusively to the controlled EnginePort at this boundary.
-                receipt = operation(command, permit)
+                with (self.side_effect_guard(command, permit, lease) if self.side_effect_guard else nullcontext()):
+                    receipt = operation(command, permit)
                 if (not isinstance(receipt, t.CommandReceipt) or receipt.command_id != command_id
                         or not receipt.receipt_id
                         or receipt.status not in (t.CommandState.VENUE_CONFIRMED, t.CommandState.VENUE_REJECTED)

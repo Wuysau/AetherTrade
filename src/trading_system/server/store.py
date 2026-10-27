@@ -77,6 +77,7 @@ class Store:
                 options["poolclass"] = StaticPool
         self.engine = create_engine(url, **options)
         self._lock = threading.RLock()
+        self.execution = None
 
     def initialize(self):
         # Register additive model tables even when Store is used without the app.
@@ -112,6 +113,8 @@ class Store:
             else:
                 connection.begin()
             try:
+                if not self.sqlite and self.execution:
+                    connection.exec_driver_sql("SELECT pg_advisory_xact_lock(hashtextextended('console-owner:paper-local:SPOT',0))")
                 connection.execute(select(state.c.id).where(state.c.id == 1).with_for_update()).first()
                 yield connection
                 connection.commit()
@@ -252,8 +255,23 @@ class Store:
         interval = payload["analysis_interval_seconds"]
         if type(interval) is not int or not 60 <= interval <= 86400 or type(payload["auto_execute"]) is not bool:
             raise ApiError("INVALID_STRATEGY", "分析间隔需为 60–86400 秒，自动下单需为布尔值。")
-        if payload["mode"] != "AI" and (status == "ACTIVE" or payload["auto_execute"]):
-            raise ApiError("INVALID_STRATEGY", "只有 AI 策略支持激活与自动 PAPER 下单。")
+        if payload["mode"] in ("RULE", "HYBRID"):
+            rule = payload.get("rule")
+            if rule is not None:
+                if (not isinstance(rule, dict) or set(rule) != {"kind", "operator", "price", "stop_loss_pct"}
+                        or rule.get("kind") != "PRICE_THRESHOLD" or rule.get("operator") not in ("LTE", "GTE")):
+                    raise ApiError("INVALID_RULE", "规则需指定 PRICE_THRESHOLD、LTE/GTE、价格和止损比例。")
+                amount(rule["price"], scale=18)
+                stop = amount(rule["stop_loss_pct"], maximum="100")
+                if stop >= 100:
+                    raise ApiError("INVALID_RULE", "止损比例必须大于 0 且小于 100。")
+            elif status == "ACTIVE":
+                raise ApiError("INVALID_RULE", "激活规则或混合策略前请配置价格规则。")
+        automation_ack = payload.pop("acknowledge_paper_automation", False)
+        if type(automation_ack) is not bool:
+            raise ApiError("INVALID_STRATEGY", "自动 PAPER 授权需为布尔值。")
+        if payload["mode"] in ("RULE", "HYBRID") and status == "ACTIVE" and previous_status != "ACTIVE" and not automation_ack:
+            raise ApiError("PAPER_AUTOMATION_ACK_REQUIRED", "激活前请明确授权周期性 PAPER 自动执行。", 409)
         payload.setdefault("analysis_mode", "single")
         payload.setdefault("model_profile_ids", [repository.DEFAULT_PROFILE_ID] if payload["mode"] == "AI" else [])
         analysis_mode, identifiers = payload["analysis_mode"], payload["model_profile_ids"]
@@ -272,10 +290,10 @@ class Store:
         acknowledgement = payload.pop("acknowledge_model_cost", False)
         if type(acknowledgement) is not bool:
             raise ApiError("INVALID_STRATEGY", "模型费用确认需为布尔值。")
-        if previous_status == "ACTIVE" and previous_routing != (analysis_mode, identifiers) and acknowledgement is not True:
+        if payload["mode"] != "RULE" and previous_status == "ACTIVE" and previous_routing != (analysis_mode, identifiers) and acknowledgement is not True:
             raise ApiError("MODEL_COST_ACK_REQUIRED", "更改已激活策略的模型选择前，请确认周期性模型调用费用。", 409)
         if status == "ACTIVE" and previous_status != "ACTIVE":
-            if acknowledgement is not True:
+            if payload["mode"] != "RULE" and acknowledgement is not True:
                 raise ApiError("MODEL_COST_ACK_REQUIRED", "激活策略前请确认周期性模型调用费用。", 409)
             payload["_activation_authorized"] = True
             payload["_activated_at"] = stamp()
@@ -347,6 +365,23 @@ class Store:
             raise ApiError("QUOTE_UNAVAILABLE", f"{symbol} 缺少有效的新鲜行情；未执行交易。", 409) from None
 
     def _valuation(self, connection, account, market, *, fresh=False, maximum_age=90):
+        if self.execution and not rows(connection, positions) and not rows(connection, orders):
+            projection = self.execution.account_view()
+            account['cash'] = projection['cash']
+            total = Decimal(account['cash'])
+            held = []
+            for item in projection['positions']:
+                try:
+                    price = self._price(market, item['symbol'], maximum_age, fresh=fresh)
+                except ApiError:
+                    if fresh:
+                        raise
+                    price = Decimal(item['mark_price'])
+                value = Decimal(item['quantity']) * price
+                total += value
+                held.append({**item, 'market_value': number(value), 'mark_price': number(price),
+                    'unrealized_pnl': number(value - Decimal(item['quantity']) * Decimal(item['average_price']))})
+            return total, held
         total = Decimal(account["cash"])
         result = []
         for item in rows(connection, positions):
@@ -381,6 +416,8 @@ class Store:
             connection.execute(insert(cause_locks).values(id=record['lock_id'], data=record))
             self._event(connection, 'RISK_LOCK', '日亏损风险锁已持久化',
                 '价格回升、暂停恢复或风险日切换不会解除；需要独立 DAILY_LOSS_REVIEW 授权证据。')
+        if self.execution:
+            self.execution.latch_daily_lock(record)
 
     def _daily_loss(self, connection, data, equity, *, prospective_fee=Decimal(0), deny=False):
         active = [item for item in rows(connection, cause_locks) if item['state'] == 'ACTIVE']
@@ -463,7 +500,7 @@ class Store:
             return self._order(connection, payload, key, market, maximum_age)
 
     def _order(self, connection, payload, key, market, maximum_age):
-        """Shared risk checks, fill and receipt within the caller's account lock."""
+        """Only the unified durable service can create an execution command."""
         cached, fingerprint = self._cached(connection, key, "order", payload)
         if cached:
             return cached
@@ -493,12 +530,12 @@ class Store:
                     raise ApiError("STRATEGY_PAUSED", "所选策略已暂停。", 409)
                 if previous + quantity * price > Decimal(strategy["budget"]):
                     raise ApiError("STRATEGY_BUDGET", "订单将超过策略预算。", 409)
-        order = self._fill(connection, account, payload, price)
-        account["revision"] += 1
-        self._save(connection, data)
-        equity, _ = self._valuation(connection, account, market)
-        self._observe(connection, equity)
-        self._event(connection, "PAPER_FILL", "PAPER 模拟订单已成交", f"{side} {symbol} × {order['quantity']}；仅更新本地 PAPER 账本，模拟费率 0.1%。")
+        if self.execution is None or self.sqlite:
+            raise ApiError("UNIFIED_PAPER_REQUIRED", "统一 PAPER 尚未配置：需要独立 PostgreSQL 业务账本与受限模拟平台数据库；未创建订单。", 503)
+        if rows(connection, orders) or rows(connection, positions):
+            raise ApiError("LEGACY_LEDGER_READ_ONLY", "原本地模拟账本仅供只读；请使用独立的统一 PAPER 账户，禁止隐式迁移为执行证据。", 409)
+        order = self.execution.accept(dict(payload), key, market, maximum_age, data, strategy if strategy_id else None)
+        self._event(connection, "PAPER_COMMAND", "PAPER 请求已持久化", f"{side} {symbol}；回执不代表成交，需由执行者提交并查询事件。")
         result = {"order": order, "account_revision": account["revision"]}
         connection.execute(insert(receipts).values(key=key, fingerprint=fingerprint, data=result))
         return result
@@ -519,17 +556,17 @@ class Store:
                 account["paused"] = target
                 detail = "本地 PAPER 新买入已暂停；卖出仍可用。" if target else "本地 PAPER 手动买入已恢复；未启动自动交易。"
             elif action == "cancel_entries":
-                detail = "当前 PAPER 仅支持即时市价成交，没有待成交入场单；未取消任何订单。"
+                if self.execution is None:
+                    raise ApiError("UNIFIED_PAPER_REQUIRED", "统一 PAPER 执行尚未配置；未撤单。", 503)
+                affected = self.execution.cancel_entries()
+                detail = f"已持久化 {affected} 项撤单请求；状态由后续模拟平台事件确认。"
             elif action == "exit_owned":
                 if payload.get("confirmation") != "EXIT PAPER":
                     raise ApiError("CONFIRMATION_REQUIRED", "退出前请明确输入 EXIT PAPER。", 409)
-                held = rows(connection, positions)
-                # Preflight every symbol before the first write, then one transaction.
-                prices = {item["symbol"]: self._price(market, item["symbol"], maximum_age) for item in held}
-                for item in held:
-                    self._fill(connection, account, {"symbol": item["symbol"], "side": "SELL", "quantity": item["quantity"], "strategy_id": item["strategy_id"]}, prices[item["symbol"]])
-                affected = len(held)
-                detail = f"已按新鲜公开行情退出 {affected} 个本地 PAPER 持仓，扣除 0.1% 模拟手续费；未向交易所发单。" if held else "本地 PAPER 没有持仓；未执行任何卖出。"
+                if self.execution is None:
+                    raise ApiError("UNIFIED_PAPER_REQUIRED", "统一 PAPER 执行尚未配置；旧账本为只读，未退出。", 503)
+                affected = self.execution.exit_owned(key, market, maximum_age, data)
+                detail = f"已持久化 {affected} 项退出请求；尚不代表实际成交。"
             else:
                 raise ApiError("INVALID_ACTION", "不支持此 PAPER 操作。")
             if affected:
@@ -577,6 +614,10 @@ class Store:
                     "decisions": [], "strategies": sorted(rows(connection, strategies), key=lambda item: item["created_at"], reverse=True),
                     "events": sorted(rows(connection, events), key=lambda item: item["created_at"], reverse=True)[:100], "risk": data["risk"],
                     "risk_locks": rows(connection, cause_locks),
+                    "execution": self.execution.projection() if self.execution else {
+                        "mode": "UNAVAILABLE", "simulation_notice": "需要统一 PostgreSQL PAPER 配置。原本地成交记录为只读历史；模拟不能证明真实滑点、流动性或保护。",
+                        "targets": [], "commands": [], "orders": [], "positions": [], "protection_plans": [],
+                        "risk_locks": rows(connection, cause_locks)},
                     "services": [{"id": "database", "label": "本地账本", "status": "CONNECTED", "detail": "PostgreSQL" if not self.sqlite else "SQLite · 本地模式", "updated_at": stamp()},
                                  {"id": "paper", "label": "PAPER 执行", "status": "CONNECTED", "detail": "仅本地模拟成交；未接入交易所交易接口。", "updated_at": stamp()},
                                  {"id": "ai", "label": "AI 决策", "status": "NOT_CONFIGURED", "detail": "未配置模型；没有生成或自动执行决策。", "updated_at": None},

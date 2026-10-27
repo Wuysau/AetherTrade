@@ -51,6 +51,13 @@ class Setup(Credentials):
     initial_cash: StrictStr
 
 
+class PriceRule(Payload):
+    kind: Literal['PRICE_THRESHOLD'] = 'PRICE_THRESHOLD'
+    operator: Literal['LTE', 'GTE']
+    price: StrictStr
+    stop_loss_pct: StrictStr = '5'
+
+
 class StrategyCreate(Payload):
     name: StrictStr = Field(min_length=1, max_length=80)
     symbol: Symbol
@@ -63,6 +70,8 @@ class StrategyCreate(Payload):
     acknowledge_model_cost: StrictBool = False
     analysis_mode: Literal["single", "consensus"] = "single"
     model_profile_ids: list[StrictStr] = Field(default_factory=list, max_length=3)
+    rule: PriceRule | None = None
+    acknowledge_paper_automation: StrictBool = False
 
 
 class StrategyPatch(Payload):
@@ -78,6 +87,8 @@ class StrategyPatch(Payload):
     analysis_mode: Literal["single", "consensus"] | None = None
     model_profile_ids: list[StrictStr] | None = Field(default=None, max_length=3)
     expected_revision: int = Field(ge=1)
+    rule: PriceRule | None = None
+    acknowledge_paper_automation: StrictBool = False
 
 
 class RiskUpdate(Payload):
@@ -91,6 +102,14 @@ class PaperOrder(Payload):
     side: Literal["BUY", "SELL"]
     quantity: StrictStr
     strategy_id: StrictStr | None = Field(default=None, max_length=64)
+
+
+class PaperEvent(Payload):
+    event_id: StrictStr = Field(min_length=1, max_length=100)
+    status: Literal['SUBMITTED', 'PARTIALLY_FILLED', 'FILLED', 'CANCEL_UNKNOWN', 'CANCELED', 'EXPIRED', 'REJECTED']
+    cumulative_quantity: StrictStr
+    price: StrictStr | None = None
+    occurred_at: StrictStr | None = None
 
 
 class PaperAction(Payload):

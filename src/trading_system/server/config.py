@@ -39,6 +39,10 @@ class Settings:
     cookie_name: str = "aethertrade_session"
     cookie_secure: bool = False
     model_key_path: Path = PROJECT_ROOT / ".runtime/model-secrets.key"
+    paper_ledger_dsn: str | None = None
+    paper_venue_dsn: str | None = None
+    paper_event_dsn: str | None = None
+    paper_journal_directory: Path = PROJECT_ROOT / '.runtime/paper-owner'
 
     def __post_init__(self) -> None:
         if self.host not in {"127.0.0.1", "localhost", "::1"}:
@@ -65,6 +69,9 @@ class Settings:
                 raise ValueError("Local console browser origins must be loopback")
         object.__setattr__(self, "web_dist", Path(self.web_dist).resolve())
         object.__setattr__(self, "model_key_path", Path(self.model_key_path).resolve())
+        if any((self.paper_ledger_dsn, self.paper_venue_dsn, self.paper_event_dsn)) and not all((self.paper_ledger_dsn, self.paper_venue_dsn, self.paper_event_dsn)):
+            raise ValueError('All three explicit PAPER PostgreSQL connections are required')
+        object.__setattr__(self, 'paper_journal_directory', Path(self.paper_journal_directory).resolve())
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -89,4 +96,8 @@ class Settings:
             market_enabled=_flag(os.getenv("AETHERTRADE_MARKET_ENABLED", "true")),
             cookie_secure=_flag(os.getenv("AETHERTRADE_COOKIE_SECURE", "false")),
             model_key_path=Path(os.getenv("AETHERTRADE_MODEL_KEY_PATH", str(PROJECT_ROOT / ".runtime/model-secrets.key"))),
+            paper_ledger_dsn=os.getenv('AETHERTRADE_PAPER_LEDGER_DSN'),
+            paper_venue_dsn=os.getenv('AETHERTRADE_PAPER_VENUE_DSN'),
+            paper_event_dsn=os.getenv('AETHERTRADE_PAPER_EVENT_DSN'),
+            paper_journal_directory=Path(os.getenv('AETHERTRADE_PAPER_JOURNAL_DIRECTORY', str(PROJECT_ROOT / '.runtime/paper-owner'))),
         )
