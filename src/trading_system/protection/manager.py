@@ -75,8 +75,11 @@ class CommandCompiler:
         payload = ExecutionCommandCanonicalPayload(position_side=p.scope.venue_leg)
         if request.operation != 'CANCEL':
             payload = replace(payload, side=closing_side(p), order_type=request.order_type,
-                quantity=format(request.quantity.value, 'f'), full_position_exit=False,
-                reduce_only=p.scope.product == t.Product.USD_M_PERP,
+                quantity=format(request.quantity.value, 'f'),
+                # Bounds/closing direction stay local; equity has no derivative flags.
+                full_position_exit=ABSENT if p.scope.product == t.Product.US_EQUITY else False,
+                reduce_only=(ABSENT if p.scope.product == t.Product.US_EQUITY
+                             else p.scope.product == t.Product.USD_M_PERP),
                 trigger_price=format(plan.stop_price.value, 'f')
                     if request.operation in {'SET_PROTECTION', 'AMEND'} else ABSENT,
                 price=format(request.price.value, 'f') if request.price else ABSENT,
@@ -122,7 +125,9 @@ def validate_command(request: CommandRequest, compiled: CompiledCommand) -> None
             or request.quantity.value > abs(p.actual_quantity.value)
             or payload.quantity != format(request.quantity.value, 'f')
             or payload.side != closing_side(p) or payload.order_type != request.order_type
-            or payload.full_position_exit is not False
+            or (scope.product == t.Product.US_EQUITY and
+                (payload.full_position_exit is not ABSENT or payload.reduce_only is not ABSENT))
+            or (scope.product != t.Product.US_EQUITY and payload.full_position_exit is not False)
             or payload.quote_notional is not ABSENT
             or (scope.product == t.Product.USD_M_PERP and payload.reduce_only is not True)
             or (scope.product == t.Product.US_EQUITY and payload.tokenize is not False)):

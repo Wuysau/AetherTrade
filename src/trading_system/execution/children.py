@@ -140,7 +140,9 @@ class ChildPlanner:
                 side='BUY' if delta.remaining.value > 0 else 'SELL',
                 order_type=intent.execution.order_preference, quantity=format(quantity, 'f'),
                 price=intent.execution.limit_price if intent.execution.order_preference == 'LIMIT' else ABSENT,
-                reduce_only=delta.classification == 'REDUCE', full_position_exit=False,
+                # Equity cash orders must omit derivative fields, even false.
+                reduce_only=(ABSENT if intent.product == 'US_EQUITY' else delta.classification == 'REDUCE'),
+                full_position_exit=ABSENT if intent.product == 'US_EQUITY' else False,
                 position_side=intent.venue_leg,
                 time_in_force='GTC' if intent.execution.order_preference == 'LIMIT' else ABSENT,
                 tokenize=False if intent.product == 'US_EQUITY' else ABSENT)
