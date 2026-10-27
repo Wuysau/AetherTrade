@@ -1,0 +1,19 @@
+{"platform": "linux", "python": "3.12.16", "postgresql": "17.11", "database": "ip08_test_group_a073cf4460e2"}
+..........F                                                              [100%]
+=================================== FAILURES ===================================
+_ test_unrelated_group_resolution_between_candidate_and_history_reads_does_not_deny _
+src/trading_system/storage/uow.py:314: in applicable
+    raise ValueError('risk lock history is inconsistent')
+E   ValueError: risk lock history is inconsistent
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_group_daily_locks.py:305: in test_unrelated_group_resolution_between_candidate_and_history_reads_does_not_deny
+    assert tx.risk_locks.applicable(target.scope) == ()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/uow.py:333: in applicable
+    raise MissingEvidence('risk lock applicability is unverified: ' + str(exc)) from exc
+E   trading_system.storage.models.MissingEvidence: risk lock applicability is unverified: risk lock history is inconsistent
+=========================== short test summary info ============================
+FAILED tests/integration/test_group_daily_locks.py::test_unrelated_group_resolution_between_candidate_and_history_reads_does_not_deny
+1 failed, 10 passed in 2.45s
+
