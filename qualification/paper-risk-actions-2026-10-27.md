@@ -83,7 +83,7 @@ $python = 'D:/Projects/Python/AetherTrade/TradingHandoff/AutoDispatchWorktrees/p
 # Final combined run, exit 0: 482 passed, 125 skipped (7.66s)
 ```
 
-The final new matrix contains **92 passing tests**. It covers positive product/leg
+The initial delivered matrix contained **92 passing tests**. It covers positive product/leg
 reductions and protection repair, wrong side/oversize, caller assertions, stale or
 mismatched proof, working-order overlap, ownership/auth revocation, lock
 intersections, capacity preservation, durable recheck and post-transaction proof
@@ -107,3 +107,52 @@ probes establish Python control flow only. No real account, venue network call,
 native write path, or real fence qualification was attempted. Production
 composition remains blocked on a concrete trusted reader and the separate
 PostgreSQL/native qualification work.
+
+## Independent-review followup on f1ed3d9
+
+Both important review findings were reproduced before the followup fix. Running
+the new position-only-lock and slow-reservation-reader probes returned exit 1,
+**5 failed, 92 deselected**: NO_NEW_RISK, EXIT_ONLY and RECOVERY_REQUIRED locks
+embedded only in a position were ignored by the no-account-lock shortcut, and
+expiry during either the proof callback or active-owner database read still
+allowed the atomic reservation bundle.
+
+The verifier now loads and validates the current book before that shortcut,
+combines repository and position locks, and denies missing, stale or incomplete
+book evidence. Even the no-lock validity limit includes book-evidence expiry.
+The IP10 synthetic PostgreSQL fixture now explicitly seeds its current book;
+absence of a row can no longer stand for empty, unlocked positions.
+
+Reservation entry retains the verifier's validity limit, re-reads the trusted
+service clock after the proof callback and immediately before the first bundle
+write, and bounds both reads by the earliest proof/evidence, intent, risk,
+entry-deadline and quote expiry. A trusted monotonic reader (default:
+`time.monotonic_ns`) also bounds elapsed time and rejects backwards readings;
+stalled/backwards UTC cannot extend the window. The persisted risk-decision TTL
+is narrowed to that same earliest expiry. No time is read from caller payloads.
+
+Partial STOP_MARKET repairs are accepted when both requested coverage and the
+durable GAP/REPAIRING plan remain quantity-bounded by actual exposure. This
+permission check does not mutate or verify the plan: partial improvement remains
+GAP, and NativeVerifier still requires complete coverage before VERIFIED_NATIVE.
+
+The same final combined command shown above now exits 0 with **509 passed,
+125 skipped (12.68s)**. The expanded lock-action matrix has **119 passing tests**,
+including position-only permission intersections, missing/stale no-lock books,
+proof and database-read expiry races for every validity source, monotonic expiry
+with stalled UTC, no-bundle-write assertions, and partial repair coverage.
+The database-read races use synthetic service time advanced during the SQL read;
+they are Python control-flow probes, not an actual PostgreSQL clock test.
+PostgreSQL acceptance remains **NOT_RUN** in this Windows worktree.
+
+Account/collateral-wide DAILY_LOSS applicability remains a separate integration
+requirement. The ledger repository currently selects locks by exact instrument
+and leg scope; this A.3 work therefore does not make a BTC-only cause lock visible
+on ETH automatically. A safe shared policy must bind accounts/products to their
+intended risk collateral domain using trusted durable configuration, read the
+latest account-wide daily-loss locks under the group mutex, and verify their
+applicability while retaining the source lock ID and scope for resolution.
+Instrument-specific protection/order locks must not be broadcast globally.
+The shared view must also drive RiskLockService.allowed_actions and user-facing
+state. Until that concrete reader/applicability view exists, do not claim this
+change alone implements persistent account-wide daily-loss enforcement.

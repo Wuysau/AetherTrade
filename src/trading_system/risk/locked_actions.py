@@ -18,6 +18,7 @@ from trading_system.contracts.canonical import canonical_hash, decimal_string, d
 from trading_system.contracts.wire import ABSENT, ContractCodec
 from trading_system.execution.commands import command_hash
 from trading_system.protection.native import owned, report_errors
+from trading_system.recovery.reconciler import valid_ref
 from trading_system.storage.models import scope_id
 from .locks import ACTIONS
 
@@ -60,12 +61,28 @@ class LockedActionVerifier:
 
     def verify(self, tx, command, intent, now, *, book=None) -> str | None:
         """Return verified validity limit, or None. Callers must recheck at I/O."""
-        locks = tx.risk_locks.active(tx.scope)
-        if not locks:
-            return intent.valid_until
         try:
             with localcontext() as ctx:
                 ctx.prec = 80
+                # Even when the cause-lock repository is empty, the current
+                # owned-position projection may impose a stricter permission.
+                # Missing/stale book evidence is never proof of no locks.
+                if book is None:
+                    book = tx.projections.book(tx.scope)
+                coverage = book.coverage
+                if (book.scope != tx.scope or coverage.scope != tx.scope
+                        or coverage.query_succeeded is not True
+                        or coverage.pagination_complete is not True
+                        or coverage.supported is not True or coverage.missing
+                        or type(book.sequence) is not int or book.sequence < 1
+                        or not book.evidence or any(not valid_ref(e, tx.scope, now,
+                            self.maximum_age_seconds) for e in book.evidence)):
+                    return None
+                locks = tuple(tx.risk_locks.active(tx.scope)) + tuple(
+                    lock for p in book.positions for lock in p.risk_locks)
+                if not locks:
+                    return min([utc_timestamp(intent.valid_until)] + [utc_timestamp(e.visible_at)
+                        + timedelta(seconds=self.maximum_age_seconds) for e in book.evidence]).isoformat()
                 return self._verify(tx, command, intent, now, locks, book)
         except Exception:
             # Unavailable/malformed local proof cannot relax a lock.
@@ -75,10 +92,6 @@ class LockedActionVerifier:
         scope = tx.scope
         if scope.environment not in (t.Environment.PAPER, t.Environment.RESEARCH):
             return None
-        if book is None:
-            book = tx.projections.book(scope)
-        # Position locks can only narrow the active cause-lock intersection.
-        locks = tuple(locks) + tuple(lock for p in book.positions for lock in p.risk_locks)
         allowed = ACTIONS[t.RiskPermission.NORMAL]
         for lock in locks:
             if (lock.scope != scope or lock.state != 'ACTIVE'
@@ -187,7 +200,8 @@ class LockedActionVerifier:
                 and plan.scope == scope and plan.mode == 'NATIVE' and plan.monitor_id is None
                 and plan.state in ('GAP', 'REPAIRING') and plan.coverage_gap_since is not None
                 and utc_timestamp(plan.coverage_gap_since) <= utc_timestamp(report.as_of)
-                and plan.coverage_quantity.unit == unit and plan.coverage_quantity.value == actual.copy_abs()
+                and plan.coverage_quantity.unit == unit
+                and quantity <= plan.coverage_quantity.value <= actual.copy_abs()
                 and payload.order_type == 'STOP_MARKET' and payload.price is ABSENT
                 and payload.trigger_price == format(plan.stop_price.value, 'f')
                 and plan.stop_price.currency == spec.quote_currency
