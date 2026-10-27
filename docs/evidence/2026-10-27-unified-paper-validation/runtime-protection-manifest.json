@@ -1,0 +1,102 @@
+{
+  "archive": "runtime-protection-green.zip",
+  "archive_sha256": "ee5a37dc9bda2f717f9133007e973dceb4bb2a7143d6472a17afdf8bd610107f",
+  "files_sha256": {
+    "runtime-protection-fixed/4ff150f1a8bb-cfd3a6d43687/summary.json": "a5b511305f0979a10a547a2fbbf890115bc101fbc0085906f88ceb1b6787f723",
+    "runtime-protection-fixed/4ff150f1a8bb-cfd3a6d43687/unified-runtime.log": "192befc0618b9d2d18c13d21de6afc03eff7c001d05acd61a54735ee7980fe4d",
+    "runtime-protection-fixed/4ff150f1a8bb-cfd3a6d43687/unified-runtime.xml": "3d559876312fcce3036ffe0af7109c7fc04993a5096c4833328d5f9f986d4c4f",
+    "runtime-protection-fixed-run.txt": "862a13be168964ff22630caf3ba10b11a1480f5e974547872c61bb90353eb189",
+    "runtime-protection-fixed-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults-states/competing-strategies-50b6214fcd3f4fec9246632cad8bc87a.json": "2c16905fe927c9218753ba070b542c6e0796b5b8118cb2b9417832328ff26d79",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults-states/manual-reduction-old-target-aad1d99b35c34e3199851a9fe9412206.json": "435ffcfa9f82bde839a9b714308392547abfa4e1045726b1f38e6b8de17eee8d",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults-states/process-after-ack-eb9a07b623264a01b03327b8b9abb2b2.json": "432e16757dab2948994b1e4aa8e9ab2963378143a1b5e31a717cfa927c3e2bfb",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults-states/process-after-venue-6476a1e9e471450090c4fe003f330d30.json": "f983e9b4761b9f9d660233b167f854a7b0b5f9500304dee6d83dd9d836469837",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults-states/process-before-venue-735a77838006475793311e81ebddfc7c.json": "bfadc00bcc4467154b114395105ee5aa3709806fb6bbe36937faf51ed07f9220",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults-states/process-durable-b1baca028745445481d0fed6dce14336.json": "68d09850a1113c3f87cad7cff196534b92a2354052370d9d72e8438026a46c1f",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults-states/process-protection-1b6545f652104f088099b0702f75f8d9.json": "9fd52a592523e41a655c5a806bd19a8233b54f3384d7c6c05b9cc17facc7fcea",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults-states/ready-query-order-b1aafd3126bb40f58a7e1b1572a12b5a.json": "8d634449aba18910b37af2d55a6d67f73aa62e89b06f27881998dc3e38e36ee1",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults-states/stale-quote-e531e3051e6d4f6393113c2225667dcc.json": "838a1a54fe98b9d886d26178009a61eb476b8629fb4d6caa1a63f0bef4bd8fa3",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults.log": "047beac3260297baa4513c435990034c011580a96242d8e93a2e9ec30a104d53",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/runtime-faults.xml": "464e025ed232228dabd21c1222f556ee26be29c56ed1473482c153dee4c31ef2",
+    "runtime-final-faults-fixed/4ff150f1a8bb-b23432427a54/summary.json": "18d51041205327cfb8f8afaee70f314fcd753c85e859f6008da7b815144bc9bc",
+    "runtime-final-faults-fixed-run.txt": "12b7867fa2f96afe7cd315bb25960ddd24081fb963207a6a54d39c806098fc25",
+    "runtime-final-faults-fixed-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "runtime-protection-ledgers.json.gz": "039fe5e2034231414566802d87223bf8fd108fb9a67df7fd6546574231fdd8fc",
+    "runtime-protection-capture.txt": "433b4833ebe55590a8e2f605e76643843025fa4d9b5b36d673efdfbf837faf51",
+    "runtime-protection-capture-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+  },
+  "runs": [
+    {
+      "source_commit": "4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512",
+      "suite": "unified-runtime",
+      "evidence_subdirectory": "runtime-protection-fixed",
+      "results": {
+        "passed": 9,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "accepted": true
+      },
+      "exit_code": 0,
+      "command": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-6f1db19c6a28",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "unified-runtime",
+        "--evidence-dir",
+        "/handoff/evidence/runtime-protection-fixed"
+      ]
+    },
+    {
+      "source_commit": "4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512",
+      "suite": "runtime-faults",
+      "evidence_subdirectory": "runtime-final-faults-fixed",
+      "results": {
+        "passed": 10,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "accepted": true
+      },
+      "exit_code": 0,
+      "command": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-6f1db19c6a28",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "runtime-faults",
+        "--evidence-dir",
+        "/handoff/evidence/runtime-final-faults-fixed"
+      ]
+    }
+  ],
+  "ledger_export": {
+    "databases": 38,
+    "table_rows": 2050,
+    "scope": "synthetic append-only lifecycle histories, all console/auth tables excluded",
+    "script_sha256": "af26dbb359b1477084ea66e3a10f034eb5a0ba2e0c26918823c97598bf2a6837",
+    "command": [
+      "docker",
+      "exec",
+      "aethertrade-qualification-runner-6f1db19c6a28",
+      "python",
+      "/handoff/capture-runtime-protection.py"
+    ],
+    "exit_code": 0
+  }
+}

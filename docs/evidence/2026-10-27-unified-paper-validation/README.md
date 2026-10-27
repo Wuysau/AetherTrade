@@ -2,8 +2,8 @@
 
 This is actual Linux/Python 3.12 and isolated PostgreSQL 17.11 evidence, not a
 remote GitHub Actions run, exchange execution, Testnet qualification, or LIVE
-readiness. The unified runtime integration still requires its own fixed-commit
-validation. The foundational full gate below remains **INCOMPLETE** at its exact
+readiness. The final combined integration still requires a fresh whole-gate run.
+The foundational full gate below remains **INCOMPLETE** at its exact
 recorded commit because one child-planning test fixture failed; its focused
 correction passed separately. These two runs must not be presented as one green
 full run.
@@ -172,3 +172,35 @@ Full fixed-commit integration, ordinary CI fixture migration, and a fresh whole
 PostgreSQL run remain required. Runtime protection repair/verification and
 failed-protection-plus-failed-exit evidence are not demonstrated by these
 diagnostics; protection remains explicitly GAP with protected quantity zero.
+
+## Subsequent protection and balance verification
+
+The earlier protection limitation is superseded for the local synthetic runtime
+by fixed source `4ff150f1a8bb63f9f4b694fc3ec685e1a8e93512`. Independent actual
+Linux/PostgreSQL diagnostic results are **9 primary runtime cases passed** and
+**10 independent fault cases passed**, zero skips/errors, exit 0. Original
+commands, outputs, migration hashes and per-case fresh databases are in
+`runtime-protection-green.zip` and `runtime-protection-manifest.json`.
+
+These cases distinguish a submitted stop ACK from exact queried synthetic
+protection verification, protect the filled 40% while CANCEL_UNKNOWN retains the
+remaining risk obligation, and preserve EXIT_ONLY responsibility after stop
+failure plus emergency-exit rejection and process restart. A deliberate 5.1-second
+delay proves the separately configured 5-second PAPER permit cannot cross the
+side-effect guard after expiry. Default domain permit behavior remains separate.
+Already released terminal obligations can be re-attested against fresh balances;
+an attempt to attest a held command as released is rejected.
+
+The intentional initial-fill cause is now PROTECTION_PENDING with NO_NEW_RISK,
+while the plan remains GAP and verified quantity zero. A known stop failure raises
+PROTECTION_GAP/EXIT_ONLY. The independent crash regression was updated to assert
+that exact approved initial cause and permission; its rollback and actual-fill
+assertions remain unchanged. Synthetic verification is labeled as such and does
+not qualify an exchange stop, a native adapter, Testnet, or LIVE.
+
+The archive also retains 2,050 rows of final synthetic append-only histories from
+38 newly created databases, excluding all console authentication tables. The
+executed read-only exporter is `capture-runtime-protection.py`. Per-case actual
+before/crash/recovery snapshots remain separately preserved by the fault tests.
+The whole final integrated gate remains pending; diagnostic results are not added
+together to fabricate a full-gate pass.
