@@ -12,7 +12,8 @@ from types import SimpleNamespace
 import pytest
 
 from integration.support_ip_16 import (
-    InjectedCrash, MemoryTx, OwnershipCase, crash_worker, ip16_database, ownership_case, postgres_case,
+    InjectedCrash, MemoryTx, OwnershipCase, attest_cas, connect_role, connect_untrusted_owner,
+    crash_worker, ip16_database, ownership_case, postgres_case,
 )
 from trading_system.contracts import types as t
 from trading_system.ownership.manual import ManualInterventionService
@@ -561,9 +562,45 @@ def test_postgres_missing_reviewed_cas_blocks_handoff(ip16_database):
 
 
 @pytest.mark.parametrize('phase', ['after_epoch_before_commit', 'after_commit'])
-def test_native_epoch_commit_crash_not_run(phase):
-    pytest.skip('NOT_RUN: reviewed active-owner CAS migration/capability is outside IP-16 ownership; '
-                'native crash probe cannot replace it with a permissive role or mock')
+def test_native_epoch_commit_crash_not_run(ip16_database, phase):
+    """Original process-crash scenarios now use the reviewed real PG CAS.
+
+    Name retained for evidence continuity. Synthetic trusted archive facts do
+    not qualify native venue protection; no transport is present in this test.
+    """
+    c, scenario = postgres_case(ip16_database, reviewed_cas=True)
+    c.start()
+    c.advance_to(t.TransferState.COMMIT_OWNER_EPOCH)
+    attest_cas(c, ip16_database)
+    before = c.registry.read(c.scope)
+    process = multiprocessing.get_context('spawn').Process(target=crash_worker,
+        args=(ip16_database, c.scope, c.old_owner, phase))
+    process.start()
+    process.join(20)
+    if process.is_alive():
+        process.terminate()
+        process.join(5)
+        pytest.fail('native crash probe timed out')
+    assert process.exitcode == (72 if phase == 'after_epoch_before_commit' else 73)
+    owner = c.registry.read(c.scope)
+    projection = c.service.projection(c.transfer_id)
+    expected_epoch = 1 if phase == 'after_epoch_before_commit' else 2
+    expected_owner = c.old_owner if expected_epoch == 1 else 'new'
+    with c.registry.transaction(c.scope) as tx:
+        assert tx.active_owner() == (expected_owner, expected_epoch, 1)
+        assert tx.locks()  # A handoff never silently resolves the freeze cause.
+    assert owner.position.ownership_epoch == projection.ownership_epoch == expected_epoch
+    assert owner.position.owner_book_id == before.position.owner_book_id
+    assert owner.position.actual_quantity == before.position.actual_quantity
+    assert owner.protection_responsibility == 'SYSTEM_PROTECTION'
+    assert projection.state == (t.TransferState.COMMIT_OWNER_EPOCH if expected_epoch == 1 else t.TransferState.ACTIVE)
+    assert c.probe(owner=expected_owner, epoch=expected_epoch, action='PROTECT').allowed
+    assert not c.probe(owner=c.old_owner).allowed
+    if expected_epoch == 1:
+        # Abrupt rollback did not consume the independently issued authority.
+        assert c.service.advance(c.transfer_id, c.evidence()).state == t.TransferState.ACTIVE
+    else:
+        assert c.service.advance(c.transfer_id, c.evidence()) == projection
 
 
 def test_postgres_manual_lock_survives_service_restart(ip16_database):
@@ -576,3 +613,264 @@ def test_postgres_manual_lock_survives_service_restart(ip16_database):
     assert c.probe(owner=c.old_owner).reason == 'MANUAL_INTERVENTION'
     with c.registry.transaction(c.scope) as tx:
         assert tx.locks()[0] == case.lock
+
+
+def ready_postgres_cas(dsn):
+    c, scenario = postgres_case(dsn, reviewed_cas=True)
+    c.start()
+    c.advance_to(t.TransferState.COMMIT_OWNER_EPOCH)
+    return c, scenario
+
+
+@pytest.mark.parametrize('statement', [
+    'UPDATE ledger.active_owners SET ownership_epoch=ownership_epoch+1',
+    'UPDATE ledger.active_owners SET ownership_epoch=ownership_epoch WHERE false',
+    'DELETE FROM ledger.active_owners', 'TRUNCATE ledger.active_owners',
+    "INSERT INTO ledger.owner_cas_approvals(authority_id) VALUES ('forged')",
+    "INSERT INTO ledger.owner_cas_authorities(authority_id) VALUES ('forged')",
+    "SELECT ledger.commit_owner_transfer('forged','scope','{}','{}','tx')",
+    "SELECT ledger.attest_owner_transfer('forged','scope','{}','{}','{}','{}','{}',clock_timestamp())",
+    'SET ROLE ledger_owner_controller', 'SET ROLE ledger_owner_verifier',
+])
+def test_postgres_owner_cannot_forge_cas_authority(ip16_database, statement):
+    import psycopg
+    with connect_untrusted_owner(ip16_database) as conn:
+        conn.execute("SELECT set_config('app.owner_cas_approved','true',true)")
+        with pytest.raises(psycopg.Error):
+            conn.execute(statement)
+        conn.rollback()
+
+
+def test_postgres_cas_roles_have_no_cross_authority_or_broad_update(ip16_database):
+    import psycopg
+    with psycopg.connect(ip16_database) as conn:
+        for role in ('ledger_owner', 'ledger_control', 'ledger_decision', 'ledger_risk_resolver',
+                     'ledger_owner_verifier', 'ledger_owner_controller'):
+            assert conn.execute('SELECT has_function_privilege(%s,%s,\'EXECUTE\')',
+                (role, 'ledger.commit_owner_transfer(text,text,jsonb,jsonb,text)')).fetchone()[0] is (role == 'ledger_owner_controller')
+            assert conn.execute('SELECT has_function_privilege(%s,%s,\'EXECUTE\')',
+                (role, 'ledger.attest_owner_transfer(text,text,jsonb,jsonb,jsonb,jsonb,jsonb,timestamp with time zone)')).fetchone()[0] is (role == 'ledger_owner_verifier')
+            for column in ('owner_strategy_id', 'policy_revision'):
+                assert not conn.execute('SELECT has_column_privilege(%s,\'ledger.active_owners\',%s,\'UPDATE\')',
+                    (role, column)).fetchone()[0]
+            for table in ('owner_cas_approvals', 'owner_cas_authorities', 'owner_cas_revocations'):
+                assert not conn.execute('SELECT has_table_privilege(%s,%s,\'INSERT,UPDATE,DELETE,TRUNCATE\')',
+                    (role, 'ledger.' + table)).fetchone()[0]
+        assert conn.execute("SELECT count(*) FROM pg_trigger WHERE tgrelid='ledger.active_owners'::regclass "
+            "AND tgname IN ('owner_immutable','owner_cas_row') AND tgenabled='O'").fetchone()[0] == 2
+
+
+@pytest.mark.parametrize('fault', [
+    'scope', 'owner', 'epoch-skip', 'policy', 'quantity-unit', 'undercovered',
+    'nan-coverage', 'missing-coverage', 'protection-responsibility', 'plan',
+    'authorization', 'evidence-binding', 'expired',
+])
+def test_postgres_verifier_requires_exact_transfer_proof(ip16_database, fault):
+    import json
+    import psycopg
+    c, scenario = ready_postgres_cas(ip16_database)
+    before = c.registry.read(c.scope)
+
+    def corrupt(v):
+        if fault == 'scope':
+            v['scope']['venue_leg'] = 'SHORT'
+        elif fault == 'owner':
+            v['new']['position']['owner_strategy_id'] = 'attacker'
+        elif fault == 'epoch-skip':
+            v['new']['position']['ownership_epoch'] = 3
+        elif fault == 'policy':
+            v['new']['policy_revision'] = 2
+        elif fault == 'quantity-unit':
+            v['proof']['facts']['position']['actual_quantity']['unit'] = 'USDT'
+        elif fault == 'protection-responsibility':
+            v['new']['protection_responsibility'] = 'NONE'
+        elif fault == 'plan':
+            v['proof']['facts']['accepted_exit_plan_id'] = 'unaccepted'
+        elif fault == 'authorization':
+            v['proof']['facts']['authorization_current'] = False
+        elif fault == 'evidence-binding':
+            v['proof']['facts']['evidence_hash'] = '0' * 64
+        elif fault == 'expired':
+            v['expiry'] = '2026-01-01T00:00:00Z'
+        else:
+            e = json.loads(v['proof']['evidence_json'])
+            q = e['protection']['covered_quantity']
+            if fault == 'missing-coverage':
+                q.pop('value')
+            else:
+                q['value'] = '9' if fault == 'undercovered' else 'NaN'
+            from trading_system.contracts.canonical import canonical_hash, canonical_json
+            v['proof']['evidence_json'] = canonical_json(e)
+            v['proof']['facts']['evidence_hash'] = canonical_hash({'value': e})
+
+    with pytest.raises(psycopg.Error):
+        attest_cas(c, ip16_database, mutate=corrupt)
+    assert c.registry.read(c.scope) == before
+    with c.registry.transaction(c.scope) as tx:
+        assert tx.active_owner() == (c.old_owner, 1, 1)
+
+
+def raw_cas(conn, values, transaction='raw-controller'):
+    import json
+    return conn.execute('SELECT ledger.commit_owner_transfer(%s,%s,%s::jsonb,%s::jsonb,%s)',
+        (values['authority_id'], values['sid'], json.dumps(values['old']), json.dumps(values['new']), transaction))
+
+
+def test_postgres_cas_requires_atomic_projections_even_for_controller(ip16_database):
+    import psycopg
+    c, scenario = ready_postgres_cas(ip16_database)
+    values = attest_cas(c, ip16_database)
+    before = c.registry.read(c.scope)
+    with connect_role(ip16_database, 'ledger_owner_controller') as conn:
+        raw_cas(conn, values)
+        with pytest.raises(psycopg.errors.CheckViolation, match='atomic owner and transfer projections required'):
+            conn.commit()
+        conn.rollback()
+    assert c.registry.read(c.scope) == before
+    # The failed commit rolled back the approval as well as the active row.
+    assert c.service.advance(c.transfer_id, c.evidence()).state == t.TransferState.ACTIVE
+
+
+@pytest.mark.parametrize('fault', ['revoked', 'expired', 'owner-revision', 'ledger-revision',
+                                  'authorization-revision', 'scope', 'old-owner'])
+def test_postgres_cas_rechecks_current_authority(ip16_database, fault):
+    from datetime import datetime, timedelta, timezone
+    import psycopg
+    c, scenario = ready_postgres_cas(ip16_database)
+    if fault == 'expired':
+        c.fact_changes['valid_until'] = (datetime.now(timezone.utc) + timedelta(milliseconds=150)).isoformat()
+    values = attest_cas(c, ip16_database)
+    if fault == 'revoked':
+        with connect_role(ip16_database, 'ledger_owner_verifier') as conn:
+            conn.execute('SELECT ledger.revoke_owner_transfer(%s)', (values['authority_id'],))
+    elif fault == 'expired':
+        import time
+        time.sleep(.2)
+    elif fault == 'owner-revision':
+        with c.registry.transaction(c.scope) as tx:
+            old = tx.owner()
+            tx.save_owner(old, replace(old, sequence=old.sequence+1))
+    elif fault == 'ledger-revision':
+        with c.registry.transaction(c.scope) as tx:
+            case = tx.get('reconciliation_cases', 'ip16:reconcile:' + c.transfer_id, t.ReconciliationCase)
+            tx.append('reconciliation_cases', case.case_id, replace(case, attempts=1), 1)
+    elif fault == 'authorization-revision':
+        with scenario.connect_admin() as conn:
+            conn.execute('INSERT INTO ledger.authorizations(scope_id,record_id,sequence,payload,transaction_id) '
+                "VALUES ('global',%s,1,'{\"state\":\"REVOKED\"}','isolated-verifier-revocation')",
+                ('revoked:' + c.transfer_id,))
+    elif fault == 'scope':
+        values['sid'] = 'another-scope'
+    else:
+        values['old']['position']['owner_strategy_id'] = 'stale'
+    with connect_role(ip16_database, 'ledger_owner_controller') as conn:
+        with pytest.raises(psycopg.Error):
+            raw_cas(conn, values)
+        conn.rollback()
+    with c.registry.transaction(c.scope) as tx:
+        assert tx.active_owner() == (c.old_owner, 1, 1)
+
+
+def test_postgres_concurrent_cas_advances_exactly_one_epoch(ip16_database):
+    import psycopg
+    c, scenario = ready_postgres_cas(ip16_database)
+    values = attest_cas(c, ip16_database)
+    evidence = c.evidence()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _: c.service.advance(c.transfer_id, evidence), range(2)))
+    assert all(p.state == t.TransferState.ACTIVE and p.ownership_epoch == 2 for p in results)
+    with c.registry.transaction(c.scope) as tx:
+        assert tx.active_owner() == ('new', 2, 1)
+        assert tx.owner().sequence == 7
+    assert c.probe(owner=c.old_owner).reason == 'STALE_OWNER_EPOCH'
+    assert c.probe(owner='new', epoch=2, action='PROTECT').allowed
+    with connect_role(ip16_database, 'ledger_owner_controller') as conn:
+        with pytest.raises(psycopg.Error):
+            raw_cas(conn, values)  # A consumed authority never advances again.
+        conn.rollback()
+
+
+def test_postgres_controller_capability_without_trusted_selector_fails_closed(ip16_database):
+    from trading_system.ownership.registry import PostgresOwnerCAS
+    c, scenario = ready_postgres_cas(ip16_database)
+    before = c.registry.read(c.scope)
+    c.registry.owner_commit = PostgresOwnerCAS()
+    with pytest.raises(RuntimeError, match='OWNER_CAS_FAILED'):
+        c.service.advance(c.transfer_id, c.evidence())
+    assert c.registry.read(c.scope) == before
+    assert c.service.projection(c.transfer_id).state == t.TransferState.COMMIT_OWNER_EPOCH
+
+
+@pytest.mark.parametrize('revoked', [False, True])
+def test_postgres_waiting_cas_rechecks_expiry_and_revocation(ip16_database, revoked):
+    """A stale snapshot before waiting on the collateral mutex cannot authorize."""
+    from datetime import datetime, timedelta, timezone
+    import time
+    import psycopg
+    c, scenario = ready_postgres_cas(ip16_database)
+    if not revoked:
+        c.fact_changes['valid_until'] = (datetime.now(timezone.utc) + timedelta(seconds=1)).isoformat()
+    values = attest_cas(c, ip16_database)
+    guard_connection = connect_role(ip16_database, 'ledger_owner_verifier') if revoked else scenario.connect_owner()
+    with guard_connection as guard:
+        if revoked:
+            guard.execute('SELECT ledger.revoke_owner_transfer(%s)', (values['authority_id'],))
+        else:
+            # Test admin holds the same group lock through a normal UoW.
+            guard.execute('SELECT group_id FROM ledger.collateral_mutex WHERE environment=%s AND group_id=%s FOR UPDATE',
+                ('PAPER', scenario.group))
+        with connect_role(ip16_database, 'ledger_owner_controller') as waiting:
+            pid = waiting.execute('SELECT pg_backend_pid()').fetchone()[0]
+            waiting.commit()
+
+            def commit_after_wait():
+                with pytest.raises(psycopg.errors.CheckViolation) as error:
+                    raw_cas(waiting, values)
+                waiting.rollback()
+                return str(error.value)
+
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pending = pool.submit(commit_after_wait)
+                deadline = time.monotonic()+3
+                try:
+                    with scenario.connect_admin() as admin:
+                        while not admin.execute('SELECT cardinality(pg_blocking_pids(%s))', (pid,)).fetchone()[0]:
+                            assert time.monotonic()<deadline, 'CAS did not wait on the owner/group guard'
+                            time.sleep(.01)
+                    if not revoked:
+                        time.sleep(1.05)
+                finally:
+                    guard.commit()  # Release the waiter even if the probe fails.
+                message = pending.result(timeout=5)
+                assert ('revoked or stale' if revoked else 'current authority binding') in message
+    with c.registry.transaction(c.scope) as tx:
+        assert tx.active_owner() == (c.old_owner, 1, 1)
+
+
+def test_postgres_owner_cas_preserves_exact_decimal_and_protection(ip16_database):
+    from decimal import Decimal, localcontext
+    c, scenario = postgres_case(ip16_database, reviewed_cas=True)
+    value = Decimal('9007199254740993.123456789123456789123456789')
+    with c.registry.transaction(c.scope) as tx:
+        old = tx.owner()
+        tx.save_owner(old, replace(old, sequence=old.sequence+1,
+            position=replace(old.position, actual_quantity=replace(old.position.actual_quantity, value=value))))
+    c.position = c.registry.read(c.scope).position
+    # Bind the reviewed control revision and exact coverage to the changed row.
+    context = replace(c.context(), expected_sequence=2)
+    assert c.service.request_transfer(c.request(), context).state == t.TransferState.REQUESTED
+    original_evidence = c.evidence
+    c.evidence = lambda **kw: replace(original_evidence(**kw), protection=replace(
+        original_evidence(**kw).protection, covered_quantity=c.position.actual_quantity))
+    # The original transfer code's Decimal abs precision bug is a separately
+    # reviewed sibling change. A sufficiently large context isolates CAS here.
+    with localcontext() as ctx:
+        ctx.prec = 100
+        c.advance_to(t.TransferState.COMMIT_OWNER_EPOCH)
+        attest_cas(c, ip16_database)
+        assert c.service.advance(c.transfer_id, c.evidence()).state == t.TransferState.ACTIVE
+    owner = c.registry.read(c.scope)
+    assert owner.position.actual_quantity.value == value
+    assert str(owner.position.actual_quantity.value) == str(value)
+    assert owner.protection_responsibility == 'SYSTEM_PROTECTION'
+    assert owner.position.owner_book_id == c.position.owner_book_id

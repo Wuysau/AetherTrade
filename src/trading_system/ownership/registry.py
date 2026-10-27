@@ -5,12 +5,12 @@ must use this gate in ingress AND under the execution-owner guard before send.
 Eligibility here never replaces the dispatcher or current risk/quantity checks.
 """
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, domain_payload
 from trading_system.storage.events import EventStore
-from trading_system.storage.models import SequenceConflict, decode
+from trading_system.storage.models import SequenceConflict, decode, encode, scope_id
 
 
 @dataclass(frozen=True)
@@ -24,6 +24,34 @@ def digest(value):
 
 class OwnerCommitUnavailable(RuntimeError):
     """Reviewed database CAS capability has not been supplied by the host."""
+
+
+class PostgresOwnerCAS:
+    """Opt-in controller capability; never elevates or opens another connection.
+
+    A separately trusted archive verifier must first issue a short-lived,
+    exact-payload authority through 0005's verifier-only SQL function. The local
+    selector returns its identity, which is a reference, never a bearer secret.
+    The current connection must already be the separately assigned controller.
+    SQL rechecks expiry, revocation and ledger revisions under the group/owner
+    guard and requires both projections in this transaction at commit time.
+    Missing composition/authority denies; ordinary ledger_owner cannot use it.
+    """
+    def __init__(self, *, read_authority=None):
+        self.read_authority = read_authority
+
+    def __call__(self, tx, old, new):
+        if self.read_authority is None:
+            raise OwnerCommitUnavailable('TRUSTED_OWNER_AUTHORITY_REQUIRED')
+        authority_id = self.read_authority(tx, old, new)
+        if not isinstance(authority_id, str) or not authority_id.strip():
+            raise OwnerCommitUnavailable('TRUSTED_OWNER_AUTHORITY_REQUIRED')
+        # OwnershipService increments the projection sequence after this call.
+        # The deferred SQL guard requires that exact final record, not a second
+        # independently committed projection or a permissive active-row UPDATE.
+        final = replace(new, sequence=old.sequence + 1)
+        tx.execute('SELECT ledger.commit_owner_transfer(%s,%s,%s::jsonb,%s::jsonb,%s)',
+            (authority_id, scope_id(tx.scope), encode(old), encode(final), tx.transaction_id))
 
 
 def offline(scope):
@@ -99,10 +127,10 @@ class RegistryTx:
     def commit_owner(self, old, new):
         """Only a reviewed host CAS path may mutate the immutable active-owner row.
 
-        Current IP-03 roles/trigger intentionally deny that write. There is no
-        fallback UPDATE, elevated connection, trigger bypass or schema change.
-        The future capability must run in THIS transaction, check old owner /
-        epoch / policy and guard in-flight sends. It may not commit independently.
+        Ordinary IP-03 roles/trigger deny that write. There is no fallback UPDATE,
+        elevated connection or trigger bypass. The opt-in 0005 capability runs
+        in THIS transaction, checks old owner / epoch / policy and serializes
+        in-flight sends. It may not commit independently.
         """
         if self.owner_commit is None:
             raise OwnerCommitUnavailable('REVIEWED_OWNER_CAS_REQUIRED')

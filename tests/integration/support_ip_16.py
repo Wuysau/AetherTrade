@@ -7,6 +7,7 @@ opt-in isolated Linux fixture. Neither path creates a transport or trading accou
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, replace
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from threading import RLock
 
@@ -14,11 +15,11 @@ import pytest
 
 from trading_system.contracts import types as t
 from trading_system.ownership.registry import (
-    OwnerRecord, OwnershipRegistry, RegistryTx, TransferRecord, digest,
+    OwnerRecord, OwnershipRegistry, PostgresOwnerCAS, RegistryTx, TransferRecord, digest,
 )
 from trading_system.ownership.transfers import OwnershipService, TransferFacts, handoff_case_id, transfer_key
 from trading_system.ownership.manual import ManualInterventionService, ExternalAttestation
-from trading_system.storage.models import SequenceConflict, decode, encode
+from trading_system.storage.models import SequenceConflict, decode, encode, scope_id
 
 STAMP = '2026-10-23T00:00:00Z'
 
@@ -120,7 +121,8 @@ class GateProbe:
 
 
 class OwnershipCase:
-    def __init__(self, registry=None, scope=None, *, seed=True, old_owner='old'):
+    def __init__(self, registry=None, scope=None, *, seed=True, old_owner='old', stamp=STAMP):
+        self.stamp = stamp
         self.registry = registry if registry is not None else MemoryRegistry()
         self.scope = scope or t.ScopeKey(environment=t.Environment.PAPER, venue_account_id='synthetic-ip16',
             product=t.Product.USD_M_PERP, instrument_uid='synthetic:BTCUSDT', venue_leg='LONG')
@@ -135,10 +137,10 @@ class OwnershipCase:
         self.fact_changes = {}
         self.source_sequence = 1
         self.service = OwnershipService(self.registry, authorize=lambda tx, request, context: self.allowed,
-            read_facts=self.facts, clock=lambda: STAMP)
+            read_facts=self.facts, clock=lambda: self.stamp)
         self.manual = ManualInterventionService(self.registry, read_attestation=lambda tx, event:
             ExternalAttestation(scope=event.scope, event_hash=digest(event), source_sequence=self.source_sequence),
-            clock=lambda: STAMP)
+            clock=lambda: self.stamp)
         if seed:
             if isinstance(self.registry, MemoryRegistry):
                 self.registry.owners[self.scope] = (old_owner, 1, 1)
@@ -150,7 +152,7 @@ class OwnershipCase:
 
     def ref(self, name='report'):
         return t.EvidenceRef(id='synthetic-ip16:' + name, hash=digest(name), environment=self.scope.environment,
-                             source='SYNTHETIC_OFFLINE_IP16', visible_at=STAMP)
+                             source='SYNTHETIC_OFFLINE_IP16', visible_at=self.stamp)
 
     def request(self, mode='TRANSFER_OWNER', key=None):
         return t.TransferRequest(transfer_id=key or self.transfer_id, scope=self.scope, mode=mode,
@@ -184,7 +186,8 @@ class OwnershipCase:
             position = replace(position, actual_quantity=self.quantity('0'))
         return replace(TransferFacts(scope=self.scope, transfer_id=record.projection.request.transfer_id,
             transfer_sequence=record.sequence, owner_sequence=owner.sequence, evidence_hash=digest(evidence),
-            context_hash=digest(record.context), position=position, valid_until='2026-10-23T00:01:00Z',
+            context_hash=digest(record.context), position=position,
+            valid_until=(datetime.fromisoformat(self.stamp.replace('Z', '+00:00')) + timedelta(seconds=60)).isoformat(),
             authorization_current=self.allowed, pending_commands_resolved=True, orders_verified=True,
             positions_verified=True, balances_and_allocations_verified=True, protection_verified=True,
             exit_plan_accepted=True, accepted_exit_plan_id='preserved-exit-plan'), **self.fact_changes)
@@ -241,16 +244,84 @@ def ip16_database():
             pytest.fail('refusing an existing ledger; provision a fresh database')
         conn.execute((root / 'migrations/0001_business_ledger.sql').read_text(encoding='utf-8'))
         conn.execute((root / 'deploy/db/roles.sql').read_text(encoding='utf-8'))
+        conn.execute((root / 'migrations/0002_risk_resolution_authority.sql').read_text(encoding='utf-8'))
         conn.execute((root / 'migrations/0004_command_abort_guard.sql').read_text(encoding='utf-8'))
+        conn.execute((root / 'migrations/0005_owner_cas_authority.sql').read_text(encoding='utf-8'))
     return dsn
 
 
-def postgres_case(dsn):
+def postgres_case(dsn, *, reviewed_cas=False):
     from integration.support_ip_03 import LedgerScenario
     scenario = LedgerScenario(dsn)
-    case = OwnershipCase(OwnershipRegistry(scenario.uow), scenario.scope,
-                         old_owner=scenario.intent.owner_strategy_id)
+    registry = OwnershipRegistry(scenario.uow)
+    if reviewed_cas:
+        from trading_system.storage.uow import UnitOfWork
+        registry = OwnershipRegistry(UnitOfWork(lambda: connect_role(dsn, 'ledger_owner_controller')),
+            owner_commit=PostgresOwnerCAS(read_authority=lambda tx, old, new: 'reviewed:' + scope_id(tx.scope)))
+    case = OwnershipCase(registry, scenario.scope, old_owner=scenario.intent.owner_strategy_id,
+        stamp=datetime.now(timezone.utc).isoformat() if reviewed_cas else STAMP)
     return case, scenario
+
+
+def connect_role(dsn, role):
+    """Test administrator assigns a NOLOGIN role; production does not elevate."""
+    import psycopg
+    if role not in {'ledger_owner_controller', 'ledger_owner_verifier', 'ledger_owner', 'ledger_control', 'ledger_decision'}:
+        raise ValueError('unsupported fixture role')
+    conn = psycopg.connect(dsn)
+    conn.execute('SET ROLE ' + role)
+    conn.commit()
+    return conn
+
+
+def connect_untrusted_owner(dsn):
+    """Real unprivileged session_user: SET ROLE cannot reuse admin identity."""
+    import secrets
+    from uuid import uuid4
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    login, password = 'cas_test_' + uuid4().hex[:20], secrets.token_urlsafe(32)
+    with psycopg.connect(dsn) as admin:
+        admin.execute(sql.SQL('CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS PASSWORD {}')
+            .format(sql.Identifier(login), sql.Literal(password)))
+        admin.execute(sql.SQL('GRANT ledger_owner TO {}').format(sql.Identifier(login)))
+    settings = conninfo_to_dict(dsn)
+    settings.update(user=login, password=password)
+    conn = psycopg.connect(make_conninfo(**settings))
+    conn.execute('SET ROLE ledger_owner')
+    conn.commit()
+    return conn
+
+
+def attest_cas(case, dsn, *, authority_id=None, mutate=None):
+    """Synthetic archive verifier with a real, separate database role.
+
+    This proves SQL transaction/security behavior, never venue qualification or
+    production authorization/protection archives. No runtime DTO can call it.
+    """
+    import json
+    with case.registry.transaction(case.scope) as tx:
+        old = tx.owner()
+        record = tx.get('ownership_transfers', transfer_key(case.transfer_id), TransferRecord)
+    evidence = case.evidence()
+    facts = case.facts(None, record, old, evidence)
+    new = replace(old, position=replace(facts.position, owner_strategy_id=record.projection.request.new_owner,
+        ownership_epoch=old.position.ownership_epoch+1, active_exit_plan_id=facts.accepted_exit_plan_id),
+        mode='ACTIVE', transfer_id=None, sequence=old.sequence+1)
+    proof = {'facts': json.loads(encode(facts)), 'context_json': encode(record.context),
+        'evidence_json': encode(evidence)}
+    values = {'authority_id': authority_id or 'reviewed:' + scope_id(case.scope),
+        'sid': scope_id(case.scope), 'scope': json.loads(encode(case.scope)),
+        'transfer': json.loads(encode(record)), 'old': json.loads(encode(old)),
+        'new': json.loads(encode(new)), 'proof': proof, 'expiry': facts.valid_until}
+    if mutate:
+        mutate(values)
+    with connect_role(dsn, 'ledger_owner_verifier') as conn:
+        conn.execute('SELECT ledger.attest_owner_transfer(%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s::jsonb,%s::jsonb,%s)',
+            (values['authority_id'], values['sid'], json.dumps(values['scope']), json.dumps(values['transfer']),
+             json.dumps(values['old']), json.dumps(values['new']), json.dumps(values['proof']), values['expiry']))
+    return values
 
 
 def crash_worker(dsn, scope, old_owner, phase):
@@ -260,10 +331,7 @@ def crash_worker(dsn, scope, old_owner, phase):
     from trading_system.storage.uow import UnitOfWork
 
     def connect():
-        conn = psycopg.connect(dsn)
-        conn.execute('SET ROLE ledger_owner')
-        conn.commit()
-        return conn
+        return connect_role(dsn, 'ledger_owner_controller' if phase != 'before_epoch' else 'ledger_owner')
 
     class CrashRegistry(OwnershipRegistry):
         @contextmanager
@@ -286,5 +354,8 @@ def crash_worker(dsn, scope, old_owner, phase):
             if committing and phase == 'after_commit':
                 os._exit(73)
 
-    case = OwnershipCase(CrashRegistry(UnitOfWork(connect)), scope, seed=False, old_owner=old_owner)
+    registry = CrashRegistry(UnitOfWork(connect), owner_commit=PostgresOwnerCAS(
+        read_authority=lambda tx, old, new: 'reviewed:' + scope_id(tx.scope)) if phase != 'before_epoch' else None)
+    case = OwnershipCase(registry, scope, seed=False, old_owner=old_owner,
+        stamp=datetime.now(timezone.utc).isoformat() if phase != 'before_epoch' else STAMP)
     case.service.advance(case.transfer_id, case.evidence())
