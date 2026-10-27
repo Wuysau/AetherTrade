@@ -1,0 +1,70 @@
+FFFFFFF.                                                                 [100%]
+================================== FAILURES ===================================
+_ test_terminal_history_is_counted_after_handoff_and_allows_new_owner_reduction _
+tests\unit\test_target_history_owner.py:73: in test_terminal_history_is_counted_after_handoff_and_allows_new_owner_reduction
+    pending = obligations(history, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\test_target_history_owner.py:69: in obligations
+    return target_guard.target_obligations(history.tx, history.new_intent, history.book, (), utc_timestamp(NOW))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\target_guard.py:187: in target_obligations
+    validate_report(tx, book, record.report, sent, now)
+src\trading_system\risk\target_guard.py:84: in validate_report
+    previous = owned_intent(tx, command, owner)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\target_guard.py:54: in owned_intent
+    require(previous is not None and (previous.owner_strategy_id, previous.ownership_epoch,
+src\trading_system\intents\semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: PRIOR_COMMAND_NOT_OWNED
+_ test_handoff_does_not_discard_historical_binding_or_quantity_checks[order-owner-TARGET_TERMINAL_ORDER_REQUIRED] _
+tests\unit\test_target_history_owner.py:106: in test_handoff_does_not_discard_historical_binding_or_quantity_checks
+    with pytest.raises(ProposalRejected, match=reason):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'TARGET_TERMINAL_ORDER_REQUIRED'
+E     Actual message: 'PRIOR_COMMAND_NOT_OWNED'
+_ test_handoff_does_not_discard_historical_binding_or_quantity_checks[order-epoch-TARGET_TERMINAL_ORDER_REQUIRED] _
+tests\unit\test_target_history_owner.py:106: in test_handoff_does_not_discard_historical_binding_or_quantity_checks
+    with pytest.raises(ProposalRejected, match=reason):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'TARGET_TERMINAL_ORDER_REQUIRED'
+E     Actual message: 'PRIOR_COMMAND_NOT_OWNED'
+_ test_handoff_does_not_discard_historical_binding_or_quantity_checks[fill-quantity-TARGET_FILLS_INCOMPLETE] _
+tests\unit\test_target_history_owner.py:106: in test_handoff_does_not_discard_historical_binding_or_quantity_checks
+    with pytest.raises(ProposalRejected, match=reason):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'TARGET_FILLS_INCOMPLETE'
+E     Actual message: 'PRIOR_COMMAND_NOT_OWNED'
+_ test_handoff_does_not_discard_historical_binding_or_quantity_checks[position-owner-TARGET_POSITION_RECONCILIATION_REQUIRED] _
+tests\unit\test_target_history_owner.py:106: in test_handoff_does_not_discard_historical_binding_or_quantity_checks
+    with pytest.raises(ProposalRejected, match=reason):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'TARGET_POSITION_RECONCILIATION_REQUIRED'
+E     Actual message: 'PRIOR_COMMAND_NOT_OWNED'
+_ test_handoff_does_not_discard_historical_binding_or_quantity_checks[position-quantity-TARGET_POSITION_RECONCILIATION_REQUIRED] _
+tests\unit\test_target_history_owner.py:106: in test_handoff_does_not_discard_historical_binding_or_quantity_checks
+    with pytest.raises(ProposalRejected, match=reason):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'TARGET_POSITION_RECONCILIATION_REQUIRED'
+E     Actual message: 'PRIOR_COMMAND_NOT_OWNED'
+_ test_handoff_does_not_discard_historical_binding_or_quantity_checks[intent-scope-PRIOR_COMMAND_SCOPE_MISMATCH] _
+tests\unit\test_target_history_owner.py:106: in test_handoff_does_not_discard_historical_binding_or_quantity_checks
+    with pytest.raises(ProposalRejected, match=reason):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'PRIOR_COMMAND_SCOPE_MISMATCH'
+E     Actual message: 'PRIOR_COMMAND_NOT_OWNED'
+=========================== short test summary info ===========================
+FAILED tests/unit/test_target_history_owner.py::test_terminal_history_is_counted_after_handoff_and_allows_new_owner_reduction
+FAILED tests/unit/test_target_history_owner.py::test_handoff_does_not_discard_historical_binding_or_quantity_checks[order-owner-TARGET_TERMINAL_ORDER_REQUIRED]
+FAILED tests/unit/test_target_history_owner.py::test_handoff_does_not_discard_historical_binding_or_quantity_checks[order-epoch-TARGET_TERMINAL_ORDER_REQUIRED]
+FAILED tests/unit/test_target_history_owner.py::test_handoff_does_not_discard_historical_binding_or_quantity_checks[fill-quantity-TARGET_FILLS_INCOMPLETE]
+FAILED tests/unit/test_target_history_owner.py::test_handoff_does_not_discard_historical_binding_or_quantity_checks[position-owner-TARGET_POSITION_RECONCILIATION_REQUIRED]
+FAILED tests/unit/test_target_history_owner.py::test_handoff_does_not_discard_historical_binding_or_quantity_checks[position-quantity-TARGET_POSITION_RECONCILIATION_REQUIRED]
+FAILED tests/unit/test_target_history_owner.py::test_handoff_does_not_discard_historical_binding_or_quantity_checks[intent-scope-PRIOR_COMMAND_SCOPE_MISMATCH]
+7 failed, 1 passed in 0.47s

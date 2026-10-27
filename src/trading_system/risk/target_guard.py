@@ -49,14 +49,20 @@ def roots(tx):
     return tuple(commands.get(row[0]) for row in rows)
 
 
-def owned_intent(tx, command, owner):
+def scope_bound_intent(tx, command):
     previous = tx._latest('intents', command.intent_id, TradeIntent)
-    require(previous is not None and (previous.owner_strategy_id, previous.ownership_epoch,
-        previous.risk_policy_revision) == owner, 'PRIOR_COMMAND_NOT_OWNED')
+    require(previous is not None, 'PRIOR_COMMAND_NOT_OWNED')
     require((previous.environment, previous.venue_account_id, previous.product, previous.instrument_uid,
         previous.venue_leg, previous.collateral_group_id) == (tx.scope.environment,
         tx.scope.venue_account_id, tx.scope.product, tx.scope.instrument_uid,
         tx.scope.venue_leg, tx.group_id), 'PRIOR_COMMAND_SCOPE_MISMATCH')
+    return previous
+
+
+def owned_intent(tx, command, owner):
+    previous = scope_bound_intent(tx, command)
+    require((previous.owner_strategy_id, previous.ownership_epoch,
+        previous.risk_policy_revision) == owner, 'PRIOR_COMMAND_NOT_OWNED')
     return previous
 
 
@@ -81,7 +87,12 @@ def validate_report(tx, book, report, commands, now):
     signed_fills = Decimal(0)
     for command in commands:
         require(command.state in ('VENUE_CONFIRMED', 'VENUE_REJECTED'), 'TARGET_COMMAND_UNRESOLVED')
-        previous = owned_intent(tx, command, owner)
+        # A completed handoff changes current ownership, never historical order
+        # ownership. Retain every terminal root and its exact original fills;
+        # the full baseline/fill equation below still binds the current position.
+        # READY commands separately require current ownership before occupying
+        # a new target, and reserve/dispatch retain their current-owner guards.
+        previous = scope_bound_intent(tx, command)
         basis = tx._latest('audit_events', 'ip07:target-basis:' + command.command_id, TargetBasis)
         require(basis is not None and basis.command_id == command.command_id
             and basis.book_sequence < book.sequence, 'TARGET_BASIS_REQUIRED')
