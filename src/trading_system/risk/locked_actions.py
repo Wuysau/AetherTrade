@@ -78,23 +78,28 @@ class LockedActionVerifier:
                         or not book.evidence or any(not valid_ref(e, tx.scope, now,
                             self.maximum_age_seconds) for e in book.evidence)):
                     return None
-                locks = tuple(tx.risk_locks.active(tx.scope)) + tuple(
+                ledger_locks = tuple(tx.risk_locks.applicable(tx.scope))
+                locks = ledger_locks + tuple(
                     lock for p in book.positions for lock in p.risk_locks)
                 if not locks:
                     return min([utc_timestamp(intent.valid_until)] + [utc_timestamp(e.visible_at)
                         + timedelta(seconds=self.maximum_age_seconds) for e in book.evidence]).isoformat()
-                return self._verify(tx, command, intent, now, locks, book)
+                return self._verify(tx, command, intent, now, locks, book, ledger_locks)
         except Exception:
             # Unavailable/malformed local proof cannot relax a lock.
             return None
 
-    def _verify(self, tx, command, intent, now, locks, book):
+    def _verify(self, tx, command, intent, now, locks, book, ledger_locks):
         scope = tx.scope
         if scope.environment not in (t.Environment.PAPER, t.Environment.RESEARCH):
             return None
         allowed = ACTIONS[t.RiskPermission.NORMAL]
         for lock in locks:
-            if (lock.scope != scope or lock.state != 'ACTIVE'
+            # Cross-instrument DAILY_LOSS applies only when returned by the
+            # ledger repository after source identity/history/binding checks.
+            # A position or caller cannot assert its own foreign-scope alias.
+            if ((lock.scope != scope and not (lock.cause == 'DAILY_LOSS' and lock in ledger_locks))
+                    or lock.state != 'ACTIVE'
                     or lock.cause in {'ORDER_OUTCOME_UNKNOWN', 'RESERVATION_COMMAND_UNKNOWN'}):
                 return None
             allowed &= ACTIONS.get(lock.permission, frozenset())

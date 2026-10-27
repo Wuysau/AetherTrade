@@ -280,6 +280,74 @@ class RiskLockRepository:
                               (scope_id(scope),)).fetchall()
         return tuple(lock for row in rows if (lock := decode(t.RiskLock, row[0])).state == 'ACTIVE')
 
+    def applicable(self, scope):
+        """Original local locks plus DAILY_LOSS in the bound collateral domain.
+
+        The UoW already holds the group's mutex. Reacquire it and verify both
+        endpoint bindings here so this read cannot silently trust caller lock
+        IDs, payload group labels, or a transaction's unverified group string.
+        Every returned lock retains its original source scope and identity.
+        """
+        from trading_system.contracts.canonical import utc_timestamp
+        self.tx.require_scope(scope)
+        binding = self.tx.execute('SELECT collateral_group_id FROM ledger.account_bindings '
+            'WHERE environment=%s AND account_id=%s AND product=%s FOR SHARE', account_key(scope)).fetchall()
+        if (len(binding) != 1 or not self.tx.group_id or binding[0][0] != self.tx.group_id):
+            raise MissingEvidence('current risk collateral binding is missing or changed')
+        mutex = self.tx.execute('SELECT group_id FROM ledger.collateral_mutex '
+            'WHERE environment=%s AND group_id=%s FOR UPDATE',
+            (str(scope.environment), self.tx.group_id)).fetchall()
+        if len(mutex) != 1 or mutex[0][0] != self.tx.group_id:
+            raise MissingEvidence('risk collateral mutex is missing')
+        # Include historical DAILY_LOSS identities even if a later malformed row
+        # changes the cause. Such a row must not make the shared lock disappear.
+        rows = self.tx.execute(
+            'SELECT DISTINCT ON (l.scope_id,l.record_id) l.scope_id,l.record_id,l.sequence,l.payload '
+            'FROM ledger.risk_locks l WHERE l.scope_id=%s OR EXISTS '
+            '(SELECT 1 FROM ledger.risk_locks d WHERE d.scope_id=l.scope_id AND d.record_id=l.record_id '
+            "AND d.payload->>'cause'='DAILY_LOSS') ORDER BY l.scope_id,l.record_id,l.sequence DESC",
+            (scope_id(scope),)).fetchall()
+        result, identities = [], {}
+        for stored_scope, record_id, sequence, raw in rows:
+            try:
+                lock = decode(t.RiskLock, raw)
+                if (not lock.lock_id or record_id != lock.lock_id or stored_scope != scope_id(lock.scope)
+                        or not lock.scope.venue_account_id.strip() or not lock.scope.instrument_uid.strip()
+                        or not lock.cause.strip() or not lock.required_evidence
+                        or len(set(lock.required_evidence)) != len(lock.required_evidence)):
+                    raise ValueError('risk lock identity is inconsistent')
+                utc_timestamp(lock.raised_at)
+                history = self.tx.execute('SELECT sequence,payload FROM ledger.risk_locks '
+                    'WHERE scope_id=%s AND record_id=%s ORDER BY sequence', (stored_scope, record_id)).fetchall()
+                initial = decode(t.RiskLock, history[0][1])
+                if (sequence != len(history) or len(history) not in (1, 2)
+                        or initial.state != 'ACTIVE' or initial.lock_id != lock.lock_id
+                        or initial.scope != lock.scope or replace(lock, state='ACTIVE') != initial
+                        or any(number != index + 1 or decode(t.RiskLock, payload) != (
+                            initial if index == 0 else replace(initial, state='RESOLVED'))
+                            for index, (number, payload) in enumerate(history))):
+                    raise ValueError('risk lock history is inconsistent')
+                source = self.tx.execute('SELECT collateral_group_id FROM ledger.account_bindings '
+                    'WHERE environment=%s AND account_id=%s AND product=%s FOR SHARE',
+                    account_key(lock.scope)).fetchall()
+                if len(source) != 1 or not source[0][0]:
+                    raise ValueError('risk lock source collateral binding is missing')
+                if lock.cause == 'DAILY_LOSS' and (
+                        lock.permission != t.RiskPermission.NO_NEW_RISK
+                        or lock.required_evidence != ('DAILY_LOSS_REVIEW',)):
+                    raise ValueError('daily-loss lock policy is inconsistent')
+                if (stored_scope != scope_id(scope) and not (lock.cause == 'DAILY_LOSS'
+                        and lock.scope.environment == scope.environment and source[0][0] == self.tx.group_id)):
+                    continue
+                if lock.lock_id in identities and identities[lock.lock_id] != stored_scope:
+                    raise ValueError('risk lock identity is ambiguous')
+                identities[lock.lock_id] = stored_scope
+                if lock.state == 'ACTIVE':
+                    result.append(lock)
+            except (ValueError, TypeError, AttributeError, KeyError, IndexError) as exc:
+                raise MissingEvidence('risk lock applicability is unverified: ' + str(exc)) from exc
+        return tuple(result)
+
     @atomic_write
     def append(self, lock, expected_sequence):
         self.tx.require_scope(lock.scope)
