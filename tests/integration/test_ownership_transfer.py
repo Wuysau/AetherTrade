@@ -893,3 +893,59 @@ def test_postgres_owner_cas_preserves_exact_decimal_and_protection(ip16_database
     assert str(owner.position.actual_quantity.value) == str(value)
     assert owner.protection_responsibility == 'SYSTEM_PROTECTION'
     assert owner.position.owner_book_id == c.position.owner_book_id
+
+
+@pytest.mark.parametrize('attack', ['early-check-owner', 'early-check-transfer', 'expiry',
+                                  'early-check-expiry', 'early-check-named', 'early-check-do',
+                                  'early-check-multistatement', 'manual-lock', 'reconciliation',
+                                  'async-commit'])
+def test_postgres_cas_cannot_bypass_final_guard(ip16_database, attack):
+    """Real controller SQL after correct CAS/projections, before actual COMMIT."""
+    from datetime import datetime, timedelta, timezone
+    import time
+    import psycopg
+    c, scenario = ready_postgres_cas(ip16_database)
+    if 'expiry' in attack:
+        c.fact_changes['valid_until'] = (datetime.now(timezone.utc) + timedelta(seconds=1)).isoformat()
+    attest_cas(c, ip16_database)
+    before = crash_ledger_json(c)
+    persist = c.service._persist
+
+    def after_correct_projections(tx, *args, **kwargs):
+        updated = persist(tx, *args, **kwargs)
+        if updated.projection.state != t.TransferState.ACTIVE:
+            return updated
+        assert tx.tx.execute('SELECT current_user').fetchone()[0] == 'ledger_owner_controller'
+        if attack == 'early-check-named':
+            tx.tx.execute('SET CONSTRAINTS ledger.owner_cas_atomic_commit IMMEDIATE')
+        elif attack == 'early-check-do':
+            tx.tx.execute('DO $$ BEGIN SET CONSTRAINTS ALL IMMEDIATE; END $$')
+        elif attack == 'early-check-multistatement':
+            tx.tx.execute('SET CONSTRAINTS ALL IMMEDIATE; COMMIT')
+        elif attack.startswith('early-check'):
+            tx.tx.execute('SET CONSTRAINTS ALL IMMEDIATE')
+        if attack == 'early-check-owner':
+            old = tx.owner()
+            tx.save_owner(old, replace(old, sequence=old.sequence+1,
+                position=replace(old.position, ownership_epoch=1, owner_strategy_id=c.old_owner)))
+        elif attack == 'early-check-transfer':
+            tx.append('ownership_transfers', transfer_key(c.transfer_id), replace(updated,
+                sequence=updated.sequence+1, projection=replace(updated.projection,
+                    state=t.TransferState.COMMIT_OWNER_EPOCH, ownership_epoch=1)), updated.sequence)
+        elif 'expiry' in attack:
+            time.sleep(1.1)
+        elif attack == 'manual-lock':
+            tx.raise_lock(t.RiskLock(lock_id='manual:' + c.transfer_id, scope=c.scope,
+                cause='MANUAL_INTERVENTION', state='ACTIVE', permission=t.RiskPermission.NO_NEW_RISK,
+                required_evidence=('RECONCILIATION',), raised_at=c.stamp), c.ref('manual'))
+        elif attack == 'async-commit':
+            tx.tx.execute('SET LOCAL synchronous_commit=off')
+        else:
+            case = tx.get('reconciliation_cases', 'ip16:reconcile:' + c.transfer_id, t.ReconciliationCase)
+            tx.append('reconciliation_cases', case.case_id, replace(case, attempts=case.attempts+1), 1)
+        return updated
+
+    c.service._persist = after_correct_projections
+    with pytest.raises(psycopg.errors.CheckViolation):
+        c.service.advance(c.transfer_id, c.evidence())
+    assert crash_ledger_json(c) == before

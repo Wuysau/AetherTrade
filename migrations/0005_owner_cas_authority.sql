@@ -314,10 +314,68 @@ CREATE TRIGGER owner_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON ledger.act
 CREATE TRIGGER owner_cas_row BEFORE UPDATE ON ledger.active_owners
     FOR EACH ROW EXECUTE FUNCTION ledger.check_owner_cas_row();
 
+-- Non-deferrable fences: an approval cannot be followed by another owner or
+-- transfer revision, or by a change to the attested ledger basis. These run
+-- regardless of SET CONSTRAINTS mode and cover every snapshot source table.
+CREATE FUNCTION ledger.check_owner_cas_later_write() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
+DECLARE a ledger.owner_cas_approvals; row_data jsonb := to_jsonb(NEW);
+BEGIN
+    FOR a IN SELECT * FROM ledger.owner_cas_approvals
+        WHERE database_transaction=pg_current_xact_id()
+            AND (scope_id=row_data->>'scope_id' OR TG_TABLE_NAME IN ('authorizations','deployments','policies')) LOOP
+        IF TG_TABLE_NAME='audit_events' AND row_data->>'record_id'='ip16:owner'
+            AND row_data->'payload'=a.new_owner AND row_data->'sequence'=a.new_owner->'sequence'
+            AND row_data->>'transaction_id'=a.transaction_id THEN
+            CONTINUE;
+        ELSIF TG_TABLE_NAME='ownership_transfers'
+            AND row_data->>'record_id'='ip16:transfer:'||(a.transfer->'projection'->'request'->>'transfer_id')
+            AND (row_data->>'sequence')::bigint=(a.transfer->>'sequence')::bigint+1
+            AND row_data->'payload'->>'sequence'=row_data->>'sequence'
+            AND row_data->'payload'->'projection'->>'state'='ACTIVE'
+            AND row_data->'payload'->'projection'->'ownership_epoch'=a.new_owner->'position'->'ownership_epoch'
+            AND row_data->>'transaction_id'=a.transaction_id THEN
+            CONTINUE;
+        END IF;
+        RAISE EXCEPTION 'owner CAS final ledger fence forbids later revision' USING ERRCODE='23514';
+    END LOOP;
+    RETURN NEW;
+END $$;
+DO $$ DECLARE tab text; BEGIN
+    FOREACH tab IN ARRAY ARRAY['audit_events','ownership_transfers','commands','positions','protection_plans',
+        'reconciliation_cases','risk_locks','command_aborts','order_projections','book_snapshots','fills',
+        'authorizations','deployments','policies'] LOOP
+        EXECUTE format('CREATE TRIGGER owner_cas_final_write_fence BEFORE INSERT ON ledger.%I '
+            'FOR EACH ROW EXECUTE FUNCTION ledger.check_owner_cas_later_write()',tab);
+    END LOOP;
+END $$;
+
 CREATE FUNCTION ledger.check_owner_cas_commit() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
-DECLARE p jsonb; o jsonb;
+DECLARE p jsonb; o jsonb; a ledger.owner_cas_authorities;
 BEGIN
+    -- Deferred triggers can otherwise be consumed early by SET CONSTRAINTS.
+    -- Accept only the exact top-level COMMIT/END query, never a client label,
+    -- setting, SQL function/procedure, multi-statement query, or early check.
+    -- Unsupported transaction-control spellings fail closed. current_query()
+    -- is the server's submitted query text, not a caller-writable GUC.
+    IF pg_catalog.current_query() !~* '^\s*(COMMIT|END)(\s+(WORK|TRANSACTION))?\s*;?\s*$'
+        OR current_setting('synchronous_commit') IS DISTINCT FROM 'on' THEN
+        RAISE EXCEPTION 'owner CAS requires final top-level synchronous COMMIT' USING ERRCODE='23514';
+    END IF;
+    SELECT * INTO STRICT a FROM ledger.owner_cas_authorities WHERE authority_id=NEW.authority_id;
+    PERFORM ledger.owner_cas_guard(a.scope);
+    IF a.expires_at<=clock_timestamp()
+        OR EXISTS (SELECT FROM ledger.owner_cas_revocations WHERE authority_id=NEW.authority_id)
+        OR a.ledger_snapshot IS DISTINCT FROM ledger.owner_cas_snapshot(NEW.scope_id)
+        OR NOT EXISTS (SELECT FROM ledger.active_owners WHERE environment=a.scope->>'environment'
+            AND account_id=a.scope->>'venue_account_id' AND product=a.scope->>'product'
+            AND instrument_uid=a.scope->>'instrument_uid' AND venue_leg=a.scope->>'venue_leg'
+            AND owner_strategy_id=NEW.new_owner->'position'->>'owner_strategy_id'
+            AND ownership_epoch=(NEW.new_owner->'position'->>'ownership_epoch')::bigint
+            AND policy_revision=(NEW.new_owner->>'policy_revision')::bigint) THEN
+        RAISE EXCEPTION 'owner CAS authority expired revoked or stale at final commit check' USING ERRCODE='23514';
+    END IF;
     SELECT payload INTO o FROM ledger.audit_events WHERE scope_id=NEW.scope_id AND record_id='ip16:owner'
         ORDER BY sequence DESC LIMIT 1;
     SELECT payload INTO p FROM ledger.ownership_transfers WHERE scope_id=NEW.scope_id
@@ -349,7 +407,8 @@ CREATE CONSTRAINT TRIGGER owner_cas_atomic_commit AFTER INSERT ON ledger.owner_c
 REVOKE ALL ON FUNCTION ledger.owner_cas_guard(jsonb),ledger.validate_owner_cas(text,jsonb,jsonb,jsonb,jsonb,jsonb,timestamptz),
     ledger.owner_cas_snapshot(text),ledger.attest_owner_transfer(text,text,jsonb,jsonb,jsonb,jsonb,jsonb,timestamptz),
     ledger.revoke_owner_transfer(text),ledger.commit_owner_transfer(text,text,jsonb,jsonb,text),
-    ledger.check_owner_cas_statement(),ledger.check_owner_cas_row(),ledger.check_owner_cas_commit()
+    ledger.check_owner_cas_statement(),ledger.check_owner_cas_row(),ledger.check_owner_cas_commit(),
+    ledger.check_owner_cas_later_write()
     FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_owner_verifier,ledger_owner_controller;
 GRANT EXECUTE ON FUNCTION ledger.attest_owner_transfer(text,text,jsonb,jsonb,jsonb,jsonb,jsonb,timestamptz),
     ledger.revoke_owner_transfer(text) TO ledger_owner_verifier;

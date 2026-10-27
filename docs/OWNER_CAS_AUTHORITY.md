@@ -48,11 +48,38 @@ cannot create an approval.
 
 A deferred constraint requires the exact new owner and ACTIVE transfer
 projections, with the next durable step and the same transaction identity,
-before COMMIT can succeed. A raw controller CAS without those projections rolls
-back. The approval is consumed once; precommit process loss rolls it back with
+before COMMIT can succeed. Non-deferrable insert fences permit only those exact
+final owner/transfer revisions after the CAS and reject later changes to any
+attested snapshot source. A raw controller CAS without those projections rolls
+back. The deferred guard accepts only a top-level synchronous `COMMIT` or `END`
+statement (optionally `WORK`/`TRANSACTION` and a final semicolon). It rejects
+`SET CONSTRAINTS ... IMMEDIATE`, including named constraints, DO blocks and
+multi-statement queries, rather than allowing them to consume the final check.
+Unsupported transaction-control spellings, two-phase commit, implicit autocommit
+and changing `synchronous_commit` to `off` fail closed. At that final precommit
+check, under the still-held collateral/owner guard, SQL rechecks wall-clock
+expiry, revocation, the complete attested snapshot and the exact new active row.
+
+This is a final SQL precommit check, not a check after physical WAL durability.
+PostgreSQL can take time to flush WAL after triggers have completed; a wall-clock
+deadline can pass during that flush. This change does not promise that expiry
+is evaluated after WAL flush. If that stronger requirement is imposed, this SQL
+capability is insufficient and must remain disabled pending a separately
+reviewed database commit mechanism. No production composition is enabled here.
+
+The approval is consumed once; precommit process loss rolls it back with
 the active row and projections. Postcommit process loss leaves all three durable.
 Transfer completion preserves the freeze cause and system protection duty; it
 does not automatically restore permission to add risk.
+
+The query guard uses PostgreSQL's server-reported
+[`current_query()`](https://www.postgresql.org/docs/17/functions-info.html),
+which includes the complete submitted query rather than a caller-defined label.
+It is necessary because
+[`SET CONSTRAINTS`](https://www.postgresql.org/docs/17/sql-set-constraints.html)
+can execute pending deferred triggers early. Synchronous commit's separate WAL
+flush is described in the
+[PostgreSQL durability documentation](https://www.postgresql.org/docs/17/wal-async-commit.html).
 
 The Linux PostgreSQL tests use a fresh `ip16_test_*` database and synthetic
 trusted archive facts, with real SQL privileges, transactions, contention and
