@@ -1,0 +1,46 @@
+{
+  "directory": "/tmp/ip08_test_group_771d2e3f2f65",
+  "source_hashes": [
+    {
+      "sha256": "82b1ea8389f6be9b294e9d5479c7dc12d81a6acabcad169bb9b8459b12d8a063",
+      "path": "src/trading_system/storage/uow.py"
+    },
+    {
+      "sha256": "4d9c1e1104ab8d028f6d96ff9de5a839b29ba009a18782a4217de2a09eb90629",
+      "path": "src/trading_system/risk/locks.py"
+    },
+    {
+      "sha256": "767984684a04ba4203a83abcbef24e623adff0126690c311e1ba9ad2c92ba576",
+      "path": "src/trading_system/risk/locked_actions.py"
+    },
+    {
+      "sha256": "01a2267d64bcd07fdde79c5fed8db2a078eb9bc18046e9b60c58817b054b2dac",
+      "path": "src/trading_system/risk/reservations.py"
+    },
+    {
+      "sha256": "9fef661bdb2426db2f520090528fe17cf4167d016feec46cc23aec25fd536921",
+      "path": "tests/integration/test_group_daily_locks.py"
+    },
+    {
+      "sha256": "8c6211aee690c07702bef1187a5a591fd9d1c9be13c048d059a2d4d14ecf3aed",
+      "path": "tests/unit/test_risk_applicability.py"
+    },
+    {
+      "sha256": "b3bfbaaec9dbeeb207297a395290dd4083d5b6101c98a11e240d36a9b32b5dc6",
+      "path": "migrations/0001_business_ledger.sql"
+    },
+    {
+      "sha256": "f2597dd09832aef2b4fa1a82f0152c10226b613cdbb5ffce24285ffc6b0793a4",
+      "path": "migrations/0002_risk_resolution_authority.sql"
+    }
+  ],
+  "database": "ip08_test_group_771d2e3f2f65",
+  "tests": [
+    "tests/integration/test_group_daily_locks.py",
+    "tests/unit/test_risk_applicability.py",
+    "tests/unit/test_locked_actions.py"
+  ],
+  "postgres_container": "aethertrade-paper-qualification-5fbf2cf3",
+  "runner": "aethertrade-pg-ledger-pgledger_7fa85478",
+  "source_commit": "fa5fefe0fd8f367337a404022a7b0120797036e6"
+}

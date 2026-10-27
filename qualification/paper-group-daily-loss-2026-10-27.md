@@ -7,6 +7,10 @@ only RiskLockRepository within `storage/uow.py`, the shared risk-service/verifie
 read path, tests and the qualification launcher. It does not change command
 repository code, migrations, native qualification or live/testnet permission.
 
+The cross-group READ COMMITTED isolation correction is
+`fa5fefe0fd8f367337a404022a7b0120797036e6`; its fixed-commit evidence is recorded
+in the final section below. The original grouping results remain historical.
+
 ## Reproduction
 
 On the dependency baseline, a real isolated Linux/PostgreSQL run returned
@@ -111,3 +115,56 @@ being silently discarded, so ledger corruption can require operator repair.
 This followup does not establish the complete unified PAPER lifecycle, all crash
 boundaries, external fencing, native/Testnet qualification or real-money readiness.
 No real account or venue API was accessed.
+
+## Cross-group resolution interleaving followup
+
+Independent review reproduced a valid unrelated-group race. The original
+implementation selected global daily-loss candidates, then read/validated each
+history before checking its source group. Under READ COMMITTED, group B could
+commit a valid source resolution after group A observed its ACTIVE sequence 1.
+Group A's later history read saw sequence 2 and rejected the unrelated record as
+inconsistent, despite holding only group A's mutex.
+
+Before the correction, the exact unit probe returned **exit 1, 1 failed,
+1 passed**: stable unrelated history was ignored, but the interleaved case raised
+MissingEvidence. The actual Linux/PostgreSQL regression then returned **exit 1,
+1 failed, 10 passed**. It materialized the first real SQL snapshot, resolved group
+B's source lock on a second connection using the distinct resolver role and
+private persisted review, and resumed group A. The resulting history mismatch
+caused the reproduced denial. See [raw red output](evidence/group-daily-loss-2026-10-27/04-isolation-regression.txt),
+[exit](evidence/group-daily-loss-2026-10-27/04-isolation-regression.exit.txt) and
+[metadata/source hashes](evidence/group-daily-loss-2026-10-27/04-isolation-regression.json).
+
+The correction verifies source identity and its authoritative binding first.
+A source proven to belong to another environment/group is excluded before its
+history is read. Missing or ambiguous membership still fails closed. Relevant
+local/group candidates retain full immutable-history and permission checks;
+the held target-group mutex serializes their legitimate writers. This avoids
+requiring one snapshot or cross-group serialization for irrelevant histories.
+Historical daily-loss candidates that try to change cause remain checked within
+the relevant group. Original source identity, alias rejection, resolver authority
+and instrument-specific cause applicability remain unchanged.
+
+On exact implementation commit `fa5fefe0fd8f367337a404022a7b0120797036e6`:
+
+```powershell
+& ./scripts/run_group_daily_probes.ps1 -Label isolation-committed -TestPaths tests/integration/test_group_daily_locks.py,tests/unit/test_risk_applicability.py,tests/unit/test_locked_actions.py
+# Exit 0: 147 passed, 0 skipped (6.18s)
+# Linux/Python 3.12.16/PostgreSQL 17.11; ip08_test_group_771d2e3f2f65
+& ./scripts/run_group_daily_probes.ps1 -Label isolation-persistent -TestPaths tests/integration/test_persistent_risk_locks.py
+# Exit 0: 36 passed, 0 skipped (2.58s)
+# Linux/Python 3.12.16/PostgreSQL 17.11; ip08_test_group_9acf91e1ed80
+```
+
+The first run includes 11 actual PostgreSQL cases, 17 applicability unit cases,
+and 119 existing action-safety cases. The unrelated resolution now leaves group
+A unlocked and able to reserve new risk. A relevant-group inconsistent history
+still raises MissingEvidence. Source-only resolution and rejected owner forgery
+remain covered, and the separate persistent/resolver suite remains green.
+
+- [Fixed group/safety output](evidence/group-daily-loss-2026-10-27/05-isolation-group-and-safety.txt),
+  [exit](evidence/group-daily-loss-2026-10-27/05-isolation-group-and-safety.exit.txt),
+  [commit/source hashes](evidence/group-daily-loss-2026-10-27/05-isolation-group-and-safety.json).
+- [Persistent/resolver output](evidence/group-daily-loss-2026-10-27/06-isolation-persistent-and-resolver.txt),
+  [exit](evidence/group-daily-loss-2026-10-27/06-isolation-persistent-and-resolver.exit.txt),
+  [commit/source hashes](evidence/group-daily-loss-2026-10-27/06-isolation-persistent-and-resolver.json).
