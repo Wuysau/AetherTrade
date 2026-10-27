@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.637" timestamp="2026-10-27T07:50:50.352616+00:00" hostname="e57a8d92ac01"><testcase classname="tests.integration.test_paper_duplicate_target" name="test_two_new_intents_with_same_target_cannot_reserve_twice" time="0.419"><failure message="assert 2 == 1&#10; +  where 2 = sum(&lt;generator object test_two_new_intents_with_same_target_cannot_reserve_twice.&lt;locals&gt;.&lt;genexpr&gt; at 0x7223ce709180&gt;)">tests/integration/test_paper_duplicate_target.py:38: in test_two_new_intents_with_same_target_cannot_reserve_twice
+    assert sum(result.accepted for result in results) == 1
+E   assert 2 == 1
+E    +  where 2 = sum(&lt;generator object test_two_new_intents_with_same_target_cannot_reserve_twice.&lt;locals&gt;.&lt;genexpr&gt; at 0x7223ce709180&gt;)</failure></testcase></testsuite></testsuites>

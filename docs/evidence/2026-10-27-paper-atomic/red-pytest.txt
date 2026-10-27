@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_two_new_intents_with_same_target_cannot_reserve_twice __________
+tests/integration/test_paper_duplicate_target.py:38: in test_two_new_intents_with_same_target_cannot_reserve_twice
+    assert sum(result.accepted for result in results) == 1
+E   assert 2 == 1
+E    +  where 2 = sum(<generator object test_two_new_intents_with_same_target_cannot_reserve_twice.<locals>.<genexpr> at 0x7223ce709180>)
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_duplicate_target.py::test_two_new_intents_with_same_target_cannot_reserve_twice
+1 failed in 0.64s

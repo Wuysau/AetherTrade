@@ -1,0 +1,47 @@
+{
+  "source_sha": "e0e2981359677ef0824aafaf1416b67367323740",
+  "python": "3.12.16 (main, Oct 26 2026, 22:51:49) [GCC 14.2.0]",
+  "platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+  "recorded_at": "2026-10-27T08:36:22.971643+00:00",
+  "files": {
+    "migrations/0001_business_ledger.sql": "b3bfbaaec9dbeeb207297a395290dd4083d5b6101c98a11e240d36a9b32b5dc6",
+    "deploy/db/roles.sql": "23b35ef98b0e8dfb4cebd3645035b19b61c3e667cd90060a42a05a5c2f68b3cd",
+    "migrations/0004_command_abort_guard.sql": "19017e040298f0a0f814312252d4c3f3bce25298f3e58512c6d9e8efcf4b73b6",
+    "migrations/0006_proposal_intake_role.sql": "57636b05884734e6abfe805a2749399b4e069750e268f5995cf2b38e8ff0d101"
+  },
+  "databases": {
+    "test_paper_duplicate_target": {
+      "name": "ip07_test_atomic_375d38d063064a60822d453e0d6d745f",
+      "counts": {
+        "intents": 25,
+        "reservations": 22,
+        "commands": 37,
+        "outbox": 32,
+        "audit_events": 105,
+        "book_snapshots": 42,
+        "proposals": 2,
+        "fills": 6,
+        "risk_locks": 0,
+        "domain_events": 7
+      },
+      "exit_code": 0
+    },
+    "test_reservations": {
+      "name": "ip07_test_atomic_4084e11aeb4040fa9a078c772f38e009",
+      "counts": {
+        "intents": 50,
+        "reservations": 49,
+        "commands": 73,
+        "outbox": 87,
+        "audit_events": 297,
+        "book_snapshots": 116,
+        "proposals": 0,
+        "fills": 0,
+        "risk_locks": 5,
+        "domain_events": 38
+      },
+      "exit_code": 0
+    }
+  },
+  "postgres_version": "17.11"
+}
