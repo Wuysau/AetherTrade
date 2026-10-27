@@ -41,6 +41,8 @@ SUITES = (
     ('ownership', '16', 'tests/integration/test_ownership_transfer.py'),
     ('paper-engine', 'PAPER_ENGINE', 'tests/integration/test_paper_engine_postgres.py'),
     ('console', 'CONSOLE', 'tests/server/test_store.py::test_postgresql_race_restart_and_concurrent_transaction_receipts'),
+    ('unified-runtime', 'PAPER_RUNTIME', 'tests/integration/test_unified_paper_runtime.py'),
+    ('runtime-faults', 'PAPER_RUNTIME', 'tests/integration/test_unified_runtime_faults.py'),
 )
 
 
@@ -233,19 +235,24 @@ def main(argv=None):
             migrations = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                           for p in sorted((ROOT / 'migrations').glob('*.sql'))}
             summary = {'commit': commit, 'postgres_version_num': version, 'migrations': migrations,
+                       'provisioning_sources': {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+                                                for name in ('deploy/db/roles.sql', 'scripts/provision_paper_engine_roles.py')},
                        'qualification': 'NOT_RUN' if args.suite else 'INCOMPLETE', 'suites': []}
             tag = secrets.token_hex(6)
             # A retry never overwrites an earlier run's original evidence.
             evidence = evidence_root / (commit[:12] + '-' + tag)
             evidence.mkdir(exist_ok=False)
             for name, number, testfile in selected:
-                dbname = ('aethertrade_tests' if number == 'CONSOLE' else
+                dbname = (values['dbname'] if number == 'PAPER_RUNTIME' else 'aethertrade_tests' if number == 'CONSOLE' else
                           ('paper_engine_' if number == 'PAPER_ENGINE' else f'ip{number.lower()}_test_') + tag + '_' + name.replace('-', '_'))
                 if len(dbname) > 63:
                     raise GateError('generated database name is too long')
-                if connection.execute('SELECT 1 FROM pg_database WHERE datname=%s', (dbname,)).fetchone():
-                    raise GateError('fresh test database name unexpectedly exists')
-                connection.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(dbname)))
+                if number == 'PAPER_RUNTIME':
+                    before_databases = {row[0] for row in connection.execute('SELECT datname FROM pg_database').fetchall()}
+                else:
+                    if connection.execute('SELECT 1 FROM pg_database WHERE datname=%s', (dbname,)).fetchone():
+                        raise GateError('fresh test database name unexpectedly exists')
+                    connection.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(dbname)))
                 # Never inherit an unrelated account/database opt-in from the
                 # runner's environment, even when only one suite is selected.
                 env = child_environment(os.environ)
@@ -257,6 +264,11 @@ def main(argv=None):
                         # current run's child directory.
                         cwd = stack.enter_context(console_scratch(values, dbname, evidence_root))
                         env['AETHERTRADE_RUN_POSTGRES_TESTS'] = '1'
+                    elif number == 'PAPER_RUNTIME':
+                        cwd = ROOT
+                        env['PAPER_RUNTIME_ISOLATED_DATABASE'] = 'YES'
+                        env['PAPER_RUNTIME_ADMIN_DSN'] = dsn
+                        env['PAPER_RUNTIME_EVIDENCE_DIR'] = str(evidence / (name + '-states'))
                     else:
                         cwd = ROOT
                         env[f'{number}_ISOLATED_DATABASE' if number == 'PAPER_ENGINE' else f'IP{number}_ISOLATED_DATABASE'] = 'YES'
@@ -278,8 +290,15 @@ def main(argv=None):
                               'exit_code': exit_code, 'accepted': False}
                 entry = {'suite': name, 'database': dbname, 'command': command,
                          'isolation_flag': ('PAPER_ENGINE_ISOLATED_DATABASE' if number == 'PAPER_ENGINE' else
+                                            'PAPER_RUNTIME_ISOLATED_DATABASE' if number == 'PAPER_RUNTIME' else
                                             'AETHERTRADE_RUN_POSTGRES_TESTS' if number == 'CONSOLE' else f'IP{number}_ISOLATED_DATABASE'),
                          'results': counts, 'output': log.name, 'junit': xml.name}
+                if number == 'PAPER_RUNTIME':
+                    entry['created_databases'] = sorted({row[0] for row in connection.execute(
+                        'SELECT datname FROM pg_database').fetchall()} - before_databases)
+                    if not entry['created_databases']:
+                        counts['accepted'] = False
+                    entry['database'] = 'FRESH_PER_CASE_RUNTIME_AND_VENUE_DATABASES'
                 summary['suites'].append(entry)
                 print(f"{name}: {counts['passed']} passed, {counts['failed']} failed, "
                       f"{counts['errors']} errors, {counts['skipped']} skipped; exit {exit_code}", flush=True)

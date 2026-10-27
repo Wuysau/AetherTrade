@@ -23,7 +23,11 @@ jobs:
       - run: python -m pip install -e '.[test]'
       # The PAPER engine's mandatory PostgreSQL cases run in the required
       # postgres-paper job below; they fail rather than silently skip without DB.
-      - run: python -m pytest -q --ignore=tests/integration/test_paper_engine_postgres.py
+      - run: >-
+          python -m pytest -q
+          --ignore=tests/integration/test_paper_engine_postgres.py
+          --ignore=tests/integration/test_unified_paper_runtime.py
+          --ignore=tests/integration/test_unified_runtime_faults.py
 
   postgres-paper:
     runs-on: ubuntu-latest
