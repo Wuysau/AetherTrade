@@ -1,0 +1,58 @@
+{
+  "NOT_RUN": [
+    "production authorization/archive verifier",
+    "real venue protection continuity",
+    "native adapter qualification",
+    "TESTNET",
+    "LIVE",
+    "approved T/Q platform qualification"
+  ],
+  "applied_migrations": [
+    "0001_business_ledger.sql",
+    "deploy/db/roles.sql",
+    "0002_risk_resolution_authority.sql",
+    "0004_command_abort_guard.sql",
+    "0005_owner_cas_authority.sql"
+  ],
+  "artifacts": {
+    "crash-ledgers.json": "f43d6e3a6a140f935586b0c386c66f5a439bba9e7bead46f017b3595738818b6",
+    "ownership.log": "3ae6d677898fe34e0507fd65381d3978cb8f52421a0b07d047d0508adb29f811",
+    "ownership.xml": "bd3d89020bdd87121c38a96e6c61c6fc919927adf388022e22b1ff687539abc5"
+  },
+  "command": [
+    "/usr/local/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/integration/test_ownership_transfer.py",
+    "--tb=short",
+    "-o",
+    "junit_family=xunit1",
+    "--junitxml=/workspace/evidence/paper/2026-10-27-owner-cas/ownership.xml"
+  ],
+  "counts": {
+    "errors": 0,
+    "failed": 0,
+    "passed": 123,
+    "skipped": 0
+  },
+  "database": "ip16_test_owner_cas_65634443a08c",
+  "exit_code": 0,
+  "platform": "linux",
+  "postgresql": "17.11",
+  "python": "3.12.16 (main, Oct 26 2026, 22:51:49) [GCC 14.2.0]",
+  "source_and_migration_sha256": {
+    "deploy/db/roles.sql": "23b35ef98b0e8dfb4cebd3645035b19b61c3e667cd90060a42a05a5c2f68b3cd",
+    "docs/OWNER_CAS_AUTHORITY.md": "6b09e7f6e994026e0561e7c6c641ef9809ec44ccc6d9dd39286ac7da69d83283",
+    "migrations/0001_business_ledger.sql": "b3bfbaaec9dbeeb207297a395290dd4083d5b6101c98a11e240d36a9b32b5dc6",
+    "migrations/0002_risk_resolution_authority.sql": "f2597dd09832aef2b4fa1a82f0152c10226b613cdbb5ffce24285ffc6b0793a4",
+    "migrations/0003_paper_engine.sql": "4028e5495f2f6fa8973d8e1d3f3ae9cdfada83b1c3032db08303a5a41e725692",
+    "migrations/0004_command_abort_guard.sql": "19017e040298f0a0f814312252d4c3f3bce25298f3e58512c6d9e8efcf4b73b6",
+    "migrations/0005_owner_cas_authority.sql": "42f0d0623e8006901fa2286ed85126d4a2df8c80b661e1fbb6a486c2cc0ba586",
+    "src/trading_system/ownership/registry.py": "2726f42acaf17943e6aa9fb69cb857b31919c580e99eee446804076a73b51f18",
+    "src/trading_system/ownership/transfers.py": "4c0ef8946647223467cc5a11f882296d7e899783b1a73014bcd339e3b73d2ac3",
+    "tests/integration/support_ip_16.py": "fcbd1abe66be6058c9ccc5912c66c7ef7c01f92f0be53a84080d8fed6ae14082",
+    "tests/integration/test_ownership_transfer.py": "9035f8b6eacd2fd8b4085fc554763fdce302040ab467c943d4331b5d2217997f"
+  },
+  "source_commit": "4240e481304cae575252239dcff411b29786f7b7"
+}
