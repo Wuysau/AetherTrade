@@ -562,7 +562,7 @@ def test_postgres_missing_reviewed_cas_blocks_handoff(ip16_database):
 
 
 @pytest.mark.parametrize('phase', ['after_epoch_before_commit', 'after_commit'])
-def test_native_epoch_commit_crash_not_run(ip16_database, phase):
+def test_native_epoch_commit_crash_not_run(ip16_database, phase, record_property):
     """Original process-crash scenarios now use the reviewed real PG CAS.
 
     Name retained for evidence continuity. Synthetic trusted archive facts do
@@ -573,6 +573,7 @@ def test_native_epoch_commit_crash_not_run(ip16_database, phase):
     c.advance_to(t.TransferState.COMMIT_OWNER_EPOCH)
     attest_cas(c, ip16_database)
     before = c.registry.read(c.scope)
+    record_property('before_crash_ledger', crash_ledger_json(c))
     process = multiprocessing.get_context('spawn').Process(target=crash_worker,
         args=(ip16_database, c.scope, c.old_owner, phase))
     process.start()
@@ -582,6 +583,9 @@ def test_native_epoch_commit_crash_not_run(ip16_database, phase):
         process.join(5)
         pytest.fail('native crash probe timed out')
     assert process.exitcode == (72 if phase == 'after_epoch_before_commit' else 73)
+    record_property('process_exit_code', process.exitcode)
+    # Preserve the raw durable histories before any safe replay of the rollback.
+    record_property('after_crash_ledger', crash_ledger_json(c))
     owner = c.registry.read(c.scope)
     projection = c.service.projection(c.transfer_id)
     expected_epoch = 1 if phase == 'after_epoch_before_commit' else 2
@@ -601,6 +605,21 @@ def test_native_epoch_commit_crash_not_run(ip16_database, phase):
         assert c.service.advance(c.transfer_id, c.evidence()).state == t.TransferState.ACTIVE
     else:
         assert c.service.advance(c.transfer_id, c.evidence()) == projection
+
+
+def crash_ledger_json(case):
+    import json
+    from trading_system.storage.models import scope_id
+    with case.registry.transaction(case.scope) as tx:
+        snapshot = {'active_owner': tx.active_owner(), 'histories': {}}
+        for table, record_id in (('audit_events', 'ip16:owner'),
+                                 ('ownership_transfers', transfer_key(case.transfer_id)),
+                                 ('risk_locks', 'ip16:freeze:' + case.transfer_id)):
+            snapshot['histories'][table] = tx.tx.execute(
+                f'SELECT sequence,payload,transaction_id FROM ledger.{table} '
+                'WHERE scope_id=%s AND record_id=%s ORDER BY sequence',
+                (scope_id(case.scope), record_id)).fetchall()
+    return json.dumps(snapshot, sort_keys=True, separators=(',', ':'))
 
 
 def test_postgres_manual_lock_survives_service_restart(ip16_database):
