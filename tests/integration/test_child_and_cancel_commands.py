@@ -98,7 +98,7 @@ def test_unknown_child_keeps_original_id_after_expiry(child_case):
 
 def test_replanning_changed_book_is_rejected(child_case):
     child_case.persist()
-    child_case.book = replace(child_case.book, sequence=2)
+    child_case.book = replace(child_case.book, sequence=child_case.book.sequence + 1)
     with pytest.raises(SequenceConflict, match='already exists'):
         child_case.persist()
 
