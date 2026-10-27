@@ -15,7 +15,7 @@ import sys
 import pytest
 
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import utc_timestamp
+from trading_system.contracts.canonical import canonical_hash, utc_timestamp
 from trading_system.contracts.wire import ContractCodec
 from trading_system.engine.nautilus.id_codec import VenueIdCodec
 from trading_system.execution.commands import command_hash
@@ -145,6 +145,9 @@ class ProtectionCase:
             body.update(environment=str(self.scope.environment),
                 venue_account_id=self.scope.venue_account_id, product=str(self.scope.product),
                 instrument_uid=self.scope.instrument_uid, created_at=now)
+            if self.scope.product == t.Product.US_EQUITY:
+                body['canonical_payload']['tokenize'] = False
+                body['payload_hash'] = canonical_hash(body['canonical_payload'])
             template = ContractCodec().decode('execution-command', body)
         self.template = template
         self.codec = VenueIdCodec(self.scope)

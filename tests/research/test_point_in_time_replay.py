@@ -314,7 +314,8 @@ def test_paper_domain_rejections_do_not_queue_or_reserve(change, reason):
             authorization=replace(auth.authorization, revoked_at=START))))
     elif change == 'future':
         packet = frame.binding.snapshot
-        packet = replace(packet, ref=replace(packet.ref, visible_at=END))
+        packet = replace(packet, quote=replace(packet.quote, received_at=END))
+        packet = replace(packet, ref=replace(packet.ref, hash=snapshot_content_hash(packet)))
         context = replace(frame.context, snapshot_ref=packet.ref)
         frame = replace(frame, context=context, binding=replace(frame.binding, snapshot=packet,
             evidence=(packet.ref, evidence())), target=replace(frame.target, context=context),

@@ -109,7 +109,10 @@ def test_manual_reduction_not_refilled(ownership_case):
     assert risk.reconciliation_required
     # No automatic mutation back to a stale target, no strategy auto-takeover.
     assert c.registry.read(c.scope).position == c.position
-    assert c.start().reason == 'RECONCILIATION_REQUIRED'
+    assert c.start().reason == 'STALE_CONTROL_REVISION'
+    current = replace(c.context(), expected_sequence=c.registry.read(c.scope).sequence)
+    assert c.service.request_transfer(c.request(), current).reason == 'RECONCILIATION_REQUIRED'
+    assert c.probe().wire_requests == []
     restarted = ManualInterventionService(c.registry, clock=c.manual.clock)
     assert restarted.observe(c.event()) == case
     assert c.probe().reason == 'MANUAL_INTERVENTION'

@@ -279,8 +279,11 @@ def test_ports_are_typed_and_writes_require_permit():
     assert not hasattr(ports.ReadOnlyTools, 'submit')
     for cls in vars(ports).values():
         if isinstance(cls, type) and cls.__module__ == ports.__name__:
-            for method in vars(cls).values():
+            for method_name, method in vars(cls).items():
                 if inspect.isfunction(method):
+                    # typing.Protocol adds runtime dunders without annotations.
+                    if method_name.startswith('__') and method.__module__ == 'typing':
+                        continue
                     assert get_type_hints(method)
                     assert not {'api_key', 'secret', 'signature', 'headers'} & set(inspect.signature(method).parameters)
 

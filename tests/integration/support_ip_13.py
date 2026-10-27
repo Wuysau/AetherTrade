@@ -127,9 +127,9 @@ class RecoveryCase:
         self.attest(case, report)
         return self.reconciler.assess(case, report)
 
-    def change_record(self, kind, **changes):
-        ref = getattr(self.checklist, kind)
-        key = (self.scope, kind, ref)
+    def change_record(self, selector, **changes):
+        ref = getattr(self.checklist, selector)
+        key = (self.scope, selector, ref)
         self.records[key] = replace(self.records[key], **changes)
 
     def lock(self, cause='ORDER_OUTCOME_UNKNOWN', permission=t.RiskPermission.RECOVERY_REQUIRED):

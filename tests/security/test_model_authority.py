@@ -187,7 +187,7 @@ def test_complete_envelope_validated_before_any_intake(model_case, case, reason)
     'null', '[]', '[{}]', 'true', '"text"', '{', '{} trailing',
     '{"proposals": [], "proposals": []}', '{"value": NaN}', '{"value": 0.5}',
     '{"value": Infinity}', '{"value": "\\ud800"}', '\ud800',
-    '{"value":"' + 'x' * 262144 + '"}',
+    pytest.param('{"value":"' + 'x' * 262144 + '"}', id='oversized-262144-bytes'),
     '{"value":' + '[' * 1200 + '0' + ']' * 1200 + '}',
 ])
 def test_malformed_json_fails_closed_and_records_cost(model_case, text):

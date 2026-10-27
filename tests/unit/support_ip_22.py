@@ -127,7 +127,9 @@ class CompositionCase:
             authorization_id=risk.intent.authorization_id, owner_strategy_id=self.owner,
             scopes=(self.scope,), valid_from=risk.market.ref.visible_at,
             expires_at=risk.intent.valid_until)
-        auth = replace(base.binding.authorization, authorization=grant)
+        auth = replace(base.binding.authorization, authorization=grant,
+            evidence=tuple(replace(ref, visible_at=risk.market.ref.visible_at)
+                           for ref in base.binding.authorization.evidence))
         binding = replace(base.binding, authorization=auth, instrument_ref=self.scope.instrument_uid,
             instrument=risk.inputs.instrument, collateral_group_id=risk.intent.collateral_group_id,
             snapshot=risk.market, evidence=self.refs, clock=self.clock,

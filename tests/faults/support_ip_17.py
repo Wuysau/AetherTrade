@@ -149,8 +149,8 @@ class RuntimeCase:
             realized_pnl=None, unrealized_valuation=None, active_exit_plan_id=None, risk_locks=())
         authorization = t.Authorization(authorization_id='offline-pregrant', owner_strategy_id='offline-strategy',
             environment=self.scope.environment, deployment_id='offline-deployment', scopes=(self.scope,),
-            maximum_capital=t.Money(value=Decimal('10'), currency='USDT'), policy_revision=1,
-            protection_options=('NATIVE_REQUIRED',), model_cost_budget=t.Money(value=Decimal('0'), currency='USD'),
+            maximum_capital=t.Money(amount=Decimal('10'), currency='USDT'), policy_revision=1,
+            protection_options=('NATIVE_REQUIRED',), model_cost_budget=t.Money(amount=Decimal('0'), currency='USD'),
             valid_from=NOW, expires_at=EXPIRY, revoked_at=None)
         entries = self.owner.journal.snapshot()
         return BackupState(shard=self.shard, lease=self.lease, created_at=NOW,

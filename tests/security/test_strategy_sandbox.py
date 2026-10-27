@@ -109,7 +109,7 @@ def test_only_research_and_minimal_input():
 @pytest.mark.parametrize('output', [b'not-json', b'[]', b'{"action":"HOLD","proposal":null,"code":"x"}',
     b'{"action":"HOLD","action":"HOLD","proposal":null}',
     b'{"action":"PROPOSAL","proposal":{"account":"evil"}}',
-    b'{"action":"HOLD","proposal":NaN}', b'x' * 65537,
+    b'{"action":"HOLD","proposal":NaN}', pytest.param(b'x' * 65537, id='oversized-65537-bytes'),
     RuntimeError('sensitive-host-message')])
 def test_output_is_bounded_untrusted_and_strict(output):
     service, _, artifact = offline_sandbox(output)
