@@ -550,3 +550,155 @@ def test_limit_reduction_keeps_instrument_tick_rules(price):
     else:
         with pytest.raises(DispatchDenied):
             case.check()
+
+
+@pytest.mark.parametrize('permission', [t.RiskPermission.NO_NEW_RISK,
+    t.RiskPermission.EXIT_ONLY, t.RiskPermission.RECOVERY_REQUIRED])
+def test_position_only_lock_blocks_increase_without_proof(permission):
+    case = LockedCase(permission)
+    position_lock = case.locks[0]
+    case.locks = ()
+    case.book = replace(case.book, positions=(replace(case.book.positions[0], risk_locks=(position_lock,)),))
+    case.command = replace(case.command, operation='SUBMIT', canonical_payload=replace(
+        case.command.canonical_payload, side='BUY', reduce_only=False))
+    case.rehash()
+    case.dispatcher.load_action_proof = None
+    with pytest.raises(DispatchDenied):
+        case.check()
+
+
+@pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+def test_reservation_rechecks_clock_after_proof_and_before_writes(boundary):
+    case = reservation_case()
+    current = [NOW]
+    case.service.clock = lambda: current[0]
+    if boundary == 'proof':
+        proof = case.service.load_action_proof
+        def advance_after_proof(*args):
+            result = proof(*args)
+            current[0] = END
+            return result
+        case.service.load_action_proof = advance_after_proof
+    else:
+        execute = case.tx.execute
+        def advance_during_owner_read(sql, args=()):
+            result = execute(sql, args)
+            if 'FROM ledger.active_owners' in sql:
+                current[0] = END
+            return result
+        case.tx.execute = advance_during_owner_read
+    result = case.service._reserve(case.tx, case.intent, 1)
+    assert not result.accepted
+    assert not case.writes
+
+
+@pytest.mark.parametrize('permission', [t.RiskPermission.NO_NEW_RISK,
+    t.RiskPermission.EXIT_ONLY, t.RiskPermission.RECOVERY_REQUIRED])
+def test_position_only_locks_require_proof_and_intersect_reductions(permission):
+    case = LockedCase(permission)
+    position_lock = case.locks[0]
+    case.locks = ()
+    case.book = replace(case.book, positions=(replace(case.book.positions[0], risk_locks=(position_lock,)),))
+    if permission == t.RiskPermission.RECOVERY_REQUIRED:
+        with pytest.raises(DispatchDenied):
+            case.check()
+    else:
+        case.check()
+    case.dispatcher.load_action_proof = None
+    with pytest.raises(DispatchDenied):
+        case.check()
+
+
+@pytest.mark.parametrize('fault', ['missing', 'stale', 'incomplete'])
+def test_no_account_lock_does_not_imply_missing_or_stale_book_is_safe(fault):
+    case = LockedCase()
+    case.locks = ()
+    if fault == 'missing':
+        case.tx.projections.book = lambda scope: None
+    elif fault == 'stale':
+        case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:58:00Z'),))
+    else:
+        case.book = replace(case.book, coverage=replace(case.book.coverage, pagination_complete=False))
+    with pytest.raises(DispatchDenied):
+        case.check()
+
+
+@pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+@pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+    case = reservation_case()
+    current = [NOW]
+    case.service.clock = lambda: current[0]
+    # All cases expire before the ordinary one-minute intent/risk deadline.
+    due = '2026-10-22T12:00:01Z'
+    if expiry == 'proof':
+        case.proof_transform = lambda proof: replace(proof, valid_until=due)
+    elif expiry == 'evidence':
+        case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+    elif expiry == 'intent':
+        case.intent = replace(case.intent, valid_until=due)
+    elif expiry == 'risk':
+        case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+    if boundary == 'proof':
+        proof = case.service.load_action_proof
+        def advance_after_proof(*args):
+            result = proof(*args)
+            current[0] = due
+            return result
+        case.service.load_action_proof = advance_after_proof
+    else:
+        execute = case.tx.execute
+        def advance_during_owner_read(sql, args=()):
+            result = execute(sql, args)
+            if 'FROM ledger.active_owners' in sql:
+                current[0] = due
+            return result
+        case.tx.execute = advance_during_owner_read
+    result = case.service._reserve(case.tx, case.intent, 1)
+    assert not result.accepted
+    assert not case.writes
+
+
+@pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+@pytest.mark.parametrize('clock_fault', ['expired', 'backwards'])
+def test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension(boundary, clock_fault):
+    case = reservation_case()
+    current_ns = [1]
+    case.service.monotonic_clock = lambda: current_ns[0]
+    def advance():
+        current_ns[0] = 61_000_000_001 if clock_fault == 'expired' else 0
+    if boundary == 'proof':
+        proof = case.service.load_action_proof
+        def advance_after_proof(*args):
+            result = proof(*args)
+            advance()
+            return result
+        case.service.load_action_proof = advance_after_proof
+    else:
+        execute = case.tx.execute
+        def advance_during_owner_read(sql, args=()):
+            result = execute(sql, args)
+            if 'FROM ledger.active_owners' in sql:
+                advance()
+            return result
+        case.tx.execute = advance_during_owner_read
+    result = case.service._reserve(case.tx, case.intent, 1)
+    assert not result.accepted
+    assert not case.writes
+
+
+@pytest.mark.parametrize('partial_plan', [False, True])
+def test_partial_stop_repair_is_allowed_but_does_not_verify_full_coverage(partial_plan):
+    from trading_system.protection.native import NativeVerifier
+    case = LockedCase()
+    protection(case)
+    case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, quantity='1'))
+    if partial_plan:
+        case.plan = replace(case.plan, coverage_quantity=replace(case.plan.coverage_quantity, value=money('1').amount))
+    case.rehash()
+    plan_before = case.plan
+    case.check()
+    assert case.plan == plan_before and case.plan.state == t.ProtectionState.GAP
+    proof = case.proof(case.tx, case.command, case.intent, case.book)
+    assert NativeVerifier(clock=lambda: NOW).verify(case.plan, proof.report,
+        case.book.positions[0]).state == t.ProtectionState.GAP

@@ -6,7 +6,9 @@ under the collateral mutex on EVERY attempt. It must not call a venue or LLM.
 An absent input/proof loader fails closed; no implicit unlimited budgets.
 """
 from dataclasses import dataclass, replace
+from datetime import timedelta
 from decimal import Decimal, localcontext
+from time import monotonic_ns
 from uuid import uuid4
 
 from trading_system.contracts import types as t
@@ -71,7 +73,8 @@ def complete(coverage, scope):
 
 class ReservationService:
     def __init__(self, uow, scope: t.ScopeKey, load_inputs, *, clock,
-                 load_proof=None, maximum_attempts=3, load_action_proof=None):
+                 load_proof=None, maximum_attempts=3, load_action_proof=None,
+                 monotonic_clock=monotonic_ns):
         if scope.environment == t.Environment.LIVE:
             raise ValueError('LIVE_DISABLED')
         if type(maximum_attempts) is not int or not 1 <= maximum_attempts <= 10:
@@ -79,6 +82,7 @@ class ReservationService:
         self.uow, self.scope, self.load_inputs = uow, scope, load_inputs
         self.clock, self.load_proof = clock, load_proof
         self.load_action_proof = load_action_proof
+        self.monotonic_clock = monotonic_clock
         self.maximum_attempts = maximum_attempts
 
     def reserve(self, intent: TradeIntent, expected_book_sequence: int) -> t.ReservationOutcome:
@@ -143,8 +147,12 @@ class ReservationService:
                 return deny('INVALID_RESERVATION')
         book = replace(book, reservations=group)
         inputs = self.load_inputs(tx, intent, book)
+        started_ns = self.monotonic_clock()
         reading = self.clock()
         now = utc_timestamp(reading)
+        started_at = now
+        if type(started_ns) is not int or started_ns < 0:
+            return deny('EXPIRED_OR_UNBOUND_CLOCK')
         if any(not valid_evidence(e, self.scope.environment, now) for e in book.evidence):
             return deny('BOOK_EVIDENCE_INVALID')
         if (inputs.authorization.allowed is not True or inputs.authorization.rejection_codes
@@ -152,19 +160,45 @@ class ReservationService:
                 or not inputs.authorization.evidence or any(not valid_evidence(e, self.scope.environment, now)
                     for e in inputs.authorization.evidence)):
             return deny('AUTHORIZATION_REQUIRED')
-        if (CommandRepository(tx).unresolved_in_group(inputs.command.command_id)
-                or LockedActionVerifier(self.load_action_proof).verify(
-                    tx, inputs.command, intent, reading, book=book) is None):
+        if (now >= utc_timestamp(intent.valid_until) or now >= utc_timestamp(inputs.risk.expires_at)
+                or utc_timestamp(inputs.risk.clock.utc_now) > now):
+            return deny('EXPIRED_OR_UNBOUND_CLOCK')
+        if CommandRepository(tx).unresolved_in_group(inputs.command.command_id):
             return deny('ACTIVE_RISK_LOCK')
+        action_until = LockedActionVerifier(self.load_action_proof).verify(
+            tx, inputs.command, intent, reading, book=book)
+        if action_until is None:
+            return deny('ACTIVE_RISK_LOCK')
+        expires = min(map(utc_timestamp, (action_until, intent.valid_until,
+            intent.execution.entry_deadline, inputs.risk.expires_at)))
+        last_at, last_ns = started_at, started_ns
+
+        def current_time():
+            nonlocal last_at, last_ns
+            # Both clocks are trusted service readers, never intent fields.
+            # A backwards wall-clock step cannot extend the monotonic window.
+            duration = expires - started_at
+            deadline_ns = started_ns + ((duration.days * 86400 + duration.seconds) * 1_000_000_000
+                                       + duration.microseconds * 1000)
+            current_reading = self.clock()
+            current_at, current_ns = utc_timestamp(current_reading), self.monotonic_clock()
+            if (type(current_ns) is not int or not last_ns <= current_ns < deadline_ns
+                    or not last_at <= current_at < expires):
+                return None
+            last_at, last_ns = current_at, current_ns
+            return current_reading, current_at, current_ns
+
+        # Proof readers may be slow, including local database/archive reads.
+        current = current_time()
+        if current is None:
+            return deny('EXPIRED_OR_UNBOUND_CLOCK')
+        reading, now, checked_ns = current
         owner = tx.execute('SELECT owner_strategy_id,ownership_epoch,policy_revision FROM ledger.active_owners '
             'WHERE environment=%s AND account_id=%s AND product=%s AND instrument_uid=%s AND venue_leg=%s FOR SHARE',
             (*account_key(self.scope), self.scope.instrument_uid, self.scope.venue_leg)).fetchone()
         if owner != (intent.owner_strategy_id, intent.ownership_epoch, intent.risk_policy_revision):
             return deny('STALE_OWNER')
-        if (now >= utc_timestamp(intent.valid_until) or now >= utc_timestamp(inputs.risk.expires_at)
-                or utc_timestamp(inputs.risk.clock.utc_now) > now):
-            return deny('EXPIRED_OR_UNBOUND_CLOCK')
-        facts = replace(inputs.risk, clock=replace(inputs.risk.clock, utc_now=reading))
+        facts = replace(inputs.risk, clock=replace(inputs.risk.clock, utc_now=reading, monotonic_ns=checked_ns))
         decision = RiskEvaluator(facts).evaluate(intent, book, inputs.market, inputs.policy)
         if decision.verdict != 'ALLOW':
             return deny(*decision.rejection_codes)
@@ -208,6 +242,17 @@ class ReservationService:
                 or (intent.execution.order_preference == 'MARKET' and payload.price is not ABSENT)
                 or command.target_order_id is not None or command.venue_order_id is not None):
             raise ValueError('unevaluated first command semantics')
+        age = (facts.emergency.maximum_quote_age_ms if reducing and facts.emergency is not None
+               else inputs.policy.maximum_quote_age_ms)
+        expires = min(expires, utc_timestamp(decision.expires_at),
+            utc_timestamp(inputs.market.quote.occurred_at) + timedelta(milliseconds=age))
+        decision = replace(decision, expires_at=expires.isoformat())
+        # Recheck after owner/database reads, risk evaluation and capacity work,
+        # immediately before the first write of the atomic intent bundle.
+        current = current_time()
+        if current is None or current[1] >= utc_timestamp(decision.expires_at):
+            return deny('EXPIRED_OR_UNBOUND_CLOCK')
+        reading = current[0]
         tx.intents.append(intent)
         repo.risk(decision)
         projections = []

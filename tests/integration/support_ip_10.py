@@ -135,6 +135,17 @@ class DispatchCase:
                 target_order_id='owned-original-order' if operation in ('CANCEL', 'AMEND') else None,
                 created_at=(now - timedelta(seconds=1)).isoformat())
             with self.ledger.uow.transaction(self.scope) as tx:
+                # The dispatcher must inspect current position locks even when
+                # account cause locks are empty. Establish the fixture's fresh
+                # synthetic empty-position book rather than infer it from no row.
+                tx.projections.save_book(t.BookSnapshot(scope=self.scope, positions=(), active_orders=(),
+                    reservations=(), balances=(t.Money(amount=self.ledger.reservation.amount, currency='USDT'),),
+                    sequence=1, basis_fingerprint=self.intent.basis_fingerprint,
+                    coverage=t.Coverage(scope=self.scope, query_succeeded=True,
+                        pagination_complete=True, supported=True, missing=()),
+                    evidence=(t.EvidenceRef(id='synthetic-dispatch-book', hash='b' * 64,
+                        environment=self.scope.environment, source='synthetic-IP10-fixture',
+                        visible_at=(now - timedelta(seconds=1)).isoformat()),)), 0)
                 tx.intents.append(self.intent)
                 tx.reservations.append(replace(self.ledger.reservation,
                     command_refs=(self.command.command_id,)), 0)
