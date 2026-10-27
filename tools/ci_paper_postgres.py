@@ -153,7 +153,10 @@ def admin_connection(*, initialize=False):
     with clean_libpq_environment():
         connection = psycopg.connect(make_conninfo(**values), autocommit=True)
     try:
-        actual = connection.info.get_parameters()
+        # libpq omits compiled defaults (notably 5432) from get_parameters().
+        # ConnectionInfo.port reports the actual effective numeric port even
+        # when the explicit validated input equals that compiled default.
+        actual = {**connection.info.get_parameters(), 'port': str(connection.info.port)}
         if any(actual.get(key) != values.get(key) for key in ('host', 'hostaddr', 'port', 'dbname', 'user')):
             raise GateError('effective PostgreSQL endpoint differs from validated endpoint')
         current, user, version = connection.execute(
