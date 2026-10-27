@@ -11,7 +11,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import re
 import secrets
 import subprocess
 import sys
@@ -65,6 +64,13 @@ def result_counts(path: Path, returncode: int) -> dict:
     counts['exit_code'] = returncode
     counts['accepted'] = returncode == 0 and not any(counts[k] for k in ('failed', 'errors', 'skipped'))
     return counts
+
+
+def child_environment(environ) -> dict:
+    """Do not inherit account/model credentials or test-selection overrides."""
+    allowed = {'PATH', 'HOME', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ', 'TMPDIR',
+               'TMP', 'TEMP', 'SYSTEMROOT', 'VIRTUAL_ENV', 'CI'}
+    return {key: value for key, value in environ.items() if key in allowed}
 
 
 def admin_connection(*, initialize=False):
@@ -148,10 +154,7 @@ def main(argv=None):
                 connection.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(dbname)))
                 # Never inherit an unrelated account/database opt-in from the
                 # runner's environment, even when only one suite is selected.
-                env = {key: value for key, value in os.environ.items()
-                       if not re.fullmatch(r'IP[0-9]{2}_(ISOLATED_DATABASE|DATABASE_DSN)', key)
-                       and key not in ('PAPER_ENGINE_ISOLATED_DATABASE', 'PAPER_ENGINE_DATABASE_DSN',
-                                       'AETHERTRADE_RUN_POSTGRES_TESTS', 'AETHERTRADE_TEST_DATABASE_URL')}
+                env = child_environment(os.environ)
                 # Never print the DSN: it can contain a password even in a test cluster.
                 dsn = make_conninfo(**{**values, 'dbname': dbname})
                 if number == 'CONSOLE':

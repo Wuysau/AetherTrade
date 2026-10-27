@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.ci_paper_postgres import GateError, admin_connection, result_counts
+from tools.ci_paper_postgres import GateError, admin_connection, child_environment, result_counts
 
 
 @pytest.mark.parametrize('body,exit_code,accepted', [
@@ -36,3 +36,10 @@ def test_missing_isolated_database_cannot_be_treated_as_green(monkeypatch):
     monkeypatch.delenv('PAPER_CI_ISOLATED', raising=False)
     with pytest.raises(GateError):
         admin_connection()
+
+
+def test_children_do_not_inherit_real_credentials_or_pytest_selection():
+    incoming = {'PATH': '/bin', 'PAPER_ENGINE_ADMIN_DATABASE_DSN': 'do-not-use',
+                'IP10_DATABASE_DSN': 'do-not-use', 'OPENAI_API_KEY': 'do-not-use',
+                'AETHERTRADE_DATABASE_URL': 'do-not-use', 'PYTEST_ADDOPTS': '-k skip_everything'}
+    assert child_environment(incoming) == {'PATH': '/bin'}
