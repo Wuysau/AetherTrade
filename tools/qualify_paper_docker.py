@@ -49,6 +49,7 @@ def main(argv=None):
     os.chmod(env, 0o600)
     manifest = {'source_commit': commit, 'started_utc': datetime.now(timezone.utc).isoformat(),
                 'postgres_container': pg, 'runner_container': runner, 'commands': [],
+                'launcher_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 'scope': 'LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION', 'deadline_seconds': args.timeout}
     deadline = time.monotonic() + args.timeout
 
@@ -100,6 +101,7 @@ def main(argv=None):
             python_exit = invoke(['docker', 'exec', '-w', '/tmp/source', runner, 'python', '-m', 'pytest', '-q',
                                   '--ignore=tests/integration/test_paper_engine_postgres.py',
                                   '--tb=short', '--junitxml=/handoff/evidence/python-suite.xml'], 'python-suite', 1200, check=False)
+        invoke(['docker', 'exec', runner, 'python', '-m', 'pip', 'freeze'], 'resolved-dependencies')
         status = int(pg_exit != 0 or python_exit not in (None, 0))
         manifest['exit_code'] = status
     except (OSError, RuntimeError, TimeoutError, subprocess.TimeoutExpired) as exc:
