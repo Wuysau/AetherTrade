@@ -20,8 +20,9 @@ and designed to fail closed.
 > [!WARNING]
 > **Research software. Not production ready. No live trading.**
 > There is no certified venue integration, no qualification report, and no support for
-> real funds. The console trades a virtual PAPER account against read-only public
-> market data. See [Project status](#project-status).
+> real funds. Unified PAPER uses independent PostgreSQL ledgers and explicitly
+> injected synthetic events; public market data is read-only. Legacy console
+> accounts remain read-only trading history. See [Project status](#project-status).
 
 ---
 
@@ -34,8 +35,8 @@ instead of the happy path:
 
 - **AI is a proposer, never an authority.** Model output is untrusted data that must
   pass schema, semantic, and risk validation before it can influence a position.
-- **One execution owner per account and product.** Exactly one process may write orders,
-  so duplicate or renegade paths are structurally impossible.
+- **One execution owner per account and product.** Current authority, shared owner
+  locking, durable command state and reconciliation guard the write boundary.
 - **Persist before you send.** Commands are durable and idempotent; a crash after
   submission is recoverable, not a blind retry.
 - **Risk is deterministic and enforced in code.** Budget reservations, daily-loss locks,
@@ -47,7 +48,7 @@ instead of the happy path:
 
 | | |
 |---|---|
-| **Local PAPER console** | Six responsive areas (overview, decisions, positions/orders, strategies, research, risk), authenticated local sessions, SQLite or PostgreSQL persistence |
+| **Local PAPER console** | Six responsive areas, authenticated local sessions; unified execution requires an explicit PostgreSQL PAPER profile; legacy SQLite/PostgreSQL histories remain readable |
 | **Live market terminal** | Read-only Binance Spot quotes, real OHLC candles, five-level books and recent trades; public WebSocket with REST fallback and explicit stale/partial states |
 | **AI model profiles** | Up to 20 named profiles for OpenAI Responses, OpenAI-compatible Chat and Claude Messages, with independent encrypted write-only keys |
 | **Strategy automation** | Per-strategy model binding; single-model or opt-in 2–3-model cross-analysis; bell notifications and opt-in, risk-checked automatic PAPER orders |
@@ -55,15 +56,48 @@ instead of the happy path:
 | **Single write path** | One execution owner per account/product ledger; AI never holds venue credentials |
 | **Risk controls** | Per-strategy budget reservations, account-level limits, persistent loss locks, kill switches |
 | **Durable execution** | Intent journal, idempotent order commands, reconciliation, recovery gates |
-| **Protection lifecycle** | Hosted/native stop and exit management with disclosed fallbacks |
-| **Markets (target)** | Binance Spot including bStocks tokenized stocks; USD-M perpetuals remain a separate future integration |
+| **Protection lifecycle** | Synthetic protection verification, persistent gaps and bounded exit requests; native/hosted venue qualification remains separate |
+| **Markets (target)** | Binance Spot, USD-M perpetuals and Stocks real securities retain the approved scope; console bStocks Spot does not qualify real securities |
 | **Contracts first** | JSON Schema for proposals, intents, commands, and risk policy |
 | **Auditability** | Every decision, reservation, order, and recovery action is recorded |
 
 ## Quickstart
 
-Requirements: Python 3.11+, Node.js 22.12+ (24 recommended). PostgreSQL mode also
-requires a running Docker Desktop/Compose engine.
+Requirements: Python 3.11+, Node.js 22.12+ (24 recommended). Unified PAPER also
+requires an explicitly isolated local PostgreSQL 17+ server with provisioning
+credentials supplied by your local environment.
+
+For the unified execution chain, follow the [PAPER demo recipe](docs/PAPER_DEMO.md).
+After installing the project and building the browser below, safely supply
+`PAPER_RUNTIME_ADMIN_DSN` for your dedicated local PAPER server, then run:
+
+```powershell
+aethertrade paper-provision --isolated-paper --initial-cash 100000 --output .runtime/unified-paper.json
+Remove-Item Env:PAPER_RUNTIME_ADMIN_DSN
+aethertrade --paper-config .runtime/unified-paper.json serve
+```
+
+Provisioning creates three fresh databases for console, business ledger and
+synthetic venue, with separate console/business/venue/event identities. It never
+migrates an old console account or overwrites an existing profile. The profile
+contains runtime secrets; keep it private and out of evidence logs. At first setup,
+enter the same **100000** initial virtual balance. An API receipt is `PENDING`,
+submission is `SUBMITTED`, and fills require explicit synthetic events.
+
+In another terminal, the same profile provides durable status and an independent
+execution/reconciliation worker:
+
+```powershell
+aethertrade --paper-config .runtime/unified-paper.json paper-status
+aethertrade --paper-config .runtime/unified-paper.json paper-run
+```
+
+The worker can outlive the control API; it does not call models or invent fills.
+Existing quote timestamps and authorization deadlines still expire. The recipe
+also documents dispatch, protection, cancellation, failure injection and the
+shared browser/API projection. Complete acceptance remains evidence-gated.
+
+### Legacy console startup
 
 On Windows, from the repository root:
 
@@ -71,11 +105,12 @@ On Windows, from the repository root:
 .\scripts\start-console.ps1 -Database Postgres
 ```
 
-The script creates an isolated environment, installs and builds the frontend, starts a
-dedicated PostgreSQL 17 container on `127.0.0.1:55432`, initializes console tables and
-opens **http://127.0.0.1:8787**. The first visit asks you to create a local user and an
-initial virtual PAPER balance. No example positions or model decisions are inserted,
-and public prices need no exchange key.
+These scripts create/install/build the original console environment and open
+**http://127.0.0.1:8787**. Postgres mode starts its dedicated console PostgreSQL17
+container on `127.0.0.1:55432`; Local selects SQLite. They do not provision the
+business/venue databases or enable unified trading. Existing histories are marked
+`LEGACY_LOCAL_PAPER`; new execution requests require the explicit unified profile.
+No existing account is implicitly imported as new execution evidence.
 
 Prefer no Docker? Use the explicit local SQLite mode:
 
@@ -99,11 +134,13 @@ python -m pip install -e ".[test]"
 npm --prefix web ci
 npm --prefix web run build
 
-aethertrade serve                  # local SQLite on 127.0.0.1:8787
+aethertrade serve                  # local SQLite console/history; execution unavailable
 ```
 
 Set `AETHERTRADE_DATABASE_URL` to a `postgresql+psycopg://...` URL to use a supplied
-PostgreSQL database. Optional settings are documented in `.env.runtime.example`;
+PostgreSQL console database; this alone does not enable unified PAPER. Use
+`--paper-config` before `serve` for the new three-database profile. Optional
+settings are documented in `.env.runtime.example`;
 copying it to `.env.runtime` is optional. The manual CLI does not load the generated
 `.runtime/postgres.env`.
 
@@ -112,7 +149,7 @@ copying it to `.env.runtime` is optional. The manual CLI does not load the gener
 | Variable | Default | Purpose |
 |---|---|---|
 | `AETHERTRADE_HOST` / `AETHERTRADE_PORT` | `127.0.0.1` / `8787` | Local API binding |
-| `AETHERTRADE_DATABASE_URL` | local SQLite | Select PostgreSQL explicitly |
+| `AETHERTRADE_DATABASE_URL` | local SQLite | Select the console database only; unified PAPER uses `--paper-config` |
 | `AETHERTRADE_MARKET_ENABLED` | `true` | Enable the read-only market terminal |
 | `AETHERTRADE_MARKET_POLL_SECONDS` | `15` | Observation persistence cadence |
 | `AETHERTRADE_QUOTE_MAX_AGE_SECONDS` | `90` | Staleness threshold for quotes |
@@ -139,20 +176,22 @@ or missing quotes cannot authorize a PAPER fill.
 ## Project status
 
 AetherTrade is **early-stage and intentionally honest about it**. The runtime console is
-usable for local PAPER workflows; the broader trading system is not qualified.
+usable for local workflows; the broader trading system is not qualified. Historical
+console test totals do not establish the new unified chain. Current evidence and
+remaining A–E/C checks are indexed in [acceptance.md](docs/acceptance.md).
 
 | Area | State |
 |---|---|
-| Web console (React/Vite, six areas, desktop + mobile) | Runnable, 98 tests passing, typecheck clean |
-| Runtime API / CLI (`serve`, `init-db`, `doctor`) | Runnable, local sessions and persistence |
-| Console persistence | PostgreSQL or explicit local SQLite |
+| Web console (React/Vite, six areas, desktop + mobile) | Existing console plus unified target/in-flight/fill/protection/lock projection; final browser evidence tracked separately |
+| Runtime API / CLI | `serve`, `init-db`, `doctor`, explicit `paper-provision`, shared `paper-status` and owner/event/maintenance commands |
+| Console persistence | PostgreSQL or explicit local SQLite; unified execution requires separate PostgreSQL business/venue ledgers |
 | Live public markets | Binance Spot BTC/ETH/SOL plus TSLAB/NVDA/AAPL bStocks, WebSocket + REST fallback |
-| PAPER operations | Manual spot buy/sell, fee/cash/risk checks, pause/resume, confirmed exit |
+| PAPER operations | Shared durable manual/AI/RULE/HYBRID command service, controlled Spot events and bounded maintenance/exit; receipts do not imply fills or flatness |
 | AI model configuration | Up to 20 encrypted profiles; connection tests use controlled local providers |
 | AI strategy automation | Single-model or 2–3-model cross-analysis, unanimous-only PAPER execution |
-| Python suite | 2,355 tests collected; 20 known failures and 4 Windows-only environment errors |
-| Rules / hybrid / native execution | Existing modules only; no native execution integration |
-| Original PostgreSQL ledger migration | Reference schema, separate from console tables |
+| Python / web / PostgreSQL acceptance | See fixed-commit evidence and NOT_RUN gaps in [acceptance.md](docs/acceptance.md); historical totals are not current qualification |
+| Rules / hybrid / native execution | Rules and hybrid use the common PAPER contract; native execution remains unqualified |
+| PostgreSQL business ledger | Atomic intents/reservations/commands/outbox, independent synthetic venue and explicit fresh provisioning |
 | NautilusTrader adapter | Offline bridge only — native evidence **NOT_RUN** |
 | Binance Spot / USD-M / US Equities qualification | **NOT_RUN** |
 | Live trading | **Disabled** |
@@ -194,7 +233,7 @@ tests/                      unit, integration, fault, security, contract and ser
 - [x] Live market terminal with configurable public sources and REST fallback
 - [x] Configurable model profiles and opt-in cross-analysis with controlled-provider tests
 - [ ] Validate real provider integrations and native execution owners
-- [ ] Automatic rule/hybrid scheduling
+- [x] Shared PAPER entry for rule/hybrid scheduling; qualification remains separate
 - [ ] Venue qualification: Binance Spot, USD-M, US equities
 - [ ] Registered failover, recovery, and load evidence
 - [ ] Threat model review before any live-mode proposal

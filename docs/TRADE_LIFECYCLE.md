@@ -1,6 +1,6 @@
 # 从目标仓位到成交与退出
 
-本文对应 2026-10-27 工程任务 D，解释统一 PAPER 的应用契约。源码审阅基线为 `97c4f9d`；下图是目标组合，不能据此认定 Web/CLI 已全部接通或任务 C 已通过。当前控制台接线与可运行示例见文末；验收边界见 [acceptance.md](acceptance.md)。AI、RULE、HYBRID 和受权人工请求保持共同入口；Spot、USD-M、Stocks 的最终范围不变，各产品资格分别验证。
+本文对应 2026-10-27 工程任务 D，解释统一 PAPER 的应用契约。领域说明起于 `97c4f9d`，控制台接线按集成树 `21f9ddf` 的源码补充；实现存在与任务 C 完整通过分别判断。当前控制台与可复现示例见 [PAPER_DEMO.md](PAPER_DEMO.md)，最终验收边界见 [acceptance.md](acceptance.md)。AI、RULE、HYBRID 和受权人工请求保持共同入口；Spot、USD-M、Stocks 的最终范围不变，各产品资格分别验证。当前控制台模拟组合是 Spot，不以它代替其他产品资格。
 
 ## 一笔交易走过哪些边界
 
@@ -39,7 +39,9 @@ sequenceDiagram
     Note over Protect,User: 接收退出请求不等于 FLAT_VERIFIED；锁的解除另需证据
 ```
 
-图中命令服务是组合责任，不应产生第二个独立写入引擎入口。[ProposalIngress](../src/trading_system/intents/ingress.py) 将服务端 `DecisionContext`、部署 fence、owner、规则和证据绑定成不可变 `AcceptedProposal`；`VALIDATING` 收据尚未预留或执行。[ReservationService.reserve_proposal](../src/trading_system/risk/reservations.py) 读取这份 durable 提案，在 collateral 锁与管理 owner 锁下通过 [compile_locked](../src/trading_system/intents/target_compiler.py) 重新计算目标差量，再原子提交风控、intent、预留、command 和 outbox。
+图中命令服务是组合责任，不应产生第二个独立写入引擎入口。[ProposalIngress](../src/trading_system/intents/ingress.py) 将服务端 `DecisionContext`、部署 fence、owner、规则和证据绑定成不可变 `AcceptedProposal`；`VALIDATING` 收据尚未预留或执行。[ReservationService.reserve_proposal](../src/trading_system/risk/reservations.py) 是领域提案桥，读取这份 durable 提案，在 collateral 锁与管理 owner 锁下通过 [compile_locked](../src/trading_system/intents/target_compiler.py) 重算目标差量，再原子提交风控、intent、预留、command 和 outbox。
+
+当前控制台的具体组合是 [UnifiedPaperRuntime.accept](../src/trading_system/server/paper_runtime.py)：[Store._order](../src/trading_system/server/store.py) 和 [AutomationService](../src/trading_system/server/automation.py) 共用这个服务。它从受权人工请求或已检查的AI/RULE/HYBRID决策构造服务端intent及上下文，再调用同一个 `ReservationService.reserve`；它没有把控制台每个请求都伪称为调用了 `ProposalIngress.accept`。收据 `PENDING` 表示原子风控/命令提交成功，`paper-dispatch` 或执行者tick之后才有模拟平台 `SUBMITTED`；二者均不代表成交。
 
 例如目标为 1，实际为 0，已有 0.4 durable 在途量时，不能再发 1。数量义务与资金预留分开；READY 命令立即占在途数量，UNKNOWN 不因超时消失，资金预留可能保守地高于剩余差量。终态订单标签、ACK 或一个 `released=true` 都不能替代完整成交/持仓对账。[TargetReportService](../src/trading_system/risk/target_guard.py) 验证精确归档字节、订单、去重成交与实际持仓的关系。旧提案在人工改仓后必须重新绑定当前账本，不能自动补回旧目标。
 
@@ -69,6 +71,8 @@ sequenceDiagram
 
 ## 当前可运行示例与边界
 
-当前文档基线已有领域服务、独立 PaperEngine、测试与持久日亏损锁；统一控制台服务、真实 CLI/API 演示及完整 fill→position→protection→exit 组合仍在接线，标为 **NOT_RUN**，不会用旧 `Store._order` 的立即 FILLED 账本冒充此图。旧 console、模型和行情验证仅证明历史控制台行为。
+已有显式 [paper-provision](../src/trading_system/server/paper_provision.py)、带 `--paper-config` 的 [用户CLI](../src/trading_system/server/cli.py)、受会话/CSRF保护的 [API routes](../src/trading_system/server/app.py) 和共享 `execution` 投影。provision新建独立console、business和synthetic venue三库；不同runtime/event角色不会把原账本迁移过来。没有统一配置时原SQLite/PostgreSQL console账本只读，写请求失败；原成交显示 `LEGACY_LOCAL_PAPER`，新链显示 `UNIFIED_PAPER_SYNTHETIC`。
 
-可先运行 [FAILURE_PLAYBOOK.md](FAILURE_PLAYBOOK.md) 中已存在的隔离测试命令学习状态变化。它们是源码测试入口，不是最终用户交易 CLI。统一控制台最终示例应固定提交，保存一笔提案缘由、风险拒绝、SUBMITTED/部分成交、保护与退出的真实屏幕/API输出；缺这份记录时任务 D.4 与对应 C 条目保持 NOT_RUN。
+首笔部分成交创建 durable `ProtectionPlan.GAP` 和 `PROTECTION_PENDING` 的 `NO_NEW_RISK` 原因锁，允许经验证的原计划保护修复。`paper-protect` 只为当前已持有数量编译原退出计划，模拟ACK仍不验证保护。独立控制器明确注入 `PROTECTION_VERIFIED` 后，要查询到精确订单、方向、数量与stop条款，API/UI才显示 `VERIFIED_SYNTHETIC`；内部复用 `VERIFIED_NATIVE` 枚举不表示真实交易所原生保护。已知 `PROTECTION_FAILED` 升为原有 `PROTECTION_GAP/EXIT_ONLY`，不会为了修复放宽该锁；受权、有界减仓仍可请求。若退出拒绝，实际仓位、锁和退出责任继续保留。成功保护也不自动清除原因锁，当前没有面向用户的随意解锁命令。
+
+`paper-run` 是可独立于浏览器/API运行的本地worker，复用已有durable请求的原报价与时间，过期不会自动续期；不会调用模型或自动注入成交。控制端和worker争用同一业务库owner互斥，不通过第二交易客户端发送。具体可复现命令及需要保存的五类投影见 [PAPER_DEMO.md](PAPER_DEMO.md)。**演示原始输出、浏览器截图与全C组合验收在此文档提交时仍为NOT_RUN**；最终结果以独立证据记录为准，历史console/模型/行情验证不替代统一链。

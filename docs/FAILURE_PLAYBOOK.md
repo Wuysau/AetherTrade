@@ -1,6 +1,6 @@
 # PAPER 故障重现与恢复手册
 
-用途：2026-10-27 工程任务 D 的学习/排障入口。这里列出的 test 函数是现有源码入口；列出它们不表示本次已执行，更不表示真实交易所通过。当前组合验收见 [acceptance.md](acceptance.md)。只操作明确隔离的测试 PostgreSQL；不使用控制台数据或真实账户。AI/RULE/HYBRID 与 Spot/USD-M/Stocks 保持原范围和独立能力门禁。
+用途：2026-10-27 工程任务 D 的学习/排障入口。这里列出的 test 函数是现有源码入口；列出它们不表示本次已执行，更不表示真实交易所通过。当前组合验收见 [acceptance.md](acceptance.md)，统一profile/终端/网页操作见 [PAPER_DEMO.md](PAPER_DEMO.md)。只操作明确隔离的测试 PostgreSQL；不使用旧控制台数据或真实账户。AI/RULE/HYBRID 与 Spot/USD-M/Stocks 保持原范围和独立能力门禁。
 
 ## 先保存哪些证据
 
@@ -59,4 +59,20 @@ python tools/ci_paper_postgres.py --suite paper-engine --evidence-dir .runtime/p
 python scripts/verify_atomic_target.py
 ```
 
-它为两个模块创建并保留新 `ip07_test_atomic_*` 库，输出到新的 `.runtime/atomic-*`。详情与历史原始结果见 [atomic evidence](evidence/2026-10-27-paper-atomic/README.md)。PAPER角色的独立安全验证见 [fresh provisioning evidence](evidence/2026-10-27-paper-engine-fresh-provisioning.md)，不是 Testnet/实盘验证。尚未实现的统一用户 CLI/API 演示不会在这里编造命令。
+它为两个模块创建并保留新 `ip07_test_atomic_*` 库，输出到新的 `.runtime/atomic-*`。详情与历史原始结果见 [atomic evidence](evidence/2026-10-27-paper-atomic/README.md)。PAPER角色的独立安全验证见 [fresh provisioning evidence](evidence/2026-10-27-paper-engine-fresh-provisioning.md)，不是 Testnet/实盘验证。
+
+## 统一控制台的操作入口
+
+[CLI源码](../src/trading_system/server/cli.py) 支持全局参数 `--paper-config PATH`，必须放在子命令前。profile含密码，不能附进验收日志。下列命令的ID必须来自同一新profile的真实收据，不能填旧console订单ID。完整recipe及合成事件分支见 [PAPER_DEMO.md](PAPER_DEMO.md)。
+
+```powershell
+aethertrade --paper-config .runtime/unified-paper.json paper-status
+aethertrade --paper-config .runtime/unified-paper.json paper-dispatch $entryId
+aethertrade --paper-config .runtime/unified-paper.json paper-reconcile $entryId
+aethertrade --paper-config .runtime/unified-paper.json paper-protect $entryId --key demo-protect-1
+aethertrade --paper-config .runtime/unified-paper.json paper-cancel $entryId --key demo-cancel-1
+```
+
+未知状态先 `paper-reconcile` 原ID；不要换key重发买单。`paper-event` 是独立受限event角色的显式虚拟平台故障控制入口，非交易所回执。`PROTECTION_PENDING/NO_NEW_RISK` 与已知失败的 `PROTECTION_GAP/EXIT_ONLY` 分开：前者允许有证据的原计划保护修复；后者保持原减险/恢复约束，失败退出不会解锁。当前用户CLI没有原因锁resolver；`resume_new`只恢复控制台开仓开关，不能清除durable风险锁。
+
+启动 `paper-run` 可在控制API停止时继续调度/查询已有命令；保存原报价会按原时间过期，不能用worker伪造新报价。app与独立worker是否均已实际完成故障演示、保护/退出自动责任推进及重启结果，须查固定提交的验收输出，不由命令存在推断。远端CI、Testnet/LIVE在本recipe中均NOT_RUN。
