@@ -910,11 +910,14 @@ def test_postgres_cas_cannot_bypass_final_guard(ip16_database, attack):
     attest_cas(c, ip16_database)
     before = crash_ledger_json(c)
     persist = c.service._persist
+    reached_final_projections = False
 
     def after_correct_projections(tx, *args, **kwargs):
+        nonlocal reached_final_projections
         updated = persist(tx, *args, **kwargs)
         if updated.projection.state != t.TransferState.ACTIVE:
             return updated
+        reached_final_projections = True
         assert tx.tx.execute('SELECT current_user').fetchone()[0] == 'ledger_owner_controller'
         if attack == 'early-check-named':
             tx.tx.execute('SET CONSTRAINTS ledger.owner_cas_atomic_commit IMMEDIATE')
@@ -948,4 +951,5 @@ def test_postgres_cas_cannot_bypass_final_guard(ip16_database, attack):
     c.service._persist = after_correct_projections
     with pytest.raises(psycopg.errors.CheckViolation):
         c.service.advance(c.transfer_id, c.evidence())
+    assert reached_final_projections, 'the attack must execute after real CAS and both correct projections'
     assert crash_ledger_json(c) == before
