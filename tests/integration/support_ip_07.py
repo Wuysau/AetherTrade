@@ -21,6 +21,8 @@ from trading_system.risk.reservations import ReservationService, ReservationInpu
 from trading_system.risk.reservation_repository import ReservationRepository
 from trading_system.storage.models import scope_id
 from trading_system.execution.commands import CommandRepository
+from trading_system.intents.target_compiler import TargetInputs
+from trading_system.intents.ingress import IngressRevision, revision_key
 
 
 @pytest.fixture(scope='module')
@@ -39,23 +41,31 @@ def ip07_database():
         conn.execute((ROOT / 'migrations/0001_business_ledger.sql').read_text(encoding='utf-8'))
         conn.execute((ROOT / 'deploy/db/roles.sql').read_text(encoding='utf-8'))
         conn.execute((ROOT / 'migrations/0004_command_abort_guard.sql').read_text(encoding='utf-8'))
+        conn.execute((ROOT / 'migrations/0006_proposal_intake_role.sql').read_text(encoding='utf-8'))
     return dsn
 
 
 class ReservationCase:
     def __init__(self, dsn, *, group=None, available='100', sell=False,
-                 product=t.Product.SPOT, account=None):
+                 product=t.Product.SPOT, account=None, instrument=None):
         self.ledger = LedgerScenario(dsn, seed=False)
         self.ledger.scope = replace(self.ledger.scope, product=product,
-            venue_account_id=account or self.ledger.scope.venue_account_id)
+            venue_account_id=account or self.ledger.scope.venue_account_id,
+            instrument_uid=instrument or self.ledger.scope.instrument_uid)
         self.scope = self.ledger.scope
         self.group = group or self.ledger.group
         self.owner = 'strategy-' + uuid4().hex
         with self.ledger.connect_admin() as conn:
             if group is None:
                 conn.execute('INSERT INTO ledger.collateral_mutex VALUES (%s,%s)', ('PAPER', self.group))
-            conn.execute('INSERT INTO ledger.account_bindings VALUES (%s,%s,%s,%s,NULL)',
-                ('PAPER', self.scope.venue_account_id, str(product), self.group))
+            binding = conn.execute('SELECT collateral_group_id FROM ledger.account_bindings '
+                'WHERE environment=%s AND account_id=%s AND product=%s',
+                ('PAPER', self.scope.venue_account_id, str(product))).fetchone()
+            if binding is None:
+                conn.execute('INSERT INTO ledger.account_bindings VALUES (%s,%s,%s,%s,NULL)',
+                    ('PAPER', self.scope.venue_account_id, str(product), self.group))
+            else:
+                assert binding == (self.group,)
             conn.execute('INSERT INTO ledger.active_owners VALUES (%s,%s,%s,%s,%s,%s,1,1)',
                 ('PAPER', self.scope.venue_account_id, str(product), self.scope.instrument_uid, 'BOTH', self.owner))
         self.case = make_case(product)
@@ -65,22 +75,26 @@ class ReservationCase:
         self.currency = c.inputs.instrument.settlement_currency
         c.intent = replace(c.intent, intent_id=self.ledger.intent.intent_id, owner_strategy_id=self.owner,
             venue_account_id=self.scope.venue_account_id, collateral_group_id=self.group,
+            instrument_uid=self.scope.instrument_uid,
             target_quantity='0' if sell else '0.7')
         c.policy = replace(c.policy, collateral_group_id=self.group, cash_buffer='0')
         c.book = replace(c.book, scope=self.scope, coverage=coverage(self.scope),
             balances=(money(available, self.currency), money('10', 'ASSET')),
-            positions=tuple(replace(p, scope=self.scope, owner_strategy_id=self.owner) for p in c.book.positions))
+            positions=tuple(replace(p, scope=self.scope, owner_strategy_id=self.owner,
+                cost_evidence=coverage(self.scope)) for p in c.book.positions))
         c.market = replace(c.market, scope=self.scope, coverage=coverage(self.scope))
         c.market = replace(c.market, ref=replace(c.market.ref, hash=snapshot_content_hash(c.market)))
         c.inputs = replace(c.inputs, intent_id=c.intent.intent_id, owner_strategy_id=self.owner,
             scope=self.scope, collateral_group_id=self.group, snapshot_ref=c.market.ref,
+            instrument=replace(c.inputs.instrument, instrument_uid=self.scope.instrument_uid),
+            session=replace(c.inputs.session, instrument_uid=self.scope.instrument_uid),
             fee_reserve=(), funding_reserve=(), spendable=c.book.balances,
             marks=tuple(replace(m, scope=self.scope) for m in c.inputs.marks))
         payload = replace(self.ledger.command.canonical_payload, quantity='2' if sell else '0.7',
             side='SELL' if sell else 'BUY', order_type='MARKET', price=ABSENT,
             reduce_only=bool(sell and product == t.Product.USD_M_PERP))
         self.command = replace(self.ledger.command, canonical_payload=payload, created_at=NOW,
-            venue_account_id=self.scope.venue_account_id, product=str(product))
+            venue_account_id=self.scope.venue_account_id, product=str(product), instrument_uid=self.scope.instrument_uid)
         encoded = ContractCodec().encode(self.command)
         self.command = replace(self.command, payload_hash=canonical_hash(encoded['canonical_payload']))
         self.calls = []
@@ -91,6 +105,21 @@ class ReservationCase:
         self.service = ReservationService(self.ledger.uow, self.scope, self.inputs,
             clock=lambda: NOW, load_proof=lambda tx, evidence: self.proof)
         self.save_book(c.book)
+        context = self.target_context(c.intent)
+        with self.ledger.uow.transaction(self.scope) as tx:
+            tx._append('audit_events', revision_key(context), IngressRevision(sequence=1,
+                identity_id=context.identity_id, deployment_id=context.deployment_id,
+                authorization_id=context.authorization_id, owner_strategy_id=self.owner,
+                strategy_revision=context.strategy_revision, risk_policy_revision=context.policy_revision,
+                ownership_epoch=context.ownership_epoch, enabled=True), 0)
+
+    def target_context(self, intent):
+        return t.DecisionContext(identity_id='synthetic-user', environment=self.scope.environment,
+            deployment_id='synthetic-' + self.scope.venue_account_id,
+            authorization_id=intent.authorization_id, policy_revision=intent.risk_policy_revision,
+            ownership_epoch=intent.ownership_epoch, scopes=(self.scope,),
+            strategy_revision=intent.strategy_revision, decision_run_id=intent.decision_run_id,
+            snapshot_ref=self.case.market.ref)
 
     def inputs(self, tx, intent, book):
         self.calls.append(book)
@@ -98,7 +127,12 @@ class ReservationCase:
             spendable=book.balances), market=self.case.market, policy=self.case.policy,
             authorization=t.AuthorizationDecision(allowed=True, authorization_id=intent.authorization_id,
                 rejection_codes=(), evidence=book.evidence), command=self.command,
-            group_capacity=self.group_capacity, strategy_capacity=self.strategy_capacity, buffer=self.buffer)
+            group_capacity=self.group_capacity, strategy_capacity=self.strategy_capacity, buffer=self.buffer,
+            target=TargetInputs(instrument=self.case.inputs.instrument,
+                expected_instrument=self.case.inputs.instrument, clock=self.case.inputs.clock,
+                deadline_monotonic_ns=10**20, session=self.case.inputs.session,
+                order_sides=self.case.inputs.order_sides, context=self.target_context(intent),
+                allow_round_down=self.case.inputs.allow_round_down))
 
     def reserve(self, expected=1):
         return self.service.reserve(self.case.intent, expected)
@@ -163,7 +197,9 @@ class ReservationCase:
     def count(self, table):
         assert table in ('intents', 'commands', 'reservations', 'audit_events', 'risk_locks', 'reconciliation_cases', 'outbox')
         with self.ledger.connect_admin() as conn:
-            return conn.execute(f'SELECT count(*) FROM ledger.{table} WHERE scope_id=%s',
+            # Exclude the seeded deployment prerequisite from bundle counts.
+            predicate = " AND record_id NOT LIKE 'ip09:revision:%%'" if table == 'audit_events' else ''
+            return conn.execute(f'SELECT count(*) FROM ledger.{table} WHERE scope_id=%s' + predicate,
                                 (scope_id(self.scope),)).fetchone()[0]
 
 

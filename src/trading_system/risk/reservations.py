@@ -16,11 +16,14 @@ from trading_system.contracts.canonical import utc_timestamp
 from trading_system.contracts.wire import TradeIntent, ExecutionCommand, RiskPolicy, ABSENT
 from trading_system.accounts.authorization import valid_evidence
 from trading_system.storage.events import EventStore
-from trading_system.storage.models import ScopeMismatch, MissingEvidence, account_key
+from trading_system.storage.models import ScopeMismatch, MissingEvidence, account_key, scope_id
 from trading_system.execution.commands import CommandRepository
 from .evaluator import RiskEvaluator, RiskInputs
 from .reservation_repository import ReservationRepository, merge_holds, balance_watermark
 from .locked_actions import LockedActionVerifier
+from .target_guard import TargetBasis, target_obligations
+from trading_system.intents.semantic_validation import ProposalRejected
+from trading_system.intents.target_compiler import TargetInputs, compile_locked
 
 D = Decimal
 
@@ -37,6 +40,7 @@ class ReservationInputs:
     group_capacity: tuple[t.Money, ...]
     strategy_capacity: tuple[t.Money, ...]
     buffer: tuple[t.Money, ...]
+    target: TargetInputs | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -94,6 +98,32 @@ class ReservationService:
             raise ScopeMismatch('intent scope mismatch')
         return self._transaction(lambda tx: self._reserve(tx, intent, expected_book_sequence))
 
+    def reserve_proposal(self, intent_id: str) -> t.ReservationOutcome:
+        """Revalidate one immutable durable intake; a receipt ID is no permit.
+
+        The UI/AI/RULE runtime must explicitly compose this domain service.
+        Existing production console shortcuts are not wired by this method.
+        The original intake sequence/rules/context cannot be supplied anew by
+        a caller after a manual position change or deployment revision.
+        """
+        from trading_system.intents.ingress import AcceptedProposal, accepted_intent
+        from trading_system.storage.models import decode
+        if not isinstance(intent_id, str) or not intent_id:
+            raise ValueError('durable proposal intent ID required')
+
+        def operation(tx):
+            rows = tx.execute("SELECT payload FROM ledger.proposals WHERE scope_id=%s AND sequence=1 "
+                "AND payload->'receipt'->>'intent_id'=%s", (scope_id(self.scope), intent_id)).fetchall()
+            if len(rows) != 1:
+                raise MissingEvidence('one durable accepted proposal is required')
+            record = decode(AcceptedProposal, rows[0][0])
+            intent = accepted_intent(record)
+            if intent.intent_id != intent_id or record.receipt.status != t.IntentState.VALIDATING:
+                raise MissingEvidence('proposal intent binding mismatch')
+            return self._reserve(tx, intent, record.book_sequence, accepted=record)
+
+        return self._transaction(operation)
+
     def _transaction(self, operation):
         for attempt in range(self.maximum_attempts):
             try:
@@ -110,8 +140,16 @@ class ReservationService:
                 # New transaction, book, holds, authority and risk calculation.
         raise AssertionError('unreachable')
 
-    def _reserve(self, tx, intent, expected):
+    def _reserve(self, tx, intent, expected, *, accepted=None):
         repo = ReservationRepository(tx)
+        started_ns = self.monotonic_clock()
+        reading = self.clock()
+        now = utc_timestamp(reading)
+        started_at = now
+        # Lock management before reading any target, authority or book facts.
+        owner = tx.execute('SELECT owner_strategy_id,ownership_epoch,policy_revision FROM ledger.active_owners '
+            'WHERE environment=%s AND account_id=%s AND product=%s AND instrument_uid=%s AND venue_leg=%s FOR UPDATE',
+            (*account_key(self.scope), self.scope.instrument_uid, self.scope.venue_leg)).fetchone()
         book = tx.projections.book(self.scope)
         deny = lambda *codes: t.ReservationOutcome(accepted=False, reservations=(),
             book_sequence=book.sequence, rejection_codes=tuple(codes))
@@ -130,8 +168,16 @@ class ReservationService:
                         (command := tx.commands.get(cid)) is None or command.intent_id != intent.intent_id
                         for cid in p.reservation.command_refs) for p in existing)):
                 raise MissingEvidence('existing intent has an incomplete atomic bundle')
-            return t.ReservationOutcome(accepted=True, reservations=existing,
-                book_sequence=book.sequence, rejection_codes=())
+            basis = tx._latest('audit_events', 'ip07:target-basis:' + first_commands[0].command_id, TargetBasis)
+            if basis is None or basis.command_id != first_commands[0].command_id:
+                raise MissingEvidence('existing intent lacks its atomic target basis')
+            # Replay reports the original atomic receipt. Current hold states
+            # are separate projections and cannot renew this sendable intent.
+            original = tuple(repo.initial(r) for r in tx.reservations.for_intent(intent.intent_id))
+            return t.ReservationOutcome(accepted=True, reservations=original,
+                book_sequence=basis.book_sequence, rejection_codes=())
+        if owner != (intent.owner_strategy_id, intent.ownership_epoch, intent.risk_policy_revision):
+            return deny('STALE_OWNER')
         if book.sequence != expected or book.basis_fingerprint != intent.basis_fingerprint:
             return deny('REPLAN_REQUIRED:STALE_BOOK')
         if not complete(book.coverage, self.scope) or not book.evidence:
@@ -147,10 +193,6 @@ class ReservationService:
                 return deny('INVALID_RESERVATION')
         book = replace(book, reservations=group)
         inputs = self.load_inputs(tx, intent, book)
-        started_ns = self.monotonic_clock()
-        reading = self.clock()
-        now = utc_timestamp(reading)
-        started_at = now
         if type(started_ns) is not int or started_ns < 0:
             return deny('EXPIRED_OR_UNBOUND_CLOCK')
         if any(not valid_evidence(e, self.scope.environment, now) for e in book.evidence):
@@ -202,6 +244,53 @@ class ReservationService:
         decision = RiskEvaluator(facts).evaluate(intent, book, inputs.market, inputs.policy)
         if decision.verdict != 'ALLOW':
             return deny(*decision.rejection_codes)
+        if inputs.target is None:
+            return deny('TARGET_INPUTS_REQUIRED')
+        if accepted is not None and (inputs.target.context != accepted.context
+                or inputs.target.expected_instrument != accepted.instrument):
+            return deny('PROPOSAL_TARGET_BINDING_MISMATCH')
+        if (inputs.target.instrument != facts.instrument or inputs.target.session != facts.session
+                or inputs.target.order_sides != facts.order_sides
+                or inputs.target.allow_round_down != facts.allow_round_down
+                or (inputs.target.context is not None and inputs.target.context.snapshot_ref != inputs.market.ref)):
+            return deny('TARGET_INPUT_BINDING_MISMATCH')
+        target_book = None
+        target_facts = None
+
+        def load_target_book(locked_tx):
+            nonlocal target_book, target_facts
+            current_book = locked_tx.projections.book(self.scope)
+            if (current_book.sequence != expected or current_book.basis_fingerprint != intent.basis_fingerprint):
+                raise ProposalRejected('REPLAN_REQUIRED:STALE_BOOK')
+            # Capital holds span the collateral pool. Quantity holds span only
+            # this exact account/product/instrument/leg, found by durable scope.
+            local_ids = {row[0] for row in locked_tx.execute(
+                'SELECT record_id FROM ledger.reservations WHERE scope_id=%s',
+                (scope_id(self.scope),)).fetchall()}
+            external_ids = {p.reservation.reservation_id for p in current_book.reservations
+                if p.reservation.reservation_id not in {p.reservation.reservation_id for p in repo.group()}}
+            scope_holds = tuple(p for p in group if p.reservation.reservation_id in local_ids | external_ids)
+            pending = target_obligations(locked_tx, intent, current_book, scope_holds, now)
+            pending_ids = {identifier for p in pending for identifier in p.reservation_ids}
+            # A verified terminal history contributes actual fills, not working
+            # leaves. Financial release/reflection remains independently gated.
+            target_book = replace(current_book, reservations=tuple(p for p in scope_holds
+                if p.reservation.reservation_id in pending_ids | external_ids))
+            duration = expires - started_at
+            target_facts = replace(inputs.target, clock=facts.clock, pending=pending,
+                deadline_monotonic_ns=min(inputs.target.deadline_monotonic_ns,
+                    started_ns + ((duration.days * 86400 + duration.seconds)
+                    * 1_000_000_000 + duration.microseconds * 1000)))
+            return target_book
+
+        try:
+            plan = compile_locked(tx, intent, lambda *args: target_facts, load_book=load_target_book)
+        except ProposalRejected as exc:
+            return deny(str(exc))
+        if plan.cancel_first:
+            return deny('TARGET_CANCEL_AND_RECONCILE_REQUIRED')
+        if plan.remaining.value == 0:
+            return deny('TARGET_ALREADY_SATISFIED')
         balances, limits, strategy, buffers = map(amounts,
             (book.balances, inputs.group_capacity, inputs.strategy_capacity, inputs.buffer))
         for asset, required in amounts(decision.reserved_assets).items():
@@ -222,9 +311,11 @@ class ReservationService:
                 or command.policy_revision != intent.risk_policy_revision):
             raise ValueError('first command binding mismatch')
         # Quantity is delta, whereas IP-06 permitted_quantity is the target.
-        actual = sum((p.actual_quantity.value for p in book.positions if p.scope == self.scope), D(0))
+        actual = plan.actual.value
         target = decision.permitted_quantity.value * (-1 if intent.target_side == 'SHORT' else 1)
-        delta = target - actual
+        if target != plan.target.value:
+            return deny('TARGET_RISK_QUANTITY_MISMATCH')
+        delta = plan.remaining.value
         reducing = actual != 0 and actual * target >= 0 and abs(target) < abs(actual)
         if command.operation == 'CLOSE' and not reducing:
             raise ValueError('first command CLOSE requires a reduction')
@@ -255,6 +346,9 @@ class ReservationService:
         reading = current[0]
         tx.intents.append(intent)
         repo.risk(decision)
+        tx._append('audit_events', 'ip07:target-basis:' + command.command_id,
+            TargetBasis(command_id=command.command_id, book_sequence=book.sequence,
+                actual=plan.actual, instrument=inputs.target.instrument), 0)
         projections = []
         for money in decision.reserved_assets:
             reservation = t.CapitalReservation(reservation_id=str(uuid4()), environment=self.scope.environment,

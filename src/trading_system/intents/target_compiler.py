@@ -24,6 +24,9 @@ class PendingQuantity:
     signed_quantity: t.Quantity
     reservation_ids: tuple[str, ...]
     represented_order_ids: tuple[str, ...] = ()
+    # Durable zero-asset reductions still occupy quantity. The locked ledger
+    # reader binds these references to actual root commands, never request IDs.
+    command_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -135,7 +138,8 @@ class TargetCompiler:
                         if p.held > 0 or p.release_pending > 0 or p.reflected > 0}
         mapped, pending_ids = set(), set()
         for pending in f.pending:
-            require(pending.intent_id not in pending_ids and bool(pending.reservation_ids), 'DUPLICATE_PENDING_INTENT')
+            require(pending.intent_id not in pending_ids
+                    and bool(pending.reservation_ids or pending.command_refs), 'DUPLICATE_PENDING_INTENT')
             pending_ids.add(pending.intent_id)
             require(pending.signed_quantity.unit == unit, 'PENDING_UNIT_MISMATCH')
             for identifier in pending.reservation_ids:
@@ -186,7 +190,7 @@ class TargetCompiler:
                           remaining=quantity(remaining), classification=classification, cancel_first=())
 
 
-def compile_locked(tx, intent: TradeIntent, load_inputs) -> t.DeltaPlan:
+def compile_locked(tx, intent: TradeIntent, load_inputs, *, load_book=None) -> t.DeltaPlan:
     """Re-read under IP-03 collateral lock plus management-owner row lock.
 
     load_inputs is local-only and must include all committed command/reservation
@@ -199,7 +203,7 @@ def compile_locked(tx, intent: TradeIntent, load_inputs) -> t.DeltaPlan:
         'WHERE environment=%s AND account_id=%s AND product=%s AND instrument_uid=%s AND venue_leg=%s FOR UPDATE',
         (*account_key(tx.scope), tx.scope.instrument_uid, tx.scope.venue_leg)).fetchone()
     require(owner == (intent.owner_strategy_id, intent.ownership_epoch, intent.risk_policy_revision), 'STALE_OWNER')
-    book = tx.projections.book(tx.scope)
+    book = (load_book(tx) if load_book is not None else tx.projections.book(tx.scope))
     inputs = load_inputs(tx, intent, book)
     # The wire intent has no deployment/actor fields. Reuse its persisted
     # server context to locate the same durable strategy fence as intake.

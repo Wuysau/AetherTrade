@@ -41,7 +41,7 @@ def test_atomic_bundle_and_idempotency(reservation_case):
     first = c.reserve()
     assert first.accepted
     assert c.reserve() == first
-    assert [c.count(table) for table in ('intents', 'commands', 'reservations', 'audit_events', 'outbox')] == [1]*5
+    assert [c.count(table) for table in ('intents', 'commands', 'reservations', 'audit_events', 'outbox')] == [1, 1, 1, 2, 1]
     c.case.intent = replace(c.case.intent, target_quantity='0.8')
     with pytest.raises(ValueError, match='identity reused'):
         c.reserve()
@@ -60,7 +60,7 @@ def test_zero_asset_reduction_still_has_one_durable_command(ip07_database):
     result = c.reserve()
     assert result.accepted and result.reservations == ()
     assert c.reserve() == result
-    assert [c.count(table) for table in ('intents', 'commands', 'reservations', 'audit_events', 'outbox')] == [1, 1, 0, 1, 1]
+    assert [c.count(table) for table in ('intents', 'commands', 'reservations', 'audit_events', 'outbox')] == [1, 1, 0, 2, 1]
     c.command_state('VENUE_CONFIRMED')
     assert c.reserve() == result  # creation bundle survives later transitions
 
@@ -95,7 +95,7 @@ def test_expired_unknown_remains_held(reservation_case):
     assert c.service.reconcile(e) == p
 
 
-def test_reflected_not_double_deduct(reservation_case):
+def test_reflected_not_double_deduct(reservation_case, ip07_database):
     c = reservation_case
     r = c.reserve().reservations[0].reservation
     c.command_state('VENUE_CONFIRMED')
@@ -115,7 +115,13 @@ def test_reflected_not_double_deduct(reservation_case):
     late = replace(c.case.book, sequence=99, balances=(money('100'), money('10', 'ASSET')))
     assert for_balance(p, late).reflected == 0
     c.next_intent()
-    assert c.reserve(c.case.book.sequence).accepted
+    duplicate = c.reserve(c.case.book.sequence)
+    assert not duplicate.accepted and duplicate.rejection_codes == ('TARGET_RECONCILIATION_REQUIRED',)
+    # Preserve the financial capacity counterexample with a separate account:
+    # its 100 cash minus the group's existing 70 hold still admits a 20 buy.
+    independent = ReservationCase(ip07_database, group=c.group, available='100')
+    independent.next_intent('0.2')
+    assert independent.reserve().accepted
 
 
 def test_cash_sells_reserve_base(ip07_database):
@@ -320,13 +326,17 @@ def test_snapshot_unknown_hold_is_not_dropped(reservation_case):
     assert c.count('commands') == 0
 
 
-def test_local_hold_is_not_counted_twice_from_snapshot(reservation_case):
+def test_local_hold_is_not_counted_twice_from_snapshot(reservation_case, ip07_database):
     c = reservation_case
     result = c.reserve()
     c.save_book(replace(c.case.book, sequence=2, reservations=result.reservations))
     c.next_intent()
-    assert c.reserve(2).accepted
+    assert not c.reserve(2).accepted  # same target scope retains its quantity
     assert len(c.calls[-1].reservations) == 1
+    independent = ReservationCase(ip07_database, group=c.group, available='100')
+    independent.next_intent('0.2')
+    assert independent.reserve().accepted
+    assert len(independent.calls[-1].reservations) == 1
 
 
 def test_ready_command_cannot_lose_backing_reservation(reservation_case):

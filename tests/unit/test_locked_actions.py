@@ -17,6 +17,8 @@ from trading_system.execution.dispatcher import CommandDispatcher, DispatchDenie
 from trading_system.storage.models import SequenceConflict
 from trading_system.risk.locked_actions import WorkingTerms
 from trading_system.risk.reservations import ReservationInputs, ReservationService
+from trading_system.intents.target_compiler import TargetInputs
+from trading_system.intents.ingress import IngressRevision
 from unit.support_ip_06 import make_case, money, NOW, BEFORE, END
 
 
@@ -338,7 +340,17 @@ def test_verified_exit_preserves_authority_gates(fault):
 def reservation_case(permission=t.RiskPermission.NO_NEW_RISK):
     case = LockedCase(permission)
     case.writes = []
-    case.tx._latest = lambda *args: None
+    case.tx.active = True
+    context = t.DecisionContext(identity_id='fixture-user', deployment_id='fixture',
+        environment=case.scope.environment, scopes=(case.scope,), authorization_id=case.intent.authorization_id,
+        policy_revision=case.intent.risk_policy_revision, ownership_epoch=case.intent.ownership_epoch,
+        strategy_revision=case.intent.strategy_revision, decision_run_id=case.intent.decision_run_id,
+        snapshot_ref=case.risk.market.ref)
+    fence = IngressRevision(sequence=1, identity_id=context.identity_id, deployment_id=context.deployment_id,
+        authorization_id=context.authorization_id, owner_strategy_id=case.intent.owner_strategy_id,
+        strategy_revision=context.strategy_revision, risk_policy_revision=context.policy_revision,
+        ownership_epoch=context.ownership_epoch, enabled=True)
+    case.tx._latest = lambda table, key, cls: fence if cls is IngressRevision else None
     case.tx._append = lambda *args: case.writes.append(args)
     case.tx.intents = SimpleNamespace(append=lambda *args: case.writes.append(('intent', *args)))
     case.tx.commands = SimpleNamespace(append=lambda *args: case.writes.append(('command', *args)))
@@ -349,7 +361,10 @@ def reservation_case(permission=t.RiskPermission.NO_NEW_RISK):
             authorization=t.AuthorizationDecision(allowed=True, authorization_id=intent.authorization_id,
                 rejection_codes=(), evidence=book.evidence), command=case.command,
             group_capacity=book.balances, strategy_capacity=book.balances,
-            buffer=tuple(replace(m, amount=money('0').amount) for m in book.balances))
+            buffer=tuple(replace(m, amount=money('0').amount) for m in book.balances),
+            target=TargetInputs(instrument=case.risk.inputs.instrument,
+                expected_instrument=case.risk.inputs.instrument, clock=case.risk.inputs.clock,
+                deadline_monotonic_ns=10**20, session=case.risk.inputs.session, context=context))
     case.service = ReservationService(None, case.scope, inputs, clock=lambda: NOW,
                                       load_action_proof=case.proof)
     return case
