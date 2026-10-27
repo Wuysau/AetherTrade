@@ -11,6 +11,7 @@ from uuid import uuid4
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import utc_timestamp
 from trading_system.storage.events import EventStore
+from trading_system.storage.models import encode, scope_id
 
 
 POLICIES = {
@@ -44,10 +45,13 @@ def utc_now():
 
 class RiskLockService:
     def __init__(self, uow, *, clock=utc_now,
-                 verify: Callable | None = None):
+                 verify: Callable | None = None, resolver_uow=None):
         self.uow = uow
         self.clock = clock
         self.verify = verify
+        # Separate credentials/role for a trusted local evidence verifier only.
+        # The ordinary execution-owner identity cannot resolve a risk lock.
+        self.resolver_uow = resolver_uow
 
     def _evidence_valid(self, ref, scope, now):
         return (ref.environment == scope.environment and bool(ref.id) and bool(ref.source)
@@ -88,7 +92,7 @@ class RiskLockService:
     def resolve(self, lock_id: str, evidence: t.ResolutionEvidence) -> t.LockResolution:
         # Scope comes from the authenticated caller's evidence, never a global
         # lock-id search. The collateral mutex covers validation and both writes.
-        with self.uow.transaction(evidence.scope) as tx:
+        with (self.resolver_uow or self.uow).transaction(evidence.scope) as tx:
             active = tx.risk_locks.active(evidence.scope)
             lock = tx._latest('risk_locks', lock_id, t.RiskLock)
             missing = []
@@ -115,6 +119,8 @@ class RiskLockService:
                 for requirement in lock.required_evidence:
                     if self.verify is None or self.verify(tx, lock, requirement, evidence) is not True:
                         missing.append(requirement)
+                if self.resolver_uow is None:
+                    missing.append('TRUSTED_RESOLUTION_AUTHORITY_REQUIRED')
             if missing:
                 return t.LockResolution(lock_id=lock_id, resolved=False,
                                         remaining_locks=active, missing=tuple(missing))
@@ -122,7 +128,8 @@ class RiskLockService:
             EventStore().append(tx, self._event(resolved, 2, evidence.evidence, now), 1)
             # Dedicated resolution path; ordinary repository.append still rejects
             # RESOLVED. Both the event and projection commit or roll back together.
-            tx._append('risk_locks', lock_id, resolved, 1)
+            tx.execute('SELECT ledger.resolve_risk_lock(%s,%s,%s,%s::jsonb,%s)',
+                (scope_id(lock.scope), lock_id, 1, encode(resolved), tx.transaction_id))
             tx._append('audit_events', 'risk-resolution:' + lock_id,
                        ResolutionAudit(lock, evidence, now), 0)
             return t.LockResolution(lock_id=lock_id, resolved=True,
