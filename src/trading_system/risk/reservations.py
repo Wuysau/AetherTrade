@@ -297,7 +297,7 @@ class ReservationService:
         # A ready outbox command is still sendable. A caller's terminal flag
         # cannot release its backing assets; IP-10 must first persist an abort
         # or a reconciled outcome. VENUE_CONFIRMED alone is not order terminal.
-        commands = tuple(tx.commands.get(cid) for cid in r.command_refs)
+        commands = tuple(CommandRepository(tx).get(cid) for cid in r.command_refs)
         bound = bool(commands) and all(c is not None and c.intent_id == r.intent_id for c in commands)
         unknown = (evidence.command_certainty == 'UNKNOWN' or not bound
             or any(c.state in ('MAY_HAVE_SENT', 'UNKNOWN') for c in commands if c is not None))

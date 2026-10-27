@@ -194,6 +194,29 @@ Unknown holds are never released here; every operation is conservatively blocked
         return receipt
 
     @atomic_write
+    def abort_unsent(self, command_id: str, reason: str) -> t.CommandReceipt:
+        """Retire a ready command under the collateral mutex before any send.
+
+        The raw command stays immutable. Once a send boundary exists, no local
+        reason can prove NOT_SENT and the caller must reconcile the original ID.
+        """
+        command = self.get(command_id)
+        if command is None or not reason or not reason.strip():
+            raise MissingEvidence('command and abort reason required')
+        if command.state == 'ABORTED_UNSENT':
+            return self.receipt(command_id)
+        if command.state != 'DURABLE_READY':
+            raise SequenceConflict('cannot abort a potentially sent command')
+        receipt = t.CommandReceipt(receipt_id='ip10:abort:' + command_id,
+            command_id=command_id, status=t.CommandState.ABORTED_UNSENT,
+            reason=reason, existing_result_ref=command.durable_record_ref)
+        self.tx._append('audit_events', OUTCOME_PREFIX + command_id,
+            CommandOutcome(command_id=command_id, request_hash=command_hash(command),
+                durable_record_ref=command.durable_record_ref, receipt=receipt,
+                provenance='LOCAL_UNSENT_ABORT'), 0)
+        return receipt
+
+    @atomic_write
     def recover_unknown(self, command_id: str, now: str) -> t.CommandReceipt:
         command = self.get(command_id)
         # A concurrent consumer can observe the boundary and start recovery while

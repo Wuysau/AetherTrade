@@ -20,6 +20,7 @@ from trading_system.market.snapshots import snapshot_content_hash
 from trading_system.risk.reservations import ReservationService, ReservationInputs, ReconciliationProof
 from trading_system.risk.reservation_repository import ReservationRepository
 from trading_system.storage.models import scope_id
+from trading_system.execution.commands import CommandRepository
 
 
 @pytest.fixture(scope='module')
@@ -117,17 +118,19 @@ class ReservationCase:
         self.command = replace(self.command, payload_hash=canonical_hash(encoded['canonical_payload']))
 
     def command_state(self, state):
-        """Seed a synthetic IP-10 outcome, NOT an exercised execution state machine.
-
-        IP-03 exposes only the MAY_HAVE_SENT transition. Seeding an outcome is
-        deliberately explicit so these tests cannot imply venue/native proof.
-        """
+        """Persist synthetic outcomes through IP-10; never forge ledger rows."""
         assert state in ('UNKNOWN', 'NOT_SENT', 'ABORTED_UNSENT', 'VENUE_CONFIRMED', 'VENUE_REJECTED')
         with self.ledger.uow.transaction(self.scope) as tx:
-            command = tx.commands.get(self.command.command_id)
-            row = tx.execute('SELECT max(sequence) FROM ledger.commands WHERE scope_id=%s AND record_id=%s',
-                (scope_id(self.scope), command.command_id)).fetchone()
-            tx._append('commands', command.command_id, replace(command, state=state), row[0])
+            repo = CommandRepository(tx)
+            if state in ('NOT_SENT', 'ABORTED_UNSENT'):
+                repo.abort_unsent(self.command.command_id, 'SYNTHETIC_UNSENT_ABORT')
+                return
+            repo.mark_may_have_sent(tx, self.command.command_id, 'DURABLE_READY')
+        with self.ledger.uow.transaction(self.scope) as tx:
+            CommandRepository(tx).record_outcome(t.CommandReceipt(
+                receipt_id='synthetic:' + self.command.command_id,
+                command_id=self.command.command_id, status=t.CommandState(state),
+                reason='SYNTHETIC_OFFLINE_OUTCOME', existing_result_ref='synthetic-venue-event'))
 
     def save_book(self, book):
         with self.ledger.uow.transaction(self.scope) as tx:

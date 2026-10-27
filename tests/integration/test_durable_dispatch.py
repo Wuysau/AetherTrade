@@ -357,18 +357,53 @@ def test_late_recovery_preserves_terminal_outcome(dispatch_case, status):
     assert len(c.engine.transport.writes) == 1
 
 
-def test_identical_enqueue_after_owner_change_only_returns_existing(dispatch_case):
+def test_identical_enqueue_after_owner_change_only_returns_existing(dispatch_case, monkeypatch):
     c = dispatch_case
     c.engine.response_lost = True
     c.dispatch()
-    with c.ledger.connect_admin() as conn:
-        conn.execute('UPDATE ledger.active_owners SET ownership_epoch=ownership_epoch+1 '
-                     'WHERE account_id=%s', (c.scope.venue_account_id,))
+    # The base ledger deliberately forbids owner mutations until a reviewed
+    # transfer CAS exists. Simulate the stale binding at the domain gate and
+    # prove an identical enqueue only retrieves history without reauthorizing.
+    import psycopg
+    with pytest.raises(psycopg.errors.CheckViolation, match='append-only'):
+        with c.ledger.connect_admin() as conn:
+            conn.execute('UPDATE ledger.active_owners SET ownership_epoch=ownership_epoch+1 '
+                         'WHERE account_id=%s', (c.scope.venue_account_id,))
+    def stale_owner(*args):
+        raise SequenceConflict('current owner/policy is missing or stale')
+    monkeypatch.setattr(CommandRepository, 'validate_binding', stale_owner)
+    with pytest.raises(SequenceConflict, match='owner/policy'):
+        c.make_another_command()
     c.append(c.command)
     assert c.get().state == 'UNKNOWN'
     with pytest.raises(IdempotencyConflict):
         c.append(c.variant(attempt_id='changed-after-revocation'))
     assert len(c.engine.transport.writes) == 1
+
+
+def test_unsent_abort_prevents_outbox_send(dispatch_case):
+    c = dispatch_case
+    with c.ledger.uow.transaction(c.scope) as tx:
+        receipt = CommandRepository(tx).abort_unsent(c.command.command_id, 'AUTHORIZATION_REVOKED')
+        assert CommandRepository(tx).abort_unsent(c.command.command_id, 'AUTHORIZATION_REVOKED') == receipt
+    assert c.dispatch() == receipt
+    assert c.get().state == 'ABORTED_UNSENT'
+    assert not c.engine.transport.writes
+
+
+@pytest.mark.parametrize('state', ['MAY_HAVE_SENT', 'UNKNOWN', 'VENUE_CONFIRMED'])
+def test_unsent_abort_cannot_relabel_send_boundary(dispatch_case, state):
+    c = dispatch_case
+    if state == 'MAY_HAVE_SENT':
+        with c.ledger.uow.transaction(c.scope) as tx:
+            CommandRepository(tx).mark_may_have_sent(tx, c.command.command_id, 'DURABLE_READY')
+    else:
+        c.engine.response_lost = state == 'UNKNOWN'
+        c.dispatch()
+    with pytest.raises(SequenceConflict, match='potentially sent'):
+        with c.ledger.uow.transaction(c.scope) as tx:
+            CommandRepository(tx).abort_unsent(c.command.command_id, 'LOCAL_TIMEOUT')
+    assert c.get().state == state
 
 
 def test_outbox_batch_limit_and_consumer_identity(dispatch_case):
