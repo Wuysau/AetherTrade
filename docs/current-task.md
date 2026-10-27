@@ -67,6 +67,28 @@ No push, public merge, venue Testnet or LIVE writing is authorized by this task.
   and learning docs (`paper-runtime-resume`, `paper-validation-resume`,
   `paper-learning-resume`), each with one writer. Integrate reviewed commits
   before final combined qualification; no real account or venue accessed.
+- Foundation followup: integrated restricted LOGIN owner probes and safe Docker
+  launcher (`14f9ca4`, `c1cfc41`, `4f22d25`); full independent Linux run at
+  `4637925` had 2402 passed / 363 skipped (unconfigured optional suites, NOT DB
+  acceptance). Mandatory PostgreSQL gate had 686 passed / 1 failed, no skips;
+  only child replan fixture retained hardcoded sequence 2 after its initial
+  book moved to 2. Minimal fix `afcd882` preserves the safety assertion, fresh
+  targeted child suite 49 passed / 0 skipped. Final integrated gate still due.
+- Actual PostgreSQL console loss latch and 139 owner cases (including five
+  distinct restricted LOGIN probes) passed. Raw logs, images/dependencies,
+  migration hashes and 13 synthetic final SQL snapshots are retained by
+  `8cbb358` under `docs/evidence/2026-10-27-unified-paper-validation/`.
+- Learning documents and explicit NOT_RUN acceptance matrix integrated at
+  `4f04f5e`. Web all-mode configuration/projection: 105 tests pass, typecheck
+  and build pass; `c472c46` retains raw red/green and responsive fixture images.
+- Runtime agent reports first actual PostgreSQL common-service cycle passes:
+  PENDING -> SUBMITTED -> 40% partial -> durable protection duty -> restart
+  original-ID query -> final fill. This remains **not yet integrated or final
+  acceptance**. Remaining cancellation, protection/exit, full three-mode,
+  process-kill and final gate evidence must still be completed.
+- Early independent foundation review active, read-only. Known integration
+  concern: automation catches DAILY_LOSS inside a savepoint; runtime work must
+  persist that cause outside the failed savepoint before claiming shared locks.
 
 Next smallest step: integrate the common runtime service, connect all modes and
 complete actual PostgreSQL lifecycle/fault evidence, then final review.
