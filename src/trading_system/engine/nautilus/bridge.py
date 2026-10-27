@@ -70,6 +70,55 @@ class OfflineWrite:
     identity: t.OrderIdentity
 
 
+def validate_bridge_authority(command, permit, authority, *, scope, clock):
+    """Shared immutable authority checks; caller must hold the trusted owner guard."""
+    if (not isinstance(authority, BridgeAuthority)
+            or not isinstance(authority.lease, t.OwnerLease)
+            or not isinstance(authority.lease.shard, t.ExecutionShard)):
+        raise BridgeDenied('CURRENT_OWNER_EVIDENCE_MISSING')
+    if (authority.command != command or authority.permit != permit
+            or command.state != 'MAY_HAVE_SENT' or not command.durable_record_ref
+            or permit.durable_record_ref != command.durable_record_ref
+            or permit.command_id != command.command_id or permit.payload_hash != command.payload_hash
+            or permit.scope != scope):
+        raise BridgeDenied('DURABLE_COMMAND_OR_PERMIT_MISMATCH')
+    lease = authority.lease
+    shard = lease.shard
+    if (command.environment != scope.environment or command.venue_account_id != scope.venue_account_id
+            or command.product != scope.product or command.instrument_uid != scope.instrument_uid
+            or shard.environment != scope.environment or shard.venue_account_id != scope.venue_account_id
+            or shard.product != scope.product or not shard.node_id or not lease.instance_id):
+        raise BridgeDenied('OWNER_OR_PRODUCT_SCOPE_MISMATCH')
+    for actual, granted, current in (
+            (command.execution_epoch, permit.execution_epoch, shard.execution_epoch),
+            (command.ownership_epoch, permit.ownership_epoch, authority.ownership_epoch),
+            (command.policy_revision, permit.policy_revision, authority.policy_revision)):
+        if any(type(v) is not int or v < 1 for v in (actual, granted, current)) or not actual == granted == current:
+            raise BridgeDenied('STALE_EPOCH_OR_POLICY')
+    try:
+        body = ContractCodec().encode(command)
+    except (TypeError, ValueError, ValidationError) as exc:
+        raise BridgeDenied('INVALID_COMMAND_CONTRACT') from exc
+    if canonical_hash(body['canonical_payload']) != command.payload_hash:
+        raise BridgeDenied('PAYLOAD_HASH_MISMATCH')
+    position_side = body['canonical_payload'].get('position_side')
+    if ((position_side is not None and position_side != scope.venue_leg)
+            or (scope.venue_leg != 'BOTH' and position_side is None)):
+        raise BridgeDenied('POSITION_LEG_MISMATCH')
+    now = clock()
+    if (not isinstance(now, t.ClockReading)
+            or now.clock_health != 'HEALTHY' or type(now.monotonic_ns) is not int
+            or now.monotonic_ns < 0):
+        raise BridgeDenied('CLOCK_UNHEALTHY')
+    for expiry, deadline in ((lease.expires_at, lease.deadline_monotonic_ns),
+                             (permit.expires_at, permit.deadline_monotonic_ns)):
+        if (type(deadline) is not int or now.monotonic_ns >= deadline
+                or utc_timestamp(now.utc_now) >= utc_timestamp(expiry)):
+            raise BridgeDenied('PERMIT_OR_LEASE_EXPIRED')
+    if utc_timestamp(now.utc_now) < utc_timestamp(command.created_at):
+        raise BridgeDenied('COMMAND_FROM_FUTURE')
+
+
 class NautilusEngine:
     def __init__(self, compatibility: t.CompatibilityMap, *, offline: OfflineBridge | None = None):
         if not isinstance(compatibility, t.CompatibilityMap):
@@ -113,53 +162,9 @@ class NautilusEngine:
         return self._write(command, permit, frozenset({'AMEND'}))
 
     def _validate(self, command, permit, authority):
-        offline = self._offline
-        assert offline is not None
-        if (not isinstance(authority, BridgeAuthority)
-                or not isinstance(authority.lease, t.OwnerLease)
-                or not isinstance(authority.lease.shard, t.ExecutionShard)):
-            raise BridgeDenied('CURRENT_OWNER_EVIDENCE_MISSING')
-        if (authority.command != command or authority.permit != permit
-                or command.state != 'MAY_HAVE_SENT' or not command.durable_record_ref
-                or permit.durable_record_ref != command.durable_record_ref
-                or permit.command_id != command.command_id or permit.payload_hash != command.payload_hash
-                or permit.scope != offline.scope):
-            raise BridgeDenied('DURABLE_COMMAND_OR_PERMIT_MISMATCH')
-        scope, lease = offline.scope, authority.lease
-        shard = lease.shard
-        if (command.environment != scope.environment or command.venue_account_id != scope.venue_account_id
-                or command.product != scope.product or command.instrument_uid != scope.instrument_uid
-                or shard.environment != scope.environment or shard.venue_account_id != scope.venue_account_id
-                or shard.product != scope.product or not shard.node_id or not lease.instance_id):
-            raise BridgeDenied('OWNER_OR_PRODUCT_SCOPE_MISMATCH')
-        for actual, granted, current in (
-                (command.execution_epoch, permit.execution_epoch, shard.execution_epoch),
-                (command.ownership_epoch, permit.ownership_epoch, authority.ownership_epoch),
-                (command.policy_revision, permit.policy_revision, authority.policy_revision)):
-            if any(type(v) is not int or v < 1 for v in (actual, granted, current)) or not actual == granted == current:
-                raise BridgeDenied('STALE_EPOCH_OR_POLICY')
-        try:
-            body = ContractCodec().encode(command)
-        except (TypeError, ValueError, ValidationError) as exc:
-            raise BridgeDenied('INVALID_COMMAND_CONTRACT') from exc
-        if canonical_hash(body['canonical_payload']) != command.payload_hash:
-            raise BridgeDenied('PAYLOAD_HASH_MISMATCH')
-        position_side = body['canonical_payload'].get('position_side')
-        if ((position_side is not None and position_side != scope.venue_leg)
-                or (scope.venue_leg != 'BOTH' and position_side is None)):
-            raise BridgeDenied('POSITION_LEG_MISMATCH')
-        now = offline.clock()
-        if (not isinstance(now, t.ClockReading)
-                or now.clock_health != 'HEALTHY' or type(now.monotonic_ns) is not int
-                or now.monotonic_ns < 0):
-            raise BridgeDenied('CLOCK_UNHEALTHY')
-        for expiry, deadline in ((lease.expires_at, lease.deadline_monotonic_ns),
-                                 (permit.expires_at, permit.deadline_monotonic_ns)):
-            if (type(deadline) is not int or now.monotonic_ns >= deadline
-                    or utc_timestamp(now.utc_now) >= utc_timestamp(expiry)):
-                raise BridgeDenied('PERMIT_OR_LEASE_EXPIRED')
-        if utc_timestamp(now.utc_now) < utc_timestamp(command.created_at):
-            raise BridgeDenied('COMMAND_FROM_FUTURE')
+        assert self._offline is not None
+        validate_bridge_authority(command, permit, authority,
+            scope=self._offline.scope, clock=self._offline.clock)
 
     def _write(self, command, permit, operations):
         if not isinstance(command, ExecutionCommand) or not isinstance(permit, t.DurablePermit):

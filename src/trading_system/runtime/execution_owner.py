@@ -18,6 +18,7 @@ from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, decimal_string, domain_payload, utc_timestamp
 from trading_system.contracts.wire import ContractCodec
 from trading_system.engine.nautilus.bridge import BridgeAuthority, NautilusEngine
+from trading_system.engine.paper import PaperEngine
 from trading_system.execution.dispatcher import clock_now
 from trading_system.recovery.gate import RecoveryGate
 from trading_system.recovery.reconciler import valid_ref
@@ -167,14 +168,18 @@ class PriorityInbox:
 
 
 class ExecutionOwner:
-    def __init__(self, lease: t.OwnerLease, *, journal_path: Path, engine: NautilusEngine,
+    def __init__(self, lease: t.OwnerLease, *, journal_path: Path, engine: NautilusEngine | PaperEngine,
                  claim, read_emergency=None, database_available=None, dispatcher=None,
                  recovery_gate: RecoveryGate | None = None, read_checklist=None,
                  read_merge=None, clock=clock_now, events=None, handle_event=None):
+        concrete_offline_engine = type(engine) is NautilusEngine
+        concrete_paper_engine = (type(engine) is PaperEngine
+            and lease.shard.environment == t.Environment.PAPER
+            and scope_matches(engine.scope, lease.shard))
         if (lease.shard.environment not in (t.Environment.PAPER, t.Environment.RESEARCH)
                 or not lease.instance_id or not lease.shard.node_id
                 or type(lease.shard.execution_epoch) is not int or lease.shard.execution_epoch < 1
-                or type(engine) is not NautilusEngine or engine.live_enabled):
+                or not (concrete_offline_engine or concrete_paper_engine) or engine.live_enabled):
             raise OwnerDenied('OFFLINE_OWNER_COMPOSITION_REQUIRED')
         self.lease, self.engine, self.claim = lease, engine, claim
         self.read_emergency, self.database_available = read_emergency, database_available
