@@ -898,7 +898,7 @@ def test_postgres_owner_cas_preserves_exact_decimal_and_protection(ip16_database
 @pytest.mark.parametrize('attack', ['early-check-owner', 'early-check-transfer', 'expiry',
                                   'early-check-expiry', 'early-check-named', 'early-check-do',
                                   'early-check-multistatement', 'manual-lock', 'reconciliation',
-                                  'async-commit'])
+                                  'async-commit', 'late-deferred-expiry'])
 def test_postgres_cas_cannot_bypass_final_guard(ip16_database, attack):
     """Real controller SQL after correct CAS/projections, before actual COMMIT."""
     from datetime import datetime, timedelta, timezone
@@ -935,6 +935,13 @@ def test_postgres_cas_cannot_bypass_final_guard(ip16_database, attack):
             tx.append('ownership_transfers', transfer_key(c.transfer_id), replace(updated,
                 sequence=updated.sequence+1, projection=replace(updated.projection,
                     state=t.TransferState.COMMIT_OWNER_EPOCH, ownership_epoch=1)), updated.sequence)
+        elif attack == 'late-deferred-expiry':
+            tx.tx.execute('CREATE TEMP TABLE cas_commit_delay(value integer) ON COMMIT DROP')
+            tx.tx.execute('CREATE FUNCTION pg_temp.cas_commit_delay() RETURNS trigger LANGUAGE plpgsql AS '
+                "$$ BEGIN PERFORM pg_sleep(1.1); RETURN NEW; END $$")
+            tx.tx.execute('CREATE CONSTRAINT TRIGGER cas_commit_delay AFTER INSERT ON cas_commit_delay '
+                'DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION pg_temp.cas_commit_delay()')
+            tx.tx.execute('INSERT INTO cas_commit_delay VALUES(1)')
         elif 'expiry' in attack:
             time.sleep(1.1)
         elif attack == 'manual-lock':
