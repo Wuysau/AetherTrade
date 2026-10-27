@@ -7,14 +7,18 @@ test module gets a new database because module fixtures install the ledger once.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack, contextmanager
 import hashlib
+import ipaddress
 import json
 import os
 from pathlib import Path
 import secrets
+import socket
 import subprocess
 import sys
-from urllib.parse import quote
+import tempfile
+from urllib.parse import quote, urlencode
 import xml.etree.ElementTree as ET
 
 import psycopg
@@ -26,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
     ('ledger', '03', 'tests/integration/test_ledger_transactions.py'),
     ('reservations', '07', 'tests/integration/test_reservations.py'),
+    ('duplicate-target', '07', 'tests/integration/test_paper_duplicate_target.py'),
     ('risk-locks', '08', 'tests/integration/test_persistent_risk_locks.py'),
     ('dispatch', '10', 'tests/integration/test_durable_dispatch.py'),
     ('child-cancel', '10', 'tests/integration/test_child_and_cancel_commands.py'),
@@ -73,33 +78,118 @@ def child_environment(environ) -> dict:
     return {key: value for key, value in environ.items() if key in allowed}
 
 
+@contextmanager
+def clean_libpq_environment():
+    """libpq otherwise silently inherits PGHOSTADDR, PGPORT, PGSERVICE, etc."""
+    saved = {key: os.environ.pop(key) for key in tuple(os.environ) if key.startswith('PG')}
+    try:
+        yield
+    finally:
+        os.environ.update(saved)
+
+
+def validated_admin_options(raw: str) -> dict:
+    try:
+        values = conninfo_to_dict(raw)
+    except (psycopg.Error, TypeError, ValueError):
+        raise GateError('invalid admin connection string') from None
+    allowed = {'host', 'port', 'dbname', 'user', 'password', 'sslmode', 'connect_timeout'}
+    port = values.get('port', '')
+    if (set(values) - allowed or values.get('dbname') != 'paper_ci_admin'
+            or values.get('user') != 'paper_admin'
+            or values.get('host') not in ('127.0.0.1', 'localhost', 'host.docker.internal')
+            or not values.get('password') or not port or not port.isascii() or not port.isdecimal()
+            or not 1 <= int(port) <= 65535):
+        raise GateError('admin DSN must explicitly select the dedicated local test database and port')
+    if values['host'] in ('127.0.0.1', 'localhost'):
+        address = '127.0.0.1'
+    else:
+        answers = socket.getaddrinfo(values['host'], int(values['port']), type=socket.SOCK_STREAM)
+        addresses = list(dict.fromkeys(answer[4][0] for answer in answers))
+        if not addresses:
+            raise GateError('local Docker host did not resolve')
+        for candidate in addresses:
+            ip = ipaddress.ip_address(candidate)
+            if (not (ip.is_private or ip.is_loopback) or ip.is_link_local or ip.is_multicast
+                    or ip.is_unspecified or ip.is_reserved):
+                raise GateError('Docker host must resolve to a local private address')
+        address = addresses[0]
+    return {**values, 'hostaddr': address}
+
+
+def console_database_url(values: dict, dbname: str) -> str:
+    """Use the same pinned address and port as the validated admin connection."""
+    query = {'hostaddr': values['hostaddr']}
+    query.update({key: values[key] for key in ('sslmode', 'connect_timeout') if key in values})
+    return ('postgresql+psycopg://' + quote(values['user'], safe='') + ':'
+            + quote(values.get('password', ''), safe='') + '@' + values['host']
+            + ':' + values['port'] + '/' + dbname + '?' + urlencode(query))
+
+
+@contextmanager
+def console_scratch(values: dict, dbname: str, evidence: Path):
+    """Keep the fixture DSN out of uploaded artifacts and remove it on exit."""
+    with tempfile.TemporaryDirectory(prefix='paper-console-ci-') as directory:
+        cwd = Path(directory).resolve()
+        artifact_dir = evidence.resolve()
+        if cwd == artifact_dir or artifact_dir in cwd.parents:
+            raise GateError('console credential scratch must be outside uploaded evidence')
+        (cwd / '.runtime').mkdir(mode=0o700)
+        path = cwd / '.runtime/postgres-test.env'
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'w', encoding='utf-8') as file:
+            file.write('AETHERTRADE_TEST_DATABASE_URL=' + console_database_url(values, dbname) + '\n')
+        yield cwd
+
+
 def admin_connection(*, initialize=False):
     if sys.platform != 'linux' or os.environ.get('PAPER_CI_ISOLATED') != 'YES':
         raise GateError('isolated Linux PostgreSQL must be explicitly supplied')
     raw, marker = os.environ.get('PAPER_CI_ADMIN_DSN'), os.environ.get('PAPER_CI_MARKER')
     if not raw or not marker or not 16 <= len(marker) <= 100:
         raise GateError('disposable admin DSN and isolation marker are required')
-    values = conninfo_to_dict(raw)
-    if (values.get('dbname') != 'paper_ci_admin' or values.get('user') != 'paper_admin'
-            or values.get('host') not in ('127.0.0.1', 'localhost', 'host.docker.internal')):
-        raise GateError('admin DSN must select the dedicated local paper_ci_admin database')
-    connection = psycopg.connect(raw, autocommit=True)
+    values = validated_admin_options(raw)
+    with clean_libpq_environment():
+        connection = psycopg.connect(make_conninfo(**values), autocommit=True)
     try:
+        actual = connection.info.get_parameters()
+        if any(actual.get(key) != values.get(key) for key in ('host', 'hostaddr', 'port', 'dbname', 'user')):
+            raise GateError('effective PostgreSQL endpoint differs from validated endpoint')
         current, user, version = connection.execute(
             "SELECT current_database(), current_user, current_setting('server_version_num')::int").fetchone()
         if current != 'paper_ci_admin' or user != 'paper_admin' or version < 170000:
             raise GateError('database identity or PostgreSQL version is not the isolated test target')
-        if connection.execute("SELECT to_regclass('public.paper_ci_isolation_marker')").fetchone()[0] is None:
+        marker_oid = connection.execute("SELECT to_regclass('public.paper_ci_isolation_marker')::oid").fetchone()[0]
+        if marker_oid is None and not initialize:
+            raise GateError('independently provisioned disposable cluster marker is missing')
+        if marker_oid is not None:
+            marker_kind = connection.execute(
+                "SELECT c.relkind,pg_get_userbyid(c.relowner) FROM pg_class c WHERE c.oid=%s", (marker_oid,)).fetchone()
+            if marker_kind != ('r', 'paper_admin'):
+                raise GateError('isolation marker must be an administrator-owned ordinary table')
+        # Check on initialization and every later invocation. A marker must not
+        # silently turn a subsequently shared database into a disposable one.
+        objects = connection.execute("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
+                                     "WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m','S','f') "
+                                     "AND c.oid IS DISTINCT FROM %s::oid", (marker_oid,)).fetchone()[0]
+        routines = connection.execute("SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace "
+                                      "WHERE n.nspname='public'").fetchone()[0]
+        types = connection.execute("SELECT count(*) FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace "
+                                   "WHERE n.nspname='public' AND t.typrelid IS DISTINCT FROM %s::oid "
+                                   "AND t.typelem NOT IN (SELECT oid FROM pg_type WHERE typrelid=%s::oid)",
+                                   (marker_oid, marker_oid)).fetchone()[0]
+        schemas = connection.execute("SELECT count(*) FROM pg_namespace WHERE nspname NOT IN ('public','information_schema') "
+                                     "AND NOT starts_with(nspname,'pg_')").fetchone()[0]
+        dependencies = connection.execute(
+            "SELECT count(*) FROM pg_depend d WHERE d.refclassid='pg_namespace'::regclass "
+            "AND d.refobjid='public'::regnamespace AND d.deptype IN ('n','a','i') "
+            "AND NOT (d.classid='pg_class'::regclass AND d.objid IS NOT DISTINCT FROM %s::oid)",
+            (marker_oid,)).fetchone()[0]
+        if objects or routines or types or schemas or dependencies:
+            raise GateError('refusing a database with existing application objects')
+        if marker_oid is None:
             if not initialize:
                 raise GateError('independently provisioned disposable cluster marker is missing')
-            objects = connection.execute("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
-                                         "WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m','S')").fetchone()[0]
-            routines = connection.execute("SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace "
-                                          "WHERE n.nspname='public'").fetchone()[0]
-            schemas = connection.execute("SELECT count(*) FROM pg_namespace WHERE nspname NOT IN ('public','information_schema') "
-                                         "AND nspname NOT LIKE 'pg_%'").fetchone()[0]
-            if objects or routines or schemas:
-                raise GateError('refusing to initialize a database with existing application objects')
             connection.execute('CREATE TABLE public.paper_ci_isolation_marker(marker text NOT NULL)')
             connection.execute('INSERT INTO public.paper_ci_isolation_marker VALUES (%s)', (marker,))
         row = connection.execute('SELECT marker FROM public.paper_ci_isolation_marker').fetchall()
@@ -157,31 +247,24 @@ def main(argv=None):
                 env = child_environment(os.environ)
                 # Never print the DSN: it can contain a password even in a test cluster.
                 dsn = make_conninfo(**{**values, 'dbname': dbname})
-                if number == 'CONSOLE':
-                    # The existing console fixture intentionally reads a relative
-                    # env file. Supply it in a fresh scratch cwd, never overwrite
-                    # the developer's .runtime/postgres-test.env.
-                    cwd = evidence / 'console-cwd'
-                    (cwd / '.runtime').mkdir(parents=True, exist_ok=False)
-                    url = ('postgresql+psycopg://' + quote(values['user'], safe='') + ':'
-                           + quote(values.get('password', ''), safe='') + '@' + values['host']
-                           + ':' + str(values.get('port', 5432)) + '/' + dbname)
-                    (cwd / '.runtime/postgres-test.env').write_text('AETHERTRADE_TEST_DATABASE_URL=' + url + '\n', encoding='utf-8')
-                    env['AETHERTRADE_RUN_POSTGRES_TESTS'] = '1'
-                else:
-                    cwd = ROOT
-                    env[f'{number}_ISOLATED_DATABASE' if number == 'PAPER_ENGINE' else f'IP{number}_ISOLATED_DATABASE'] = 'YES'
-                    env[f'{number}_DATABASE_DSN' if number == 'PAPER_ENGINE' else f'IP{number}_DATABASE_DSN'] = dsn
-                xml, log = evidence / f'{name}.xml', evidence / f'{name}.log'
-                absolute_test = str(ROOT / testfile.split('::')[0]) + ('::' + testfile.split('::', 1)[1] if '::' in testfile else '')
-                command = [sys.executable, '-m', 'pytest', '-q', '--tb=short', f'--rootdir={ROOT}', f'--junitxml={xml}', absolute_test]
-                with log.open('wb') as output:
-                    try:
-                        outcome = subprocess.run(command, cwd=cwd, env=env, stdout=output,
-                                                 stderr=subprocess.STDOUT, timeout=300, check=False)
-                        exit_code = outcome.returncode
-                    except subprocess.TimeoutExpired:
-                        exit_code = 124
+                with ExitStack() as stack:
+                    if number == 'CONSOLE':
+                        cwd = stack.enter_context(console_scratch(values, dbname, evidence))
+                        env['AETHERTRADE_RUN_POSTGRES_TESTS'] = '1'
+                    else:
+                        cwd = ROOT
+                        env[f'{number}_ISOLATED_DATABASE' if number == 'PAPER_ENGINE' else f'IP{number}_ISOLATED_DATABASE'] = 'YES'
+                        env[f'{number}_DATABASE_DSN' if number == 'PAPER_ENGINE' else f'IP{number}_DATABASE_DSN'] = dsn
+                    xml, log = evidence / f'{name}.xml', evidence / f'{name}.log'
+                    absolute_test = str(ROOT / testfile.split('::')[0]) + ('::' + testfile.split('::', 1)[1] if '::' in testfile else '')
+                    command = [sys.executable, '-m', 'pytest', '-q', '--tb=short', f'--rootdir={ROOT}', f'--junitxml={xml}', absolute_test]
+                    with log.open('wb') as output:
+                        try:
+                            outcome = subprocess.run(command, cwd=cwd, env=env, stdout=output,
+                                                     stderr=subprocess.STDOUT, timeout=300, check=False)
+                            exit_code = outcome.returncode
+                        except subprocess.TimeoutExpired:
+                            exit_code = 124
                 try:
                     counts = result_counts(xml, exit_code)
                 except GateError:
