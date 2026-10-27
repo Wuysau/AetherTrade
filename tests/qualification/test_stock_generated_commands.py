@@ -1,6 +1,6 @@
 """Generated commands against offline boundaries; never native qualification."""
 from dataclasses import replace
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
 import pytest
 from jsonschema.exceptions import ValidationError
@@ -263,5 +263,77 @@ def test_non_equity_protection_regression(tmp_path, product, operation):
         assert case.engine.submit(command, permit).status == t.CommandState.UNKNOWN
         assert len(case.engine.offline_writes) == 1
         assert not case.engine.live_enabled
+    finally:
+        case.codec.close()
+
+
+@pytest.mark.parametrize('product,negative', [
+    (t.Product.US_EQUITY, False), (t.Product.SPOT, False),
+    (t.Product.USD_M_PERP, False), (t.Product.USD_M_PERP, True),
+])
+@pytest.mark.parametrize('precision,amount', [
+    (28, '0.99999999999999999999999999999'), (2, '0.999'),
+])
+@pytest.mark.parametrize('oversized', [False, True])
+def test_generated_close_cannot_round_up_owned_inventory(
+        tmp_path, product, negative, precision, amount, oversized):
+    case = StocksCase(tmp_path) if product == t.Product.US_EQUITY else BridgeCase(tmp_path, product)
+    unit = {t.Product.US_EQUITY: 'SHARE', t.Product.SPOT: 'BASE', t.Product.USD_M_PERP: 'CONTRACT'}[product]
+    actual = Decimal(amount)
+    request = request_for(case)
+    request = replace(request, position=replace(request.position,
+        actual_quantity=t.Quantity(value=actual.copy_negate() if negative else actual, unit=unit)),
+        quantity=quantity('1' if oversized else amount, unit))
+    try:
+        with localcontext() as ctx:
+            ctx.prec = precision
+            if oversized:
+                # Execute the actual adapter path if the compiler mistakenly accepts it.
+                with pytest.raises(ValueError, match='REDUCTION_PARAMETERS_INVALID'):
+                    command = compile_request(case, request).command
+                    command, permit = offline_authority(case, command)
+                    case.engine.submit(command, permit)
+                assert not case.engine.offline_writes
+            else:
+                command = compile_request(case, request).command
+                assert command.canonical_payload.quantity == amount
+                assert command.canonical_payload.side == ('BUY' if negative else 'SELL')
+                if product == t.Product.US_EQUITY:
+                    assert case.engine.preview(command, case.instrument).quantity == amount
+                command, permit = offline_authority(case, command)
+                assert case.engine.submit(command, permit).status == t.CommandState.UNKNOWN
+                assert len(case.engine.offline_writes) == 1
+        assert not case.engine.live_enabled
+    finally:
+        case.codec.close()
+
+
+@pytest.mark.parametrize('product,negative', [
+    (t.Product.US_EQUITY, False), (t.Product.SPOT, False),
+    (t.Product.USD_M_PERP, False), (t.Product.USD_M_PERP, True),
+])
+def test_child_slices_preserve_exact_total_under_low_precision(tmp_path, product, negative):
+    case = StocksCase(tmp_path) if product == t.Product.US_EQUITY else BridgeCase(tmp_path, product)
+    try:
+        planner, intent, book, policy = child_inputs(case, reduction=True)
+        unit = intent.quantity_unit
+        intent = replace(intent, target_side='FLAT', target_quantity='0')
+        p, = book.positions
+        book = replace(book, positions=(replace(p, actual_quantity=quantity('-0.999' if negative else '0.999', unit)),))
+        policy = replace(policy, slice_quantity=quantity('0.4', unit), maximum_children=3)
+        with localcontext() as ctx:
+            ctx.prec = 2
+            commands = planner.plan(intent, book, policy)
+            assert [c.canonical_payload.quantity for c in commands] == ['0.4', '0.4', '0.199']
+            for command in commands:
+                assert command.operation == 'CLOSE'
+                assert command.canonical_payload.side == ('BUY' if negative else 'SELL')
+                if product == t.Product.US_EQUITY:
+                    assert case.engine.preview(command, case.instrument).tokenize is False
+                command, permit = offline_authority(case, command)
+                assert case.engine.submit(command, permit).status == t.CommandState.UNKNOWN
+        # Sum outside the deliberately tiny context, against exact ledger inventory.
+        assert sum(Decimal(c.canonical_payload.quantity) for c in commands) == Decimal('0.999')
+        assert len(case.engine.offline_writes) == 3 and not case.engine.live_enabled
     finally:
         case.codec.close()

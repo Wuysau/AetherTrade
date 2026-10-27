@@ -68,7 +68,7 @@ class ExitService:
             incomplete.append('EXIT_SCOPE_OR_OWNER_INVALID')
         if (context.reducible_quantity.unit != position.actual_quantity.unit
                 or context.reducible_quantity.value < 0
-                or context.reducible_quantity.value > abs(position.actual_quantity.value)):
+                or context.reducible_quantity.value > position.actual_quantity.value.copy_abs()):
             incomplete.append('REDUCIBLE_QUANTITY_INVALID')
         try:
             fresh = (utc_timestamp(now) < utc_timestamp(context.expires_at)

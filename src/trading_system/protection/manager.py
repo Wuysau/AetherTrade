@@ -122,7 +122,7 @@ def validate_command(request: CommandRequest, compiled: CompiledCommand) -> None
     if request.operation == 'CANCEL':
         return
     if (request.quantity.unit != p.actual_quantity.unit or request.quantity.value <= 0
-            or request.quantity.value > abs(p.actual_quantity.value)
+            or request.quantity.value > p.actual_quantity.value.copy_abs()
             or payload.quantity != format(request.quantity.value, 'f')
             or payload.side != closing_side(p) or payload.order_type != request.order_type
             or (scope.product == t.Product.US_EQUITY and
@@ -327,7 +327,7 @@ class ProtectionManager:
                 or previous.position.owner_book_id != position.owner_book_id
                 or previous.position.ownership_epoch != position.ownership_epoch):
             raise ValueError('OWNERSHIP_CHANGED_RECONCILIATION_REQUIRED')
-        quantity = t.Quantity(value=abs(position.actual_quantity.value), unit=position.actual_quantity.unit)
+        quantity = t.Quantity(value=position.actual_quantity.value.copy_abs(), unit=position.actual_quantity.unit)
         template = previous.plan if previous else inputs.plan
         plan = replace(template, coverage_quantity=quantity)
         plan, locks = self._gap(position, plan, previous, now)
@@ -445,7 +445,7 @@ class ProtectionManager:
             return self._action(record, extra=('EXIT_IN_PROGRESS',))
         if capability.errors(position, self.clock()) or not capability.tradable(new.coverage_quantity):
             return self._action(record, extra=('CAPABILITY_OR_QUANTITY_INVALID',))
-        if (new.coverage_quantity.value != abs(position.actual_quantity.value)
+        if (new.coverage_quantity.value != position.actual_quantity.value.copy_abs()
                 or new.coverage_quantity.unit != position.actual_quantity.unit
                 or new.stop_trigger not in capability.triggers or 'STOP_MARKET' not in capability.order_types):
             return self._action(record, extra=('REPLACEMENT_PARAMETERS_INVALID',))

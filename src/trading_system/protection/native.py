@@ -6,6 +6,7 @@ local types do not change the approved wire contracts or qualify an adapter.
 """
 from dataclasses import dataclass
 from decimal import Decimal
+from fractions import Fraction
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp
@@ -121,7 +122,8 @@ class NativeCapability:
     def tradable(self, quantity: t.Quantity) -> bool:
         return (quantity.unit == self.minimum_quantity.unit == self.quantity_step.unit
                 and self.quantity_step.value > 0 and quantity.value >= self.minimum_quantity.value
-                and quantity.value % self.quantity_step.value == 0)
+                # Decimal remainder can round or fail under ambient precision.
+                and Fraction(quantity.value) % Fraction(self.quantity_step.value) == 0)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -164,7 +166,7 @@ class NativeVerifier:
         if (plan.scope != position.scope or plan.mode != 'NATIVE' or plan.monitor_id is not None
                 or position.active_exit_plan_id not in (None, plan.plan_id)
                 or plan.coverage_quantity.unit != zero.unit
-                or plan.coverage_quantity.value != abs(position.actual_quantity.value)
+                or plan.coverage_quantity.value != position.actual_quantity.value.copy_abs()
                 or plan.coverage_quantity.value <= 0):
             return gap('PLAN_OR_EXPOSURE_MISMATCH')
         now = self.clock()
