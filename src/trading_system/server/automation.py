@@ -229,10 +229,12 @@ class AutomationService:
         else:
             equity, _ = self.store._valuation(connection, account, market, fresh=True, maximum_age=self.settings.quote_max_age_seconds)
             target = min(Decimal(strategy["budget"]), equity * Decimal(strategy["target_pct"]) / 100)
-            owned = Decimal(held["quantity"]) * price + Decimal(held.get("_entry_fees", "0")) if held else Decimal(0)
-            # The positive allocation shortfall includes this fill's fee.
+            owned = (Decimal(held["quantity"]) * price * (1 + FEE)
+                     + Decimal(held.get("_entry_fees", "0"))) if held else Decimal(0)
+            # Allocation backs both entry and planned exit fees. Existing
+            # exposure keeps its remaining entry-fee basis plus one exit fee.
             funds = min(max(Decimal(0), target - owned), Decimal(account["cash"]))
-            quantity = (funds / (price * (1 + FEE))).quantize(Decimal("0.000000000001"), rounding=ROUND_DOWN)
+            quantity = (funds / (price * (1 + 2 * FEE))).quantize(Decimal("0.000000000001"), rounding=ROUND_DOWN)
             if quantity <= 0:
                 return "NO_ACTION", "策略已达到目标配置或可用资金不足最小下单精度。"
         result = self.store._order(connection, dict(symbol=job["symbol"], side=action, quantity=number(quantity), strategy_id=strategy["id"],

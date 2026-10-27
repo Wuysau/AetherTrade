@@ -304,7 +304,20 @@ class UnifiedPaperRuntime:
             state='OPEN', observed_at=reading.utc_now, next_open_at=None, evidence=book.evidence[0])
         actual = sum((p.actual_quantity.value for p in book.positions), D(0))
         target = D(intent.target_quantity)
-        fee = abs(target - actual) * price * D('.002')
+        reducing = target < actual
+        fee = abs(target - actual) * price * (D('.001') if reducing else D('.002'))
+        allocated_entry_fees, fee_quantity = D(0), D(0)
+        for raw, side in tx.execute("SELECT f.payload,c.payload->'canonical_payload'->>'side' FROM ledger.fills f "
+                "JOIN ledger.commands c ON c.scope_id=f.scope_id AND c.sequence=1 "
+                "AND c.payload->>'logical_client_order_id'=f.payload->'order'->>'logical_client_order_id' "
+                "WHERE f.scope_id=%s ORDER BY f.processed_at,f.record_id", (scope_id(scope),)).fetchall():
+            fill = decode(t.Fill, raw)
+            if side == 'BUY':
+                fee_quantity += fill.quantity.value
+                allocated_entry_fees += fill.quantity.value * fill.price.value * D('.001')
+            elif fee_quantity:
+                allocated_entry_fees *= (fee_quantity - fill.quantity.value) / fee_quantity
+                fee_quantity -= fill.quantity.value
         policy = ContractCodec().decode('risk-policy', dict(contract_version=VERSION, policy_id='console-paper-policy',
             revision=1, environment='PAPER', collateral_group_id=GROUP, valuation_currency='USDT',
             maximum_capital=request.budget, cash_buffer='0', maximum_order_notional=request.budget,
@@ -327,7 +340,7 @@ class UnifiedPaperRuntime:
             basis_fingerprint=book.basis_fingerprint, book_sequence=book.sequence, snapshot_ref=market.ref,
             clock=reading, expires_at=intent.valid_until, instrument=spec, session=session, multiplier=D(1),
             base_asset=request.symbol.removesuffix('USDT'), fee_reserve=(money(fee),), funding_reserve=(),
-            existing_planned_loss=money('0'), capital_in_use=money(actual * price), spendable=book.balances,
+            existing_planned_loss=money('0'), capital_in_use=money(actual * price * D('1.001') + allocated_entry_fees), spendable=book.balances,
             fx_rates=(), marks=(ExposureMark(scope=scope, price=t.Price(value=price, currency='USDT'),
                 multiplier=D(1), unit='BASE', related_group='console'),), order_sides=sides,
             group_limits=(GroupLimit(group_id='console', maximum_gross=money(request.budget)),),
