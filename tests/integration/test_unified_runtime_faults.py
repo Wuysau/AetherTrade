@@ -175,6 +175,34 @@ def test_process_kill_rolls_back_partial_protection_projection_and_recovers_fill
         preserve('process-protection', states)
 
 
+def test_restart_ready_command_queries_original_identity_before_submit(runtime_config, monkeypatch):
+    from trading_system.engine.paper import PaperEngine
+    crash(runtime_config, 'durable')
+    restarted = UnifiedPaperRuntime(**runtime_config)
+    command_id = restarted.projection()['commands'][0]['command_id']
+    calls = []
+    original_query, original_submit = PaperEngine.query, PaperEngine.submit
+
+    def query(engine, case):
+        calls.append(('query', tuple(case.command_ids)))
+        return original_query(engine, case)
+
+    def submit(engine, command, permit):
+        calls.append(('submit', command.command_id))
+        return original_submit(engine, command, permit)
+
+    monkeypatch.setattr(PaperEngine, 'query', query)
+    monkeypatch.setattr(PaperEngine, 'submit', submit)
+    before = snapshot(runtime_config)
+    restarted.dispatch(command_id)
+    after = snapshot(runtime_config)
+    preserve('ready-query-order', {'before': before, 'after': after, 'calls': calls})
+    assert calls[0] == ('query', (command_id,))
+    assert next(index for index, call in enumerate(calls) if call[0] == 'query') < next(
+        index for index, call in enumerate(calls) if call[0] == 'submit')
+    assert len(after['venue']['paper_engine_commands']) == 1
+
+
 def test_two_strategies_cannot_reserve_the_same_collateral(runtime, runtime_config):
     account = data()
     account['risk']['max_position_pct'] = '100'
