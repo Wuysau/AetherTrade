@@ -1,0 +1,59 @@
+{
+  "NOT_RUN": [
+    "production authorization/archive verifier",
+    "real venue protection continuity",
+    "native adapter qualification",
+    "TESTNET",
+    "LIVE",
+    "approved T/Q platform qualification",
+    "post-WAL-flush wall-clock expiry enforcement"
+  ],
+  "applied_migrations": [
+    "0001_business_ledger.sql",
+    "deploy/db/roles.sql",
+    "0002_risk_resolution_authority.sql",
+    "0004_command_abort_guard.sql",
+    "0005_owner_cas_authority.sql"
+  ],
+  "artifacts": {
+    "crash-ledgers.json": "4862d0704a5d13dc135d70fc777c6b8d97c5d4735c1ece18da7397bd9a4c32ae",
+    "ownership.log": "90431e5fcd20e708a77d4a20d4ecdc276d00317ef36abd70b7a967afe4e92387",
+    "ownership.xml": "082a006623d28bc4f2a4cd4a244e80aac28ba73a3f5f28fb15576a579bb101ed"
+  },
+  "command": [
+    "/usr/local/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/integration/test_ownership_transfer.py",
+    "--tb=short",
+    "-o",
+    "junit_family=xunit1",
+    "--junitxml=/workspace/evidence/paper/2026-10-27-owner-cas-review/ownership.xml"
+  ],
+  "counts": {
+    "errors": 0,
+    "failed": 0,
+    "passed": 133,
+    "skipped": 0
+  },
+  "database": "ip16_test_owner_cas_7f681b42e540",
+  "exit_code": 0,
+  "platform": "linux",
+  "postgresql": "17.11",
+  "python": "3.12.16 (main, Oct 26 2026, 22:51:49) [GCC 14.2.0]",
+  "source_and_migration_sha256": {
+    "deploy/db/roles.sql": "23b35ef98b0e8dfb4cebd3645035b19b61c3e667cd90060a42a05a5c2f68b3cd",
+    "docs/OWNER_CAS_AUTHORITY.md": "730594cd07b200c5aa1c302c73aeaa30c2ef234200eb8357e6e9b499047a7179",
+    "migrations/0001_business_ledger.sql": "b3bfbaaec9dbeeb207297a395290dd4083d5b6101c98a11e240d36a9b32b5dc6",
+    "migrations/0002_risk_resolution_authority.sql": "f2597dd09832aef2b4fa1a82f0152c10226b613cdbb5ffce24285ffc6b0793a4",
+    "migrations/0003_paper_engine.sql": "4028e5495f2f6fa8973d8e1d3f3ae9cdfada83b1c3032db08303a5a41e725692",
+    "migrations/0004_command_abort_guard.sql": "19017e040298f0a0f814312252d4c3f3bce25298f3e58512c6d9e8efcf4b73b6",
+    "migrations/0005_owner_cas_authority.sql": "3e5057f06e41b86b14fa143d22082a3fc3d476d1840396c6321893223922057b",
+    "src/trading_system/ownership/registry.py": "2726f42acaf17943e6aa9fb69cb857b31919c580e99eee446804076a73b51f18",
+    "src/trading_system/ownership/transfers.py": "4c0ef8946647223467cc5a11f882296d7e899783b1a73014bcd339e3b73d2ac3",
+    "tests/integration/support_ip_16.py": "fcbd1abe66be6058c9ccc5912c66c7ef7c01f92f0be53a84080d8fed6ae14082",
+    "tests/integration/test_ownership_transfer.py": "91c235a1c55a8a7e0ba6a260389634aa95cb06a3cdac7b1b14e14838fb08cbde"
+  },
+  "source_commit": "4cd769c6dd8061d2a67ddf7e25aaaac0f29d2b66"
+}

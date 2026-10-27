@@ -1,5 +1,11 @@
 # IP-16 owner CAS PostgreSQL evidence
 
+**Superseded by `../2026-10-27-owner-cas-review/`.** Independent security review
+found that this original source allowed early deferred checks followed by later
+contradictory projections or stale authority. The 123-case run below is retained
+as historical evidence, not a passing security admission for that source. The
+follow-up adds actual failing reproductions and final-commit/write fences.
+
 Tested source: `4240e481304cae575252239dcff411b29786f7b7` (base `99c7e7a`).
 Linux Python 3.12.16 / PostgreSQL 17.11: **123 passed, 0 failed, 0 skipped;
 exit 0**. Exact command, source/migration SHA-256 values, applied migration
