@@ -6,6 +6,8 @@ import pytest
 from server.test_store import market, buy
 from support.unified_console import provision_console
 from trading_system.server.errors import ApiError
+from trading_system.server.store import orders
+from sqlalchemy import insert, select
 
 
 def test_postgresql_race_restart_and_concurrent_transaction_receipts(tmp_path):
@@ -79,5 +81,23 @@ def test_real_unified_console_retains_pause_and_no_short_checks(tmp_path):
         with pytest.raises(ApiError, match='INSUFFICIENT_POSITION'):
             store.order(dict(buy(), side='SELL'), 'short', market(), 90)
         assert store.execution.projection()['commands'] == []
+    finally:
+        harness.close()
+
+
+def test_existing_legacy_fill_is_read_only_and_never_imported_as_execution(tmp_path):
+    harness = provision_console(tmp_path)
+    try:
+        legacy = dict(id='legacy-immediate-fill', symbol='BTCUSDT', side='BUY', quantity='0.1',
+            price='50000', notional='5000', fee='5', status='FILLED', strategy_id=None,
+            created_at='2026-10-20T00:00:00Z', provenance='LEGACY_LOCAL_IMMEDIATE_FILL')
+        with harness.store.transaction() as conn:
+            conn.execute(insert(orders).values(id=legacy['id'], data=legacy))
+        with pytest.raises(ApiError, match='LEGACY_LEDGER_READ_ONLY'):
+            harness.store.order(buy(), 'legacy-must-not-execute', market(), 90)
+        with harness.store.engine.connect() as conn:
+            assert conn.execute(select(orders.c.data)).scalar_one() == legacy
+        assert harness.runtime.projection()['commands'] == []
+        assert harness.runtime.account_view()['cash'] == '100000'
     finally:
         harness.close()

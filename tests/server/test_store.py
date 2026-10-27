@@ -95,14 +95,16 @@ def test_stale_future_missing_quotes_rejected(store):
             store.order(buy(), "unusable", quotes, 90)
 
 
-def test_risk_pause_and_no_short_guards(store):
+def test_risk_pause_and_unconfigured_execution_guards(store):
     with pytest.raises(ApiError, match="POSITION_LIMIT"):
         store.order(buy("1"), "too-large", market(), 90)
     rev = store.dashboard(market(), "24H")["account"]["revision"]
     store.action({"action": "pause_new", "expected_revision": rev}, "pause", market(), 90)
     with pytest.raises(ApiError, match="ENTRIES_PAUSED"):
         store.order(buy(), "paused", market(), 90)
-    with pytest.raises(ApiError, match="INSUFFICIENT_POSITION"):
+    # The actual no-short check is retained on real unified PostgreSQL in
+    # test_real_unified_console_retains_pause_and_no_short_checks.
+    with pytest.raises(ApiError, match="UNIFIED_PAPER_REQUIRED"):
         store.order({**buy(), "side": "SELL"}, "short", market(), 90)
 
 
