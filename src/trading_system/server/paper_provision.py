@@ -41,7 +41,7 @@ def provision(admin_dsn, *, initial_cash, journal_directory, isolated_paper=Fals
     # Provisioning is a repository administrator operation; the application
     # never imports or invokes it during an order or ordinary startup.
     root = Path(__file__).resolve().parents[3]
-    from scripts.provision_paper_engine_roles import provision_paper_engine_roles
+    from trading_system.engine.paper_db_roles import provision_paper_engine_roles
     base = conninfo_to_dict(admin_dsn)
     suffix = uuid4().hex[:12]
     business, venue, console = 'paper_runtime_' + suffix, 'paper_engine_' + suffix, 'paper_control_' + suffix
