@@ -210,3 +210,34 @@ def test_parser_diagnostic_is_persisted_without_response_text(svc,monkeypatch):
     detail=decision['component_results'][0]['response_diagnostic']
     assert detail['stage']=='schema_revision' and detail['schema_revision_matches'] is False
     assert 'text' not in detail and 'wrong' not in json.dumps(detail)
+
+
+def test_complete_envelope_wrong_revision_gets_one_bounded_correction(svc,monkeypatch):
+    wrong=candidate();wrong['schema_revision']='2026-10-20'
+    result,calls=run(svc,monkeypatch,[wrong,candidate()])
+    assert result['decision']['assessment_status']=='DECIDED'
+    assert len(calls)==2 and result['decision']['budget']['calls']==2
+    assert result['decision']['component_results'][0]['status']=='FAILED'
+
+
+def test_prompt_disambiguates_envelope_and_nested_contract_revision():
+    config={'model':'fixture','protocol':'openai_responses','max_output_tokens':None}
+    _,body=model_client.payload(config,{'analysis_snapshot':snapshot()})
+    assert 'schema_revision must be exactly "assessment_v1"' in body['instructions']
+    assert 'ONLY to the nested proposal' in body['instructions']
+
+
+def test_revision_correction_does_not_loop_or_accept_wrong_version(svc,monkeypatch):
+    wrong=candidate();wrong['schema_revision']='wrong'
+    result,calls=run(svc,monkeypatch,[wrong,wrong,candidate()])
+    assert len(calls)==2
+    assert result['decision']['proposal'] is None
+    assert result['decision']['reason_code']=='MODEL_RESPONSE_SCHEMA_REVISION'
+
+
+def test_prompt_specifies_verifiable_paths_and_watch_reference_rules():
+    config={'model':'fixture','protocol':'openai_responses','max_output_tokens':None}
+    _,body=model_client.payload(config,{'analysis_snapshot':snapshot()})
+    assert 'market.quote.price' in body['instructions']
+    assert 'market.features.5m.atr' in body['instructions']
+    assert 'PRICE_ABOVE and PRICE_BELOW must use evidence_ref="quote"' in body['instructions']

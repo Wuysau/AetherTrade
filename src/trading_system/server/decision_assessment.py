@@ -15,7 +15,7 @@ class DecisionAssessment(TypedDict):
 
 
 SCHEMA = 'assessment_v1'
-PROMPT_REVISION = 'decision-evidence-1'
+PROMPT_REVISION = 'decision-evidence-3'
 
 
 def instant(value):
@@ -42,7 +42,7 @@ def number(value):
 
 def field(snapshot, path):
     if not isinstance(path, str) or len(path) > 200 or not path.startswith(('market.', 'costs.', 'constraints.', 'portfolio.')):
-        raise ValueError('Unsupported evidence field')
+        raise ValueError('Predicate field requires a full snapshot path, e.g. market.quote.price or market.features.5m.atr; bare field names are not supported')
     value = snapshot
     for part in path.split('.'):
         value = value[part]
@@ -93,7 +93,7 @@ def validate_assessment(value: dict, snapshot: dict) -> DecisionAssessment:
                 raise ValueError('Invalid bar condition')
         elif condition['kind'] in ('PRICE_ABOVE', 'PRICE_BELOW'):
             if condition['evidence_ref'] != 'quote' or number(condition['value']) <= 0:
-                raise ValueError('Invalid price condition')
+                raise ValueError('PRICE_ABOVE/PRICE_BELOW requires evidence_ref=quote and a positive decimal-string value; NEW_BAR uses candles:<interval>')
         else:
             raise ValueError('Unsupported watch condition')
     proposal = value['proposal']

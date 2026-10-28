@@ -509,11 +509,19 @@ class ModelService:
             if snapshot['quality']['status'] != 'READY':
                 status, reason = 'DATA_BLOCKED', 'REQUIRED_EVIDENCE_MISSING'
             else:
-                raw = await call(ids[0], 'primary')
                 try:
+                    raw = await call(ids[0], 'primary')
                     selected = validate_assessment(raw, snapshot)
-                except ValueError as exc:
-                    raw = await call(ids[0], 'repair', {'validation_errors': [str(exc)[:300]]})
+                except (ValueError, ApiError) as exc:
+                    if isinstance(exc, ApiError):
+                        detail = getattr(exc, 'response_diagnostic', {})
+                        fields = {'schema_revision','summary','proposal','evidence_claims','watch_conditions','next_review_at'}
+                        if detail.get('stage') != 'schema_revision' or set(detail.get('known_fields_present', [])) != fields:
+                            raise
+                        correction = 'Outer schema_revision must be exactly "assessment_v1"; proposal.contract_version is a separate field. Return the complete corrected assessment envelope.'
+                    else:
+                        correction = str(exc)[:300]
+                    raw = await call(ids[0], 'repair', {'validation_errors': [correction]})
                     selected = validate_assessment(raw, snapshot)
                 if mode == 'consensus' and policy == 'evidence_review':
                     reports = []
@@ -556,8 +564,9 @@ class ModelService:
                             return None if p is None else {k:v for k,v in p.items() if k not in ('proposal_id','rationale','evidence_refs')}
                         if terms(other) != terms(selected):
                             status, reason = 'REVIEW_REQUIRED', 'UNANIMOUS_PLAN_DISAGREEMENT'
-        except ValueError:
+        except ValueError as exc:
             status, reason = 'INVALID_PLAN', 'INVALID_ASSESSMENT'
+            failure_summary = str(exc)[:300]
         except Exception as exc:
             status, reason = 'MODEL_ERROR', 'MODEL_REQUEST_FAILED'
             failure_summary = self._error(exc)['error']

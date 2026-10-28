@@ -116,13 +116,16 @@ INSTRUCTIONS = ('Return only a JSON object with symbol, action (HOLD/BUY/SELL), 
 
 
 ASSESSMENT_INSTRUCTIONS = ('Return only assessment_v1 JSON with exactly schema_revision, summary, proposal (approved DecisionProposal or null), evidence_claims, watch_conditions, next_review_at. '
+    'Outer schema_revision must be exactly "assessment_v1" (a string). Do not copy the snapshot schema_revision or proposal contract_version into this field. '
     'Null proposal means reasoned observation. Never fabricate HOLD entry/exit. Compare trading and waiting evidence; optional gaps do not automatically veto. '
     'evidence_claims: [{evidence_ref,predicate:null or {field,operator:EQ|LT|GT,value},conclusion}]. '
     'watch_conditions: [{kind:PRICE_ABOVE|PRICE_BELOW|NEW_BAR,evidence_ref,value:decimal string or null for NEW_BAR}]. '
+    'Predicate field is a complete path relative to analysis_snapshot, e.g. market.quote.price, market.quote.change_pct, market.features.5m.atr, market.features.5m.relative_volume, market.book.spread or costs.fee_rate; never a bare field like atr. '
+    'PRICE_ABOVE and PRICE_BELOW must use evidence_ref="quote" and a positive decimal-string value, even when a threshold was derived from bars/features. NEW_BAR must use evidence_ref="candles:<interval>" with value=null. '
     'Ceilings are not recommended target sizes. Do not choose account identity or authorize risk. No hidden reasoning. ')
 REVIEW_INSTRUCTIONS = ('Return only review_v1 JSON with schema_revision and issues. Each issue has category FACT|PREFERENCE, evidence_ref, '
     'predicate:null or {field,operator:EQ|LT|GT,value}, severity HARD|SOFT, suggestion. True predicate means defect exists. '
-    'Distinguish facts from preferences. Cite supplied evidence IDs. No authorization changes.')
+    'Outer schema_revision must be exactly "review_v1" (a string). Distinguish facts from preferences. Cite supplied evidence IDs. No authorization changes.')
 
 
 def payload(config, context):
@@ -130,7 +133,7 @@ def payload(config, context):
     instructions = INSTRUCTIONS
     if 'analysis_snapshot' in context:
         from ..contracts.wire import ContractCodec
-        instructions = REVIEW_INSTRUCTIONS if context.get('role') == 'review' else ASSESSMENT_INSTRUCTIONS + json.dumps(ContractCodec()._schemas['decision-proposal'])
+        instructions = REVIEW_INSTRUCTIONS if context.get('role') == 'review' else ASSESSMENT_INSTRUCTIONS + 'The following JSON Schema applies ONLY to the nested proposal, not the outer assessment envelope: ' + json.dumps(ContractCodec()._schemas['decision-proposal'])
     common = {'model': config['model']}
     if config['protocol'] == 'openai_responses':
         return '/responses', dict(common, input=text, instructions=instructions, store=False, **({'max_output_tokens': config['max_output_tokens']} if config['max_output_tokens'] is not None else {}))
