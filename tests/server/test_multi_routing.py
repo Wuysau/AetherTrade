@@ -13,7 +13,7 @@ from trading_system.server.automation import AutomationService, jobs, put, read
 from trading_system.server.errors import ApiError
 from trading_system.server.store import Store, now, stamp, strategies
 from trading_system.server.validation import StrategyCreate
-from server.test_automation import dashboard, due, fake, patch, strategy, system
+from server.test_automation import dashboard, due, fake, patch, strategy, system, complete_pending
 from server.test_store import market
 
 
@@ -31,7 +31,7 @@ def analyze_fake(service, *, action="BUY", consensus="AGREED", callback=None):
         if callback:
             await callback()
         decision = dict(id=key, symbol=symbol, action=action, summary="Controlled model result",
-                        risk_status="NOT_EVALUATED", created_at=stamp(), analysis_mode=mode,
+                        risk_status="NOT_EVALUATED", created_at=stamp(), data_as_of=context['quote']['as_of'], analysis_mode=mode,
                         model_profile_ids=identifiers, profile_revisions=revisions)
         if mode == "consensus":
             decision.update(consensus_status=consensus, model_results=[
@@ -106,6 +106,7 @@ def test_strategies_route_independently_and_claim_snapshots(system):
 @pytest.mark.parametrize("selected", [True, False])
 @pytest.mark.parametrize("disable", [True, False])
 @pytest.mark.parametrize("mode", ["single", "consensus"])
+@pytest.mark.paper_runtime
 def test_only_selected_profile_changes_during_await_prevent_fill(system, selected, disable, mode):
     second, unrelated = profile(system, "Second"), profile(system, "Unrelated")
     strategy(system, auto_execute=True, analysis_mode=mode,
@@ -119,11 +120,12 @@ def test_only_selected_profile_changes_during_await_prevent_fill(system, selecte
     asyncio.run(system.tick())
     result = dashboard(system)
     assert len(result["orders"]) == (0 if selected else 1)
-    assert result["decisions"][0]["execution_status"] == ("SKIPPED" if selected else "FILLED")
+    assert result["decisions"][0]["execution_status"] == ("SKIPPED" if selected else "PENDING")
 
 
 @pytest.mark.parametrize("status,action,orders", [("AGREED", "BUY", 1), ("AGREED", "HOLD", 0),
                                                   ("DISAGREED", "BUY", 0), ("INCOMPLETE", "BUY", 0)])
+@pytest.mark.paper_runtime
 def test_consensus_execution_requires_complete_direction_agreement(system, status, action, orders):
     second = profile(system, "Second")
     strategy(system, analysis_mode="consensus", model_profile_ids=["default", second["id"]], auto_execute=True)
@@ -232,6 +234,7 @@ def test_selected_unavailable_profile_waits_without_default_fallback(system):
     (("BUY", "BUY"), "AGREED", 1), (("HOLD", "HOLD"), "AGREED", 0),
     (("BUY", "SELL"), "DISAGREED", 0), (("BUY", "FAIL"), "INCOMPLETE", 0),
 ])
+@pytest.mark.paper_runtime
 def test_real_consensus_service_controls_paper_execution(system, directions, expected_status, order_count):
     system.models.save_config(dict(expected_revision=1, protocol="openai_chat"))
     second = profile(system, "Second")
@@ -262,18 +265,21 @@ def test_real_consensus_service_controls_paper_execution(system, directions, exp
         asyncio.run(client.aclose())
 
 
+@pytest.mark.paper_runtime
 def test_consensus_sell_respects_strategy_position_and_disabled_default_does_not_block_other(system):
     second, third = profile(system, "Second"), profile(system, "Third")
     saved = strategy(system, model_profile_ids=[second["id"]], auto_execute=True)
     system.models.save_config(dict(expected_revision=1, enabled=False))
     analyze_fake(system)
     asyncio.run(system.tick())
-    assert len(dashboard(system)["orders"]) == 1
+    assert len(dashboard(system)["orders"]) == 1, [d.get("execution_reason") for d in dashboard(system)["decisions"]]
+    complete_pending(system)
     saved = patch(system, saved, analysis_mode="consensus", model_profile_ids=[second["id"], third["id"]], acknowledge_model_cost=True)
     due(system, saved)
     analyze_fake(system, action="SELL")
     asyncio.run(system.tick())
     assert len(dashboard(system)["orders"]) == 2
+    complete_pending(system)
     assert dashboard(system)["positions"] == []
 
 

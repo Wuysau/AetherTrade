@@ -19,8 +19,12 @@ class Feed:
 
 
 @pytest.fixture
-def client(tmp_path):
-    settings = Settings(database_url=f"sqlite:///{tmp_path / 'api.sqlite3'}", market_enabled=False, testing=True,
+def client(tmp_path, request):
+    runtime_options = {'database_url': f"sqlite:///{tmp_path / 'api.sqlite3'}"}
+    if request.node.get_closest_marker('paper_runtime'):
+        from support.unified_console import provision_console
+        runtime_options = provision_console(tmp_path, setup=False).settings_kwargs
+    settings = Settings(**runtime_options, market_enabled=False, testing=True,
                         allowed_origins=("http://testserver",), web_dist=tmp_path / "dist")
     app = create_app(settings, quote_provider=Feed())
     with TestClient(app) as test_client:
@@ -84,6 +88,7 @@ def test_invalid_money_has_safe_error(client, quantity):
     assert client.get("/api/dashboard").json()["orders"] == []
 
 
+@pytest.mark.paper_runtime
 def test_real_data_roundtrip_and_export(client):
     setup(client)
     response = client.post("/api/strategies", json={"name": "BTC 观察", "symbol": "BTCUSDT", "mode": "RULE", "budget": "5000", "target_pct": "10"})
@@ -93,10 +98,18 @@ def test_real_data_roundtrip_and_export(client):
     response = client.post("/api/paper/orders", json=order, headers={"Idempotency-Key": "order-one"})
     assert response.status_code == 200, response.text
     data = client.get("/api/dashboard?range=7D").json()
+    assert data['account']['cash'] == '100000'
+    assert data['research']['trade_count'] == 0
+    assert data['orders'][0]['status'] == 'PENDING' and data['positions'] == []
+    command_id = response.json()['order']['command_id']
+    client.app.state.store.execution.dispatch(command_id)
+    client.app.state.store.execution.inject(command_id, dict(event_id='api-explicit-fill', status='FILLED',
+        cumulative_quantity='0.01', price='50000'))
+    data = client.get("/api/dashboard?range=7D").json()
     assert data["account"]["cash"] == "99499.5"
     assert data["research"]["trade_count"] == 1
     assert data["decisions"] == []
-    assert data["positions"][0]["protection"] == "UNCONFIGURED"
+    assert data["positions"][0]["protection"] == "GAP"
     report = client.get("/api/research/export")
     assert report.status_code == 200 and "attachment" in report.headers["content-disposition"]
     assert "PAPER" in report.text and "BTCUSDT" in report.text

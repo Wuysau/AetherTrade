@@ -30,7 +30,7 @@ class Quotes:
 
 
 @pytest.fixture
-def api(tmp_path):
+def api(tmp_path, request):
     requests = []
     def provider(request):
         requests.append(request)
@@ -46,7 +46,11 @@ def api(tmp_path):
         return httpx.Response(200, json={'choices': [{'finish_reason': 'stop', 'message': {'content': json.dumps(advice)}}],
                                         'usage': {'prompt_tokens': 10, 'completion_tokens': 20}})
     model_client = httpx.AsyncClient(transport=httpx.MockTransport(provider), trust_env=False)
-    settings = Settings(database_url=f'sqlite:///{tmp_path / "app.sqlite3"}', testing=True,
+    runtime_options = {'database_url': f'sqlite:///{tmp_path / "app.sqlite3"}'}
+    if request.node.get_closest_marker('paper_runtime'):
+        from support.unified_console import provision_console
+        runtime_options = provision_console(tmp_path, setup=False).settings_kwargs
+    settings = Settings(**runtime_options, testing=True,
                         market_enabled=False, allowed_origins=('http://testserver',),
                         model_key_path=tmp_path / 'models.key', web_dist=tmp_path / 'web')
     feed = Quotes()
@@ -126,6 +130,7 @@ def test_bstock_advice_persists_without_orders_and_replays_when_quotes_stale(api
     assert new.status_code == 409 and len(requests) == 1
 
 
+@pytest.mark.paper_runtime
 def test_partial_market_allows_fresh_crypto_but_rejects_stale_bstock_order(api):
     client, app, _, _ = api
     login(client)

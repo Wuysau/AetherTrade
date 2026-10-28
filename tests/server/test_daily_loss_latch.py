@@ -3,26 +3,29 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from trading_system.server.errors import ApiError
-from trading_system.server.store import Store
+from support.unified_console import provision_console
 from server.test_store import market, buy
 
 
+@pytest.mark.paper_runtime
 def test_loss_lock_survives_denial_rebound_restart_and_day_rollover(tmp_path, monkeypatch):
-    url = f"sqlite:///{tmp_path / 'loss.sqlite3'}"
-    db = Store(url)
-    db.initialize()
-    db.setup('owner', 'a-long-password', '100000', 24)
-    db.order(buy('0.1'), 'entry', market(), 90)
+    harness = provision_console(tmp_path)
+    db = harness.store
+    harness.execute(buy('0.1'), 'entry', market())
     with pytest.raises(ApiError, match='DAILY_LOSS_LIMIT'):
         db.order(buy('0.01'), 'loss', market('10000'), 90)
     db.close()
-    db = Store(url)
-    db.initialize()
+    db = harness.reopen()
+    harness.store = db
     with pytest.raises(ApiError, match='DAILY_LOSS_LIMIT'):
         db.order(buy('0.01'), 'rebound', market('50000'), 90)
     snapshot = db.dashboard(market())
-    lock = snapshot['risk_locks'][0]
+    lock = next(item for item in snapshot['risk_locks'] if item['cause'] == 'DAILY_LOSS')
     assert lock['cause'] == 'DAILY_LOSS' and lock['permission'] == 'NO_NEW_RISK'
+    # Reduce against real service/DB time, before advancing only the local risk
+    # day clock. The clock change must not expire an already committed cause.
+    harness.execute(dict(symbol='BTCUSDT', side='SELL', quantity='0.1', strategy_id=None), 'reduce', market())
+    assert db.dashboard(market())['positions'] == []
     tomorrow = datetime.now(timezone.utc) + timedelta(days=1)
     monkeypatch.setattr('trading_system.server.store.now', lambda: tomorrow)
     quotes = market()
@@ -30,19 +33,19 @@ def test_loss_lock_survives_denial_rebound_restart_and_day_rollover(tmp_path, mo
         quote['as_of'] = tomorrow.isoformat()
     with pytest.raises(ApiError, match='DAILY_LOSS_LIMIT'):
         db.order(buy('0.01'), 'next-day', quotes, 90)
-    db.order(dict(symbol='BTCUSDT', side='SELL', quantity='0.1', strategy_id=None), 'reduce', quotes, 90)
-    assert db.dashboard(quotes)['risk_locks'][0]['state'] == 'ACTIVE'
-    db.close()
+    assert next(item for item in db.dashboard(quotes)['risk_locks'] if item['lock_id'] == lock['lock_id'])['state'] == 'ACTIVE'
+    harness.close()
 
 
+@pytest.mark.paper_runtime
 def test_observation_alone_latches_loss_and_pause_resume_cannot_clear_it(tmp_path):
-    db = Store(f"sqlite:///{tmp_path / 'observe.sqlite3'}")
-    db.initialize()
-    db.setup('owner', 'a-long-password', '100000', 24)
-    db.order(buy('0.1'), 'entry', market(), 90)
+    harness = provision_console(tmp_path)
+    db = harness.store
+    harness.execute(buy('0.1'), 'entry', market())
     db.dashboard(market('10000'))
-    db.action(dict(action='pause_new', expected_revision=2), 'pause', market(), 90)
-    db.action(dict(action='resume_new', expected_revision=3), 'resume', market(), 90)
+    revision = db.dashboard(market())['account']['revision']
+    db.action(dict(action='pause_new', expected_revision=revision), 'pause', market(), 90)
+    db.action(dict(action='resume_new', expected_revision=revision + 1), 'resume', market(), 90)
     with pytest.raises(ApiError, match='DAILY_LOSS_LIMIT'):
         db.order(buy('0.01'), 'rebound', market(), 90)
-    db.close()
+    harness.close()

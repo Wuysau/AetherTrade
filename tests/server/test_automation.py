@@ -16,16 +16,34 @@ from server.test_store import market
 
 
 @pytest.fixture
-def system(tmp_path):
-    store = Store(f"sqlite:///{tmp_path / 'automation.sqlite'}")
-    store.initialize()
-    store.setup("owner", "a-long-password", "100000", 24)
+def system(tmp_path, request):
+    harness = None
+    provider = [market]
+    if request.node.get_closest_marker('paper_runtime'):
+        from support.unified_console import provision_console
+        harness = provision_console(tmp_path, market_snapshot=lambda: provider[0]())
+        store = harness.store
+    else:
+        store = Store(f"sqlite:///{tmp_path / 'automation.sqlite'}")
+        store.initialize()
+        store.setup("owner", "a-long-password", "100000", 24)
     model = ModelService(store, tmp_path / "test-only.key")
     model.save_config(dict(expected_revision=0, model="fixture", base_url="http://127.0.0.1:18083/v1", local_mode=True, enabled=True))
     service = AutomationService(store, model, market, Settings(testing=True, model_key_path=tmp_path / "test-only.key"))
+    service.test_console = harness
+    provider[0] = lambda: service.quote_snapshot()
     yield service
     asyncio.run(model.close())
-    store.close()
+    if harness:
+        harness.close()
+    else:
+        store.close()
+
+
+def complete_pending(service):
+    """Explicit synthetic controller events on real PG, separate from advice."""
+    assert service.test_console is not None
+    return service.test_console.fill_pending(service.quote_snapshot())
 
 
 def strategy(service, **changes):
@@ -44,7 +62,8 @@ def fake(service, action="BUY", callback=None):
         calls.append(key)
         if callback:
             await callback()
-        decision = dict(id=key, symbol=symbol, action=action, summary="Fixture advice", risk_status="NOT_EVALUATED", created_at=stamp())
+        decision = dict(id=key, symbol=symbol, action=action, summary="Fixture advice", risk_status="NOT_EVALUATED", created_at=stamp(),
+                        data_as_of=context['quote']['as_of'])
         result = {"decision": decision}
         with service.store.transaction() as connection:
             repository.write_run(connection, key, dict(status="SUCCEEDED", result=result), new=True)
@@ -101,10 +120,14 @@ def test_advice_only_periodic_and_notification_reads(system):
             system.mark_read(bad)
 
 
+@pytest.mark.paper_runtime
 def test_buy_target_includes_fees_and_does_not_accumulate(system):
     fake(system)
     saved = strategy(system, auto_execute=True)
     asyncio.run(system.tick())
+    assert dashboard(system)["orders"], [d.get("execution_reason") for d in dashboard(system)["decisions"]]
+    assert dashboard(system)["orders"][0]["status"] == "PENDING"
+    complete_pending(system)
     first = dashboard(system)
     assert len(first["orders"]) == 1
     order = first["orders"][0]
@@ -129,6 +152,7 @@ def test_permission_revision_during_await_prevents_fill(system, change):
     assert result["decisions"][0]["execution_status"] == "SKIPPED"
 
 
+@pytest.mark.paper_runtime
 def test_concurrent_workers_claim_once(system):
     strategy(system, auto_execute=True)
     async def scenario():
@@ -148,6 +172,7 @@ def test_concurrent_workers_claim_once(system):
     assert len(dashboard(system)["orders"]) == 1
 
 
+@pytest.mark.paper_runtime
 def test_expired_job_recovered_without_resend_or_duplicate_notification(system):
     calls = fake(system)
     saved = strategy(system, auto_execute=True)
@@ -169,6 +194,7 @@ def test_expired_job_recovered_without_resend_or_duplicate_notification(system):
 
 
 @pytest.mark.parametrize("guard", ["paused", "position", "daily", "stale", "foreign"])
+@pytest.mark.paper_runtime
 def test_risk_rejection_is_atomic_and_notified(system, guard):
     saved = strategy(system, auto_execute=True, budget="90000", target_pct="90") if guard == "position" else strategy(system, auto_execute=True)
     if guard == "paused":
@@ -176,7 +202,7 @@ def test_risk_rejection_is_atomic_and_notified(system, guard):
     if guard == "daily":
         system.store.update_risk(dict(max_position_pct="25", max_daily_loss="1", expected_revision=1))
     if guard == "foreign":
-        system.store.order(dict(symbol="BTCUSDT", side="BUY", quantity="0.01", strategy_id=None), "manual", market(), 90)
+        system.test_console.execute(dict(symbol="BTCUSDT", side="BUY", quantity="0.01", strategy_id=None), "manual", market(), 90)
     before = system.store.dashboard(market())
     async def stale():
         system.quote_snapshot = lambda: market(stale=True)
@@ -190,13 +216,16 @@ def test_risk_rejection_is_atomic_and_notified(system, guard):
     assert result["notifications"]["unread_count"] == 1
 
 
+@pytest.mark.paper_runtime
 def test_sell_scoped_and_hold(system):
     saved = strategy(system, auto_execute=True)
     fake(system)
     asyncio.run(system.tick())
+    complete_pending(system)
     fake(system, "SELL")
     due(system, saved)
     asyncio.run(system.tick())
+    complete_pending(system)
     assert dashboard(system)["positions"] == []
     assert len(dashboard(system)["orders"]) == 2
     fake(system, "HOLD")
@@ -269,6 +298,7 @@ def test_reactivation_is_due_immediately(system):
     assert len(calls) == 2
 
 
+@pytest.mark.paper_runtime
 def test_real_model_transport_and_notification_api(tmp_path):
     import json
     from fastapi.testclient import TestClient
@@ -280,7 +310,9 @@ def test_real_model_transport_and_notification_api(tmp_path):
         advice = dict(symbol="BTCUSDT", action="BUY", summary="Fixture BUY", counter_evidence=["Risk"], invalidation="Change")
         return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(advice)}}]})
     transport = httpx.AsyncClient(transport=httpx.MockTransport(handle))
-    settings = Settings(database_url=f"sqlite:///{tmp_path / 'api.sqlite'}", testing=True, market_enabled=False,
+    from support.unified_console import provision_console
+    harness = provision_console(tmp_path, setup=False)
+    settings = Settings(**harness.settings_kwargs, testing=True, market_enabled=False,
                         allowed_origins=("http://testserver",), model_key_path=tmp_path / 'test-only.key')
     app = create_app(settings, quote_provider=Feed(), model_client=transport)
     with TestClient(app) as client:
@@ -299,7 +331,15 @@ def test_real_model_transport_and_notification_api(tmp_path):
         asyncio.run(app.state.automation.tick())
         assert len(requests) == 1 and requests[0].url.path == '/v1/chat/completions'
         result = client.get('/api/dashboard').json()
-        assert result['decisions'][0]['execution_status'] == 'FILLED'
+        assert result['decisions'][0]['execution_status'] == 'PENDING'
+        assert result['orders'][0]['status'] == 'PENDING'
+        assert result['positions'] == []  # Receipt is not a fill.
+        command = result['orders'][0]
+        app.state.store.execution.dispatch(command['command_id'])
+        app.state.store.execution.inject(command['command_id'], dict(event_id='model-api-fill',
+            status='FILLED', cumulative_quantity=command['quantity'], price='50000'))
+        result = client.get('/api/dashboard').json()
+        assert result['orders'][0]['status'] == 'FILLED'
         assert result['decisions'][0]['order_id'] == result['orders'][0]['id']
         assert result['notifications']['unread_count'] == 1
         csrf = client.headers.pop('X-CSRF-Token')
@@ -315,10 +355,12 @@ def test_real_model_transport_and_notification_api(tmp_path):
     asyncio.run(transport.aclose())
 
 
+@pytest.mark.paper_runtime
 def test_cross_store_claim_and_restart_receipt(system):
     from concurrent.futures import ThreadPoolExecutor
     strategy(system, auto_execute=True)
     other_store = Store(system.store.engine.url.render_as_string(hide_password=False))
+    system.test_console.attach(other_store)
     other = AutomationService(other_store, system.models, market, system.settings)
     config = system.models.get_config()
     try:
@@ -327,7 +369,8 @@ def test_cross_store_claim_and_restart_receipt(system):
         winners = [(svc, job) for svc, job in claimed if job]
         assert len(winners) == 1
         winner, job = winners[0]
-        result = {'decision': dict(id='claimed', symbol='BTCUSDT', action='BUY', created_at=stamp(), risk_status='NOT_EVALUATED')}
+        result = {'decision': dict(id='claimed', symbol='BTCUSDT', action='BUY', created_at=stamp(),
+            data_as_of=market()['quotes'][0]['as_of'], risk_status='NOT_EVALUATED')}
         winner._finish(job, result)
         winner._finish(job, result)
         assert len(system.store.dashboard(market())['orders']) == 1
@@ -338,15 +381,26 @@ def test_cross_store_claim_and_restart_receipt(system):
         other_store.close()
 
 
+@pytest.mark.paper_runtime
 def test_cash_bound_includes_fee_and_sell_rejects_other_strategy(system):
     fake(system)
     saved = strategy(system, auto_execute=True, budget="100000", target_pct="100")
     system.store.update_risk(dict(max_position_pct="100", max_daily_loss="2000", expected_revision=1))
     asyncio.run(system.tick())
+    assert dashboard(system)["orders"], [d.get("execution_reason") for d in dashboard(system)["decisions"]]
+    assert dashboard(system)["orders"][0]["status"] == "PENDING"
+    complete_pending(system)
     first = dashboard(system)
     assert len(first['orders']) == 1
     assert Decimal(first['account']['cash']) >= 0
-    assert Decimal(first['account']['cash']) < Decimal('0.000001')
+    # The common risk contract reserves entry AND planned exit cost. Physical
+    # cash retains one future exit fee rather than spending the full balance.
+    entry_notional = Decimal(first['orders'][0]['notional'])
+    entry_fee = Decimal(first['orders'][0]['fee'])
+    remaining_cash = Decimal(first['account']['cash'])
+    assert remaining_cash == Decimal('100000') - entry_notional - entry_fee
+    assert remaining_cash >= entry_fee
+    assert remaining_cash - entry_fee < Decimal('0.000001')
     assert '建议买入' in first['notifications']['items'][0]['message']
     assert 'Fixture advice' in first['notifications']['items'][0]['message']
     other = strategy(system, name='Other', auto_execute=True)
@@ -358,8 +412,9 @@ def test_cash_bound_includes_fee_and_sell_rejects_other_strategy(system):
     assert result['positions'][0]['strategy_id'] == saved['id']
 
 
+@pytest.mark.paper_runtime
 def test_stale_other_position_valuation_blocks_buy(system):
-    system.store.order(dict(symbol='ETHUSDT', side='BUY', quantity='1', strategy_id=None), 'other-position', market(), 90)
+    system.test_console.execute(dict(symbol='ETHUSDT', side='BUY', quantity='1', strategy_id=None), 'other-position', market(), 90)
     strategy(system, auto_execute=True)
     def partially_stale():
         value = market()
@@ -413,3 +468,73 @@ def test_pause_before_provider_dispatch_prevents_new_call(system):
     asyncio.run(system.tick())
     assert calls == []
     assert dashboard(system)['orders'] == []
+
+
+@pytest.mark.paper_runtime
+@pytest.mark.parametrize('mode', ['AI', 'RULE', 'HYBRID'])
+def test_three_modes_share_atomic_risk_owner_and_explicit_fill_path(system, mode):
+    changes = dict(mode=mode, auto_execute=True, model_profile_ids=['default'] if mode != 'RULE' else [])
+    if mode != 'AI':
+        changes.update(rule=dict(kind='PRICE_THRESHOLD', operator='LTE', price='50000', stop_loss_pct='5'),
+            acknowledge_paper_automation=True)
+    if mode == 'RULE':
+        changes.update(acknowledge_model_cost=False, model_profile_ids=[])
+    strategy(system, **changes)
+    calls = fake(system)
+    asyncio.run(system.tick())
+    result = dashboard(system)
+    assert len(calls) == (0 if mode == 'RULE' else 1)
+    assert len(result['orders']) == 1, result['decisions']
+    order = result['orders'][0]
+    assert order['status'] == 'PENDING' and order['filled_quantity'] == '0'
+    assert result['positions'] == [] and result['account']['cash'] == '100000'
+    from trading_system.server.paper_runtime import scope_for, RuntimeRequest
+    from trading_system.contracts import types as t
+    with system.store.execution.uow.transaction(scope_for('BTCUSDT')) as tx:
+        command = tx.commands.get(order['command_id'])
+        request = tx._latest('audit_events', 'console:request:' + command.command_id, RuntimeRequest)
+        risk = tx._latest('audit_events', 'ip07:risk:' + command.intent_id, t.RiskDecision)
+        assert request.mode == mode and command.ownership_epoch == 1
+        assert command.state == 'DURABLE_READY' and risk.verdict == 'ALLOW'
+        assert tx.reservations.for_intent(command.intent_id)
+    complete_pending(system)
+    assert dashboard(system)['orders'][0]['status'] == 'FILLED'
+    assert len(dashboard(system)['positions']) == 1
+
+
+@pytest.mark.paper_runtime
+@pytest.mark.parametrize('mode', ['AI', 'RULE', 'HYBRID'])
+def test_three_modes_cannot_override_single_position_limit(system, mode):
+    changes = dict(mode=mode, auto_execute=True, budget='90000', target_pct='90',
+                   model_profile_ids=['default'] if mode != 'RULE' else [])
+    if mode != 'AI':
+        changes.update(rule=dict(kind='PRICE_THRESHOLD', operator='LTE', price='50000', stop_loss_pct='5'),
+            acknowledge_paper_automation=True)
+    if mode == 'RULE':
+        changes.update(acknowledge_model_cost=False, model_profile_ids=[])
+    strategy(system, **changes)
+    fake(system)
+    asyncio.run(system.tick())
+    result = dashboard(system)
+    assert result['orders'] == [] and result['positions'] == []
+    assert result['decisions'][0]['execution_status'] == 'BLOCKED'
+    assert result['decisions'][0]['risk_status'] == 'PAPER_REJECTED'
+    assert result['account']['cash'] == '100000'
+
+
+@pytest.mark.paper_runtime
+@pytest.mark.parametrize('field', ['created_at', 'data_as_of'])
+def test_old_model_output_cannot_create_new_domain_command(system, field):
+    strategy(system, auto_execute=True)
+    fake(system)
+    original = system.models.generate
+    async def stale(*args):
+        result = await original(*args)
+        result['decision'][field] = (now() - timedelta(minutes=10)).isoformat()
+        return result
+    system.models.generate = stale
+    asyncio.run(system.tick())
+    result = dashboard(system)
+    assert result['orders'] == [] and result['positions'] == []
+    assert result['decisions'][0]['execution_status'] == 'BLOCKED'
+    assert '过期' in result['decisions'][0]['execution_reason']
