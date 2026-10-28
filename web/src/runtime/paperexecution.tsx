@@ -36,7 +36,7 @@ export function PaperExecutionView({ data, api, onSaved }: { data: Dashboard; ap
       {execution && <p className="field-help">执行模式：{execution.mode} · 模拟无法验证真实滑点和流动性</p>}
       {execution?.protection_adjustments?.map(adjustment => <section className="paper-target" key={adjustment.cancel_command_id} aria-label="保护调整与减仓">
         <h3>{adjustment.symbol} · 减仓 {adjustment.quantity}</h3>
-        <p>{({CANCEL_CONFIRM_REQUIRED:'原保护撤单待确认；持仓与保护责任仍在。', REVIEW_REQUIRED:'撤单需确认及独立审核。请在审核终端完成原命令对账后继续。', READY_TO_CONTINUE:'已确认原保护撤销，可继续已授权的有界减仓；等待期间存在保护缺口。', REDUCTION_ACCEPTED:'减仓已提交，等待成交及剩余持仓保护验证。', INVALIDATED_QUANTITY_CHANGED:'持仓在撤单过程中发生变化，原减仓请求已失效。请重新审核目标；剩余持仓仍由执行者承担保护修复责任。'} as Record<string,string>)[adjustment.phase] ?? adjustment.phase}</p>
+        <p>{({CANCEL_CONFIRM_REQUIRED:'原保护撤单待确认；持仓与保护责任仍在。', REVIEW_REQUIRED:'撤单需确认及独立审核。请在审核终端完成原命令对账后继续。', READY_TO_CONTINUE:'已确认原保护撤销，可继续已授权的有界减仓；等待期间存在保护缺口。', REDUCTION_ACCEPTED:'减仓命令已记录；实际成交与保护状态见下方实时投影。', INVALIDATED_QUANTITY_CHANGED:'持仓在撤单过程中发生变化，原减仓请求已失效。请重新审核目标；剩余持仓仍由执行者承担保护修复责任。'} as Record<string,string>)[adjustment.phase] ?? adjustment.phase}</p>
         {adjustment.invalidated_actual_quantity && <p className="field-help">当前已核对持仓：{adjustment.invalidated_actual_quantity}</p>}
         <p className="field-help">原撤单命令：{adjustment.cancel_command_id}</p>
         {adjustment.phase === 'READY_TO_CONTINUE' && api && <button className="button small" disabled={busy !== null} onClick={() => void continueReduction(adjustment.cancel_command_id)}>{busy === adjustment.cancel_command_id ? '正在提交减仓…' : '继续有界减仓'}</button>}
@@ -49,7 +49,7 @@ export function PaperExecutionView({ data, api, onSaved }: { data: Dashboard; ap
           <div><dt>目标数量</dt><dd>{target.target_quantity}</dd></div>
           <div><dt>在途数量</dt><dd>{target.in_flight_quantity}</dd></div>
           <div><dt>实际成交持仓</dt><dd>{target.actual_quantity}</dd></div>
-          <div><dt>保护已验证数量</dt><dd>{['VERIFIED_SYNTHETIC', 'VERIFIED_NATIVE', 'VERIFIED_HOSTED'].includes(target.protection_state) ? target.protected_quantity : '未验证'}<span className="field-help">{target.protection_state}</span></dd></div>
+          <div><dt>保护已验证数量</dt><dd>{['VERIFIED_SYNTHETIC', 'VERIFIED_NATIVE', 'VERIFIED_HOSTED'].includes(target.protection_state) ? target.protected_quantity : target.protection_state === 'NO_POSITION' ? '当前无持仓' : '未验证'}<span className="field-help">{target.protection_state}</span></dd></div>
           <div><dt>风险锁</dt><dd>{locks.length ? `${locks.length} 项生效` : '无已报告的活动锁'}</dd></div>
         </dl>
         {target.reason && <p className="field-help">{target.reason}</p>}
