@@ -213,6 +213,32 @@ def test_expired_five_second_paper_permit_cannot_cross_side_effect_guard(runtime
         assert sum(p.held for p in ReservationRepository(tx).group()) > 100
 
 
+def test_executed_stop_fill_is_included_in_cash_fees_and_realized_history(tmp_path):
+    from support.unified_console import provision_console
+    harness = provision_console(tmp_path, initial_cash='10000')
+    try:
+        quotes = harness.quotes
+        quotes['quotes'][0]['price'] = '100'
+        entry = harness.execute(dict(symbol='BTCUSDT', side='BUY', quantity='1'), 'entry', quotes)
+        runtime = harness.runtime
+        stop = runtime.protect(entry['order']['command_id'], 'stop')['command_id']
+        assert runtime.dispatch(stop)['status'] == 'VENUE_CONFIRMED'
+        runtime.inject(stop, dict(event_id='stop-verified', status='PROTECTION_VERIFIED', cumulative_quantity='0'))
+        runtime.inject(stop, dict(event_id='stop-filled', status='FILLED', cumulative_quantity='1', price='95'))
+        data = harness.store.dashboard(quotes)
+        assert data['positions'] == [] and data['account']['cash'] == '9994.805'
+        assert data['research']['fees'] == '0.195'
+        assert data['research']['win_rate'] == '0'
+        order = next(item for item in data['orders'] if item['command_id'] == stop)
+        assert order['filled_quantity'] == '1' and order['fee'] == '0.095'
+        # Per-order realized bookkeeping is internal; the public dashboard
+        # exposes the aggregate research projection rather than this field.
+        internal = next(item for item in runtime.projection()['orders'] if item['command_id'] == stop)
+        assert internal['realized_pnl'] == '-5.195'
+    finally:
+        harness.close()
+
+
 def test_released_assets_are_reattested_for_partial_exit_and_other_scope(runtime):
     context = data()
     context['risk']['max_position_pct'] = '100'

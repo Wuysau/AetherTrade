@@ -1374,6 +1374,9 @@ class UnifiedPaperRuntime:
                         protection_state=('VERIFIED_SYNTHETIC' if plan.state == 'VERIFIED_NATIVE' else str(plan.state)) if plan and actual else 'NO_POSITION',
                         protected_quantity=number(plan.coverage_quantity.value) if actual and plan and plan.state == 'VERIFIED_NATIVE' else '0',
                         command_id=command.command_id, reason=request.rationale + ('；人工减仓后需重新激活旧自动目标。' if request.mode == 'MANUAL' and request.side == 'SELL' else ''))
+                    # Protective fills are real synthetic cash movements too.
+                    # Keep target attribution separate from executed history.
+                    if command.operation != 'CANCEL' and (command.operation != 'SET_PROTECTION' or filled > 0):
                         fill_rows = tx.execute("SELECT payload FROM ledger.fills WHERE scope_id=%s "
                             "AND payload->'order'->>'logical_client_order_id'=%s", (scope_id(scope), command.logical_client_order_id)).fetchall()
                         notional = sum((decode(t.Fill, row[0]).quantity.value * decode(t.Fill, row[0]).price.value for row in fill_rows), D(0))
