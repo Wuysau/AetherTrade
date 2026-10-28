@@ -1,5 +1,12 @@
 # Project state
 
+Latest 2026-10-28 15:48 +08:00: user authorized real-quote PAPER and paid models.
+New API/UI, owner and monitor run; automatic strategy remains paused due to two
+INVALID_MODEL_RESPONSE results, no proposal/order. MODEL_PROTOCOL_BLOCKED.
+DeepSeek revision4 now uses 4096 output tokens/60 seconds; no recurring paid
+loop started. See current-task.md for evidence and resume intent.
+
+
 Decision evidence update (2026-10-28): structured snapshot/assessment, explicit
 evidence review and target-aware unified PAPER intake implemented and verified
 on backend d6b07c1 (808 mandatory PG, zero skips/failures), frontend8422f3f

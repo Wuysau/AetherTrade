@@ -1,0 +1,50 @@
+{
+  "at": "2026-10-28T07:48:05.508030+00:00",
+  "status": "MODEL_PROTOCOL_BLOCKED",
+  "environment": "PAPER",
+  "real_venue_orders": false,
+  "paid_model_calls": 2,
+  "input_tokens": 9542,
+  "output_tokens": 4685,
+  "market_status": "CONNECTED",
+  "automation": {
+    "enabled": true,
+    "active_strategies": 0,
+    "auto_order_strategies": 0,
+    "running_jobs": 0
+  },
+  "cash": "100000",
+  "positions": [],
+  "risk_locks": [],
+  "unfinished_commands": [],
+  "strategies": [
+    {
+      "name": "持续真实行情 PAPER 自测",
+      "symbol": "BTCUSDT",
+      "mode": "AI",
+      "budget": "5000",
+      "target_pct": "100",
+      "status": "PAUSED",
+      "analysis_interval_seconds": 300,
+      "auto_execute": false,
+      "analysis_mode": "single",
+      "model_profile_ids": [
+        "default"
+      ],
+      "id": "f47b292b-7632-43f1-9d2b-2b968a37871c",
+      "revision": 5,
+      "created_at": "2026-10-28T05:06:16.505035+00:00",
+      "updated_at": "2026-10-28T06:07:52.734543+00:00",
+      "runtime_status": "PAUSED",
+      "next_analysis_at": null,
+      "last_analysis_at": "2026-10-28T06:03:42.749637+00:00",
+      "last_analysis_error": null
+    }
+  ],
+  "model_config": {
+    "model": "deepseek-flash",
+    "revision": 4,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 60
+  }
+}

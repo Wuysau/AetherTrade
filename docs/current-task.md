@@ -1,5 +1,23 @@
 # Current task
 
+## RESUME_MODEL_PROTOCOL_BLOCKED — 2026-10-28 15:48 +08:00
+
+用户明确恢复真实行情＋PAPER，并授权付费 DeepSeek 分析；未授权真实资金。
+已构建并启动新版 API/UI、独立诊断 owner 和只读监控，原账户及5000 USDT预算保留。
+两次真实推理都为 INVALID_MODEL_RESPONSE / MODEL_ERROR，未产生 Proposal 或订单。
+第一次输出1024 tokens触及上限；调整同模型输出4096/超时60秒（配置revision4）后，
+第二次输出3661 tokens仍无法解析，故不能认定仅为长度问题。另一次 DATA_BLOCKED
+因报价缺失触发，模型调用0。两次累计9542输入/4685输出tokens，实际金额未知。
+当前策略仍PAUSED、auto_execute=false，active/running均0；现金100000，无持仓、
+未完成命令或风险锁。没有启动反复付费的周期任务，没有模拟成交绕过。
+进程在 `.runtime/live-market-paper/processes.json`；失败记录在同目录
+`evidence-resume-*-result.json`；脱敏状态见
+[evidence](evidence/2026-10-28-resume-model-blocked.json)。
+后续需定位真实响应与assessment_v1解析契约的不匹配；当前记录不保存原始失败响应，
+尚不能确定字段/JSON/协议终态哪一层失败。不得把本次启动标为自动测试已恢复成功。
+旧PAUSED_BY_USER是历史；当前不激活的原因是技术阻断，用户恢复意图仍有效。
+
+
 ## DECISION_EVIDENCE_VERIFIED — 2026-10-28
 
 New user-authorized refactor lives in independent worktree `decision-evidence`,
