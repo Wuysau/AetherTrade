@@ -51,13 +51,14 @@ def clock_now() -> t.ClockReading:
 class CommandDispatcher:
     def __init__(self, uow, scope: t.ScopeKey, engine: EnginePort | None = None, *,
                  load_facts=None, owner_guard=None, clock=clock_now, load_action_proof=None,
-                 side_effect_guard=None):
+                 side_effect_guard=None, before_check=None):
         if scope.environment not in (t.Environment.PAPER, t.Environment.RESEARCH):
             raise DispatchDenied('only offline PAPER/RESEARCH composition is enabled')
         self.uow, self.scope, self.engine = uow, scope, engine
         self.load_facts, self.owner_guard, self.clock = load_facts, owner_guard, clock
         self.load_action_proof = load_action_proof
         self.side_effect_guard = side_effect_guard
+        self.before_check = before_check
 
     def _clock_check(self, lease, facts=None, permit=None):
         reading = self.clock()
@@ -119,6 +120,8 @@ class CommandDispatcher:
             raise DispatchDenied('TRUSTED_OWNER_COMPOSITION_REQUIRED')
         # No queue-supplied permit is accepted; one is minted inside this call.
         with self.owner_guard(lease):
+            if self.before_check:
+                self.before_check(command_id)
             with self.uow.transaction(self.scope) as tx:
                 repo = CommandRepository(tx)
                 command = repo.get(command_id)
@@ -139,6 +142,8 @@ class CommandDispatcher:
             # The send transaction is closed. Reload revocation/epoch/rules after
             # the durable boundary, with a second transaction closed before I/O.
             try:
+                if self.before_check:
+                    self.before_check(command_id)
                 with self.uow.transaction(self.scope) as tx:
                     repo = CommandRepository(tx)
                     command = repo.get(command_id)

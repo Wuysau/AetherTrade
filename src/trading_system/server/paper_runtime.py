@@ -103,6 +103,8 @@ def attach_console_runtime(store, runtime, quote_snapshot):
                     raise ApiError('STALE_STRATEGY', '策略授权已变更。', 409)
     runtime.current_control = current_control
     runtime.console_store = store
+    from .paper_account_risk import account_risk_reader
+    runtime.current_account_risk = account_risk_reader(store, runtime, quote_snapshot)
     store.execution = runtime
     return runtime
 
@@ -738,12 +740,23 @@ class UnifiedPaperRuntime:
             deadline_monotonic_ns=reading.monotonic_ns + 60_000_000_000)
         active_authority = [None]
 
+        def account_check(command_id):
+            callback = getattr(self, 'current_account_risk', None)
+            if callback:
+                with self.uow.transaction(scope) as tx:
+                    command = CommandRepository(tx).get(command_id)
+                    request = self._request(tx, command_id)
+                if command is None or request is None:
+                    raise ValueError('SERVER_REQUEST_AUTHORITY_REQUIRED')
+                callback(request, command)
+
         @contextmanager
         def authority(command_id):
             current = active_authority[0]
             if current is None or current.command.command_id != command_id:
                 raise ValueError('OWNER_CURRENT_DURABLE_AUTHORITY_REQUIRED')
             with owner.guard(lease):
+                account_check(command_id)
                 with self.uow.transaction(scope) as tx:
                     dispatcher._check(tx, CommandRepository(tx).get(command_id), lease, current.permit)
                 yield current
@@ -854,7 +867,8 @@ class UnifiedPaperRuntime:
         owner = ExecutionOwner(lease, journal_path=self.directory / 'paper-emergency.ndjson',
             engine=engine, claim=self._claim, clock=self.clock)
         dispatcher = CommandDispatcher(self.uow, scope, engine, load_facts=facts, owner_guard=owner.guard,
-            clock=self.clock, load_action_proof=self._action_proof, side_effect_guard=side_effect)
+            clock=self.clock, load_action_proof=self._action_proof, side_effect_guard=side_effect,
+            before_check=account_check)
         with owner.session(lease.shard):
             yield engine, dispatcher, lease
 
