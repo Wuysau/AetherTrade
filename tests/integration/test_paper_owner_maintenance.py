@@ -13,6 +13,8 @@ from trading_system.server.store import Store, cause_locks
 from trading_system.contracts import types as t
 from integration.test_unified_paper_runtime import market, data
 
+pytestmark = pytest.mark.paper_runtime
+
 
 @pytest.fixture
 def paper(tmp_path):

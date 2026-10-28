@@ -44,6 +44,7 @@ SUITES = (
     ('unified-runtime', 'PAPER_RUNTIME', 'tests/integration/test_unified_paper_runtime.py'),
     ('runtime-faults', 'PAPER_RUNTIME', 'tests/integration/test_unified_runtime_faults.py'),
     ('dispatch-account-risk', 'PAPER_RUNTIME', 'tests/integration/test_paper_dispatch_account_risk.py'),
+    ('owner-maintenance', 'PAPER_RUNTIME', 'tests/integration/test_paper_owner_maintenance.py'),
     ('console-contract', 'PAPER_RUNTIME', 'tests/server'),
 )
 
