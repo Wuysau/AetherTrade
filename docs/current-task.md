@@ -10,6 +10,37 @@
 
 暂停交接仍是恢复基线，以下暂停文字仅作历史，不再阻止本轮已授权工作。
 
+### Resume progress (2026-10-28)
+
+- Docker Desktop 实际路径为用户目录下 `AppData/Local/Programs/DockerDesktop`。
+  已恢复并核验原隔离 PostgreSQL 容器，仅端口 55433，未启动应用库 55432。
+  首轮测试遇到启动 fsync 的 8 个 setup errors，原始失败保留，ready 后重跑。
+- 六份 WIP 已原样完成迁移并提交 `21ebabd` / `d65eb94`，HYBRID 夹具显式绑定
+  default 模型，不改生产授权检查。三个模式/单笔风险/过期拒绝共 8 项实际 PG
+  通过，离线 intake/会计/历史 owner 14 项通过；证据在
+  `docs/evidence/2026-10-28-resume/`。
+- 待集成旧 recovery `9f0b1cb` 已按 `685be28` 集成；证据提交 `1b5e3bd` /
+  `96bb6fa` 已按 `abdd365` / `00eb3c4` 集成，不要重复 cherry-pick。
+- 全账户发送风控 P1 初步修复 `7de8727` 已按 `e58368f` 集成；合并冲突仅保留
+  console_store 和 current_account_risk 两项绑定。其独立原始失败和迟发检查
+  证据 `7334c5e` 已按 `af0db31` 集成。root 在新集成树实际 PG 12 passed / exit0。
+- `dispatch_account_risk` 正在追加初始 hook 的状态分流：UNKNOWN/已确认回执的
+  重复查询不应再运行新增风险审批；READY 发送、第二次检查及所有 engine 边界
+  的全账户检查必须保持。待接收该后续提交。
+- `protected_reduction` 独立工作区正在实现 begin/continue 的显式保护调整，
+  普通 Store SELL 可返回 durable 调整收据；未知撤单需独立审核，不能自动解锁。
+  尚未集成，需加 Web continue endpoint/UI 状态，并纳入必需 PG gate。
+- `recovery_owner_completion` 在 paper-runtime-resume 补充每日审核、独立 owner
+  维护、旧模型/入场授权过期后的有界保护责任。代理已生成 `88bf975` 初版，
+  还有后续修正/测试未交付；不要据此宣称完整通过。
+- 已新增 `tools/demo_paper_server.py`：真实生产 API + 新隔离三库、明确合成行情、
+  零付费模型的终端/网页演示服务。仅检查 CLI help，目前尚未运行最终 demo。
+- CI 已要求新增全账户 PG 场景（`42db80b`），ops gate 21 项通过。最终固定树
+  所有必需 PG suites、完整 Python/Web、实际 demo 和远端 CI 仍 NOT_RUN。
+
+继续工作：先集成上述三项完成的修复并核对冲突，再给保护调整接通 Web/CLI；
+固定源提交跑新隔离集群全套门禁，独立审查并执行真实 API/CLI/浏览器演示。
+
 ### Historical pause checkpoint
 
 用户要求暂停所有任务并记录。**不得自动继续实施或测试。** 当前实施工作区是
