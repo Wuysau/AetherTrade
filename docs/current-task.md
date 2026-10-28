@@ -1,5 +1,18 @@
 # Current task
 
+## DECISION_EVIDENCE_VERIFIED — 2026-10-28
+
+New user-authorized refactor lives in independent worktree `decision-evidence`,
+branch `codex/decision-evidence`; baseline cfe6b0f. The operational PAPER test
+remains PAUSED and no paid calls/real accounts are authorized by this task.
+Implementation and D01–D22 mapping: [decision report](DECISION_EVIDENCE_REPORT_2026-10-28.md).
+Fixed backend d6b07c1: 808 mandatory Linux/PG passes, zero failures/skips.
+Ordinary Python 2432 passed / 362 skipped / 96 deselected. Frontend 8422f3f:
+111 tests plus typecheck/build pass. UPDATE_EXIT and unsupported adapter modes
+remain explicitly blocked; see report. Local fast-forward integration authorized.
+Do not infer qualification from historical task entries below.
+
+
 ## PAUSED_BY_USER — 2026-10-28 14:08 +08:00
 
 用户明确要求“暂停测试”。已将持续策略通过HTTP PATCH设为PAUSED、auto_execute=false，

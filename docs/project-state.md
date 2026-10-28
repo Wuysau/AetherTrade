@@ -1,5 +1,13 @@
 # Project state
 
+Decision evidence update (2026-10-28): structured snapshot/assessment, explicit
+evidence review and target-aware unified PAPER intake implemented and verified
+on backend d6b07c1 (808 mandatory PG, zero skips/failures), frontend8422f3f
+(111 tests, build/typecheck). See DECISION_EVIDENCE_REPORT_2026-10-28.md for
+D01–D22 coverage and explicit unsupported UPDATE_EXIT/adapter boundaries.
+Existing strategies require explicit revision upgrade; operational testing remains paused.
+
+
 Latest operational state (2026-10-28 14:08 +08:00): continuous PAPER testing is
 PAUSED at the user's request. Strategy scheduling and automatic orders are off;
 the diagnostic owner and monitor have stopped. API/UI remain available. Cash is

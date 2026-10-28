@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="32" skipped="0" tests="54" time="140.032" timestamp="2026-10-28T07:12:30.136330+00:00" hostname="e7d9fd0fdeda"><testcase classname="tests.server.test_api" name="test_real_data_roundtrip_and_export" time="3.547" /><testcase classname="tests.server.test_api" name="test_protected_reduction_web_continuation_requires_csrf_and_separate_review" time="5.108" /><testcase classname="tests.server.test_automation" name="test_buy_target_includes_fees_and_does_not_accumulate" time="1.617"><failure message="ValueError: expected domain record">tests/server/test_automation.py:140: in test_buy_target_includes_fees_and_does_not_accumulate
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_concurrent_workers_claim_once" time="1.720"><failure message="ValueError: expected domain record">tests/server/test_automation.py:184: in test_concurrent_workers_claim_once
+    asyncio.run(scenario())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/server/test_automation.py:182: in scenario
+    await first
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_expired_job_recovered_without_resend_or_duplicate_notification" time="2.405"><failure message="ValueError: expected domain record">tests/server/test_automation.py:205: in test_expired_job_recovered_without_resend_or_duplicate_notification
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_risk_rejection_is_atomic_and_notified[paused]" time="2.552" /><testcase classname="tests.server.test_automation" name="test_risk_rejection_is_atomic_and_notified[position]" time="2.136"><failure message="ValueError: expected domain record">tests/server/test_automation.py:223: in test_risk_rejection_is_atomic_and_notified
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_risk_rejection_is_atomic_and_notified[daily]" time="2.048"><failure message="ValueError: expected domain record">tests/server/test_automation.py:223: in test_risk_rejection_is_atomic_and_notified
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_risk_rejection_is_atomic_and_notified[stale]" time="2.422" /><testcase classname="tests.server.test_automation" name="test_risk_rejection_is_atomic_and_notified[foreign]" time="4.124" /><testcase classname="tests.server.test_automation" name="test_sell_scoped_and_hold" time="1.728"><failure message="ValueError: expected domain record">tests/server/test_automation.py:236: in test_sell_scoped_and_hold
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_real_model_transport_and_notification_api" time="1.853"><failure message="ValueError: expected domain record">tests/server/test_automation.py:351: in test_real_model_transport_and_notification_api
+    asyncio.run(app.state.automation.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_cross_store_claim_and_restart_receipt" time="1.601"><failure message="ValueError: expected domain record">tests/server/test_automation.py:403: in test_cross_store_claim_and_restart_receipt
+    winner._finish(job, result)
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_cash_bound_includes_fee_and_sell_rejects_other_strategy" time="1.645"><failure message="ValueError: expected domain record">tests/server/test_automation.py:418: in test_cash_bound_includes_fee_and_sell_rejects_other_strategy
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_stale_other_position_valuation_blocks_buy" time="3.103"><failure message="ValueError: expected domain record">tests/server/test_automation.py:454: in test_stale_other_position_valuation_blocks_buy
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_three_modes_share_atomic_risk_owner_and_explicit_fill_path[AI]" time="1.730"><failure message="ValueError: expected domain record">tests/server/test_automation.py:513: in test_three_modes_share_atomic_risk_owner_and_explicit_fill_path
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_three_modes_share_atomic_risk_owner_and_explicit_fill_path[RULE]" time="5.144" /><testcase classname="tests.server.test_automation" name="test_three_modes_share_atomic_risk_owner_and_explicit_fill_path[HYBRID]" time="1.548"><failure message="ValueError: expected domain record">tests/server/test_automation.py:513: in test_three_modes_share_atomic_risk_owner_and_explicit_fill_path
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_three_modes_cannot_override_single_position_limit[AI]" time="1.587"><failure message="ValueError: expected domain record">tests/server/test_automation.py:546: in test_three_modes_cannot_override_single_position_limit
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_three_modes_cannot_override_single_position_limit[RULE]" time="1.741" /><testcase classname="tests.server.test_automation" name="test_three_modes_cannot_override_single_position_limit[HYBRID]" time="1.541"><failure message="ValueError: expected domain record">tests/server/test_automation.py:546: in test_three_modes_cannot_override_single_position_limit
+    asyncio.run(system.tick())
+/usr/local/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:522: in tick
+    await run_in_threadpool(self._finish, job, result)
+/usr/local/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:417: in _finish
+    status, reason = self._execute(connection, job, strategy, decision, market)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:228: in _execute
+    return self._execute_assessment(connection, job, strategy, decision, market)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/automation.py:296: in _execute_assessment
+    result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_automation" name="test_old_model_output_cannot_create_new_domain_command[created_at]" time="1.803" /><testcase classname="tests.server.test_automation" name="test_old_model_output_cannot_create_new_domain_command[data_as_of]" time="1.819" /><testcase classname="tests.server.test_daily_loss_latch" name="test_loss_lock_survives_denial_rebound_restart_and_day_rollover" time="4.801" /><testcase classname="tests.server.test_daily_loss_latch" name="test_observation_alone_latches_loss_and_pause_resume_cannot_clear_it" time="3.035" /><testcase classname="tests.server.test_decision_execution" name="test_d10_d11_real_unified_proposal_creates_only_target_and_preserves_exit" time="0.835"><failure message="ValueError: expected domain record">tests/server/test_decision_execution.py:120: in test_d10_d11_real_unified_proposal_creates_only_target_and_preserves_exit
+    receipt = runtime.accept_proposal(p, 'proposal-integration', service.quote_snapshot(),
+src/trading_system/server/paper_runtime.py:452: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:577: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.server.test_model_api" name="test_partial_market_allows_fresh_crypto_but_rejects_stale_bstock_order" time="0.848" /><testcase classname="tests.server.test_multi_routing" name="test_only_selected_profile_changes_during_await_prevent_fill[single-True-True]" time="2.023"><failure message="IndexError: list index out of range">tests/server/test_multi_routing.py:123: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert result["decisions"][0]["execution_status"] == ("SKIPPED" if selected else "PENDING")
+           ^^^^^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_only_selected_profile_changes_during_await_prevent_fill[single-True-False]" time="1.916"><failure message="assert 0 == 1&#10; +  where 0 = len([])">tests/server/test_multi_routing.py:122: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert len(result["orders"]) == (0 if selected else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_only_selected_profile_changes_during_await_prevent_fill[single-False-True]" time="1.943"><failure message="IndexError: list index out of range">tests/server/test_multi_routing.py:123: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert result["decisions"][0]["execution_status"] == ("SKIPPED" if selected else "PENDING")
+           ^^^^^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_only_selected_profile_changes_during_await_prevent_fill[single-False-False]" time="2.098"><failure message="assert 0 == 1&#10; +  where 0 = len([])">tests/server/test_multi_routing.py:122: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert len(result["orders"]) == (0 if selected else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_only_selected_profile_changes_during_await_prevent_fill[consensus-True-True]" time="2.005"><failure message="IndexError: list index out of range">tests/server/test_multi_routing.py:123: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert result["decisions"][0]["execution_status"] == ("SKIPPED" if selected else "PENDING")
+           ^^^^^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_only_selected_profile_changes_during_await_prevent_fill[consensus-True-False]" time="1.911"><failure message="assert 0 == 1&#10; +  where 0 = len([])">tests/server/test_multi_routing.py:122: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert len(result["orders"]) == (0 if selected else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_only_selected_profile_changes_during_await_prevent_fill[consensus-False-True]" time="2.119"><failure message="IndexError: list index out of range">tests/server/test_multi_routing.py:123: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert result["decisions"][0]["execution_status"] == ("SKIPPED" if selected else "PENDING")
+           ^^^^^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_only_selected_profile_changes_during_await_prevent_fill[consensus-False-False]" time="1.955"><failure message="assert 0 == 1&#10; +  where 0 = len([])">tests/server/test_multi_routing.py:122: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert len(result["orders"]) == (0 if selected else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_consensus_execution_requires_complete_direction_agreement[AGREED-BUY-1]" time="2.017"><failure message="assert (0 == 1)&#10; +  where 0 = len([])">tests/server/test_multi_routing.py:135: in test_consensus_execution_requires_complete_direction_agreement
+    assert len(calls) == 1 and calls[0]["analysis_mode"] == "consensus"
+E   assert (0 == 1)
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_consensus_execution_requires_complete_direction_agreement[AGREED-HOLD-0]" time="2.047"><failure message="assert (0 == 1)&#10; +  where 0 = len([])">tests/server/test_multi_routing.py:135: in test_consensus_execution_requires_complete_direction_agreement
+    assert len(calls) == 1 and calls[0]["analysis_mode"] == "consensus"
+E   assert (0 == 1)
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_consensus_execution_requires_complete_direction_agreement[DISAGREED-BUY-0]" time="2.155"><failure message="assert (0 == 1)&#10; +  where 0 = len([])">tests/server/test_multi_routing.py:135: in test_consensus_execution_requires_complete_direction_agreement
+    assert len(calls) == 1 and calls[0]["analysis_mode"] == "consensus"
+E   assert (0 == 1)
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_consensus_execution_requires_complete_direction_agreement[INCOMPLETE-BUY-0]" time="2.296"><failure message="assert (0 == 1)&#10; +  where 0 = len([])">tests/server/test_multi_routing.py:135: in test_consensus_execution_requires_complete_direction_agreement
+    assert len(calls) == 1 and calls[0]["analysis_mode"] == "consensus"
+E   assert (0 == 1)
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_real_consensus_service_controls_paper_execution[directions0-AGREED-1]" time="2.111"><failure message="assert (1 == 2)&#10; +  where 1 = len([{'model': 'fixture', 'messages': [{'role': 'system', 'content': 'Return only assessment_v1 JSON with exactly schema_r...napshot_id&quot;: &quot;snapshot:a3962cd9cb0773fc72b2206b1db8e86e&quot;}, &quot;role&quot;: &quot;primary&quot;}'}], 'stream': False, 'max_tokens': 1024}])">tests/server/test_multi_routing.py:258: in test_real_consensus_service_controls_paper_execution
+    assert len(requests) == 2 and len(result["decisions"]) == 1
+E   assert (1 == 2)
+E    +  where 1 = len([{'model': 'fixture', 'messages': [{'role': 'system', 'content': 'Return only assessment_v1 JSON with exactly schema_r...napshot_id": "snapshot:a3962cd9cb0773fc72b2206b1db8e86e"}, "role": "primary"}'}], 'stream': False, 'max_tokens': 1024}])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_real_consensus_service_controls_paper_execution[directions1-AGREED-0]" time="1.914"><failure message="assert (1 == 2)&#10; +  where 1 = len([{'model': 'fixture', 'messages': [{'role': 'system', 'content': 'Return only assessment_v1 JSON with exactly schema_r...napshot_id&quot;: &quot;snapshot:ffac6042cc0182ed9c5e9721a5f7de9e&quot;}, &quot;role&quot;: &quot;primary&quot;}'}], 'stream': False, 'max_tokens': 1024}])">tests/server/test_multi_routing.py:258: in test_real_consensus_service_controls_paper_execution
+    assert len(requests) == 2 and len(result["decisions"]) == 1
+E   assert (1 == 2)
+E    +  where 1 = len([{'model': 'fixture', 'messages': [{'role': 'system', 'content': 'Return only assessment_v1 JSON with exactly schema_r...napshot_id": "snapshot:ffac6042cc0182ed9c5e9721a5f7de9e"}, "role": "primary"}'}], 'stream': False, 'max_tokens': 1024}])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_real_consensus_service_controls_paper_execution[directions2-DISAGREED-0]" time="1.947"><failure message="assert (1 == 2)&#10; +  where 1 = len([{'model': 'fixture', 'messages': [{'role': 'system', 'content': 'Return only assessment_v1 JSON with exactly schema_r...napshot_id&quot;: &quot;snapshot:8686ae7e46cbf45cbc3e9077367ca8aa&quot;}, &quot;role&quot;: &quot;primary&quot;}'}], 'stream': False, 'max_tokens': 1024}])">tests/server/test_multi_routing.py:258: in test_real_consensus_service_controls_paper_execution
+    assert len(requests) == 2 and len(result["decisions"]) == 1
+E   assert (1 == 2)
+E    +  where 1 = len([{'model': 'fixture', 'messages': [{'role': 'system', 'content': 'Return only assessment_v1 JSON with exactly schema_r...napshot_id": "snapshot:8686ae7e46cbf45cbc3e9077367ca8aa"}, "role": "primary"}'}], 'stream': False, 'max_tokens': 1024}])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_real_consensus_service_controls_paper_execution[directions3-INCOMPLETE-0]" time="2.061"><failure message="assert (1 == 2)&#10; +  where 1 = len([{'model': 'fixture', 'messages': [{'role': 'system', 'content': 'Return only assessment_v1 JSON with exactly schema_r...napshot_id&quot;: &quot;snapshot:30008518a2f0cc0b50c27cd57aebe1c1&quot;}, &quot;role&quot;: &quot;primary&quot;}'}], 'stream': False, 'max_tokens': 1024}])">tests/server/test_multi_routing.py:258: in test_real_consensus_service_controls_paper_execution
+    assert len(requests) == 2 and len(result["decisions"]) == 1
+E   assert (1 == 2)
+E    +  where 1 = len([{'model': 'fixture', 'messages': [{'role': 'system', 'content': 'Return only assessment_v1 JSON with exactly schema_r...napshot_id": "snapshot:30008518a2f0cc0b50c27cd57aebe1c1"}, "role": "primary"}'}], 'stream': False, 'max_tokens': 1024}])</failure></testcase><testcase classname="tests.server.test_multi_routing" name="test_consensus_sell_respects_strategy_position_and_disabled_default_does_not_block_other" time="2.578"><failure message="AssertionError: []&#10;assert 0 == 1&#10; +  where 0 = len([])">tests/server/test_multi_routing.py:275: in test_consensus_sell_respects_strategy_position_and_disabled_default_does_not_block_other
+    assert len(dashboard(system)["orders"]) == 1, [d.get("execution_reason") for d in dashboard(system)["decisions"]]
+E   AssertionError: []
+E   assert 0 == 1
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.server.test_store" name="test_decimal_order_and_idempotency_survive_restart" time="3.093" /><testcase classname="tests.server.test_store" name="test_exit_is_all_or_nothing_and_confirmed" time="9.279" /><testcase classname="tests.server.test_store" name="test_strategy_symbol_change_requires_exiting_attributed_holdings" time="5.247" /><testcase classname="tests.server.test_store" name="test_concurrent_duplicate_order_charges_once" time="3.638" /><testcase classname="tests.server.test_store" name="test_daily_loss_and_position_limits_apply_to_current_prices" time="2.216" /><testcase classname="tests.server.test_store" name="test_sell_partial_and_full_preserve_exact_cash" time="5.111" /><testcase classname="tests.server.test_store" name="test_failed_execution_rolls_back_cash_positions_order_receipt" time="2.665" /><testcase classname="tests.server.test_store" name="test_empty_cancel_and_exit_receipts_disclose_no_effect" time="1.200" /><testcase classname="tests.server.test_store" name="test_concurrent_orders_enforce_combined_exposure" time="1.491" /><testcase classname="tests.server.test_store" name="test_win_rate_counts_both_entry_and_exit_fees" time="3.577" /></testsuite></testsuites>
