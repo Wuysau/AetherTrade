@@ -375,6 +375,93 @@ class UnifiedPaperRuntime:
                 deadline_monotonic_ns=reading.monotonic_ns + 30_000_000_000, session=session,
                 order_sides=sides, context=context))
 
+    def accept_proposal(self, proposal, key, market, maximum_age, data, strategy, assessment):
+        """Bind an absolute target under the same owner fence as durable execution.
+
+        Pending/unknown orders remain budget consumers. This adapter refuses a
+        target change until they reconcile; it never subtracts unknown exposure.
+        """
+        from .decision_execution import proposal_target
+        from trading_system.contracts.wire import ABSENT
+        from trading_system.intents.semantic_validation import on_grid
+        try:
+            candidate = ContractCodec().decode('decision-proposal', proposal)
+        except (ValueError, TypeError, KeyError, __import__('jsonschema').ValidationError) as exc:
+            raise ApiError('INVALID_PLAN', '提案结构无效。', 409) from exc
+        if candidate.action == 'HOLD':
+            return {'status': 'NO_ACTION'}
+        if candidate.action != 'SET_TARGET':
+            raise ApiError('EXIT_UPDATE_UNSUPPORTED', '此执行适配器尚未支持修改退出责任。', 409)
+        symbol = strategy['symbol']
+        if candidate.instrument_ref not in (symbol, 'console-paper:' + symbol, 'BINANCE:SPOT:' + symbol):
+            raise ApiError('INSTRUMENT_BINDING', '提案品种不匹配。', 409)
+        if candidate.requested_leverage not in (ABSENT, 1) or candidate.target.side == 'SHORT':
+            raise ApiError('CASH_LEVERAGE', '现货不允许杠杆或卖空。', 409)
+        if candidate.entry.order_preference != 'MARKET' or not candidate.entry.allow_partial or candidate.exit_plan.stop_trigger != 'LAST':
+            raise ApiError('EXECUTION_CAPABILITY_UNSUPPORTED', '提案执行或保护能力未准入。', 409)
+        reading = self.clock()
+        if not (utc_timestamp(reading.utc_now) < utc_timestamp(candidate.entry.entry_deadline)
+                <= utc_timestamp(candidate.valid_until) and utc_timestamp(reading.utc_now) < utc_timestamp(candidate.exit_plan.review_due_at)):
+            raise ApiError('STALE_DECISION', '提案或复查期限已过期。', 409)
+        quote = next(q for q in market['quotes'] if q['symbol'] == symbol)
+        price = D(quote['price'])
+        target = proposal_target(proposal['target'], price)
+        if target and (candidate.exit_plan.stop_price is None or not 0 < D(candidate.exit_plan.stop_price) < price
+                or not on_grid(D(candidate.exit_plan.stop_price), self._spec(symbol).tick_size.value)):
+            raise ApiError('INVALID_STOP', '止损方向或价格精度无效。', 409)
+        if D(candidate.entry.maximum_entry_slippage_bps) > 20:
+            raise ApiError('SLIPPAGE_LIMIT', '滑点超过 PAPER 适配器上限。', 409)
+        with self.control_guard():
+            projection = self.projection()
+            pending = [o for o in projection['commands'] if o['symbol'] == symbol and
+                o['order_status'] not in ('FILLED', 'CANCELED', 'REJECTED', 'EXPIRED', 'ABORTED_UNSENT')]
+            if any(o.get('operation') != 'SET_PROTECTION' for o in pending):
+                # Existing verified protective orders also require the explicit
+                # protected-reduction protocol; no blind cancellation here.
+                raise ApiError('TARGET_RECONCILIATION_REQUIRED', '现有订单或保护仍承担可能成交责任；请先核验并调整。', 409)
+            held = next((p for p in self.account_view()['positions'] if p['symbol'] == symbol), None)
+            if held and held.get('strategy_id') != strategy['id']:
+                raise ApiError('POSITION_OWNERSHIP', '持仓属于其他策略或人工。', 409)
+            actual = D(held['quantity']) if held else D(0)
+            delta = target - actual
+            if not delta:
+                return {'status': 'NO_ACTION'}
+            if delta > 0 and data['account']['paused']:
+                raise ApiError('ENTRIES_PAUSED', '新增风险已暂停。', 409)
+            budget = min(D(strategy['budget']), D(data['account']['initial_cash']) * D(strategy['target_pct']) / 100)
+            if target * price > budget:
+                raise ApiError('STRATEGY_BUDGET', '提案目标超过策略授权上限。', 409)
+            payload = dict(symbol=symbol, side='BUY' if delta > 0 else 'SELL', quantity=format(abs(delta), 'f'),
+                strategy_id=strategy['id'], decision_run_id=assessment['id'], rationale=candidate.rationale.summary,
+                proposal=proposal, assessment_snapshot_id=assessment['snapshot_id'])
+            if delta < 0 and pending:
+                receipt = self.accept(payload, key, market, maximum_age, data, strategy)
+                with self.uow.transaction(scope_for(symbol)) as tx:
+                    record_id = 'console:proposal-adjustment:' + receipt['command_id']
+                    if tx.execute('SELECT 1 FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s',
+                            (scope_id(tx.scope), record_id)).fetchone() is None:
+                        from .paper_maintenance import ReviewArchive
+                        tx._append('audit_events', record_id, ReviewArchive(dict(payload=payload, strategy=strategy)), 0)
+                return receipt
+            if pending:
+                raise ApiError('PROTECTION_ADJUSTMENT_REQUIRED', '已有保护责任需显式调整后再增加目标。', 409)
+            return self._accept(payload, key, market, maximum_age, data, strategy)
+
+    def analysis_evidence(self, symbol):
+        with self.control_guard():
+            projection = self.projection()
+            terminal = ('FILLED', 'CANCELED', 'REJECTED', 'EXPIRED', 'ABORTED_UNSENT')
+            orders = [dict(side=o['side'], quantity=o['quantity'], filled_quantity=o['filled_quantity'], status=o['status'])
+                      for o in projection['orders'] if o['symbol'] == symbol and o['status'] not in terminal]
+            position = next((p for p in self.account_view()['positions'] if p['symbol'] == symbol), None)
+            with self.uow.transaction(scope_for(symbol)) as tx:
+                reservations = ReservationRepository(tx).group()
+                reserved = sum((p.held + p.release_pending for p in reservations if p.reservation.asset == 'USDT'), D(0))
+            return dict(portfolio=dict(active_orders=orders, reserved_funds=format(reserved, 'f'),
+                protection_status=position['protection'] if position else 'NO_POSITION'),
+                constraints=dict(execution_supported=True, protection_supported=True),
+                costs=dict(fee_rate='0.001', fee_source='PAPER_POLICY', slippage_bps='20', complete=True))
+
     def accept(self, payload, key, market, maximum_age, data, strategy=None):
         with self.control_guard():
             if payload.get('side') == 'SELL':
@@ -471,6 +558,19 @@ class UnifiedPaperRuntime:
                     stop_price=format(stop, 'f'), review_due_at=expiry, maximum_holding_seconds=3600),
                 proposal_hash=canonical_hash(payload), rationale_summary=payload.get('rationale', '受权人工 PAPER 请求'),
                 supersedes_intent_id=None))
+            if payload.get('proposal'):
+                candidate = ContractCodec().decode('decision-proposal', payload['proposal'])
+                expiry = min(utc_timestamp(expiry), utc_timestamp(candidate.valid_until),
+                             utc_timestamp(candidate.entry.entry_deadline)).isoformat()
+                intent = replace(intent, valid_until=expiry, proposal_hash=ContractCodec().hash(candidate),
+                    snapshot_id=payload['assessment_snapshot_id'], evidence_refs=candidate.evidence_refs,
+                    execution=replace(intent.execution, maximum_entry_slippage_bps=candidate.entry.maximum_entry_slippage_bps,
+                        entry_deadline=expiry, allow_partial=candidate.entry.allow_partial),
+                    exit_plan=replace(intent.exit_plan, stop_price=candidate.exit_plan.stop_price,
+                        review_due_at=candidate.exit_plan.review_due_at,
+                        maximum_holding_seconds=candidate.exit_plan.maximum_holding_seconds))
+                # Keep the original wire proposal as immutable replay evidence.
+                tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
             logical_id = 'logical:' + command_id
             body = {'side': payload['side'], 'order_type': 'MARKET', 'quantity': format(quantity, 'f'),
                 'reduce_only': False, 'full_position_exit': False, 'position_side': 'BOTH'}
@@ -600,6 +700,24 @@ class UnifiedPaperRuntime:
                     raise ApiError('REDUCTION_CANCEL_UNCONFIRMED', '先查询原保护单并确认撤销；数量或归属变化需要重新审查。', 409)
                 if any(lock.permission == t.RiskPermission.RECOVERY_REQUIRED for lock in tx.risk_locks.applicable(scope)):
                     raise ApiError('REDUCTION_REVIEW_REQUIRED', '原撤单虽已确认，UNKNOWN 风险锁仍需独立审查后才能继续。', 409)
+                raw = tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s',
+                    (scope_id(scope), 'console:proposal-adjustment:' + cancel_id)).fetchone()
+                archived = raw[0]['data'] if raw else None
+            if archived:
+                strategy = archived['strategy']
+                if not getattr(self, 'console_store', None):
+                    raise ApiError('STRATEGY_AUTHORITY_REQUIRED', '继续提案减仓需要当前策略授权。', 409)
+                from sqlalchemy import select
+                from .store import strategies
+                with self.console_store.engine.connect() as connection:
+                    current = connection.execute(select(strategies.c.data).where(strategies.c.id == strategy['id'])).scalar_one_or_none()
+                if not current or current['revision'] != strategy['revision'] or current['status'] != 'ACTIVE':
+                    raise ApiError('STALE_STRATEGY', '原提案策略已变更。', 409)
+                payload = archived['payload']
+                candidate = ContractCodec().decode('decision-proposal', payload['proposal'])
+                if utc_timestamp(self.clock().utc_now) >= min(utc_timestamp(candidate.valid_until), utc_timestamp(candidate.entry.entry_deadline)):
+                    raise ApiError('STALE_DECISION', '原提案已过期；保护责任仍需处理。', 409)
+                return self._accept(payload, 'adjustment-close:' + cancel_id, market, maximum_age, data, current)
             return self.accept(dict(symbol=symbol, side='SELL', quantity=record['quantity']),
                 'adjustment-close:' + cancel_id, market, maximum_age, data)
 
@@ -1371,7 +1489,7 @@ class UnifiedPaperRuntime:
                         status, filled, leaves = 'ABORTED_UNSENT', D(0), D(0)
                     if projection and projection.pending_operation == 'CANCEL':
                         status = 'CANCEL_UNKNOWN'
-                    commands.append(dict(command_id=command.command_id, symbol=symbol, state=command.state,
+                    commands.append(dict(command_id=command.command_id, symbol=symbol, state=command.state, operation=command.operation,
                         order_status=status, quantity=command.canonical_payload.quantity, filled_quantity=number(filled),
                         leaves_quantity=number(leaves), reason=request.rationale))
                     if command.operation not in ('CANCEL', 'SET_PROTECTION'):
@@ -1400,3 +1518,4 @@ class UnifiedPaperRuntime:
             orders=orders_view, positions=self.account_view()['positions'], protection_plans=protections,
             protection_adjustments=adjustments,
             risk_locks=list({l['lock_id']: l for l in locks}.values()))
+

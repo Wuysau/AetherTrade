@@ -13,3 +13,13 @@ export function AssessmentDetails({decision:d}: {decision:Decision}) {
     <p className="field-help">快照：{d.snapshot_id ?? '未提供'} · 策略版本：{d.strategy_revision ?? '研究记录'}</p>
   </section>;
 }
+
+export function changeResearchInterval(profile: ResearchTaskProfile | undefined, interval:string): ResearchTaskProfile {
+  if (!profile) return researchProfile(interval);
+  const old = profile.decision_interval;
+  const replaceRef = (ref:string) => ref === `candles:${old}` ? `candles:${interval}` : ref;
+  const windows = {...profile.windows};
+  delete windows[old];
+  windows[interval] = profile.windows[old] ?? 32;
+  return {...profile,decision_interval:interval,windows,required:[...new Set(profile.required.map(replaceRef))],optional:[...new Set(profile.optional.map(replaceRef))].filter(ref=>!profile.required.map(replaceRef).includes(ref))};
+}

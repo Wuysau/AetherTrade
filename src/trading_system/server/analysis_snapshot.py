@@ -260,3 +260,18 @@ def validate_snapshot(snapshot):
         return json.loads(encoded)
     except (ValueError, TypeError, KeyError, OverflowError, RecursionError, parse.InvalidMarketData):
         _fail()
+
+
+class AnalysisFeed:
+    """Share the console freshness/enable masks with every research consumer."""
+    def __init__(self, feed, snapshot, enabled):
+        self.feed, self._snapshot, self.enabled = feed, snapshot, enabled
+
+    def snapshot(self):
+        return self._snapshot()
+
+    async def candles(self, symbol, interval, limit):
+        if not self.enabled():
+            return {'candles': []}
+        method = getattr(self.feed, 'candles', None)
+        return await method(symbol, interval, limit) if method else {'candles': []}

@@ -61,6 +61,7 @@ def _write_legacy_config(connection, data):
 
 
 def read_run(connection, key):
+    """Return versioned receipts verbatim; legacy advice is never upgraded to a plan."""
     return connection.execute(select(runs.c.data).where(runs.c.key == key)).scalar_one_or_none()
 
 

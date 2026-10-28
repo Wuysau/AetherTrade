@@ -154,3 +154,12 @@ def test_legacy_feed_missing_history_and_provenance_is_data_blocked():
     feed.snapshot = lambda: public
     feed.candles = None
     assert build(feed)['quality']['status'] == 'DATA_BLOCKED'
+
+def test_disabled_analysis_feed_never_fetches_and_retains_masks():
+    from trading_system.server.analysis_snapshot import AnalysisFeed
+    feed = Feed()
+    masked = dict(feed.snapshot(),status='UNAVAILABLE', quotes=[])
+    guarded = AnalysisFeed(feed,lambda:masked,lambda:False)
+    assert asyncio.run(guarded.candles('BTCUSDT','1h',4)) == {'candles':[]}
+    assert feed.requests == []
+    assert guarded.snapshot() == masked

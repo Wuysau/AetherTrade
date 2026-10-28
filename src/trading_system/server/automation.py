@@ -37,8 +37,9 @@ def put(connection, table, identifier, data):
 
 
 class AutomationService:
-    def __init__(self, store, models, quote_snapshot, settings):
+    def __init__(self, store, models, quote_snapshot, settings, feed=None):
         self.store, self.models, self.quote_snapshot, self.settings = store, models, quote_snapshot, settings
+        self.feed = feed
         self.worker_id = str(uuid4())
 
     @staticmethod
@@ -140,6 +141,16 @@ class AutomationService:
         schedule.update(job_id=None, last_analysis_at=stamp(), last_analysis_error=reason if status in ("ERROR", "BLOCKED") else None,
                         runtime_status="ERROR" if status == "ERROR" else "READY",
                         next_analysis_at=(now() + timedelta(seconds=job["interval"])).isoformat())
+        if decision and decision.get('schema_revision') == 'assessment_v1':
+            schedule.update(watch_conditions=decision.get('watch_conditions', []),
+                watch_baseline=job.get('watch_observation'), last_assessment=decision.get('assessment_status'))
+            if decision.get('next_review_at'):
+                from trading_system.contracts.canonical import utc_timestamp
+                try:
+                    if utc_timestamp(decision['next_review_at']) > now():
+                        schedule['next_analysis_at'] = decision['next_review_at']
+                except (ValueError, TypeError):
+                    pass
         put(connection, schedules, job["strategy_id"], schedule)
         self._notify(connection, job, decision, status, reason)
 
@@ -166,6 +177,14 @@ class AutomationService:
                 schedule = read(connection, schedules, strategy["id"]) or {}
                 if schedule.get("job_id"):
                     continue
+                if schedule.get('watch_conditions') and schedule.get('watch_baseline'):
+                    from .decision_execution import watch_triggered
+                    try:
+                        price = self.store._price(market, strategy['symbol'], self.settings.quote_max_age_seconds)
+                        if watch_triggered(schedule['watch_conditions'], schedule['watch_baseline'], {'price': str(price)}):
+                            schedule['next_analysis_at'] = current_time
+                    except ApiError:
+                        pass
                 if schedule.get("activated_at") == strategy.get("_activated_at") and schedule.get("next_analysis_at") and schedule["next_analysis_at"] > current_time:
                     continue
                 analysis_mode, identifiers = self._binding(strategy)
@@ -188,6 +207,8 @@ class AutomationService:
                 job = dict(id=identifier, strategy_id=strategy["id"], strategy_name=strategy["name"],
                            decision_mode=strategy['mode'], rule=strategy.get('rule'),
                            strategy_revision=strategy["revision"], analysis_mode=analysis_mode,
+                           decision_policy=strategy.get("decision_policy", "unanimous"),
+                           decision_schema=strategy.get("decision_schema", "legacy"), task_profile=strategy.get("task_profile"),
                            model_profile_ids=list(identifiers), profile_revisions={item["id"]: item["revision"] for item in current},
                            profile_names={item["id"]: item["name"] for item in current},
                            symbol=strategy["symbol"], auto_execute=strategy.get("auto_execute", False),
@@ -203,6 +224,10 @@ class AutomationService:
         return None
 
     def _execute(self, connection, job, strategy, decision, market):
+        if decision.get("schema_revision") == "assessment_v1":
+            return self._execute_assessment(connection, job, strategy, decision, market)
+        if strategy['mode'] != 'RULE':
+            raise ApiError('LEGACY_REAUTH_REQUIRED', '旧模型建议仅供查阅；请明确批准新版策略后重新分析。', 409)
         action = decision.get("action")
         if decision.get("symbol") != job["symbol"] or action not in ("BUY", "SELL", "HOLD"):
             raise ApiError("INVALID_MODEL_ADVICE", "模型建议标的或方向无效。")
@@ -249,6 +274,61 @@ class AutomationService:
         decision.update(order_id=result["order"]["id"], command_id=result['order']['command_id'], risk_status="PAPER_PASSED")
         return "PENDING", "已通过统一 PAPER 风控并持久化命令；等待执行与成交事件。"
 
+    def _execute_assessment(self, connection, job, strategy, decision, market):
+        proposal = decision.get('proposal')
+        if proposal and proposal.get('action') != 'HOLD':
+            basis = (job.get('watch_observation') or {}).get('price')
+            current = self.store._price(market, job['symbol'], self.settings.quote_max_age_seconds)
+            if not basis or abs(current / Decimal(basis) - 1) * 10000 > Decimal(proposal['entry']['maximum_entry_slippage_bps']):
+                raise ApiError('MARKET_REPLAN_REQUIRED', '执行报价已超出提案价格容忍范围。', 409)
+        if not proposal or proposal.get('action') == 'HOLD':
+            return 'NO_ACTION', '有效观察结论；原保护和退出责任保持。'
+        if self.store.execution is None or self.store.sqlite:
+            raise ApiError('UNIFIED_PAPER_REQUIRED', '统一 PAPER 执行服务未配置。', 503)
+        result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
+            self.settings.quote_max_age_seconds, self.store._state(connection), strategy, decision)
+        if result.get('status') == 'NO_ACTION':
+            return 'NO_ACTION', '已达到提案目标；未重复下单。'
+        decision.update(order_id=result['id'], command_id=result['command_id'], risk_status='PAPER_PASSED')
+        return 'PENDING', '目标提案已进入统一 PAPER 风控与持久命令链。'
+
+    def _assessment_guard(self, job, decision):
+        mode, identifiers, revisions = self._job_binding(job)
+        def blocked():
+            return 'BLOCKED', '分析证据、参与者、配置修订或复核链无效；未创建命令。'
+        if decision.get('assessment_status') != 'DECIDED':
+            return 'BLOCKED', decision.get('reason_code', 'ASSESSMENT_NOT_DECIDED')
+        if (decision.get('strategy_revision') != job['strategy_revision']
+                or decision.get('decision_policy') != job.get('decision_policy', 'unanimous')
+                or not job.get('snapshot_hash') or decision.get('snapshot_hash') != job['snapshot_hash']
+                or decision.get('snapshot_id') != job.get('snapshot_id')
+                or decision.get('required_profile_ids') != identifiers
+                or decision.get('profile_revisions') != revisions):
+            return blocked()
+        attempts = decision.get('component_results', [])
+        results = list({r.get('profile_id'): r for r in attempts if isinstance(r, dict)}.values())
+        if (not isinstance(results, list) or not results
+                or {r.get('profile_id') for r in results} != set(identifiers)
+                or any(r.get('status') != 'SUCCEEDED' or r.get('snapshot_hash') != job['snapshot_hash']
+                       or r.get('config_revision') != revisions.get(r.get('profile_id')) for r in results)):
+            return blocked()
+        if mode == 'consensus' and job.get('decision_policy', 'unanimous') == 'unanimous':
+            def terms(proposal):
+                return {k: v for k, v in proposal.items() if k not in ('proposal_id', 'rationale', 'evidence_refs')} if isinstance(proposal, dict) else None
+            expected = terms(decision.get('proposal'))
+            if any(terms((r.get('response') or {}).get('proposal')) != expected for r in results):
+                return blocked()
+        if mode == 'consensus' and job.get('decision_policy') == 'evidence_review':
+            review = decision.get('review_report') or {}
+            if review.get('status') not in ('VERIFIED', 'SOFT'):
+                return blocked()
+            if review.get('status') == 'SOFT':
+                history = decision.get('adjudication_history') or []
+                if len(history) != 1 or any(r.get('status') != 'SUCCEEDED' or r.get('profile_id') != identifiers[0]
+                    or r.get('snapshot_hash') != job['snapshot_hash'] or r.get('config_revision') != revisions[identifiers[0]] for r in history):
+                    return blocked()
+        return None
+
     @staticmethod
     def _rule_matches(rule, price):
         return price <= Decimal(rule['price']) if rule['operator'] == 'LTE' else price >= Decimal(rule['price'])
@@ -264,6 +344,8 @@ class AutomationService:
         return strategy if valid else None
 
     def _consensus_guard(self, job, decision):
+        if decision.get("schema_revision") == "assessment_v1":
+            return self._assessment_guard(job, decision)
         mode, identifiers, revisions = self._job_binding(job)
         if mode != "consensus":
             # Refusal states remain nonexecuting even if an inconsistent service
@@ -334,15 +416,70 @@ class AutomationService:
                     decision.update(risk_status="PAPER_REJECTED", order_id=None)
             self._complete(connection, job, decision, status, reason)
 
+    async def _wake_bar_watches(self):
+        """Refresh data only; an unchanged/missing bar never consumes model budget."""
+        import time
+        if self.feed is None or time.monotonic() < getattr(self, '_watch_poll_after', 0):
+            return
+        self._watch_poll_after = time.monotonic() + 15
+        with self.store.transaction() as connection:
+            pending = [(strategy, read(connection, schedules, strategy['id']) or {})
+                       for strategy in rows(connection, strategies) if self._active(strategy)]
+        from .analysis_snapshot import build_analysis_context
+        from .decision_execution import watch_triggered
+        for strategy, schedule in pending:
+            conditions = [c for c in schedule.get('watch_conditions', []) if c.get('kind') == 'NEW_BAR']
+            if not conditions or schedule.get('job_id') or not schedule.get('watch_baseline'):
+                continue
+            try:
+                context = await build_analysis_context(self.store, self.feed, strategy['symbol'],
+                    self.settings.quote_max_age_seconds,
+                    task_profile={**(strategy.get('task_profile') or {}), 'strategy_revision': strategy['revision']})
+                snapshot = context['analysis_snapshot']
+                if snapshot['quality']['status'] != 'READY':
+                    continue
+                closed = [v['closed_until'] for v in snapshot['market']['features'].values() if v.get('closed_until')]
+                if closed and watch_triggered(conditions, schedule['watch_baseline'], {'closed_until': max(closed)}):
+                    with self.store.transaction() as connection:
+                        latest = read(connection, schedules, strategy['id']) or {}
+                        if latest == schedule:
+                            latest['next_analysis_at'] = stamp()
+                            put(connection, schedules, strategy['id'], latest)
+            except ApiError:
+                continue
+
     async def tick(self):
         if not self.settings.automation_enabled:
             return None
+        await self._wake_bar_watches()
         config = await run_in_threadpool(self._configs)
         job = await run_in_threadpool(self._claim, config, self.quote_snapshot())
         if not job:
             return None
         try:
-            context = await run_in_threadpool(self.store.analysis_context, job["symbol"], self.quote_snapshot(), self.settings.quote_max_age_seconds)
+            if job.get('decision_schema') == 'assessment_v1' and job.get('decision_mode') != 'RULE':
+                if self.feed is None:
+                    raise ApiError('ANALYSIS_FEED_REQUIRED', '分析行情服务不可用。', 409)
+                from .analysis_snapshot import build_analysis_context
+                context = await build_analysis_context(self.store, self.feed, job['symbol'],
+                    self.settings.quote_max_age_seconds, task_profile={**(job.get('task_profile') or {}), 'strategy_revision': job['strategy_revision']})
+                snapshot = context['analysis_snapshot']
+                quote = context.get('quote', {})
+                closed = [v.get('closed_until') for v in snapshot.get('market', {}).get('features', {}).values() if v.get('closed_until')]
+                observation = {'price': quote.get('price'), 'closed_until': max(closed) if closed else None}
+                with self.store.transaction() as connection:
+                    saved = read(connection, jobs, job['id'])
+                    saved.update(snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'], watch_observation=observation)
+                    put(connection, jobs, job['id'], saved)
+                job.update(snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'])
+                if snapshot['quality']['status'] != 'READY':
+                    decision = dict(id=job['model_key'], symbol=job['symbol'], created_at=stamp(),
+                        schema_revision='assessment_v1', assessment_status='DATA_BLOCKED', proposal=None,
+                        reason_code='DATA_BLOCKED', missing_required=snapshot['quality']['missing_required'])
+                    await run_in_threadpool(self._finish, job, {'decision': decision})
+                    return job['id']
+            else:
+                context = await run_in_threadpool(self.store.analysis_context, job["symbol"], self.quote_snapshot(), self.settings.quote_max_age_seconds)
             if not await run_in_threadpool(self._before_dispatch, job):
                 await run_in_threadpool(self._finish, job)
                 return job["id"]
@@ -354,7 +491,8 @@ class AutomationService:
                     summary=f"价格 {price} {job['rule']['operator']} {job['rule']['price']}；服务端规则计算。",
                     risk_status='NOT_EVALUATED', created_at=stamp(), data_as_of=context['quote']['as_of'])}
             elif hasattr(self.models, "analyze"):
-                result = await self.models.analyze(job["symbol"], mode, identifiers, revisions, job["model_key"], context)
+                options = {'decision_policy': job.get('decision_policy', 'unanimous')} if job.get('decision_schema') == 'assessment_v1' else {}
+                result = await self.models.analyze(job["symbol"], mode, identifiers, revisions, job["model_key"], context, **options)
             elif mode == "single" and identifiers == [repository.DEFAULT_PROFILE_ID]:
                 result = await self.models.generate(job["symbol"], revisions[repository.DEFAULT_PROFILE_ID], job["model_key"], context)
             else:

@@ -205,6 +205,12 @@ class ModelService:
 
     @staticmethod
     def _clean_context(symbol, context):
+        if isinstance(context, dict) and 'analysis_snapshot' in context:
+            from .analysis_snapshot import validate_snapshot
+            snapshot = validate_snapshot(context['analysis_snapshot'])
+            if snapshot['market']['quote'] is not None and snapshot['market']['quote']['symbol'] != symbol:
+                raise ApiError('INVALID_MODEL_CONTEXT', 'Snapshot symbol mismatch.')
+            return {'symbol': symbol, 'analysis_snapshot': snapshot}
         try:
             quote = context['quote']
             age = (datetime.now(timezone.utc) - datetime.fromisoformat(quote['as_of'])).total_seconds()
@@ -245,6 +251,8 @@ class ModelService:
                 {'code': 'MODEL_REQUEST_FAILED', 'error': '模型请求未完成；不会自动重试。'})
 
     async def generate(self, symbol, expected_revision, key, context, *, profile_id=DEFAULT_PROFILE_ID, component=False):
+        if isinstance(context, dict) and 'analysis_snapshot' in context:
+            return await self.analyze(symbol, 'single', [profile_id], {profile_id: expected_revision}, key, context)
         self._request_identity(symbol, key)
         if type(expected_revision) is not int or expected_revision < 0:
             raise ApiError('INVALID_MODEL_REQUEST', '模型版本无效。')
@@ -293,7 +301,7 @@ class ModelService:
             repository.write_run(connection, key, dict(record, status='SUCCEEDED', result=result))
         return result
 
-    async def analyze(self, symbol, analysis_mode, profile_ids, expected_revisions, key, context):
+    async def analyze(self, symbol, analysis_mode, profile_ids, expected_revisions, key, context, *, decision_policy='unanimous'):
         self._request_identity(symbol, key)
         if (analysis_mode not in ('single', 'consensus') or not isinstance(profile_ids, list)
                 or any(not isinstance(p, str) or not 1 <= len(p) <= 64 for p in profile_ids)
@@ -303,6 +311,12 @@ class ModelService:
                 or not isinstance(expected_revisions, dict) or set(expected_revisions) != set(profile_ids)
                 or any(type(v) is not int or v < 0 for v in expected_revisions.values())):
             raise ApiError('INVALID_MODEL_REQUEST', '请选择一个模型，或选择 2–3 个不同模型交叉分析，并提供对应版本。')
+        if decision_policy not in ('unanimous', 'evidence_review'):
+            raise ApiError('INVALID_MODEL_REQUEST', 'Unknown decision policy.')
+        if isinstance(context, dict) and 'analysis_snapshot' in context:
+            return await self._assess(symbol, analysis_mode, list(profile_ids), dict(expected_revisions), key, context, decision_policy)
+        if decision_policy != 'unanimous':
+            raise ApiError('INVALID_MODEL_REQUEST', 'Evidence review requires a snapshot.')
         # Freeze the caller's mutable selection before the first await.
         profile_ids, expected_revisions = list(profile_ids), dict(expected_revisions)
         if analysis_mode == 'single':
@@ -404,3 +418,163 @@ class ModelService:
     async def close(self):
         if self._owned_client is not None:
             await self._owned_client.aclose()
+
+    async def _assess(self, symbol, mode, ids, revisions, key, context, policy):
+        from .decision_assessment import validate_assessment, validate_review, PROMPT_REVISION
+        clean = self._clean_context(symbol, context)
+        snapshot = clean['analysis_snapshot']
+        fingerprint = self._hash([symbol, mode, ids, revisions, policy, 'assessment_v1', snapshot['task_profile']])
+        with self.store.transaction() as connection:
+            cached = self._cached(repository.read_run(connection, key), [fingerprint])
+            if cached is not None:
+                return cached
+            configs = {}
+            for identifier in ids:
+                config = self._profile(connection, identifier)
+                self._revision(config, revisions[identifier])
+                if not config['enabled'] or not config['model']:
+                    raise ApiError('MODEL_NOT_CONFIGURED', 'Model is not enabled.', 409)
+                secret = self.vault.decrypt(config['encrypted_key'])
+                if not secret and not config['local_mode']:
+                    raise ApiError('MODEL_KEY_REQUIRED', 'Model key required.', 409)
+                configs[identifier] = (config, secret)
+            record = dict(fingerprint=fingerprint, status='IN_FLIGHT', created_at=stamp(), schema_revision='assessment_v1',
+                          snapshot=snapshot, requests=[], component=False, analysis_mode=mode, model_profile_ids=ids,
+                          profile_revisions=revisions, prompt_revision=PROMPT_REVISION, decision_policy=policy)
+            repository.write_run(connection, key, record, new=True)
+        components, history = [], []
+        usage = {'input_tokens': 0, 'output_tokens': 0}
+        max_calls = 2 if mode == 'single' else len(ids) + 1
+        deadline = asyncio.get_running_loop().time() + min(180, sum(c[0]['timeout_seconds'] for c in configs.values()) * 2)
+
+        def persist():
+            with self.store.transaction() as connection:
+                repository.write_run(connection, key, record)
+
+        async def call(identifier, role, extra=None):
+            if len(record['requests']) >= max_calls or asyncio.get_running_loop().time() >= deadline:
+                raise ApiError('MODEL_BUDGET_EXHAUSTED', 'Call or elapsed-time budget exhausted.', 409)
+            config, secret = configs[identifier]
+            with self.store.transaction() as connection:
+                self._revision(self._profile(connection, identifier), revisions[identifier])
+            request_context = dict(clean, role=role, **(extra or {}))
+            path, body = provider.payload(config, request_context)
+            serialized = json.dumps(body, ensure_ascii=False, allow_nan=False)
+            if len(serialized.encode()) > 120000 or any(s and s in serialized for _, s in configs.values()):
+                raise ApiError('INVALID_MODEL_CONTEXT', 'Unsafe request context.')
+            request_record = dict(profile_id=identifier, provider=config['protocol'], model=config['model'],
+                                  config_revision=config['revision'], role=role, path=path, body=body,
+                                  input_hash=self._hash(body), prompt_revision=PROMPT_REVISION,
+                                  snapshot_hash=snapshot['snapshot_hash'])
+            record['requests'].append(request_record)
+            persist()  # durable exact request before network I/O
+            component = dict(profile_id=identifier, role=role, snapshot_hash=snapshot['snapshot_hash'],
+                             config_revision=config['revision'], input_hash=request_record['input_hash'], status='FAILED')
+            components.append(component)
+            try:
+                async with asyncio.timeout(max(0.001, deadline-asyncio.get_running_loop().time())):
+                    raw = await provider.request(self.client, config, secret, 'POST', path, body)
+                consumed = provider._usage(raw)
+                component['usage'] = consumed
+                for name in usage:
+                    usage[name] += consumed.get(name) or 0
+                value, _ = provider.parse(config, raw, symbol, schema='review_v1' if role == 'review' else 'assessment_v1')
+                if any(s and s in json.dumps(value) for _, s in configs.values()):
+                    raise provider.invalid()
+                component.update(status='SUCCEEDED', response=value, usage=consumed)
+                # Store parsed provider content only; never hidden reasoning or transport bodies.
+                record['component_results'] = components
+                persist()
+                return value
+            except Exception as exc:
+                component.update(**self._error(exc))
+                record['component_results'] = components
+                persist()
+                raise
+
+        status, reason, selected, report = 'DECIDED', 'VALID_ASSESSMENT', None, None
+        try:
+            if snapshot['quality']['status'] != 'READY':
+                status, reason = 'DATA_BLOCKED', 'REQUIRED_EVIDENCE_MISSING'
+            else:
+                raw = await call(ids[0], 'primary')
+                try:
+                    selected = validate_assessment(raw, snapshot)
+                except ValueError as exc:
+                    raw = await call(ids[0], 'repair', {'validation_errors': [str(exc)[:300]]})
+                    selected = validate_assessment(raw, snapshot)
+                if mode == 'consensus' and policy == 'evidence_review':
+                    reports = []
+                    for identifier in ids[1:]:
+                        try:
+                            review = validate_review(await call(identifier, 'review', {'candidate': selected}), snapshot)
+                        except Exception:
+                            status, reason = 'REVIEW_REQUIRED', 'REQUIRED_REVIEW_FAILED'
+                            break
+                        reports.append(review)
+                    if status == 'DECIDED':
+                        report = {'issues': [issue for item in reports for issue in item['issues']],
+                                  'status': next((s for s in ('HARD', 'UNVERIFIED', 'SOFT') if any(r['status']==s for r in reports)), 'VERIFIED')}
+                        if report['status'] == 'HARD':
+                            status, reason = 'INVALID_PLAN', 'VERIFIED_REVIEW_DEFECT'
+                        elif report['status'] == 'UNVERIFIED':
+                            status, reason = 'REVIEW_REQUIRED', 'UNVERIFIED_CRITICAL_FACT'
+                        elif report['status'] == 'SOFT':
+                            raw = await call(ids[0], 'adjudication', {'candidate': selected, 'review_report': report})
+                            history.append(dict(components[-1]))
+                            revised = validate_assessment(raw, snapshot)
+                            old_plan, new_plan = selected['proposal'], revised['proposal']
+                            if new_plan is not None:
+                                if old_plan is None:
+                                    raise ValueError('Adjudication cannot introduce exposure')
+                                old_target, new_target = old_plan['target'], new_plan['target']
+                                if new_target['side'] != 'FLAT' and (new_target['side'] != old_target['side'] or new_target['sizing'] != old_target['sizing'] or Decimal(new_target['value']) > Decimal(old_target['value'])):
+                                    raise ValueError('Adjudication cannot increase or reverse exposure')
+                            selected = revised
+                elif mode == 'consensus':
+                    for identifier in ids[1:]:
+                        try:
+                            other = validate_assessment(await call(identifier, 'primary'), snapshot)
+                        except Exception:
+                            status, reason = 'REVIEW_REQUIRED', 'REQUIRED_REVIEW_FAILED'
+                            break
+                        # New plans require agreement on executable terms, not just direction.
+                        def terms(value):
+                            p = value['proposal']
+                            return None if p is None else {k:v for k,v in p.items() if k not in ('proposal_id','rationale','evidence_refs')}
+                        if terms(other) != terms(selected):
+                            status, reason = 'REVIEW_REQUIRED', 'UNANIMOUS_PLAN_DISAGREEMENT'
+        except ValueError:
+            status, reason = 'INVALID_PLAN', 'INVALID_ASSESSMENT'
+        except Exception as exc:
+            status, reason = 'MODEL_ERROR', 'MODEL_REQUEST_FAILED'
+            if isinstance(exc, ApiError) and exc.code == 'MODEL_BUDGET_EXHAUSTED':
+                status, reason = 'REVIEW_REQUIRED', exc.code
+        if selected is not None and status == 'DECIDED':
+            try:
+                validate_assessment(selected, snapshot)
+            except ValueError:
+                status, reason = 'EXPIRED', 'PLAN_EXPIRED_DURING_REVIEW'
+        # A late response is never authority under a changed model revision.
+        with self.store.transaction() as connection:
+            if any(self._profile(connection, p)['revision'] != revisions[p] for p in ids):
+                status, reason = 'EXPIRED', 'MODEL_REVISION_CHANGED'
+        proposal = selected['proposal'] if selected and status == 'DECIDED' else None
+        decision = dict(id=str(uuid4()), symbol=symbol, created_at=stamp(), schema_revision='assessment_v1',
+                        assessment_status=status, reason_code=reason, proposal=proposal,
+                        action=(proposal['action'] if proposal else 'HOLD') if status == 'DECIDED' else None,
+                        summary=selected['summary'] if selected else reason, counter_evidence=[], invalidation='',
+                        evidence_claims=selected['evidence_claims'] if selected else [],
+                        watch_conditions=selected['watch_conditions'] if selected and status == 'DECIDED' else [],
+                        next_review_at=selected['next_review_at'] if selected and status == 'DECIDED' else None,
+                        review_report=report, component_results=components, adjudication_history=history,
+                        snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'],
+                        input_hash=self._hash(clean), strategy_revision=snapshot['task_profile']['strategy_revision'],
+                        prompt_revision=PROMPT_REVISION, decision_policy=policy, decision_policy_revision='1',
+                        analysis_mode=mode, required_profile_ids=ids, model_profile_ids=ids, profile_revisions=revisions,
+                        model_profiles=[self._identity(configs[p][0]) for p in ids], data_as_of=snapshot['evidence_cutoff'],
+                        risk_status='NOT_EVALUATED', source='AI', budget={'max_calls':max_calls,'calls':len(record['requests']), 'reserved_output_tokens': sum(configs[r['profile_id']][0]['max_output_tokens'] for r in record['requests']), 'usage_complete': all(c.get('usage', {}).get('output_tokens') is not None for c in components)})
+        result = {'decision': decision, 'usage': usage}
+        record.update(status='SUCCEEDED', result=result)
+        persist()
+        return result

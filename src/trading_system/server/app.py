@@ -60,7 +60,9 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
             journal_directory=settings.paper_journal_directory), market_snapshot)
 
     automation = AutomationService(store, models, market_snapshot, settings)
-    automation.feed = feed
+    from .analysis_snapshot import AnalysisFeed
+    analysis_feed = AnalysisFeed(feed, market_snapshot, lambda: settings.market_enabled or quote_provider is not None)
+    automation.feed = analysis_feed
 
     async def refresh():
         nonlocal refresh_failed
@@ -339,7 +341,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
             if payload.task_profile is None:
                 raise ApiError('TASK_PROFILE_REQUIRED', '请选择研究周期与必需数据。')
             from .analysis_snapshot import build_analysis_context
-            return await build_analysis_context(store, feed, payload.symbol,
+            return await build_analysis_context(store, analysis_feed, payload.symbol,
                 settings.quote_max_age_seconds, dict(payload.task_profile.model_dump(), strategy_revision=1))
         return await run_in_threadpool(store.analysis_context, payload.symbol, market_snapshot(), settings.quote_max_age_seconds)
 

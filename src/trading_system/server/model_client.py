@@ -115,20 +115,34 @@ INSTRUCTIONS = ('Return only a JSON object with symbol, action (HOLD/BUY/SELL), 
                 'This is advice only, not an order or risk approval. Do not invent missing data.')
 
 
+ASSESSMENT_INSTRUCTIONS = ('Return only assessment_v1 JSON with exactly schema_revision, summary, proposal (approved DecisionProposal or null), evidence_claims, watch_conditions, next_review_at. '
+    'Null proposal means reasoned observation. Never fabricate HOLD entry/exit. Compare trading and waiting evidence; optional gaps do not automatically veto. '
+    'evidence_claims: [{evidence_ref,predicate:null or {field,operator:EQ|LT|GT,value},conclusion}]. '
+    'watch_conditions: [{kind:PRICE_ABOVE|PRICE_BELOW|NEW_BAR,evidence_ref,value:decimal string or null for NEW_BAR}]. '
+    'Ceilings are not recommended target sizes. Do not choose account identity or authorize risk. No hidden reasoning. ')
+REVIEW_INSTRUCTIONS = ('Return only review_v1 JSON with schema_revision and issues. Each issue has category FACT|PREFERENCE, evidence_ref, '
+    'predicate:null or {field,operator:EQ|LT|GT,value}, severity HARD|SOFT, suggestion. True predicate means defect exists. '
+    'Distinguish facts from preferences. Cite supplied evidence IDs. No authorization changes.')
+
+
 def payload(config, context):
     text = json.dumps(context, ensure_ascii=False, allow_nan=False)
+    instructions = INSTRUCTIONS
+    if 'analysis_snapshot' in context:
+        from ..contracts.wire import ContractCodec
+        instructions = REVIEW_INSTRUCTIONS if context.get('role') == 'review' else ASSESSMENT_INSTRUCTIONS + json.dumps(ContractCodec()._schemas['decision-proposal'])
     common = {'model': config['model']}
     if config['protocol'] == 'openai_responses':
-        return '/responses', dict(common, input=text, instructions=INSTRUCTIONS, max_output_tokens=config['max_output_tokens'], store=False)
+        return '/responses', dict(common, input=text, instructions=instructions, max_output_tokens=config['max_output_tokens'], store=False)
     messages = [{'role': 'user', 'content': text}]
     if config['protocol'] == 'anthropic':
-        return '/messages', dict(common, system=INSTRUCTIONS, messages=messages, max_tokens=config['max_output_tokens'], stream=False)
+        return '/messages', dict(common, system=instructions, messages=messages, max_tokens=config['max_output_tokens'], stream=False)
     token_field = 'max_completion_tokens' if urlsplit(config['base_url']).hostname == 'api.openai.com' else 'max_tokens'
-    return '/chat/completions', dict(common, messages=[{'role': 'system', 'content': INSTRUCTIONS}] + messages,
+    return '/chat/completions', dict(common, messages=[{'role': 'system', 'content': instructions}] + messages,
                                      stream=False, **{token_field: config['max_output_tokens']})
 
 
-def parse(config, body, symbol):
+def parse(config, body, symbol, *, schema=None):
     try:
         protocol = config['protocol']
         if protocol == 'openai_chat':
@@ -160,6 +174,10 @@ def parse(config, body, symbol):
         if not isinstance(text, str) or len(text) > 16000:
             raise ValueError()
         advice = strict_json(text)
+        if schema is not None:
+            if not isinstance(advice, dict) or advice.get('schema_revision') != schema:
+                raise ValueError()
+            return advice, _usage(body)
         if set(advice) != {'symbol', 'action', 'summary', 'counter_evidence', 'invalidation'} or advice['symbol'] != symbol or advice['action'] not in ('HOLD', 'BUY', 'SELL'):
             raise ValueError()
         for field in ('summary', 'invalidation'):
@@ -175,3 +193,11 @@ def parse(config, body, symbol):
         return advice, usage
     except (KeyError, TypeError, ValueError, AttributeError, RecursionError):
         raise invalid() from None
+
+
+def _usage(body):
+    raw = body.get('usage') or {}
+    usage = {k: raw.get(k, raw.get(old)) for k, old in [('input_tokens', 'prompt_tokens'), ('output_tokens', 'completion_tokens')]}
+    if any(v is not None and (type(v) is not int or v < 0) for v in usage.values()):
+        raise ValueError('Invalid usage')
+    return usage

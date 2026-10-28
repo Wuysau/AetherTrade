@@ -18,3 +18,12 @@ it('shows exact target and exit without treating ceiling as allocation', () => {
   expect(screen.getByText(/500/)).toBeTruthy();
   expect(screen.getByText(/90/)).toBeTruthy();
 });
+
+import {changeResearchInterval,researchProfile} from '../src/runtime/assessment';
+it('interval edits preserve required news, allowed actions and holding policy',()=>{
+  const profile={...researchProfile(),required:['quote','candles:15m','news'],optional:['book'],allowed_operations:['HOLD'],holding_period_seconds:7200};
+  const changed=changeResearchInterval(profile,'1h');
+  expect(changed.required).toEqual(['quote','candles:1h','news']);
+  expect(changed.allowed_operations).toEqual(['HOLD']);
+  expect(changed.holding_period_seconds).toBe(7200);
+});
