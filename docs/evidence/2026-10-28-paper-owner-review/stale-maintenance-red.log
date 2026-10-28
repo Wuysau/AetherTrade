@@ -1,0 +1,11 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____ test_maintenance_outlives_entry_quote_and_entry_grant_without_model _____
+tests\integration\test_paper_owner_maintenance.py:161: in test_maintenance_outlives_entry_quote_and_entry_grant_without_model
+    assert not any(r.get('error_type') for r in results), (results, diagnostics)
+E   AssertionError: ([{'receipt_id': 'paper-ack:console-command:688bbd8320c38cca3a6df2736f3ade695663626699668d0ea211c02318b135c6', 'comman...786', 'status': 'RECONCILIATION_REQUIRED', 'error_type': 'DispatchDenied'}], ['RISK_LOCK_OR_GROUP_COMMAND_UNRESOLVED'])
+E   assert not True
+E    +  where True = any(<generator object test_maintenance_outlives_entry_quote_and_entry_grant_without_model.<locals>.<genexpr> at 0x000002BF86F54820>)
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_owner_maintenance.py::test_maintenance_outlives_entry_quote_and_entry_grant_without_model
+1 failed, 6 deselected in 3.43s

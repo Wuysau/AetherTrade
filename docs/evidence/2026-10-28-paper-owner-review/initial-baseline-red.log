@@ -1,0 +1,29 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+________________ test_unchanged_queries_preserve_pending_basis ________________
+tests\integration\test_paper_owner_maintenance.py:52: in test_unchanged_queries_preserve_pending_basis
+    assert runtime._book(tx,tx.scope,refresh=True) == before
+E   AssertionError: assert BookSnapshot(...278+00:00'),)) == BookSnapshot(...815+00:00'),))
+E     
+E     Omitting 6 identical items, use -vv to show
+E     Differing attributes:
+E     ['sequence', 'basis_fingerprint', 'evidence']
+E     
+E     Drill down into differing attribute sequence:
+E       sequence: 2 != 1...
+E     
+E     ...Full output truncated (10 lines hidden), use '-vv' to show
+_____ test_owner_repairs_partial_without_model_or_fabricated_verification _____
+tests\integration\test_paper_owner_maintenance.py:72: in test_owner_repairs_partial_without_model_or_fabricated_verification
+    assert conn.execute("SELECT count(*) FROM ledger.commands WHERE sequence=1 AND payload->>'operation'='SET_PROTECTION'").fetchone()[0] == 1
+E   assert 0 == 1
+______ test_daily_review_requires_next_day_flat_proof_and_separate_role _______
+tests\integration\test_paper_owner_maintenance.py:96: in test_daily_review_requires_next_day_flat_proof_and_separate_role
+    assert result['resolved'], result
+E   AssertionError: {'lock_id': 'console-daily:2026-10-28', 'resolved': False, 'remaining_locks': [{'lock_id': 'console-daily:2026-10-28',...uid': 'console-paper:BTCUSDT', ...}, 'cause': 'DAILY_LOSS', 'state': 'ACTIVE', ...}], 'missing': ['DAILY_LOSS_REVIEW']}
+E   assert False
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_owner_maintenance.py::test_unchanged_queries_preserve_pending_basis
+FAILED tests/integration/test_paper_owner_maintenance.py::test_owner_repairs_partial_without_model_or_fabricated_verification
+FAILED tests/integration/test_paper_owner_maintenance.py::test_daily_review_requires_next_day_flat_proof_and_separate_role
+3 failed, 1 deselected in 5.50s
