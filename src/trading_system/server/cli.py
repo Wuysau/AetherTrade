@@ -35,6 +35,13 @@ def main(argv: list[str] | None = None) -> int:
         command.add_argument('command_id')
         if operation in ('cancel', 'protect'):
             command.add_argument('--key', required=True)
+    reduce = commands.add_parser('paper-reduce', help='Adjust a verified stop before bounded reduction; explicit cancel confirmation required')
+    reduce.add_argument('command_id')
+    reduce.add_argument('--quantity', required=True)
+    reduce.add_argument('--key', required=True)
+    continuation = commands.add_parser('paper-reduction-continue', help='Continue a confirmed and reviewed stop adjustment')
+    continuation.add_argument('command_id')
+    continuation.add_argument('--maximum-age', type=int, default=90)
     event = commands.add_parser('paper-event', help='Explicitly inject a virtual venue event; never a real venue')
     event.add_argument('command_id')
     event.add_argument('--event-id', required=True)
@@ -98,6 +105,14 @@ def main(argv: list[str] | None = None) -> int:
                 elif args.command == 'paper-event':
                     result = runtime.inject(args.command_id, dict(event_id=args.event_id, status=args.status,
                         cumulative_quantity=args.cumulative, price=args.price))
+                elif args.command == 'paper-reduce':
+                    result = runtime.begin_reduction(args.command_id, args.quantity, args.key)
+                elif args.command == 'paper-reduction-continue':
+                    from sqlalchemy import select
+                    from .store import state
+                    with store.engine.connect() as connection:
+                        data = connection.execute(select(state.c.data).where(state.c.id == 1)).scalar_one()
+                    result = runtime.continue_reduction(args.command_id, saved_quotes(), args.maximum_age, data)
                 elif args.command in ('paper-cancel', 'paper-protect'):
                     result = getattr(runtime, args.command.removeprefix('paper-'))(args.command_id, args.key)
                 elif args.command == 'paper-recover':

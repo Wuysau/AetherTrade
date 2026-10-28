@@ -377,6 +377,32 @@ class UnifiedPaperRuntime:
 
     def accept(self, payload, key, market, maximum_age, data, strategy=None):
         with self.control_guard():
+            if payload.get('side') == 'SELL':
+                with self.uow.transaction(scope_for(payload['symbol'])) as tx:
+                    retries = tx.execute("SELECT a.payload->>'cancel',a.payload->>'quantity' FROM ledger.audit_events a "
+                        "JOIN ledger.audit_events r ON r.scope_id=a.scope_id AND r.record_id='console:request:'||(a.payload->>'cancel') "
+                        "WHERE a.scope_id=%s AND a.record_id LIKE 'paper:adjustment:%%' AND r.payload->>'key'=%s",
+                        (scope_id(tx.scope), key)).fetchall()
+                    if retries:
+                        identifier, saved_quantity = retries[0]
+                        if D(saved_quantity) != amount(payload['quantity'], scale=18):
+                            raise ApiError('IDEMPOTENCY_CONFLICT', '同一调整标识已用于其他数量。', 409)
+                        return dict(self._receipt(self._request(tx, identifier)), quantity=saved_quantity,
+                            operation='PROTECTED_REDUCTION', phase='CANCEL_CONFIRM_REQUIRED',
+                            next_action='QUERY_CANCEL_THEN_REVIEW_AND_CONTINUE',
+                            protection_responsibility='RETAINED_UNTIL_EXIT_OR_VERIFIED_REPLACEMENT')
+                    book = self._book(tx, tx.scope, refresh=True)
+                    plan = tx._latest('protection_plans', 'protection:' + scope_id(tx.scope), t.ProtectionPlan)
+                    stop_id = (plan.native_order_ids[0].identity.logical_client_order_id.removeprefix('logical:')
+                        if plan and plan.state == 'VERIFIED_NATIVE' and len(plan.native_order_ids) == 1 else None)
+                    original = self._request(tx, stop_id) if stop_id else None
+                    if strategy and original and original.strategy_id != strategy['id']:
+                        raise ApiError('POSITION_OWNERSHIP', '当前保护属于其他策略或人工。', 409)
+                if stop_id:
+                    receipt = self.begin_reduction(stop_id, payload['quantity'], key)
+                    return dict(receipt, quantity=payload['quantity'], operation='PROTECTED_REDUCTION',
+                        phase='CANCEL_CONFIRM_REQUIRED', next_action='QUERY_CANCEL_THEN_REVIEW_AND_CONTINUE',
+                        protection_responsibility='RETAINED_UNTIL_EXIT_OR_VERIFIED_REPLACEMENT')
             return self._accept(payload, key, market, maximum_age, data, strategy)
 
     def _accept(self, payload, key, market, maximum_age, data, strategy=None):
@@ -528,22 +554,79 @@ class UnifiedPaperRuntime:
         with self.control_guard():
             return self._cancel(command_id, key)
 
-    def _cancel(self, command_id, key):
+    def pending_protected_adjustment(self, tx):
+        rows = tx.execute("SELECT payload->>'cancel' FROM ledger.audit_events WHERE scope_id=%s "
+            "AND record_id LIKE 'paper:adjustment:%%'", (scope_id(tx.scope),)).fetchall()
+        for cancel_id, in rows:
+            close_id = 'console-command:' + canonical_hash({'key': 'adjustment-close:' + cancel_id, 'account': ACCOUNT})
+            close = CommandRepository(tx).get(close_id)
+            order = tx._latest('order_projections', close.logical_client_order_id, t.OrderProjection) if close else None
+            if order is None or order.lifecycle_state not in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED'):
+                return True
+        return False
+
+    def begin_reduction(self, command_id, quantity, key):
+        """Explicit stop adjustment; caller must confirm cancel, then continue."""
+        with self.control_guard():
+            return self._cancel(command_id, key, adjustment_quantity=quantity)
+
+    def continue_reduction(self, cancel_id, market, maximum_age, data):
+        from trading_system.risk.protection_adjustment import adjustment
+        with self.control_guard():
+            scope, symbol = self._scope_command(cancel_id)
+            with self.uow.transaction(scope) as tx:
+                record = adjustment(tx, cancel_id)
+                close_id = 'console-command:' + canonical_hash({'key': 'adjustment-close:' + cancel_id, 'account': ACCOUNT})
+                existing = self._request(tx, close_id)
+                if existing and CommandRepository(tx).get(close_id):
+                    return self._receipt(existing)
+                cancel = CommandRepository(tx).get(cancel_id)
+                if record is None or cancel is None or cancel.operation != 'CANCEL':
+                    raise ApiError('PROTECTION_ADJUSTMENT_REQUIRED', '继续减仓需要原有界保护调整命令。', 409)
+                parent = CommandRepository(tx).get(cancel.parent_command_id)
+                stop = tx._latest('order_projections', parent.logical_client_order_id, t.OrderProjection)
+                book = self._book(tx, scope, refresh=True)
+                actual = sum((p.actual_quantity.value for p in book.positions), D(0))
+                if (record is None or stop is None or stop.lifecycle_state != 'CANCELED'
+                        or stop.command_certainty != 'CONFIRMED' or stop.pending_operation != 'NONE'
+                        or actual != D(record['actual']) or book.active_orders
+                        or stop.order.owner_strategy_id != OWNER or stop.order.ownership_epoch != cancel.ownership_epoch):
+                    raise ApiError('REDUCTION_CANCEL_UNCONFIRMED', '先查询原保护单并确认撤销；数量或归属变化需要重新审查。', 409)
+                if any(lock.permission == t.RiskPermission.RECOVERY_REQUIRED for lock in tx.risk_locks.applicable(scope)):
+                    raise ApiError('REDUCTION_REVIEW_REQUIRED', '原撤单虽已确认，UNKNOWN 风险锁仍需独立审查后才能继续。', 409)
+            return self.accept(dict(symbol=symbol, side='SELL', quantity=record['quantity']),
+                'adjustment-close:' + cancel_id, market, maximum_age, data)
+
+    def _cancel(self, command_id, key, *, adjustment_quantity=None):
         scope, symbol = self._scope_command(command_id)
         now = self.clock()
         with self.uow.transaction(scope) as tx:
             parent = CommandRepository(tx).get(command_id)
             previous = self._request(tx, command_id)
-            target = tx._latest('order_projections', parent.logical_client_order_id, t.OrderProjection)
-            if (parent.operation != 'SUBMIT' or parent.canonical_payload.side != 'BUY' or target is None
-                    or target.lifecycle_state not in ('SUBMITTED', 'ACCEPTED', 'PARTIALLY_FILLED')
-                    or target.command_certainty != 'CONFIRMED' or target.pending_operation != 'NONE'):
-                raise ApiError('CANCEL_TARGET_UNVERIFIED', '只能撤销已确认归属且没有未知操作的入场余单。', 409)
             new_id = 'console-cancel:' + canonical_hash({'parent': command_id, 'key': key})
             existing = self._request(tx, new_id)
             if existing:
+                from trading_system.risk.protection_adjustment import adjustment
+                saved = adjustment(tx, new_id)
+                if adjustment_quantity is not None and (saved is None or D(saved['quantity']) != amount(adjustment_quantity, scale=18)):
+                    raise ApiError('IDEMPOTENCY_CONFLICT', '同一调整标识已用于其他数量。', 409)
                 return self._receipt(existing)
+            target = tx._latest('order_projections', parent.logical_client_order_id, t.OrderProjection)
+            adjusting = adjustment_quantity is not None
+            if ((not adjusting and (parent.operation != 'SUBMIT' or parent.canonical_payload.side != 'BUY')) or target is None
+                    or target.lifecycle_state not in ('SUBMITTED', 'ACCEPTED', 'PARTIALLY_FILLED')
+                    or target.command_certainty != 'CONFIRMED' or target.pending_operation != 'NONE'):
+                raise ApiError('CANCEL_TARGET_UNVERIFIED', '只能撤销已确认归属且没有未知操作的入场余单。', 409)
             book = self._book(tx, scope, refresh=True)
+            if adjusting:
+                from trading_system.risk.protection_adjustment import verified_adjustment, ProtectionAdjustment
+                quantity = amount(adjustment_quantity, scale=18)
+                actual = sum((p.actual_quantity.value for p in book.positions), D(0))
+                record = ProtectionAdjustment(parent=command_id, cancel=new_id, actual=str(actual), quantity=str(quantity))
+                tx._append('audit_events', 'paper:adjustment:' + new_id, record, 0)
+                candidate = replace(parent, command_id=new_id)
+                if quantity % self._spec(symbol).quantity_step.value or not verified_adjustment(tx, candidate, parent, target, book):
+                    raise ApiError('PROTECTION_ADJUSTMENT_UNVERIFIED', '仅允许对完整已验证保护责任发起有界减仓调整。', 409)
             expiry = (utc_timestamp(now.utc_now) + timedelta(seconds=30)).isoformat()
             auth = replace(previous.authorization.authorization, authorization_id='grant:' + new_id,
                 valid_from=now.utc_now, expires_at=expiry)
@@ -554,7 +637,6 @@ class UnifiedPaperRuntime:
                 execution=replace(previous.intent.execution, entry_deadline=expiry),
                 decision_run_id='manual-cancel:' + key, supersedes_intent_id=previous.intent.intent_id)
             logical = 'logical:' + new_id
-            body = ContractCodec().encode(parent)['canonical_payload']
             command = replace(parent, command_id=new_id, intent_id=intent.intent_id, attempt_id='attempt:' + new_id,
                 parent_command_id=command_id, logical_client_order_id=logical,
                 venue_client_order_id=paper_client_order_id(scope, logical, 'CANCEL'),
@@ -562,7 +644,8 @@ class UnifiedPaperRuntime:
                 state='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='pending-atomic-control', created_at=now.utc_now)
             request = replace(previous, key=key, fingerprint=canonical_hash({'cancel': command_id}), mode='MANUAL',
                 command_id=new_id, intent_id=intent.intent_id, requested_at=now.utc_now, intent=intent,
-                authorization=binding, rationale='受权撤销原入场余单；不释放未知风险预留。')
+                authorization=binding, rationale=('保护调整：等待原单确认撤销及独立 UNKNOWN 审查，再显式继续减仓；保护责任持续。' if adjusting
+                    else '受权撤销原入场余单；不释放未知风险预留。'))
             tx.intents.append(intent)
             tx._append('audit_events', 'console:request:' + new_id, request, 0)
             CommandRepository(tx).append(command)
@@ -819,7 +902,9 @@ class UnifiedPaperRuntime:
                 book = tx.projections.book(scope)
                 parent = CommandRepository(tx).get(command.parent_command_id)
                 targets = [p for p in book.active_orders if p.order.identity.venue_order_id == command.target_order_id]
-                if (parent is None or parent.operation != 'SUBMIT' or parent.canonical_payload.side != 'BUY'
+                from trading_system.risk.protection_adjustment import verified_adjustment
+                adjusting = (len(targets) == 1 and verified_adjustment(tx, command, parent, targets[0], book))
+                if (parent is None or (not adjusting and (parent.operation != 'SUBMIT' or parent.canonical_payload.side != 'BUY'))
                         or len(targets) != 1 or targets[0].command_certainty != 'CONFIRMED'
                         or targets[0].pending_operation != 'NONE' or targets[0].order.owner_strategy_id != OWNER
                         or targets[0].order.ownership_epoch != intent.ownership_epoch
@@ -1155,7 +1240,10 @@ class UnifiedPaperRuntime:
                     and protection_proof.order.order.identity.scope == scope
                     and protection_proof.quantity.value == actual
                     and protection_proof.stop_price == (plan.stop_price if plan else t.Price(value=D(request.intent.exit_plan.stop_price), currency='USDT')))
-                protection_failed = (command.operation == 'SET_PROTECTION' and current.lifecycle_state in ('REJECTED', 'EXPIRED', 'CANCELED'))
+                from trading_system.risk.protection_adjustment import intentional_cancel
+                protection_failed = (command.operation == 'SET_PROTECTION'
+                    and current.lifecycle_state in ('REJECTED', 'EXPIRED', 'CANCELED')
+                    and not intentional_cancel(tx, command, current))
                 next_plan = t.ProtectionPlan(plan_id=plan_id, mode='NATIVE', scope=scope,
                     coverage_quantity=t.Quantity(value=actual, unit='BASE'),
                     stop_price=plan.stop_price if plan else t.Price(value=D(request.intent.exit_plan.stop_price), currency='USDT'), stop_trigger='LAST',
@@ -1230,10 +1318,12 @@ class UnifiedPaperRuntime:
             return self._projection()
 
     def _projection(self):
-        targets, commands, locks, protections, orders_view = [], [], [], [], []
+        targets, commands, locks, protections, orders_view, adjustments = [], [], [], [], [], []
         for symbol in SYMBOLS:
             scope = scope_for(symbol)
             with self.uow.transaction(scope) as tx:
+                from trading_system.risk.protection_adjustment import adjustment_views
+                adjustments.extend(dict(view, symbol=symbol) for view in adjustment_views(tx, ACCOUNT))
                 records = tx.execute("SELECT payload FROM ledger.audit_events WHERE scope_id=%s "
                     "AND record_id LIKE 'console:request:%%' AND sequence=1 ORDER BY processed_at", (scope_id(scope),)).fetchall()
                 book = tx._latest('book_snapshots', 'book', t.BookSnapshot)
@@ -1289,4 +1379,5 @@ class UnifiedPaperRuntime:
                 locks.extend(domain_payload(lock) for lock in tx.risk_locks.applicable(scope))
         return dict(mode='UNIFIED_PAPER', simulation_notice=NOTICE, targets=targets, commands=commands,
             orders=orders_view, positions=self.account_view()['positions'], protection_plans=protections,
+            protection_adjustments=adjustments,
             risk_locks=list({l['lock_id']: l for l in locks}.values()))

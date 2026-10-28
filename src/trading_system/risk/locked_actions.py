@@ -151,14 +151,16 @@ class LockedActionVerifier:
             from trading_system.execution.commands import CommandRepository
             parent = CommandRepository(tx).get(command.parent_command_id)
             details = [term for term in proof.orders if term.order == target.order]
-            if (parent is None or parent.operation != 'SUBMIT' or parent.parent_command_id is not None
-                    or parent.canonical_payload.side != 'BUY' or scope.product != t.Product.SPOT
+            from .protection_adjustment import verified_adjustment
+            adjusting = verified_adjustment(tx, command, parent, target, book)
+            if (parent is None or (not adjusting and (parent.operation != 'SUBMIT' or parent.parent_command_id is not None
+                    or parent.canonical_payload.side != 'BUY')) or scope.product != t.Product.SPOT
                     or parent.logical_client_order_id != target.order.identity.logical_client_order_id
                     or target.order.owner_strategy_id != intent.owner_strategy_id
                     or target.order.ownership_epoch != intent.ownership_epoch
                     or target.command_certainty != 'CONFIRMED' or target.pending_operation != 'NONE'
                     or target.lifecycle_state not in ('SUBMITTED', 'ACCEPTED', 'PARTIALLY_FILLED')
-                    or len(details) != 1 or details[0].side != 'BUY' or details[0].evidence not in report.evidence
+                    or len(details) != 1 or details[0].side != ('SELL' if adjusting else 'BUY') or details[0].evidence not in report.evidence
                     or target.leaves_quantity.unit != intent.quantity_unit or target.leaves_quantity.value <= 0
                     or not ('EXIT' in allowed or 'MANAGE' in allowed)):
                 return None
