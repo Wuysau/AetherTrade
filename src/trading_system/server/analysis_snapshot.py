@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import asyncio
 import hashlib
 import json
 import re
@@ -91,7 +92,7 @@ async def build_analysis_context(store, feed, symbol, maximum_age, task_profile=
     cutoff = parse.utc_now()
     cutoff_ms = int(cutoff.timestamp() * 1000)
     context = store.analysis_context(symbol, public, maximum_age)
-    generation = public.get('source_generation', -1)
+    generation = public.get('source_generation', 0)
     source_id = public.get('source_id', 'unbound')
     matched = before.get('source_generation') == generation and before.get('source_id') == source_id and generation >= 0
     matched = matched and public.get('product') == 'SPOT' and public.get('venue') == 'BINANCE'
@@ -162,6 +163,14 @@ async def build_analysis_context(store, feed, symbol, maximum_age, task_profile=
                     previous_assessment=None,
                     quality=dict(status='DATA_BLOCKED' if missing_required else 'READY', missing_required=missing_required, missing_optional=missing_optional, sections=sections),
                     evidence_refs=[r for r,s in sections.items() if s['status']=='READY'] + ['features:' + i for i in features])
+    runtime = getattr(store, 'execution', None)
+    if runtime is not None and not getattr(store, 'sqlite', True) and callable(getattr(runtime, 'analysis_evidence', None)):
+        # The runtime reads its durable account/order/protection ledger. No
+        # public-market network operation occurs while its guard is held.
+        evidence = await asyncio.to_thread(runtime.analysis_evidence, symbol)
+        snapshot['portfolio'].update(evidence['portfolio'])
+        snapshot['constraints'].update(evidence['constraints'])
+        snapshot['costs'] = evidence['costs']
     snapshot['snapshot_hash'] = _digest(snapshot)
     snapshot['snapshot_id'] = 'snapshot:' + snapshot['snapshot_hash'][:32]
     context['analysis_snapshot'] = validate_snapshot(snapshot)
@@ -195,7 +204,9 @@ def validate_snapshot(snapshot):
                       market=obj(dict(quote=nullable(obj(dict(symbol={'enum':list(parse.ALL_SYMBOLS)},price=number,change_pct=number,as_of=stamp))),
                                       candles=windows({'type':'array','items':row,'maxItems':199}),features=windows(feature),partial=windows(row),
                                       book=nullable(obj(dict(as_of=stamp,bid=number,ask=number,spread=number))))),
-                      portfolio=obj(dict(account=account,position=nullable(position),active_orders={'type':'null'},reserved_funds={'type':'null'},protection_status={'const':'UNKNOWN'})),
+                      portfolio=obj(dict(account=account,position=nullable(position),
+                                         active_orders=nullable({'type':'array','maxItems':200,'items':obj(dict(side={'enum':['BUY','SELL']},quantity=number,filled_quantity=number,status={'type':'string','pattern':'^[A-Z_]+$','maxLength':40}))}),
+                                         reserved_funds=nullable(number),protection_status={'enum':['UNKNOWN','NO_POSITION','VERIFIED_SYNTHETIC','GAP']})),
                       constraints=obj(dict(max_position_pct=number,max_daily_loss=number,maximum_target_notional=number,execution_supported=boolean,protection_supported=boolean),['execution_supported','protection_supported']),
                       costs=obj(dict(fee_rate=nullable(number),fee_source={'enum':['UNAVAILABLE','PAPER_POLICY']},slippage_bps=nullable(number),complete=boolean)),previous_assessment={'type':'null'},
                       quality=obj(dict(status={'enum':['READY','DATA_BLOCKED']},missing_required=refs,missing_optional=refs,sections=dict(type='object',properties={r:section_schema for r in REFS},additionalProperties=False))),evidence_refs=refs))

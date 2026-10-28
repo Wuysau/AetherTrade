@@ -133,3 +133,24 @@ def test_d04_ws_closed_evidence_survives_feed():
     assert feed.snapshot()['candles']['BTCUSDT']['1h']['closed'] is True
     payload['data']['k']['x'] = 'true'
     with pytest.raises(parse.InvalidMarketData): feed._apply_binance_ws(payload)
+
+def test_runtime_summary_populates_authoritative_capabilities():
+    class Runtime:
+        def analysis_evidence(self, symbol):
+            assert symbol == 'BTCUSDT'
+            return dict(portfolio=dict(active_orders=[dict(side='BUY',quantity='2',filled_quantity='1',status='CANCEL_UNKNOWN')],reserved_funds='11',protection_status='VERIFIED_SYNTHETIC'),
+                        constraints=dict(execution_supported=True,protection_supported=True),
+                        costs=dict(fee_rate='0.001',fee_source='PAPER_POLICY',slippage_bps='20',complete=True))
+    store = Store(); store.execution = Runtime(); store.sqlite = False
+    result = asyncio.run(build_analysis_context(store, Feed(), 'BTCUSDT', 30, PROFILE))['analysis_snapshot']
+    assert result['constraints']['protection_supported'] is True
+    assert result['portfolio']['reserved_funds'] == '11'
+    assert result['portfolio']['active_orders'][0]['status'] == 'CANCEL_UNKNOWN'
+    assert result['costs']['complete'] is True
+
+def test_legacy_feed_missing_history_and_provenance_is_data_blocked():
+    feed = Feed(); public = feed.snapshot()
+    public.pop('source_generation'); public.pop('source_id')
+    feed.snapshot = lambda: public
+    feed.candles = None
+    assert build(feed)['quality']['status'] == 'DATA_BLOCKED'
