@@ -1,0 +1,31 @@
+{
+  "source_commit": "6cbc8707436fce94bfe6a9779e6c87fb6308af38",
+  "archive": "reporting-regression-red-green-raw.zip",
+  "archive_sha256": "0a2159efaed20f6747fd414d13662cf2d6572672693419a5619605fed789fa0b",
+  "files_sha256": {
+    "marked-console-probe-11a6f704.log": "e5617b9de742b6dff411ec08e278f6b210e1f4c82da167fdee128d8a4cf167cc",
+    "marked-console-probe-11a6f704.exit": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+    "marked-console-probe-34510def.log": "4f15757e263920db7180dbf4881c268fa19af93cd82b602818254d2bef432ba2",
+    "marked-console-probe-34510def.exit": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+    "marked-console-probe-12b1f878.log": "52dfcd2188d6f405705010ad4c644287679c87d58d9b189cda6e911690826765",
+    "marked-console-probe-12b1f878.exit": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "reporting-6cbc870.patch": "6263ff9e29de71831090e3b2cdc714caa91e3762ab4fce584291f99cedde6db9"
+  },
+  "red": {
+    "probe": "11a6f704",
+    "exit_code": 1,
+    "result": "1failed: expected totalresearchfees0.195,actual0.1; root ran against originalWIP before productionfix"
+  },
+  "intermediate": {
+    "probe": "34510def",
+    "exit_code": 1,
+    "result": "1failed KeyError realized_pnl: regression assertion read privateperorderfield through publicdashboard; fixture/assertion correction, not another product defect"
+  },
+  "green": {
+    "probe": "12b1f878",
+    "exit_code": 0,
+    "result": "1passed at completedfix"
+  },
+  "scope": "Actual focusedPostgreSQL diagnostic outputs. Shortlogs do not independently record exactsource/invocation. Parent associated them with reporting fix; full committedsource gate recorded separately.",
+  "generated_secret_scan": "PASS privately compared generated envsecret values; no matches; noenv/config/session data included"
+}
