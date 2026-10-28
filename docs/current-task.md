@@ -1,5 +1,17 @@
 # Current task
 
+## PAUSED_BY_USER — 2026-10-28 14:08 +08:00
+
+用户明确要求“暂停测试”。已将持续策略通过HTTP PATCH设为PAUSED、auto_execute=false，
+当前revision5；保留用户在页面调整的5000USDT预算，不恢复旧20USDT配置。
+复核active_strategies=0、auto_order_strategies=0、running_jobs=0、next_analysis_at=null。
+现金/权益100000，无持仓、未完成委托或活动风险锁；四笔历史测试命令均终态且leaves=0。
+已停止诊断owner与只读监控，并核验进程退出；API8787及网页保留供查看记录。
+暂停证据：`evidence/2026-10-28-continuous-pause.json`，本地PID和状态文件已更新。
+不得自行恢复周期调用/自动委托。用户明确恢复后，先移除STOP_CONTINUOUS_MONITOR，
+启动独立owner/监控，再按最新revision重新授权激活策略；不要直接重跑旧委托脚本。
+下方CONTINUOUS_PAPER_RUNNING及其他状态均为历史记录。
+
 ## CONTINUOUS_PAPER_RUNNING — 2026-10-28 13:16 +08:00
 
 用户明确要求持续真实行情/PAPER测试，由用户决定暂停时间。没有设置结束时间。

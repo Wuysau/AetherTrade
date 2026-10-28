@@ -1,5 +1,11 @@
 # Project state
 
+Latest operational state (2026-10-28 14:08 +08:00): continuous PAPER testing is
+PAUSED at the user's request. Strategy scheduling and automatic orders are off;
+the diagnostic owner and monitor have stopped. API/UI remain available. Cash is
+100000 USDT, with no positions, unfinished orders or active risk locks. Do not
+resume without a user request. Current-task.md contains pause evidence.
+
 AetherTrade is a Python/FastAPI and TypeScript web trading workbench. Approved
 architecture lives in `TradingHandoff/AI_Trading_System_Implementation_Package_2026-10-21/docs/spec/approved/trading-architecture/`.
 The 2026-10-27 engineering task preserves AI/RULE/HYBRID and Spot/USD-M/Stocks.

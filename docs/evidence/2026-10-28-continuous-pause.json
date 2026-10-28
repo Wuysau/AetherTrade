@@ -1,0 +1,245 @@
+{
+  "requested_at": "2026-10-28T06:07:49.873457+00:00",
+  "reason": "USER_REQUESTED_PAUSE",
+  "updates": [
+    {
+      "name": "持续真实行情 PAPER 自测",
+      "symbol": "BTCUSDT",
+      "mode": "AI",
+      "budget": "5000",
+      "target_pct": "100",
+      "status": "PAUSED",
+      "analysis_interval_seconds": 300,
+      "auto_execute": false,
+      "analysis_mode": "single",
+      "model_profile_ids": [
+        "default"
+      ],
+      "id": "f47b292b-7632-43f1-9d2b-2b968a37871c",
+      "revision": 5,
+      "created_at": "2026-10-28T05:06:16.505035+00:00",
+      "updated_at": "2026-10-28T06:07:52.734543+00:00"
+    }
+  ],
+  "final": {
+    "account": {
+      "id": "paper-local",
+      "name": "本地 PAPER 账户",
+      "currency": "USDT",
+      "initial_cash": "100000",
+      "cash": "100000",
+      "revision": 1,
+      "paused": false,
+      "equity": "100000",
+      "day_pnl": "0",
+      "day_pnl_pct": "0",
+      "exposure_pct": "0",
+      "risk_used": "0",
+      "risk_limit": "2000"
+    },
+    "positions": [],
+    "strategies": [
+      {
+        "name": "持续真实行情 PAPER 自测",
+        "symbol": "BTCUSDT",
+        "mode": "AI",
+        "budget": "5000",
+        "target_pct": "100",
+        "status": "PAUSED",
+        "analysis_interval_seconds": 300,
+        "auto_execute": false,
+        "analysis_mode": "single",
+        "model_profile_ids": [
+          "default"
+        ],
+        "id": "f47b292b-7632-43f1-9d2b-2b968a37871c",
+        "revision": 5,
+        "created_at": "2026-10-28T05:06:16.505035+00:00",
+        "updated_at": "2026-10-28T06:07:52.734543+00:00",
+        "runtime_status": "PAUSED",
+        "next_analysis_at": null,
+        "last_analysis_at": "2026-10-28T06:03:42.749637+00:00",
+        "last_analysis_error": null
+      }
+    ],
+    "automation": {
+      "enabled": true,
+      "active_strategies": 0,
+      "auto_order_strategies": 0,
+      "running_jobs": 0
+    },
+    "execution": {
+      "mode": "UNIFIED_PAPER",
+      "simulation_notice": "本地虚拟 PAPER；无交易所或模型调用。价格与成交事件为明确注入，不能证明真实滑点、流动性或原生保护。",
+      "targets": [
+        {
+          "symbol": "BTCUSDT",
+          "strategy_id": null,
+          "target_quantity": "0.000247001341",
+          "actual_quantity": "0",
+          "in_flight_quantity": "0",
+          "protection_state": "NO_POSITION",
+          "protected_quantity": "0",
+          "command_id": "console-command:9d5f0101c4307e746d5f15ec5db446160df67a63adfbca04fe63e33efd5fc930",
+          "reason": "受权人工 PAPER 请求"
+        }
+      ],
+      "commands": [
+        {
+          "command_id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+          "symbol": "BTCUSDT",
+          "state": "VENUE_CONFIRMED",
+          "order_status": "EXPIRED",
+          "quantity": "0.000246761258",
+          "filled_quantity": "0",
+          "leaves_quantity": "0",
+          "reason": "受权人工 PAPER 请求"
+        },
+        {
+          "command_id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+          "symbol": "BTCUSDT",
+          "state": "ABORTED_UNSENT",
+          "order_status": "ABORTED_UNSENT",
+          "quantity": "0.000246931841",
+          "filled_quantity": "0",
+          "leaves_quantity": "0",
+          "reason": "受权人工 PAPER 请求"
+        },
+        {
+          "command_id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+          "symbol": "BTCUSDT",
+          "state": "ABORTED_UNSENT",
+          "order_status": "ABORTED_UNSENT",
+          "quantity": "0.000246992831",
+          "filled_quantity": "0",
+          "leaves_quantity": "0",
+          "reason": "受权人工 PAPER 请求"
+        },
+        {
+          "command_id": "console-command:9d5f0101c4307e746d5f15ec5db446160df67a63adfbca04fe63e33efd5fc930",
+          "symbol": "BTCUSDT",
+          "state": "VENUE_CONFIRMED",
+          "order_status": "EXPIRED",
+          "quantity": "0.000247001341",
+          "filled_quantity": "0",
+          "leaves_quantity": "0",
+          "reason": "受权人工 PAPER 请求"
+        }
+      ],
+      "orders": [
+        {
+          "id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+          "command_id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+          "symbol": "BTCUSDT",
+          "provenance": "UNIFIED_PAPER_SYNTHETIC",
+          "side": "BUY",
+          "quantity": "0.000246761258",
+          "filled_quantity": "0",
+          "price": "81050.01000000",
+          "notional": "0",
+          "fee": "0",
+          "status": "EXPIRED",
+          "realized_pnl": null,
+          "strategy_id": null,
+          "created_at": "2026-10-28T04:36:51.521210+00:00"
+        },
+        {
+          "id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+          "command_id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+          "symbol": "BTCUSDT",
+          "provenance": "UNIFIED_PAPER_SYNTHETIC",
+          "side": "BUY",
+          "quantity": "0.000246931841",
+          "filled_quantity": "0",
+          "price": "80994.00000000",
+          "notional": "0",
+          "fee": "0",
+          "status": "ABORTED_UNSENT",
+          "realized_pnl": null,
+          "strategy_id": null,
+          "created_at": "2026-10-28T05:00:18.550895+00:00"
+        },
+        {
+          "id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+          "command_id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+          "symbol": "BTCUSDT",
+          "provenance": "UNIFIED_PAPER_SYNTHETIC",
+          "side": "BUY",
+          "quantity": "0.000246992831",
+          "filled_quantity": "0",
+          "price": "80974.01000000",
+          "notional": "0",
+          "fee": "0",
+          "status": "ABORTED_UNSENT",
+          "realized_pnl": null,
+          "strategy_id": null,
+          "created_at": "2026-10-28T05:11:02.241230+00:00"
+        },
+        {
+          "id": "console-command:9d5f0101c4307e746d5f15ec5db446160df67a63adfbca04fe63e33efd5fc930",
+          "command_id": "console-command:9d5f0101c4307e746d5f15ec5db446160df67a63adfbca04fe63e33efd5fc930",
+          "symbol": "BTCUSDT",
+          "provenance": "UNIFIED_PAPER_SYNTHETIC",
+          "side": "BUY",
+          "quantity": "0.000247001341",
+          "filled_quantity": "0",
+          "price": "80971.23000000",
+          "notional": "0",
+          "fee": "0",
+          "status": "EXPIRED",
+          "realized_pnl": null,
+          "strategy_id": null,
+          "created_at": "2026-10-28T05:15:11.576708+00:00"
+        }
+      ],
+      "positions": [],
+      "protection_plans": [],
+      "protection_adjustments": [],
+      "risk_locks": []
+    }
+  },
+  "latest_decisions": [
+    {
+      "id": "51b34eb1-759a-47c3-91f3-386b400687e7",
+      "created_at": "2026-10-28T06:03:42.703705+00:00",
+      "action": "HOLD",
+      "execution_status": "NO_ACTION",
+      "execution_reason": "模型建议观望；未下单。"
+    },
+    {
+      "id": "67057393-24b4-4153-ac6a-da4a610ff31e",
+      "created_at": "2026-10-28T05:58:35.858939+00:00",
+      "action": "HOLD",
+      "execution_status": "NO_ACTION",
+      "execution_reason": "模型建议观望；未下单。"
+    },
+    {
+      "id": "ca13b855-91f1-43ab-8a67-3f3e5acafc19",
+      "created_at": "2026-10-28T05:53:23.708681+00:00",
+      "action": "HOLD",
+      "execution_status": "NO_ACTION",
+      "execution_reason": "模型建议观望；未下单。"
+    },
+    {
+      "id": "7d4b08f9-7951-4743-9acf-8b84c7363f12",
+      "created_at": "2026-10-28T05:48:12.823606+00:00",
+      "action": "HOLD",
+      "execution_status": "NO_ACTION",
+      "execution_reason": "模型建议观望；未下单。"
+    },
+    {
+      "id": "36176fed-4518-4065-ab94-c628f5eb166a",
+      "created_at": "2026-10-28T05:43:04.050855+00:00",
+      "action": "HOLD",
+      "execution_status": "NO_ACTION",
+      "execution_reason": "模型建议观望；未下单。"
+    }
+  ],
+  "verified_at": "2026-10-28T06:08:20.185025+00:00",
+  "verified_paused": true,
+  "services": {
+    "api": "RUNNING_FOR_REVIEW",
+    "owner": "STOPPED",
+    "monitor": "STOPPED"
+  }
+}
