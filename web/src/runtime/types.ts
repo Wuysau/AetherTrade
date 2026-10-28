@@ -28,7 +28,7 @@ export interface Decision {
   assessment_status?: string; reason_code?: string; decision_policy?: string; snapshot_id?:string; strategy_revision?:number;
   watch_conditions?: unknown[]; review_report?: unknown;
   proposal?: {action:string; target:{side:string;sizing:string;value:string}; exit_plan:{stop_price:string|null;review_due_at:string}; valid_until:string} | null;
-  id: string; symbol: string; action: string; source: string; summary: string;
+  id: string; symbol: string; action: string | null; source: string; summary: string;
   counter_evidence: string[]; invalidation: string; risk_status: string;
   created_at: string; next_review_at: string | null;
   strategy_id?: string | null; strategy_name?: string | null; execution_status?: string; execution_reason?: string | null; order_id?: string | null;
