@@ -1,0 +1,38 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_______ test_explicit_cancel_confirm_reduce_reprotect_survives_restart ________
+ValueError: ('ACTIVE_ORDERS_REQUIRE_RECONCILIATION', 'WORKING_QUANTITY_MISMATCH')
+
+The above exception was the direct cause of the following exception:
+tests\integration\test_paper_protected_reduction.py:44: in test_explicit_cancel_confirm_reduce_reprotect_survives_restart
+    receipt = runtime.accept(dict(symbol='BTCUSDT', side='SELL', quantity='0.5'), 'ordinary-reduction', market(), 90, data())
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\server\paper_runtime.py:376: in accept
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\server\paper_runtime.py:476: in _accept
+    raise ApiError('PAPER_RISK_REJECTED', '；'.join(result.rejection_codes), 409) from ValueError(result.rejection_codes)
+E   trading_system.server.errors.ApiError: PAPER_RISK_REJECTED
+_________ test_existing_store_sell_returns_durable_adjustment_receipt _________
+ValueError: ('ACTIVE_ORDERS_REQUIRE_RECONCILIATION', 'WORKING_QUANTITY_MISMATCH')
+
+The above exception was the direct cause of the following exception:
+tests\integration\test_paper_protected_reduction.py:122: in test_existing_store_sell_returns_durable_adjustment_receipt
+    receipt = store.order(payload, 'store-reduce', market(), 90)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\server\store.py:501: in order
+    return self._order(connection, payload, key, market, maximum_age)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\server\store.py:538: in _order
+    order = self.execution.accept(dict(payload), key, market, maximum_age, data, strategy if strategy_id else None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\server\paper_runtime.py:376: in accept
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\server\paper_runtime.py:476: in _accept
+    raise ApiError('PAPER_RISK_REJECTED', '；'.join(result.rejection_codes), 409) from ValueError(result.rejection_codes)
+E   trading_system.server.errors.ApiError: PAPER_RISK_REJECTED
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_protected_reduction.py::test_explicit_cancel_confirm_reduce_reprotect_survives_restart
+FAILED tests/integration/test_paper_protected_reduction.py::test_existing_store_sell_returns_durable_adjustment_receipt
+2 failed, 2 deselected in 10.40s
