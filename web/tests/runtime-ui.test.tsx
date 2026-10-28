@@ -42,6 +42,7 @@ it('renders saved RULE decisions without model-only counter evidence', async () 
   render(<RuntimeApp api={api} />);
   await screen.findByRole('heading', {name:'AI 决策中心'});
   expect(screen.getByText('该记录未提供反对证据。')).toBeDefined();
+  expect(screen.getByRole('heading', {name:'规则建议'})).toBeDefined();
   expect(screen.getByText('超过仓位限制')).toBeDefined();
 });
 
