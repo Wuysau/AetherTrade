@@ -1,0 +1,140 @@
+..FFF.....FFFF.F.F...FF..F..F.F.F.FF...F...F..........                   [100%]
+=================================== FAILURES ===================================
+____________ test_buy_target_includes_fees_and_does_not_accumulate _____________
+tests/server/test_automation.py:128: in test_buy_target_includes_fees_and_does_not_accumulate
+    assert dashboard(system)["orders"], [d.get("execution_reason") for d in dashboard(system)["decisions"]]
+E   AssertionError: ['旧模型建议仅供查阅；请明确批准新版策略后重新分析。']
+E   assert []
+______________________ test_concurrent_workers_claim_once ______________________
+tests/server/test_automation.py:172: in test_concurrent_workers_claim_once
+    assert len(dashboard(system)["orders"]) == 1
+E   assert 0 == 1
+E    +  where 0 = len([])
+_____ test_expired_job_recovered_without_resend_or_duplicate_notification ______
+tests/server/test_automation.py:193: in test_expired_job_recovered_without_resend_or_duplicate_notification
+    assert len(calls) == 1 and len(dashboard(system)["orders"]) == 1
+E   AssertionError: assert (1 == 1 and 0 == 1)
+E    +  where 1 = len(['auto-analysis:ce05f8fd-2531-4799-a0a4-baf946e337b8'])
+E    +  and   0 = len([])
+__________________________ test_sell_scoped_and_hold ___________________________
+tests/server/test_automation.py:230: in test_sell_scoped_and_hold
+    assert len(dashboard(system)["orders"]) == 2
+E   assert 0 == 2
+E    +  where 0 = len([])
+________________ test_real_model_transport_and_notification_api ________________
+tests/server/test_automation.py:334: in test_real_model_transport_and_notification_api
+    assert result['decisions'][0]['execution_status'] == 'PENDING'
+E   AssertionError: assert 'BLOCKED' == 'PENDING'
+E     
+E     - PENDING
+E     + BLOCKED
+__________________ test_cross_store_claim_and_restart_receipt __________________
+tests/server/test_automation.py:376: in test_cross_store_claim_and_restart_receipt
+    assert len(system.store.dashboard(market())['orders']) == 1
+E   assert 0 == 1
+E    +  where 0 = len([])
+_________ test_cash_bound_includes_fee_and_sell_rejects_other_strategy _________
+tests/server/test_automation.py:390: in test_cash_bound_includes_fee_and_sell_rejects_other_strategy
+    assert dashboard(system)["orders"], [d.get("execution_reason") for d in dashboard(system)["decisions"]]
+E   AssertionError: ['旧模型建议仅供查阅；请明确批准新版策略后重新分析。']
+E   assert []
+_____ test_three_modes_share_atomic_risk_owner_and_explicit_fill_path[AI] ______
+tests/server/test_automation.py:487: in test_three_modes_share_atomic_risk_owner_and_explicit_fill_path
+    assert len(result['orders']) == 1, result['decisions']
+E   AssertionError: [{'id': 'auto-analysis:771288b1-3238-4087-bab0-9ae563789337', 'symbol': 'BTCUSDT', 'action': 'BUY', 'summary': 'Fixture advice', ...}]
+E   assert 0 == 1
+E    +  where 0 = len([])
+___ test_three_modes_share_atomic_risk_owner_and_explicit_fill_path[HYBRID] ____
+tests/server/test_automation.py:487: in test_three_modes_share_atomic_risk_owner_and_explicit_fill_path
+    assert len(result['orders']) == 1, result['decisions']
+E   AssertionError: [{'id': 'auto-analysis:a24c9a12-c315-46e6-a921-0a39d9c61c93', 'symbol': 'BTCUSDT', 'action': 'BUY', 'summary': 'Fixture advice', ...}]
+E   assert 0 == 1
+E    +  where 0 = len([])
+______ test_old_model_output_cannot_create_new_domain_command[created_at] ______
+tests/server/test_automation.py:540: in test_old_model_output_cannot_create_new_domain_command
+    assert '过期' in result['decisions'][0]['execution_reason']
+E   AssertionError: assert '过期' in '旧模型建议仅供查阅；请明确批准新版策略后重新分析。'
+______ test_old_model_output_cannot_create_new_domain_command[data_as_of] ______
+tests/server/test_automation.py:540: in test_old_model_output_cannot_create_new_domain_command
+    assert '过期' in result['decisions'][0]['execution_reason']
+E   AssertionError: assert '过期' in '旧模型建议仅供查阅；请明确批准新版策略后重新分析。'
+__ test_d10_d11_real_unified_proposal_creates_only_target_and_preserves_exit ___
+tests/server/test_decision_execution.py:120: in test_d10_d11_real_unified_proposal_creates_only_target_and_preserves_exit
+    receipt = runtime.accept_proposal(p, 'proposal-integration', service.quote_snapshot(),
+src/trading_system/server/paper_runtime.py:448: in accept_proposal
+    return self._accept(payload, key, market, maximum_age, data, strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/paper_runtime.py:573: in _accept
+    tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record
+_ test_only_selected_profile_changes_during_await_prevent_fill[single-True-False] _
+tests/server/test_multi_routing.py:122: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert len(result["orders"]) == (0 if selected else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+_ test_only_selected_profile_changes_during_await_prevent_fill[single-False-False] _
+tests/server/test_multi_routing.py:122: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert len(result["orders"]) == (0 if selected else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+_ test_only_selected_profile_changes_during_await_prevent_fill[consensus-True-False] _
+tests/server/test_multi_routing.py:122: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert len(result["orders"]) == (0 if selected else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+_ test_only_selected_profile_changes_during_await_prevent_fill[consensus-False-False] _
+tests/server/test_multi_routing.py:122: in test_only_selected_profile_changes_during_await_prevent_fill
+    assert len(result["orders"]) == (0 if selected else 1)
+E   assert 0 == 1
+E    +  where 0 = len([])
+_ test_consensus_execution_requires_complete_direction_agreement[AGREED-BUY-1] _
+tests/server/test_multi_routing.py:136: in test_consensus_execution_requires_complete_direction_agreement
+    assert len(result["orders"]) == orders
+E   assert 0 == 1
+E    +  where 0 = len([])
+__ test_real_consensus_service_controls_paper_execution[directions0-AGREED-1] __
+tests/server/test_multi_routing.py:262: in test_real_consensus_service_controls_paper_execution
+    assert len(result["orders"]) == order_count
+E   assert 0 == 1
+E    +  where 0 = len([])
+_ test_consensus_sell_respects_strategy_position_and_disabled_default_does_not_block_other _
+tests/server/test_multi_routing.py:275: in test_consensus_sell_respects_strategy_position_and_disabled_default_does_not_block_other
+    assert len(dashboard(system)["orders"]) == 1, [d.get("execution_reason") for d in dashboard(system)["decisions"]]
+E   AssertionError: ['旧模型建议仅供查阅；请明确批准新版策略后重新分析。']
+E   assert 0 == 1
+E    +  where 0 = len([])
+=============================== warnings summary ===============================
+../../usr/local/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /usr/local/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/server/test_automation.py::test_buy_target_includes_fees_and_does_not_accumulate
+FAILED tests/server/test_automation.py::test_concurrent_workers_claim_once - ...
+FAILED tests/server/test_automation.py::test_expired_job_recovered_without_resend_or_duplicate_notification
+FAILED tests/server/test_automation.py::test_sell_scoped_and_hold - assert 0 ...
+FAILED tests/server/test_automation.py::test_real_model_transport_and_notification_api
+FAILED tests/server/test_automation.py::test_cross_store_claim_and_restart_receipt
+FAILED tests/server/test_automation.py::test_cash_bound_includes_fee_and_sell_rejects_other_strategy
+FAILED tests/server/test_automation.py::test_three_modes_share_atomic_risk_owner_and_explicit_fill_path[AI]
+FAILED tests/server/test_automation.py::test_three_modes_share_atomic_risk_owner_and_explicit_fill_path[HYBRID]
+FAILED tests/server/test_automation.py::test_old_model_output_cannot_create_new_domain_command[created_at]
+FAILED tests/server/test_automation.py::test_old_model_output_cannot_create_new_domain_command[data_as_of]
+FAILED tests/server/test_decision_execution.py::test_d10_d11_real_unified_proposal_creates_only_target_and_preserves_exit
+FAILED tests/server/test_multi_routing.py::test_only_selected_profile_changes_during_await_prevent_fill[single-True-False]
+FAILED tests/server/test_multi_routing.py::test_only_selected_profile_changes_during_await_prevent_fill[single-False-False]
+FAILED tests/server/test_multi_routing.py::test_only_selected_profile_changes_during_await_prevent_fill[consensus-True-False]
+FAILED tests/server/test_multi_routing.py::test_only_selected_profile_changes_during_await_prevent_fill[consensus-False-False]
+FAILED tests/server/test_multi_routing.py::test_consensus_execution_requires_complete_direction_agreement[AGREED-BUY-1]
+FAILED tests/server/test_multi_routing.py::test_real_consensus_service_controls_paper_execution[directions0-AGREED-1]
+FAILED tests/server/test_multi_routing.py::test_consensus_sell_respects_strategy_position_and_disabled_default_does_not_block_other
+19 failed, 35 passed, 474 deselected, 1 warning in 133.14s (0:02:13)
