@@ -23,6 +23,22 @@ from trading_system.storage.models import decode, scope_id
 from trading_system.storage.uow import UnitOfWork
 
 
+class ScopedCommandReader:
+    """Read effective commands in another scope under the SAME collateral lock."""
+    def __init__(self, tx, scope):
+        self.tx, self.scope = tx, scope
+
+    def execute(self, sql, params=()):
+        return self.tx.execute(sql, params)
+
+    def _latest(self, table, identifier, cls):
+        if table not in ('commands', 'audit_events'):
+            raise ValueError('COMMAND_REVIEW_READ_ONLY')
+        row = self.execute(f'SELECT payload FROM ledger.{table} WHERE scope_id=%s AND record_id=%s '
+            'ORDER BY sequence DESC LIMIT 1', (scope_id(self.scope), identifier)).fetchone()
+        return None if row is None else decode(cls, row[0])
+
+
 def run_owner(runtime, *, stopped=lambda: False, sleep=time.sleep, report=print):
     """Survive transient DB/API failures; never suppress an operator-visible fault."""
     failed = False
@@ -180,11 +196,15 @@ def review_daily(runtime, lock_id, *, resolver_dsn, operator_review_id):
                     book = decode(t.BookSnapshot, bookrow[0])
                     if book.positions or book.active_orders:
                         return False
-                if tx.execute("SELECT 1 FROM ledger.commands c WHERE scope_id=%s AND sequence=1 "
-                    "AND NOT EXISTS (SELECT 1 FROM ledger.commands n WHERE n.scope_id=c.scope_id "
-                    "AND n.record_id=c.record_id AND n.payload->>'state' IN ('VENUE_CONFIRMED','VENUE_REJECTED'))",
-                    (scope_id(current_scope),)).fetchone():
-                    return False
+                reader = CommandRepository(ScopedCommandReader(tx, current_scope))
+                for command_identifier, in tx.execute('SELECT record_id FROM ledger.commands WHERE scope_id=%s AND sequence=1',
+                        (scope_id(current_scope),)).fetchall():
+                    effective = reader.get(command_identifier)
+                    if effective.state not in ('VENUE_CONFIRMED', 'VENUE_REJECTED', 'ABORTED_UNSENT'):
+                        return False
+            from trading_system.risk.reservation_repository import ReservationRepository
+            if any(reservation.held != 0 for reservation in ReservationRepository(tx).group()):
+                return False
             cash = runtime._cash(tx)
             baseline = store._day_start(connection, config['account']['initial_cash'])
             return (baseline - cash < Decimal(config['risk']['max_daily_loss'])

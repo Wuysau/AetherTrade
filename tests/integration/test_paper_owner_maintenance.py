@@ -261,3 +261,46 @@ def test_expired_ready_without_complete_absence_proof_stays_pending(paper,monkey
         assert CommandRepository(tx).get(stop_id).state=='DURABLE_READY'
     with runtime.connect() as conn:
         assert conn.execute("SELECT count(*) FROM ledger.commands WHERE sequence=1 AND payload->>'operation'='SET_PROTECTION'").fetchone()[0]==1
+
+@pytest.mark.parametrize('pending_foreign_command,retired_stop', [(False,False),(True,False),(False,True)])
+def test_daily_review_after_actual_flat_cycle_uses_effective_commands_and_fees(paper,monkeypatch,pending_foreign_command,retired_stop):
+    from zoneinfo import ZoneInfo
+    from decimal import Decimal
+    runtime, store, profile = paper
+    entry=runtime.accept(dict(symbol='BTCUSDT',side='BUY',quantity='1'),'daily-traded',market(),90,data())
+    runtime.dispatch(entry['command_id'])
+    runtime.inject(entry['command_id'],dict(event_id='daily-entry',status='FILLED',cumulative_quantity='1',price='100'))
+    stop=runtime.protect(entry['command_id'],'daily-stop')
+    if retired_stop:
+        from trading_system.execution.commands import CommandRepository
+        reading=runtime.clock()
+        runtime.clock=lambda:replace(reading,utc_now=(datetime.fromisoformat(reading.utc_now)+timedelta(seconds=40)).isoformat(),monotonic_ns=reading.monotonic_ns+40*10**9)
+        align_permit_clock(runtime,monkeypatch)
+        runtime.tick()
+        with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+            assert CommandRepository(tx).get(stop['command_id']).state=='ABORTED_UNSENT'
+            replacement=tx.execute("SELECT record_id FROM ledger.commands WHERE scope_id=%s AND sequence=1 "
+                "AND payload->>'operation'='SET_PROTECTION' AND record_id<>%s",(scope_id(tx.scope),stop['command_id'])).fetchone()[0]
+        stop={'command_id':replacement}
+    else:
+        runtime.dispatch(stop['command_id'])
+    runtime.inject(stop['command_id'],dict(event_id='daily-verified',status='PROTECTION_VERIFIED',cumulative_quantity='0'))
+    runtime.inject(stop['command_id'],dict(event_id='daily-exit',status='FILLED',cumulative_quantity='1',price='95'))
+    result=runtime.recover(entry['command_id'],resolver_dsn=profile.resolver_dsn)
+    assert all(r['resolved'] for r in result['resolutions']), result
+    assert runtime.account_view()['positions']==[]
+    assert Decimal(runtime.account_view()['cash'])==Decimal('9994.805')
+    if pending_foreign_command:
+        quote=dict(status='CONNECTED',quotes=[dict(symbol='ETHUSDT',price='2000',as_of=datetime.now(timezone.utc).isoformat(),stale=False)])
+        runtime.accept(dict(symbol='ETHUSDT',side='BUY',quantity='0.1'),'foreign-ready',quote,90,data())
+    now=datetime.now(timezone.utc)
+    day=(now-timedelta(days=1)).astimezone(ZoneInfo('Asia/Shanghai')).date().isoformat()
+    record=dict(lock_id='console-daily:'+day,scope={},cause='DAILY_LOSS',state='ACTIVE',
+        permission='NO_NEW_RISK',required_evidence=['DAILY_LOSS_REVIEW'],raised_at=(now-timedelta(days=1)).isoformat(),
+        risk_day=day,risk_day_timezone='Asia/Shanghai',baseline='10000',observed_equity='7000',prospective_fee='0',policy_revision=1)
+    with store.transaction() as conn:store._save_daily_lock(conn,record)
+    reviewed=review_daily(runtime,record['lock_id'],resolver_dsn=profile.resolver_dsn,operator_review_id='actual-flat-cycle-review')
+    assert reviewed['resolved'] is not pending_foreign_command, reviewed
+    with store.transaction() as conn:
+        saved=conn.execute(select(cause_locks.c.data)).scalar_one()
+        assert saved['state']==('ACTIVE' if pending_foreign_command else 'RESOLVED')
