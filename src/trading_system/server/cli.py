@@ -26,6 +26,9 @@ def main(argv: list[str] | None = None) -> int:
     provision.add_argument('--initial-cash', default='100000')
     provision.add_argument('--output', type=Path, required=True)
     commands.add_parser('paper-status', help='Read the same durable PAPER projection as the browser')
+    daily = commands.add_parser('paper-daily-review', help='Explicit next-risk-day flat-account review')
+    daily.add_argument('lock_id')
+    daily.add_argument('--operator-review-id', required=True)
     commands.add_parser('paper-run', help='Run the independent local PAPER execution/reconciliation worker')
     for operation in ('dispatch', 'reconcile', 'cancel', 'protect', 'recover'):
         command = commands.add_parser('paper-' + operation, help='Local synthetic PAPER ' + operation)
@@ -80,12 +83,17 @@ def main(argv: list[str] | None = None) -> int:
             attach_console_runtime(store, runtime, saved_quotes)
             try:
                 if args.command == 'paper-run':
-                    import time
+                    from .paper_maintenance import run_owner
                     print('Independent local PAPER owner running; explicit virtual events only.', flush=True)
-                    while True:
-                        runtime.tick()
-                        time.sleep(1)
-                if args.command == 'paper-status':
+                    run_owner(runtime, report=lambda value: print(value, flush=True))
+                if args.command == 'paper-daily-review':
+                    if not args.resolver_profile:
+                        raise ValueError('A separate trusted resolver profile is required')
+                    from .paper_maintenance import review_daily
+                    reviewer = json.loads(args.resolver_profile.read_text(encoding='utf-8'))
+                    result = review_daily(runtime, args.lock_id, resolver_dsn=reviewer['resolver_dsn'],
+                        operator_review_id=args.operator_review_id)
+                elif args.command == 'paper-status':
                     result = runtime.projection()
                 elif args.command == 'paper-event':
                     result = runtime.inject(args.command_id, dict(event_id=args.event_id, status=args.status,

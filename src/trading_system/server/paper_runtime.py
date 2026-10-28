@@ -262,6 +262,8 @@ class UnifiedPaperRuntime:
         actual = sum((p.actual_quantity.value for p in positions), D(0))
         sequence = 1 if old is None else old.sequence + 1
         balances = (money(self._cash(tx)), money(actual, base))
+        if old is not None and balances == old.balances:
+            return old
         payload = {'positions': [domain_payload(p) for p in positions], 'cash': number(balances[0].amount),
             'sequence': sequence, 'active_orders': [domain_payload(p) for p in active]}
         ref = self._ref('console:book:' + uuid4().hex, payload)
@@ -511,6 +513,8 @@ class UnifiedPaperRuntime:
         with self.uow.transaction(scope) as tx:
             if tx._latest('risk_locks', lock.lock_id, t.RiskLock) is None:
                 tx.risk_locks.append(lock, 0)
+                from .paper_maintenance import ReviewArchive
+                tx._append('audit_events', 'console:daily-cause:' + lock.lock_id, ReviewArchive(record), 0)
 
     def cancel_entries(self):
         count = 0
@@ -1074,6 +1078,8 @@ class UnifiedPaperRuntime:
                 # Preserve durable pending/unknown work; worker error text may
                 # contain database secrets, so expose the type only.
                 results.append({'command_id': command_id, 'status': 'RECONCILIATION_REQUIRED', 'error_type': type(exc).__name__})
+        from .paper_maintenance import maintain
+        results.extend(maintain(self))
         return results
 
     def inject(self, command_id, payload):
@@ -1164,7 +1170,10 @@ class UnifiedPaperRuntime:
                     tx._append('protection_plans', plan_id, next_plan, 0 if plan is None else plan.replacement_revision)
                 cause = 'PROTECTION_GAP' if protection_failed else 'PROTECTION_PENDING'
                 lock_id = cause.lower() + ':' + scope_id(scope)
-                if tx._latest('risk_locks', lock_id, t.RiskLock) is None:
+                prior_lock = tx._latest('risk_locks', lock_id, t.RiskLock)
+                if prior_lock is not None and prior_lock.state == 'RESOLVED':
+                    lock_id += ':' + request.intent.intent_id
+                if not verified and tx._latest('risk_locks', lock_id, t.RiskLock) is None:
                     permission, required = POLICIES[cause]
                     tx.risk_locks.append(t.RiskLock(lock_id=lock_id, scope=scope, cause=cause, state='ACTIVE',
                         permission=permission, required_evidence=required, raised_at=now), 0)
@@ -1184,8 +1193,12 @@ class UnifiedPaperRuntime:
             next_book = replace(book, positions=(position,) if actual else (), active_orders=active,
                 balances=(money(self._cash(tx)), money(actual, request.symbol.removesuffix('USDT'))),
                 sequence=book.sequence + 1, basis_fingerprint=canonical_hash(payload), evidence=(ref,))
-            tx.projections.save_book(next_book, book.sequence)
-            self._record_target(tx, next_book)
+            if (next_book.positions == book.positions and next_book.active_orders == book.active_orders
+                    and next_book.balances == book.balances):
+                next_book = book
+            else:
+                tx.projections.save_book(next_book, book.sequence)
+                self._record_target(tx, next_book)
             release = []
             if current.lifecycle_state in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED') and current.command_certainty == 'CONFIRMED':
                 root_intent_id = CommandRepository(tx).get(command.parent_command_id).intent_id if command.operation == 'CANCEL' else command.intent_id
