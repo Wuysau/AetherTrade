@@ -46,6 +46,7 @@ SUITES = (
     ('dispatch-account-risk', 'PAPER_RUNTIME', 'tests/integration/test_paper_dispatch_account_risk.py'),
     ('owner-maintenance', 'PAPER_RUNTIME', 'tests/integration/test_paper_owner_maintenance.py'),
     ('protected-reduction', 'PAPER_RUNTIME', 'tests/integration/test_paper_protected_reduction.py'),
+    ('aborted-projection', 'PAPER_RUNTIME', 'tests/integration/test_paper_aborted_projection.py'),
     ('console-contract', 'PAPER_RUNTIME', 'tests/server'),
 )
 

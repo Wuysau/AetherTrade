@@ -1361,6 +1361,8 @@ class UnifiedPaperRuntime:
                     filled = projection.filled_quantity.value if projection else D(0)
                     leaves = projection.leaves_quantity.value if projection else D(command.canonical_payload.quantity)
                     status = str(projection.lifecycle_state) if projection else ('PENDING' if command.state == 'DURABLE_READY' else 'UNKNOWN')
+                    if command.state == 'ABORTED_UNSENT':
+                        status, filled, leaves = 'ABORTED_UNSENT', D(0), D(0)
                     if projection and projection.pending_operation == 'CANCEL':
                         status = 'CANCEL_UNKNOWN'
                     commands.append(dict(command_id=command.command_id, symbol=symbol, state=command.state,

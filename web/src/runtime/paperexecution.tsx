@@ -5,6 +5,7 @@ import { errorMessage, type RuntimeApi } from './api';
 
 export const paperOrderLabel = (status?: string) => ({
   PENDING: '已排队 · 等待执行', DURABLE_READY: '已持久化 · 等待执行',
+  ABORTED_UNSENT: '发送前已终止',
   SUBMITTED: '已提交 · 等待成交事件', PARTIALLY_FILLED: '部分成交',
   FILLED: '已成交', CANCEL_UNKNOWN: '撤单结果未知', UNKNOWN: '结果未知 · 待核对',
   EXPIRED: '已过期', REJECTED: '已拒绝', CANCELED: '已撤销',
