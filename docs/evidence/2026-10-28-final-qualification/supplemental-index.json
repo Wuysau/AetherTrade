@@ -1,0 +1,47 @@
+{
+  "archive": "supplemental-frontend-reviewer-raw.zip",
+  "archive_sha256": "eb3c0f49e6c51c97d04af05a35ef761dfea0a0b48338ba33a71bf295f555108e",
+  "files_sha256": {
+    "final-web-typecheck.log": "bc649c160ed3caffd6fa45ab065a6e7c702472d7665e9a1122a393e0fc821094",
+    "final-web-typecheck.exit": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "final-web-tests.log": "6d102b7b27e8c9e220de80c6fdc1205c40d508c1e42247531ce19a0991c2f75a",
+    "final-web-tests.exit": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "final-web-build.log": "8f717652b897a01b27e0753180284fd729f6fac62e4a82236184f5fede67aaf3",
+    "final-web-build.exit": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "marked-console-probe-28c8942a.log": "20c535a7833da12357db1021f365885b9a9729afcb4980883bca172e622068e1",
+    "marked-console-probe-28c8942a.exit": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "marked-console-probe-5abb78df.log": "8909a4d1a39209ae25307c2b61a99c3a6565ce24d2e4ad994a325b80e51410cd",
+    "marked-console-probe-5abb78df.exit": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+  },
+  "frontend": {
+    "source_web_tree_git_sha": "0988c67b922c4e4383d8489bdc4b96b284df2e55",
+    "matching_source_commits": [
+      "7136ac5",
+      "c7ce6a4"
+    ],
+    "commands_visible_in_logs": [
+      "npm run typecheck => tsc --noEmit",
+      "npm test => vitest run",
+      "npm run build => tsc --noEmit && vite build"
+    ],
+    "exit_codes": {
+      "typecheck": 0,
+      "tests": 0,
+      "build": 0
+    },
+    "tests": 107,
+    "test_files": 9
+  },
+  "reviewer_diagnostics": {
+    "28c8942a": {
+      "passed": 4,
+      "exit": 0
+    },
+    "5abb78df": {
+      "passed": 5,
+      "exit": 0
+    },
+    "scope": "Supplemental actual PostgreSQL diagnostic outputs; original source/invocation not independently recorded in these short logs. Root review supplies source scope. Not substitutes for final mandatory gate."
+  },
+  "secret_scan": "PASS privately compared generated top-level runtime env secrets; no matching bytes; no env files included"
+}

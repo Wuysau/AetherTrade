@@ -1,0 +1,31 @@
+{
+  "source_commit": "6fe6869281f16e11a55c7f5813f79397eb0a6983",
+  "backend_qualification_source_commit": "c7ce6a42069795c1ffb4f5505d9e05991f202c31",
+  "changed_paths_between_sources": [
+    "web/src/runtime/App.tsx"
+  ],
+  "unchanged_all_other_git_blobs": true,
+  "web_tree_git_sha": "ae57e86c443f281de1879b20d54c4f27a38527ff",
+  "archive": "final-6fe-frontend-raw.zip",
+  "archive_sha256": "5d5b38c4c5c345c79edefd805040e1cdb7bf05545dac3ac61407e43b97c0e67f",
+  "files_sha256": {
+    "final-ui-nav-tests.log": "4856948cfed718b8811410a34bd17ac98a186d45096923ad9acf054e230b2533",
+    "final-ui-nav-build.log": "867e9a418e1223b56eb395feb1dcb8757c945be0276d564da0e2e44f9cc41846",
+    "c7ce-to-6fe.patch": "1f2b741ff26528a6413602ca1fcbc548556084299994bada6ed206e40afc01c6"
+  },
+  "frontend_tests": {
+    "passed": 107,
+    "test_files": 9,
+    "raw_exit_file": "NOT_RECORDED",
+    "tool_exit_code": 0,
+    "tool_exit_source": "Root supplied actual exec session39194 completed exit0; not independently reproduced by evidence collector"
+  },
+  "frontend_build": {
+    "includes": "tsc --noEmit && vite build",
+    "raw_exit_file": "NOT_RECORDED",
+    "tool_exit_code": 0,
+    "tool_exit_source": "Root supplied actual exec session39194 completed exit0; raw log ends with Vite build success"
+  },
+  "scope": "6fe frontend checks; c7ce backend+ordinaryPython gate applies to byte-identical backend. No claim all commands ran on one commit.",
+  "secret_scan": "PASS: internally compared generated runtime env secret values; no matches; noenv/auth/session/cookie included"
+}
