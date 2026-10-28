@@ -1,0 +1,12 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_obsolete_adjustment_is_durably_invalidated_after_review_and_allows_repair _
+tests\integration\test_paper_protected_reduction.py:174: in test_obsolete_adjustment_is_durably_invalidated_after_review_and_allows_repair
+    assert runtime.projection()['protection_adjustments'][0]['phase'] == 'REVIEW_REQUIRED'
+E   AssertionError: assert 'READY_TO_CONTINUE' == 'REVIEW_REQUIRED'
+E     
+E     - REVIEW_REQUIRED
+E     + READY_TO_CONTINUE
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_protected_reduction.py::test_obsolete_adjustment_is_durably_invalidated_after_review_and_allows_repair
+1 failed, 4 deselected in 9.04s
