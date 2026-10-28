@@ -29,6 +29,22 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
+it('renders saved RULE decisions without model-only counter evidence', async () => {
+  const data = dashboard();
+  data.decisions = [{id:'rule:saved', symbol:'BTCUSDT', action:'BUY', summary:'价格规则计算',
+    created_at:data.as_of, risk_status:'PAPER_REJECTED', execution_status:'BLOCKED',
+    execution_reason:'超过仓位限制'}] as Dashboard['decisions'];
+  window.location.hash = '#decisions';
+  const api = new RuntimeApi();
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({needs_setup:false, environment:'PAPER', version:'fixture'});
+  vi.spyOn(api, 'session').mockResolvedValue(session);
+  vi.spyOn(api, 'dashboard').mockResolvedValue(data);
+  render(<RuntimeApp api={api} />);
+  await screen.findByRole('heading', {name:'AI 决策中心'});
+  expect(screen.getByText('该记录未提供反对证据。')).toBeDefined();
+  expect(screen.getByText('超过仓位限制')).toBeDefined();
+});
+
 describe('runtime session and empty states', () => {
   it('shows first-run setup and requests no account data before authentication', async () => {
     const api = new RuntimeApi();
