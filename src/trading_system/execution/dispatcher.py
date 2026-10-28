@@ -121,7 +121,14 @@ class CommandDispatcher:
         # No queue-supplied permit is accepted; one is minted inside this call.
         with self.owner_guard(lease):
             if self.before_check:
-                self.before_check(command_id)
+                # Admission is only for a potential first send. Recovery and
+                # receipt reads must keep working without new-risk quotes or
+                # limits. The owner fence covers this peek and the later check;
+                # no admission writes run inside the collateral transaction.
+                with self.uow.transaction(self.scope) as tx:
+                    candidate = CommandRepository(tx).get(command_id)
+                if candidate is not None and candidate.state == 'DURABLE_READY':
+                    self.before_check(command_id)
             with self.uow.transaction(self.scope) as tx:
                 repo = CommandRepository(tx)
                 command = repo.get(command_id)

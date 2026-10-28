@@ -8,6 +8,8 @@ from sqlalchemy import select
 from support.unified_console import provision_console, default_market
 from trading_system.server.errors import ApiError
 from trading_system.server.store import cause_locks
+from trading_system.server.paper_runtime import scope_for
+from trading_system.execution.commands import CommandRepository
 
 pytestmark = pytest.mark.paper_runtime
 
@@ -107,6 +109,52 @@ def test_loss_after_durable_or_during_venue_write_persists_outside_rollback(tmp_
         harness.quotes = default_market()
         harness.store = harness.reopen()
         assert harness.runtime.dispatch(command)['status'] == 'UNKNOWN'
+    finally:
+        harness.close()
+
+
+@pytest.mark.parametrize('state', ['UNKNOWN', 'MAY_HAVE_SENT', 'VENUE_CONFIRMED'])
+@pytest.mark.parametrize('adverse', ['stale', 'loss', 'price_change'])
+def test_repeat_dispatch_receipt_needs_no_new_risk_admission(tmp_path, state, adverse):
+    harness, command = prepare(tmp_path)
+    scope = scope_for('ETHUSDT')
+    try:
+        if state == 'MAY_HAVE_SENT':
+            with harness.runtime.uow.transaction(scope) as tx:
+                CommandRepository(tx).mark_may_have_sent(tx, command, 'DURABLE_READY')
+        elif state == 'UNKNOWN':
+            # The public runtime immediately queries after dispatch. Exercise
+            # its same attached composition before that independent reconcile,
+            # retaining the actual ACK-lost durable UNKNOWN checkpoint.
+            with harness.runtime._composition(scope, 'ETHUSDT') as (engine, dispatcher, lease):
+                engine._lose_ack_for = frozenset({command})
+                assert str(dispatcher.dispatch(command, lease).status) == 'UNKNOWN'
+        else:
+            harness.runtime.dispatch(command)
+        if state == 'VENUE_CONFIRMED':
+            harness.runtime.inject(command, dict(event_id='confirmed-eth-fill', status='FILLED',
+                cumulative_quantity='1.2', price='2000'))
+        with harness.runtime.uow.transaction(scope) as tx:
+            assert CommandRepository(tx).get(command).state == state
+        with psycopg.connect(harness.runtime_config['venue_dsn']) as conn:
+            before = conn.execute('SELECT count(*) FROM paper_engine_commands').fetchone()[0]
+        # Admission cannot block original identity/receipt maintenance when no
+        # send will occur, even though a new opening would have to fail closed.
+        if adverse == 'stale':
+            harness.quotes['quotes'][0]['stale'] = True
+        elif adverse == 'loss':
+            harness.quotes['quotes'][0]['price'] = '1'
+        else:
+            harness.quotes['quotes'][1]['price'] = '4000'
+        with harness.runtime._composition(scope, 'ETHUSDT') as (_, dispatcher, lease):
+            receipt = dispatcher.dispatch(command, lease)
+        assert str(receipt.status) == ('VENUE_CONFIRMED' if state == 'VENUE_CONFIRMED' else 'UNKNOWN')
+        harness.runtime.dispatch(command)
+        if state != 'MAY_HAVE_SENT':
+            assert harness.runtime.reconcile(command)['status'] == (
+                'FILLED' if state == 'VENUE_CONFIRMED' else 'SUBMITTED')
+        with psycopg.connect(harness.runtime_config['venue_dsn']) as conn:
+            assert conn.execute('SELECT count(*) FROM paper_engine_commands').fetchone()[0] == before
     finally:
         harness.close()
 
