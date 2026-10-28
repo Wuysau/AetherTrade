@@ -261,3 +261,11 @@ dialog.wide-dialog{max-width:520px}
 /* Responsive price precision, legible chart coordinates, and header source entry. */
 .terminal-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}.watch-symbol strong,.terminal-price,.terminal-stats dd,.book-row>span,.book-mid strong,.trade-row>span{white-space:nowrap;overflow-wrap:normal;word-break:normal}.terminal-stats dd{overflow:hidden;text-overflow:ellipsis}.market-settings-inline{border-top:0;border-bottom:1px solid var(--stroke)}.market-settings-inline[hidden]{display:none}.market-settings-inline .market-source-body{padding-top:5px}.candle-grid text,.candle-time{font-size:11px}
 @media(max-width:620px){.terminal-header{align-items:flex-start;flex-wrap:wrap}.terminal-header-actions{flex-wrap:wrap;gap:7px}.terminal-header-actions .button{font-size:10px;padding:6px 8px}.terminal-price{font-size:28px;max-width:100%}.watch-symbol strong{font-size:14px}.candle-grid text,.candle-time{font-size:10px}}
+
+/* Keep decision history bounded independently of the detail column. */
+.decision-history-scroll{max-height:min(62vh,640px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#526577 #111a24}
+.decision-history-scroll:focus-visible{outline:2px solid #81b9ed;outline-offset:-2px}
+.decision-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px;border-top:1px solid var(--stroke);font-size:12px;color:#b6cbd7}
+.decision-pagination select{padding:5px 8px;background:#111a24;color:#e3edf7;border:1px solid #526577;border-radius:4px}
+.data-blocked-summary p{overflow-wrap:anywhere}
+@media(max-width:620px){.decision-history-scroll{max-height:52vh}.decision-pagination{padding:12px;gap:8px}}

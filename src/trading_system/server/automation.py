@@ -493,13 +493,13 @@ class AutomationService:
                 observation = {'price': quote.get('price'), 'closed_until': max(closed) if closed else None, 'closed_by_interval':{k:v['closed_until'] for k,v in snapshot['market']['features'].items()}}
                 with self.store.transaction() as connection:
                     saved = read(connection, jobs, job['id'])
-                    saved.update(snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'], watch_observation=observation)
+                    saved.update(snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'], analysis_snapshot=snapshot, watch_observation=observation)
                     put(connection, jobs, job['id'], saved)
                 job.update(snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'])
                 if snapshot['quality']['status'] != 'READY':
-                    decision = dict(id=job['model_key'], symbol=job['symbol'], created_at=stamp(),
-                        schema_revision='assessment_v1', assessment_status='DATA_BLOCKED', proposal=None,
-                        reason_code='DATA_BLOCKED', missing_required=snapshot['quality']['missing_required'])
+                    from .analysis_snapshot import blocked_assessment
+                    decision = blocked_assessment(job, snapshot, stamp(),
+                        (now() + timedelta(seconds=job['interval'])).isoformat())
                     await run_in_threadpool(self._finish, job, {'decision': decision})
                     return job['id']
             else:
@@ -593,12 +593,13 @@ class AutomationService:
         result["notifications"] = self.notifications()
         referenced = {n["decision_id"] for n in result["notifications"]["items"]}
         present = {d["id"] for d in result.get("decisions", [])}
+        from .analysis_snapshot import project_blocked_decision
         for job in all_jobs:
-            decision = job.get("decision")
-            if decision and decision["id"] in referenced and decision["id"] not in present:
+            decision = project_blocked_decision(job)
+            if decision and decision["id"] not in present:
                 result.setdefault("decisions", []).append(decision)
                 present.add(decision["id"])
-        result["decisions"] = sorted(result.get("decisions", []), key=lambda d: d["created_at"], reverse=True)
+        result["decisions"] = sorted(result.get("decisions", []), key=lambda d: d["created_at"], reverse=True)[:200]
         for service in result.get("services", []):
             if service["id"] == "ai":
                 service["detail"] = "激活的 AI 策略周期分析；只有勾选自动下单的策略才可执行本地 PAPER 交易。"

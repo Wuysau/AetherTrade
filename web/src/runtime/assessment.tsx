@@ -24,3 +24,14 @@ export function changeResearchInterval(profile: ResearchTaskProfile | undefined,
   windows[interval] = profile.windows[old] ?? 32;
   return {...profile,decision_interval:interval,windows,required:[...new Set(profile.required.map(replaceRef))],optional:[...new Set(profile.optional.map(replaceRef))].filter(ref=>!profile.required.map(replaceRef).includes(ref))};
 }
+
+const quoteReason:Record<string,string>={QUOTE_MISSING:'缺少报价',QUOTE_INVALID:'报价格式或价格范围无效',QUOTE_FUTURE:'报价时间领先本机',QUOTE_STALE:'报价已过期或失效',QUOTE_SOURCE_MISMATCH:'行情来源发生变化',QUOTE_SOURCE_UNAVAILABLE:'行情服务不可用'};
+export function DataBlockedDetails({decision:d}:{decision:Decision}) {
+  const check=d.data_quality?.quote_check;
+  const reasons=(d.missing_required ?? []).map(ref=>quoteReason[d.data_quality?.sections?.[ref]?.reason ?? ''] ?? (ref==='quote' ? '报价未通过校验（历史记录未保存具体原因）' : `缺少有效数据：${ref}`));
+  return <section className="detail-block data-blocked-summary"><h3>数据检查未通过</h3><p>{reasons.join('；') || d.summary || '历史记录未保存具体缺项。'}</p><p className="field-help">未调用模型，未进入交易风控，未提交订单。</p>
+    {check?.age_seconds && <p className="field-help">{Number(check.age_seconds)<0 ? `报价领先本机 ${Math.abs(Number(check.age_seconds)).toFixed(3)} 秒` : `报价年龄 ${Number(check.age_seconds).toFixed(3)} 秒`} · 时效上限 {check.maximum_age_seconds} 秒</p>}
+    <p className="field-help">策略版本：{d.strategy_revision ?? '历史记录未保存'} · {d.next_review_at ? `下次检查 ${time(d.next_review_at,true)}` : '复查时间以策略调度为准'}</p>
+    {d.snapshot_id && <details><summary>快照信息</summary><p className="field-help">{d.snapshot_id}</p>{check && <p className="field-help">报价 {check.as_of ?? '未提供'} · 截止 {check.cutoff}</p>}</details>}
+  </section>;
+}

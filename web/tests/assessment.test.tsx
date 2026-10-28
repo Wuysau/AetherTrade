@@ -27,3 +27,11 @@ it('interval edits preserve required news, allowed actions and holding policy',(
   expect(changed.allowed_operations).toEqual(['HOLD']);
   expect(changed.holding_period_seconds).toBe(7200);
 });
+
+import {DataBlockedDetails} from '../src/runtime/assessment';
+it('shows brief data rejection without presenting a risk verdict or invented diagnostics',()=>{
+ render(<DataBlockedDetails decision={{assessment_status:'DATA_BLOCKED',missing_required:['quote'],snapshot_id:'saved',strategy_revision:8} as Decision}/>);
+ expect(screen.getByText(/历史记录未保存具体原因/)).toBeTruthy();
+ expect(screen.getByText(/未进入交易风控/)).toBeTruthy();
+ expect(screen.queryByText('PAPER 风控拦截')).toBeNull();
+});

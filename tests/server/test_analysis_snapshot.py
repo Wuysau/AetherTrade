@@ -163,3 +163,65 @@ def test_disabled_analysis_feed_never_fetches_and_retains_masks():
     assert asyncio.run(guarded.candles('BTCUSDT','1h',4)) == {'candles':[]}
     assert feed.requests == []
     assert guarded.snapshot() == masked
+
+
+def test_future_quote_waits_out_small_skew_without_future_evidence(monkeypatch):
+    from datetime import timedelta
+    feed=Feed(); public=feed.snapshot();public['quotes'][0]['as_of']=(NOW+timedelta(seconds=.6)).isoformat();feed.snapshot=lambda:public
+    clock=[NOW];waits=[]
+    monkeypatch.setattr(parse,'utc_now',lambda:clock[0])
+    async def sleep(seconds): waits.append(seconds);clock[0]+=timedelta(seconds=seconds)
+    monkeypatch.setattr(asyncio,'sleep',sleep)
+    s=build(feed)
+    assert s['quality']['status']=='READY'
+    assert len(waits)==1 and .6<=waits[0]<1
+    assert parse.timestamp(s['market']['quote']['as_of']) <= parse.timestamp(s['evidence_cutoff'])
+    assert s['quality']['quote_check']['waited_seconds'] != '0'
+
+
+def test_large_future_quote_has_explicit_reason_and_does_not_wait(monkeypatch):
+    from datetime import timedelta
+    feed=Feed(); public=feed.snapshot();public['quotes'][0]['as_of']=(NOW+timedelta(seconds=10)).isoformat();feed.snapshot=lambda:public
+    async def fail(seconds): raise AssertionError('must not wait for excessive skew')
+    monkeypatch.setattr(asyncio,'sleep',fail)
+    s=build(feed)
+    assert s['quality']['sections']['quote']['reason']=='QUOTE_FUTURE'
+    assert s['quality']['quote_check']['as_of']==public['quotes'][0]['as_of']
+
+
+def test_stale_quote_preserves_specific_diagnostic():
+    from datetime import timedelta
+    feed=Feed();public=feed.snapshot();public['quotes'][0]['as_of']=(NOW-timedelta(seconds=100)).isoformat();feed.snapshot=lambda:public
+    s=build(feed)
+    assert s['quality']['sections']['quote']['reason']=='QUOTE_STALE'
+    assert s['quality']['quote_check']['age_seconds']=='100.000000'
+
+
+def test_blocked_record_includes_replay_identity_and_clear_nonrisk_status():
+    from trading_system.server.analysis_snapshot import blocked_assessment
+    feed=Feed();feed.rows=[];s=build(feed)
+    d=blocked_assessment(dict(model_key='k',symbol='BTCUSDT',strategy_revision=8),s,NOW.isoformat(), '2026-10-28T03:05:02Z')
+    assert d['snapshot_id']==s['snapshot_id'] and d['strategy_revision']==8
+    assert d['risk_status']=='NOT_EVALUATED' and d['action'] is None
+    assert d['data_quality']==s['quality'] and d['next_review_at']
+    assert 'candles:1h' in d['summary']
+
+
+def test_old_blocked_job_projection_recovers_only_known_facts():
+    from trading_system.server.analysis_snapshot import project_blocked_decision
+    job=dict(snapshot_id='saved-snapshot',strategy_revision=8,decision=dict(assessment_status='DATA_BLOCKED',missing_required=['quote']))
+    d=project_blocked_decision(job)
+    assert d['snapshot_id']=='saved-snapshot' and d['strategy_revision']==8
+    assert 'data_quality' not in d and 'snapshot_id' not in job['decision']
+
+
+def test_source_change_during_clock_wait_blocks(monkeypatch):
+    from datetime import timedelta
+    feed=Feed();public=feed.snapshot();public['quotes'][0]['as_of']=(NOW+timedelta(seconds=.2)).isoformat()
+    feed.snapshot=lambda:dict(public,source_generation=feed.generation)
+    clock=[NOW];monkeypatch.setattr(parse,'utc_now',lambda:clock[0])
+    async def sleep(seconds): clock[0]+=timedelta(seconds=seconds);feed.generation+=1
+    monkeypatch.setattr(asyncio,'sleep',sleep)
+    s=build(feed)
+    assert s['quality']['sections']['quote']['reason']=='QUOTE_SOURCE_MISMATCH'
+    assert s['quality']['status']=='DATA_BLOCKED'

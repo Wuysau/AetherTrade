@@ -88,27 +88,60 @@ async def build_analysis_context(store, feed, symbol, maximum_age, task_profile=
             history[interval] = await feed.candles(symbol, interval, count + 1)
         except (ApiError, OSError, TimeoutError):
             history[interval] = {}
-    public = feed.snapshot()
+    public = copy.deepcopy(feed.snapshot())
+    waited = 0.0
+    initial_time = parse.utc_now()
+    matches = [q for q in public.get('quotes', []) if isinstance(q, dict) and q.get('symbol') == symbol]
+    candidate = matches[0] if len(matches) == 1 else None
+    try:
+        source_time = parse.timestamp(candidate['as_of'])
+        lead = source_time - initial_time.timestamp()
+        if 0 < lead <= parse.CLOCK_SKEW:
+            # No account lock or model call while waiting. Keep the frozen quote;
+            # following the newest tick would perpetually chase a leading clock.
+            waited = lead + .001
+            await asyncio.sleep(waited)
+    except (KeyError, TypeError, ValueError, OverflowError):
+        pass
+    after_wait = feed.snapshot() if waited else public
     cutoff = parse.utc_now()
     cutoff_ms = int(cutoff.timestamp() * 1000)
     context = store.analysis_context(symbol, public, maximum_age)
     generation = public.get('source_generation', 0)
     source_id = public.get('source_id', 'unbound')
     matched = before.get('source_generation') == generation and before.get('source_id') == source_id and generation >= 0
+    matched = matched and after_wait.get('source_generation') == generation and after_wait.get('source_id') == source_id
     matched = matched and public.get('product') == 'SPOT' and public.get('venue') == 'BINANCE'
     sections = {}
     def section(ref, ok, reason='MISSING_OR_STALE'):
         sections[ref] = {'status': 'READY' if ok else 'MISSING', 'reason': None if ok else reason}
     quote = None
-    try:
-        candidate = context.get('quote')
-        parsed = parse.quote(candidate, now=cutoff)
-        age = cutoff.timestamp() - parse.timestamp(parsed['as_of'])
-        if matched and candidate.get('stale') is False and 0 <= age <= maximum_age:
-            quote = _project(parsed, ('symbol','price','change_pct','as_of'))
-    except (parse.InvalidMarketData, TypeError, AttributeError):
-        pass
-    section('quote', quote is not None)
+    candidate = context.get('quote')
+    check = dict(as_of=None, cutoff=cutoff.isoformat(), age_seconds=None,
+                 maximum_age_seconds=str(maximum_age), waited_seconds=format(waited, '.6f'))
+    reason = 'QUOTE_MISSING'
+    if candidate is not None:
+        reason = 'QUOTE_INVALID'
+        try:
+            timestamp = candidate.get('as_of')
+            # Syntax validation alone; excessive clock lead remains diagnosable.
+            if isinstance(timestamp, str) and parse._ISO.fullmatch(timestamp):
+                age = cutoff.timestamp() - parse.timestamp(timestamp)
+                check.update(as_of=timestamp, age_seconds=format(age, '.6f'))
+                if not matched:
+                    reason = 'QUOTE_SOURCE_MISMATCH'
+                elif age < 0:
+                    reason = 'QUOTE_FUTURE'
+                elif age > maximum_age or candidate.get('stale') is not False:
+                    reason = 'QUOTE_STALE'
+                elif context.get('market_status') not in ('CONNECTED', 'PARTIAL'):
+                    reason = 'QUOTE_SOURCE_UNAVAILABLE'
+                else:
+                    parsed = parse.quote(candidate, now=cutoff)
+                    quote = _project(parsed, ('symbol','price','change_pct','as_of'))
+        except (parse.InvalidMarketData, TypeError, AttributeError, ValueError, OverflowError):
+            reason = 'QUOTE_INVALID'
+    section('quote', quote is not None, reason)
     bars, features, partial = {}, {}, {}
     for interval, count in profile['windows'].items():
         result = history[interval]
@@ -161,7 +194,7 @@ async def build_analysis_context(store, feed, symbol, maximum_age, task_profile=
                     constraints={**(_project(context.get('risk'), ('max_position_pct','max_daily_loss')) or {}), 'execution_supported':False,'protection_supported':False},
                     costs=dict(fee_rate=None, fee_source='UNAVAILABLE', slippage_bps=None, complete=False),
                     previous_assessment=None,
-                    quality=dict(status='DATA_BLOCKED' if missing_required else 'READY', missing_required=missing_required, missing_optional=missing_optional, sections=sections),
+                    quality=dict(quote_check=check, status='DATA_BLOCKED' if missing_required else 'READY', missing_required=missing_required, missing_optional=missing_optional, sections=sections),
                     evidence_refs=[r for r,s in sections.items() if s['status']=='READY'] + ['features:' + i for i in features])
     runtime = getattr(store, 'execution', None)
     if runtime is not None and not getattr(store, 'sqlite', True) and callable(getattr(runtime, 'analysis_evidence', None)):
@@ -196,7 +229,7 @@ def validate_snapshot(snapshot):
     refs = {'type':'array', 'items':text, 'maxItems':20, 'uniqueItems':True}
     account = obj(dict(cash=number,equity=number,currency={'const':'USDT'},paused=boolean), ['cash','currency','paused'])
     position = obj(dict(symbol={'enum':list(parse.ALL_SYMBOLS)}, **{k:number for k in ('quantity','average_price','avg_price','cost_basis')}), ['symbol','quantity'])
-    section_schema = obj(dict(status={'enum':['READY','MISSING']},reason=nullable({'enum':['MISSING_OR_STALE','NOT_CONFIGURED']})))
+    section_schema = obj(dict(status={'enum':['READY','MISSING']},reason=nullable({'enum':['MISSING_OR_STALE','NOT_CONFIGURED','QUOTE_MISSING','QUOTE_INVALID','QUOTE_FUTURE','QUOTE_STALE','QUOTE_SOURCE_MISMATCH','QUOTE_SOURCE_UNAVAILABLE']})))
     schema = obj(dict(schema_revision={'const':'analysis-snapshot-v1'}, snapshot_id=text, snapshot_hash={'type':'string','pattern':'^[a-f0-9]{64}$'},
                       evidence_cutoff=stamp,built_at=stamp,source_id=text,source_generation=positive_int,source_revision=positive_int,
                       instrument_ref={'enum':['console-paper:'+s for s in parse.ALL_SYMBOLS]},venue={'const':'BINANCE'},product={'const':'SPOT'},quote_currency={'const':'USDT'},
@@ -209,7 +242,7 @@ def validate_snapshot(snapshot):
                                          reserved_funds=nullable(number),protection_status={'enum':['UNKNOWN','NO_POSITION','VERIFIED_SYNTHETIC','GAP']})),
                       constraints=obj(dict(max_position_pct=number,max_daily_loss=number,maximum_target_notional=number,execution_supported=boolean,protection_supported=boolean),['execution_supported','protection_supported']),
                       costs=obj(dict(fee_rate=nullable(number),fee_source={'enum':['UNAVAILABLE','PAPER_POLICY']},slippage_bps=nullable(number),complete=boolean)),previous_assessment={'type':'null'},
-                      quality=obj(dict(status={'enum':['READY','DATA_BLOCKED']},missing_required=refs,missing_optional=refs,sections=dict(type='object',properties={r:section_schema for r in REFS},additionalProperties=False))),evidence_refs=refs))
+                      quality=obj(dict(quote_check=obj(dict(as_of=nullable(stamp),cutoff=stamp,age_seconds=nullable(number),maximum_age_seconds=number,waited_seconds=number)),status={'enum':['READY','DATA_BLOCKED']},missing_required=refs,missing_optional=refs,sections=dict(type='object',properties={r:section_schema for r in REFS},additionalProperties=False)), ['status','missing_required','missing_optional','sections']),evidence_refs=refs))
     try:
         encoded = json.dumps(snapshot, allow_nan=False, separators=(',', ':'))
         if len(encoded.encode()) > MAX_BYTES or not Draft202012Validator(schema).is_valid(snapshot):
@@ -275,3 +308,44 @@ class AnalysisFeed:
             return {'candles': []}
         method = getattr(self.feed, 'candles', None)
         return await method(symbol, interval, limit) if method else {'candles': []}
+
+QUOTE_REASONS = {
+    'QUOTE_MISSING': '缺少报价', 'QUOTE_INVALID': '报价格式或价格范围无效',
+    'QUOTE_FUTURE': '报价时间领先本机，未纳入本次快照',
+    'QUOTE_STALE': '报价已过期或已标记失效',
+    'QUOTE_SOURCE_MISMATCH': '行情来源在采样期间发生变化',
+    'QUOTE_SOURCE_UNAVAILABLE': '行情服务当前不可用',
+}
+
+def readiness_summary(snapshot):
+    quality = snapshot['quality']
+    reasons = [QUOTE_REASONS.get(quality.get('sections', {}).get(ref, {}).get('reason'), '缺少有效数据：' + ref)
+               for ref in quality['missing_required']]
+    return '；'.join(reasons) + '。未调用模型，未提交订单。'
+
+
+def blocked_assessment(job, snapshot, created_at, next_review_at):
+    return dict(id=job['model_key'], symbol=job['symbol'], created_at=created_at,
+        schema_revision='assessment_v1', assessment_status='DATA_BLOCKED', action=None, proposal=None,
+        reason_code='DATA_BLOCKED', summary=readiness_summary(snapshot), source='数据就绪检查',
+        risk_status='NOT_EVALUATED', counter_evidence=[], invalidation='',
+        missing_required=snapshot['quality']['missing_required'], data_quality=copy.deepcopy(snapshot['quality']),
+        snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'],
+        strategy_revision=job['strategy_revision'], decision_policy=job.get('decision_policy', 'unanimous'),
+        next_review_at=next_review_at)
+
+
+def project_blocked_decision(job):
+    """Recover known metadata for old job views without rewriting historical facts."""
+    decision = copy.deepcopy(job.get('decision'))
+    if decision and decision.get('assessment_status') == 'DATA_BLOCKED':
+        for field in ('snapshot_id', 'snapshot_hash', 'strategy_revision', 'decision_policy'):
+            if field in job:
+                decision.setdefault(field, job[field])
+        decision.setdefault('source', '数据就绪检查')
+        decision.setdefault('risk_status', 'NOT_EVALUATED')
+        snapshot = job.get('analysis_snapshot')
+        if snapshot:
+            decision.setdefault('data_quality', copy.deepcopy(snapshot['quality']))
+            decision.setdefault('summary', readiness_summary(snapshot))
+    return decision

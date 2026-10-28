@@ -580,6 +580,10 @@ class ModelService:
                         analysis_mode=mode, required_profile_ids=ids, model_profile_ids=ids, profile_revisions=revisions,
                         model_profiles=[self._identity(configs[p][0]) for p in ids], data_as_of=snapshot['evidence_cutoff'],
                         risk_status='NOT_EVALUATED', source='AI', budget={'max_calls':max_calls,'calls':len(record['requests']), 'reserved_output_tokens': sum(configs[r['profile_id']][0]['max_output_tokens'] for r in record['requests']), 'usage_complete': all(c.get('usage', {}).get('output_tokens') is not None for c in components)})
+        if status == 'DATA_BLOCKED':
+            from .analysis_snapshot import readiness_summary
+            decision.update(summary=readiness_summary(snapshot), data_quality=snapshot['quality'],
+                            missing_required=snapshot['quality']['missing_required'], source='数据就绪检查')
         result = {'decision': decision, 'usage': usage}
         record.update(status='SUCCEEDED', result=result)
         persist()

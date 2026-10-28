@@ -1,5 +1,17 @@
 # Current task
 
+## QUOTE_READINESS_FIXED — 2026-10-28
+
+Implemented on public-snapshot at user request: bounded clock settlement,
+specific blocked evidence/brief UI, scrollable 10/20/50 decision history.
+Real public probe 5/5 READY; 483 backend and 114 frontend tests pass; build/typecheck
+pass. API reloaded, user strategy revision8 ACTIVE/auto_execute=true preserved.
+No manual paid inference/order from this task. Previous provider-protocol failure
+is a separate unresolved issue. Evidence and limits:
+[evidence](evidence/2026-10-28-quote-readiness/README.md).
+Older PAUSED/BLOCKED states below are historical, not current user settings.
+
+
 ## RESUME_MODEL_PROTOCOL_BLOCKED — 2026-10-28 15:48 +08:00
 
 用户明确恢复真实行情＋PAPER，并授权付费 DeepSeek 分析；未授权真实资金。
