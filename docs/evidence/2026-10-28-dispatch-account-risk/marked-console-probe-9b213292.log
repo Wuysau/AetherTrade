@@ -1,0 +1,12 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_daily_lock_keeps_bounded_exit_available_with_unrelated_stale_quote ___
+tests\integration\test_paper_dispatch_account_risk.py:67: in test_daily_lock_keeps_bounded_exit_available_with_unrelated_stale_quote
+    with pytest.raises(ApiError, match='INSUFFICIENT_POSITION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'INSUFFICIENT_POSITION'
+E     Actual message: 'INVALID_DECIMAL'
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_daily_lock_keeps_bounded_exit_available_with_unrelated_stale_quote
+1 failed in 4.58s

@@ -1,0 +1,16 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_ test_dispatch_other_symbol_loss_latches_before_denial_and_survives_rebound __
+tests\integration\test_paper_dispatch_account_risk.py:27: in test_dispatch_other_symbol_loss_latches_before_denial_and_survives_rebound
+    with pytest.raises(ApiError, match='DAILY_LOSS_LIMIT'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ApiError
+________ test_dispatch_rechecks_position_cap_even_without_daily_breach ________
+tests\integration\test_paper_dispatch_account_risk.py:50: in test_dispatch_rechecks_position_cap_even_without_daily_breach
+    with pytest.raises(ApiError, match='POSITION_LIMIT'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ApiError
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_dispatch_other_symbol_loss_latches_before_denial_and_survives_rebound
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_dispatch_rechecks_position_cap_even_without_daily_breach
+2 failed in 8.88s

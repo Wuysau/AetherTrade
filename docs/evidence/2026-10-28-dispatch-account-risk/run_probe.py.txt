@@ -1,0 +1,18 @@
+from pathlib import Path
+import json,os,subprocess,sys
+from dotenv import dotenv_values
+from psycopg.conninfo import make_conninfo
+root=Path.cwd()
+source=Path('D:/Projects/Python/AetherTrade/TradingHandoff/AutoDispatchWorktrees/paper-execution')
+cfg=dotenv_values(source/'.runtime/paper-postgres.env')
+meta=json.loads((source/'.runtime/paper-postgres.json').read_text(encoding='utf-8'))
+env=dict(os.environ,PAPER_RUNTIME_ISOLATED_DATABASE='YES',
+    PAPER_RUNTIME_ADMIN_DSN=make_conninfo(host='127.0.0.1',port=meta['port'],
+        dbname=cfg['POSTGRES_DB'],user=cfg['POSTGRES_USER'],password=cfg['POSTGRES_PASSWORD']))
+name='marked-console-probe-'+__import__('uuid').uuid4().hex[:8]
+with (root/'.runtime'/f'{name}.log').open('wb') as stream:
+    result=subprocess.run([sys.executable,'-m','pytest','-q','--tb=short',*sys.argv[1:]],env=env,stdout=stream,stderr=subprocess.STDOUT)
+(root/'.runtime'/f'{name}.exit').write_text(str(result.returncode),encoding='utf-8')
+print('Evidence:', str(root/'.runtime'/f'{name}.log'))
+print((root/'.runtime'/f'{name}.log').read_text(encoding='utf-8',errors='replace')[-10000:])
+raise SystemExit(result.returncode)
