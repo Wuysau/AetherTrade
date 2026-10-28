@@ -1,0 +1,194 @@
+{
+  "id": "49d287a9-50c7-493e-82f1-001b245e755f",
+  "symbol": "BTCUSDT",
+  "created_at": "2026-10-28T09:06:59.685930+00:00",
+  "schema_revision": "assessment_v1",
+  "assessment_status": "INVALID_PLAN",
+  "reason_code": "INVALID_ASSESSMENT",
+  "proposal": null,
+  "action": null,
+  "summary": "INVALID_ASSESSMENT",
+  "counter_evidence": [],
+  "invalidation": "",
+  "evidence_claims": [],
+  "watch_conditions": [],
+  "next_review_at": null,
+  "review_report": null,
+  "component_results": [
+    {
+      "profile_id": "default",
+      "role": "primary",
+      "snapshot_hash": "76347ddf65bbfd5569cafbdcf50ce1b04c4e47b6cfc11e03249d78976ea37de0",
+      "config_revision": 5,
+      "input_hash": "ee1a02415df2caa713fe50cf8d02c32bdf5cc020d29283b8125b481e902a486c",
+      "status": "SUCCEEDED",
+      "usage": {
+        "input_tokens": 4923,
+        "output_tokens": 4018
+      },
+      "response": {
+        "schema_revision": "assessment_v1",
+        "summary": "No position and no approved trade. BTCUSDT shows constructive 5m momentum after a high-volume breakout to 81823, but price has pulled back to 81492 and sits below local resistance. Estimated round-trip trading friction is about 0.6% (0.1% fee plus 20bps slippage each side), which is large relative to the nearby 1h opportunity and makes a fresh entry unattractive without either a confirmed breakout or a deeper pullback. Waiting is preferred over chasing.",
+        "proposal": null,
+        "evidence_claims": [
+          {
+            "evidence_ref": "quote",
+            "predicate": {
+              "field": "change_pct",
+              "operator": "GT",
+              "value": "2"
+            },
+            "conclusion": "BTCUSDT is up 2.05% at 81492.14, so momentum is positive but entry is not at a discounted level."
+          },
+          {
+            "evidence_ref": "candles:5m",
+            "predicate": null,
+            "conclusion": "The 5m structure shows a high-volume breakout to 81823 followed by a pullback to 81486.86, leaving price near the breakout zone but still below resistance."
+          },
+          {
+            "evidence_ref": "features:5m",
+            "predicate": {
+              "field": "atr",
+              "operator": "GT",
+              "value": "60"
+            },
+            "conclusion": "ATR is 62.02, about 0.076% of price; a tight stop below the pullback would be vulnerable to normal noise, especially after costs."
+          },
+          {
+            "evidence_ref": "book",
+            "predicate": {
+              "field": "spread",
+              "operator": "LT",
+              "value": "1"
+            },
+            "conclusion": "Book spread is 0.01 USDT, so quoted spread is tight and not the main execution concern; fees and modeled slippage dominate."
+          },
+          {
+            "evidence_ref": "features:5m",
+            "predicate": {
+              "field": "relative_volume",
+              "operator": "GT",
+              "value": "1"
+            },
+            "conclusion": "Relative volume is only 1.066, slightly above normal, so current consolidation does not yet confirm aggressive continuation demand."
+          }
+        ],
+        "watch_conditions": [
+          {
+            "kind": "PRICE_ABOVE",
+            "evidence_ref": "candles:5m",
+            "value": "81823.00"
+          },
+          {
+            "kind": "PRICE_BELOW",
+            "evidence_ref": "candles:5m",
+            "value": "81350.00"
+          },
+          {
+            "kind": "NEW_BAR",
+            "evidence_ref": "candles:5m",
+            "value": null
+          }
+        ],
+        "next_review_at": "2026-10-28T09:10:05Z"
+      }
+    },
+    {
+      "profile_id": "default",
+      "role": "repair",
+      "snapshot_hash": "76347ddf65bbfd5569cafbdcf50ce1b04c4e47b6cfc11e03249d78976ea37de0",
+      "config_revision": 5,
+      "input_hash": "51c7858b1db10b1791a2ad0324713cab4941e18dea4ed62fa1770b6faeacdd36",
+      "status": "SUCCEEDED",
+      "usage": {
+        "input_tokens": 4936,
+        "output_tokens": 7347
+      },
+      "response": {
+        "schema_revision": "assessment_v1",
+        "summary": "No position and no active orders. BTCUSDT is above its 5m SMA after a sharp upward breakout, but price is consolidating just below the recent 81823 high. Chasing at 81492 has less clear risk/reward than waiting for a confirmed break above 81823 or a pullback toward the 81130 SMA. Optional news is missing but does not by itself veto a trade; proposal is null for a reasoned wait.",
+        "proposal": null,
+        "evidence_claims": [
+          {
+            "evidence_ref": "quote",
+            "predicate": null,
+            "conclusion": "Quote is 81492.14 with a tight 0.01 spread, indicating liquid near-term execution."
+          },
+          {
+            "evidence_ref": "features:5m",
+            "predicate": null,
+            "conclusion": "5m close is above the 81130.77 SMA, with ATR 62.02 and relative volume 1.07, supporting a constructive but not low-risk trend."
+          },
+          {
+            "evidence_ref": "candles:5m",
+            "predicate": null,
+            "conclusion": "Recent bars show an upward breakout to 81823 followed by shallow consolidation near 81486, so immediate continuation is unconfirmed."
+          },
+          {
+            "evidence_ref": "book",
+            "predicate": null,
+            "conclusion": "Best bid/ask are 81492.13/81492.14, so spread cost is minimal relative to the 20 bps slippage assumption."
+          }
+        ],
+        "watch_conditions": [
+          {
+            "kind": "PRICE_ABOVE",
+            "evidence_ref": "features:5m",
+            "value": "81823.00"
+          },
+          {
+            "kind": "PRICE_BELOW",
+            "evidence_ref": "features:5m",
+            "value": "81130.76625"
+          },
+          {
+            "kind": "NEW_BAR",
+            "evidence_ref": "candles:5m",
+            "value": null
+          }
+        ],
+        "next_review_at": "2026-10-28T09:10:51.019499+00:00"
+      }
+    }
+  ],
+  "adjudication_history": [],
+  "snapshot_id": "snapshot:76347ddf65bbfd5569cafbdcf50ce1b0",
+  "snapshot_hash": "76347ddf65bbfd5569cafbdcf50ce1b04c4e47b6cfc11e03249d78976ea37de0",
+  "input_hash": "205a1ac284af812fbc3bdb683e140becafd43148ab7e42f345114e187c782cf4",
+  "strategy_revision": 8,
+  "prompt_revision": "decision-evidence-2",
+  "decision_policy": "unanimous",
+  "decision_policy_revision": "1",
+  "analysis_mode": "single",
+  "required_profile_ids": [
+    "default"
+  ],
+  "model_profile_ids": [
+    "default"
+  ],
+  "profile_revisions": {
+    "default": 5
+  },
+  "model_profiles": [
+    {
+      "profile_id": "default",
+      "profile_name": "默认模型",
+      "model": "deepseek-flash",
+      "config_revision": 5
+    }
+  ],
+  "data_as_of": "2026-10-28T09:05:51.019499+00:00",
+  "risk_status": "NOT_EVALUATED",
+  "source": "AI",
+  "budget": {
+    "max_calls": 2,
+    "calls": 2,
+    "reserved_output_tokens": null,
+    "usage_complete": true
+  },
+  "strategy_id": "f47b292b-7632-43f1-9d2b-2b968a37871c",
+  "strategy_name": "持续真实行情 PAPER 自测",
+  "execution_status": "BLOCKED",
+  "execution_reason": "INVALID_ASSESSMENT",
+  "order_id": null
+}

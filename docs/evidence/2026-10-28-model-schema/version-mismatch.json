@@ -1,0 +1,90 @@
+{
+  "id": "8e55d8f0-6ac2-4ecf-af4d-d0fc18301937",
+  "symbol": "BTCUSDT",
+  "created_at": "2026-10-28T09:00:39.854426+00:00",
+  "schema_revision": "assessment_v1",
+  "assessment_status": "MODEL_ERROR",
+  "reason_code": "MODEL_REQUEST_FAILED",
+  "proposal": null,
+  "action": null,
+  "summary": "MODEL_REQUEST_FAILED",
+  "counter_evidence": [],
+  "invalidation": "",
+  "evidence_claims": [],
+  "watch_conditions": [],
+  "next_review_at": null,
+  "review_report": null,
+  "component_results": [
+    {
+      "profile_id": "default",
+      "role": "primary",
+      "snapshot_hash": "eebe791adc2b0a2ed65fcb289f61184ac5395d52620b5329b801fc7452bca3a1",
+      "config_revision": 5,
+      "input_hash": "b4297c661cb9a285ec2512d82343d97aec1ac4dd6dc6ef59442a77c801e51670",
+      "status": "FAILED",
+      "usage": {
+        "input_tokens": 4873,
+        "output_tokens": 7481
+      },
+      "code": "INVALID_MODEL_RESPONSE",
+      "error": "模型响应不是完整有效的分析 JSON。 检查阶段：决策协议版本字段",
+      "response_diagnostic": {
+        "stage": "schema_revision",
+        "completion_status": "completed",
+        "incomplete_reason": null,
+        "text_characters": 1423,
+        "fenced": false,
+        "expected_schema": "assessment_v1",
+        "known_fields_present": [
+          "evidence_claims",
+          "next_review_at",
+          "proposal",
+          "schema_revision",
+          "summary",
+          "watch_conditions"
+        ],
+        "schema_revision_matches": false
+      }
+    }
+  ],
+  "adjudication_history": [],
+  "snapshot_id": "snapshot:eebe791adc2b0a2ed65fcb289f61184a",
+  "snapshot_hash": "eebe791adc2b0a2ed65fcb289f61184ac5395d52620b5329b801fc7452bca3a1",
+  "input_hash": "f3c8619969661f66b6c5cd4cf4d3b96b46fcf979914095af61d57ca0393cb4a0",
+  "strategy_revision": 8,
+  "prompt_revision": "decision-evidence-1",
+  "decision_policy": "unanimous",
+  "decision_policy_revision": "1",
+  "analysis_mode": "single",
+  "required_profile_ids": [
+    "default"
+  ],
+  "model_profile_ids": [
+    "default"
+  ],
+  "profile_revisions": {
+    "default": 5
+  },
+  "model_profiles": [
+    {
+      "profile_id": "default",
+      "profile_name": "默认模型",
+      "model": "deepseek-flash",
+      "config_revision": 5
+    }
+  ],
+  "data_as_of": "2026-10-28T08:59:54.013548+00:00",
+  "risk_status": "NOT_EVALUATED",
+  "source": "AI",
+  "budget": {
+    "max_calls": 2,
+    "calls": 1,
+    "reserved_output_tokens": null,
+    "usage_complete": true
+  },
+  "strategy_id": "f47b292b-7632-43f1-9d2b-2b968a37871c",
+  "strategy_name": "持续真实行情 PAPER 自测",
+  "execution_status": "BLOCKED",
+  "execution_reason": "MODEL_REQUEST_FAILED",
+  "order_id": null
+}

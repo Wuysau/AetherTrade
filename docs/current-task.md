@@ -1,5 +1,17 @@
 # Current task
 
+## STRUCTURED_MODEL_VERIFIED — 2026-10-28 17:13 +08:00
+
+Actual scheduled model response diagnosed as wrong outer schema_revision, not
+output truncation. Explicit version/path/watch instructions and bounded correction
+implemented on public-snapshot. Prompt revision3 actual outcome at17:13:02:
+DECIDED / WAIT_CONDITION / HOLD / NO_ACTION, primary+repair two calls. Strategy8
+remains ACTIVE with auto_execute enabled; model5 remains uncapped at app layer.
+No manually added inference or order/fill events. Backend124 / frontend115 pass;
+build passes. See [evidence](evidence/2026-10-28-model-schema/README.md).
+Earlier protocol-blocked notes below are historical, now superseded.
+
+
 ## OUTPUT_LIMIT_UNSET — 2026-10-28 16:38 +08:00
 
 User requested no model output cap. Default DeepSeek profile revision5 now has

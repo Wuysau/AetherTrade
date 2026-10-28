@@ -1,0 +1,304 @@
+{
+  "id": "33b4c128-7a32-45aa-9ff9-052a40234628",
+  "symbol": "BTCUSDT",
+  "created_at": "2026-10-28T09:13:02.817531+00:00",
+  "schema_revision": "assessment_v1",
+  "assessment_status": "DECIDED",
+  "reason_code": "WAIT_CONDITION",
+  "proposal": null,
+  "action": "HOLD",
+  "summary": "No position and no actionable breakout confirmation. Momentum is positive: price is +2.098%, the 5m window returns +0.700%, relative volume is 1.478, and the spread is tight at 0.01 USDT. However, price is below the recent 5m high of 81823 after a pullback/consolidation around 81480-81515, and news is unavailable. Waiting is preferable to chasing a mature move; monitor for breakout confirmation above 81823 or loss of nearby support at 81452.",
+  "counter_evidence": [],
+  "invalidation": "",
+  "evidence_claims": [
+    {
+      "evidence_ref": "quote",
+      "predicate": {
+        "field": "market.quote.change_pct",
+        "operator": "GT",
+        "value": "2"
+      },
+      "conclusion": "BTC is up 2.098% on the snapshot, confirming positive session momentum but not a fresh breakout trigger."
+    },
+    {
+      "evidence_ref": "features:5m",
+      "predicate": {
+        "field": "market.features.5m.return_pct",
+        "operator": "GT",
+        "value": "0.5"
+      },
+      "conclusion": "The 5m window has a positive return of 0.700%, supportive of trend but already extended."
+    },
+    {
+      "evidence_ref": "features:5m",
+      "predicate": {
+        "field": "market.features.5m.relative_volume",
+        "operator": "GT",
+        "value": "1"
+      },
+      "conclusion": "Relative volume at 1.478 indicates above-normal participation."
+    },
+    {
+      "evidence_ref": "candles:5m",
+      "predicate": null,
+      "conclusion": "The latest closed bars show a push to 81823 followed by a pullback and consolidation around 81480-81515, so immediate continuation is unconfirmed."
+    },
+    {
+      "evidence_ref": "book",
+      "predicate": {
+        "field": "market.book.spread",
+        "operator": "LT",
+        "value": "0.1"
+      },
+      "conclusion": "The spread is 0.01 USDT, indicating tight execution liquidity."
+    },
+    {
+      "evidence_ref": "quote",
+      "predicate": {
+        "field": "market.quote.price",
+        "operator": "LT",
+        "value": "81823"
+      },
+      "conclusion": "Current price remains below the recent 5m high, so breakout confirmation is absent."
+    }
+  ],
+  "watch_conditions": [
+    {
+      "kind": "PRICE_ABOVE",
+      "evidence_ref": "quote",
+      "value": "81823.00"
+    },
+    {
+      "kind": "PRICE_BELOW",
+      "evidence_ref": "quote",
+      "value": "81452.00"
+    },
+    {
+      "kind": "NEW_BAR",
+      "evidence_ref": "candles:5m",
+      "value": null
+    }
+  ],
+  "next_review_at": "2026-10-28T09:17:11.019954+00:00",
+  "review_report": null,
+  "component_results": [
+    {
+      "profile_id": "default",
+      "role": "primary",
+      "snapshot_hash": "a035753788df152125e7b86f5cc2e5824ce92e73c96be103abd2ce2bc83d6afe",
+      "config_revision": 5,
+      "input_hash": "f78405a8b0e2c085a77dd8da41f23e2b2193553cb11de43ddd99f0ce6b2ba126",
+      "status": "SUCCEEDED",
+      "usage": {
+        "input_tokens": 5037,
+        "output_tokens": 5856
+      },
+      "response": {
+        "schema_revision": "assessment_v1",
+        "summary": "No approved trade. BTCUSDT is in a short-term uptrend with elevated relative volume and a tight spread, but price is extended after a high-volume breakout and the 5m ATR is small relative to round-trip costs. With no position and no news catalyst, waiting for a cleaner breakout or pullback setup is preferable to chasing at the current price. Missing news is optional and not a veto.",
+        "proposal": null,
+        "evidence_claims": [
+          {
+            "evidence_ref": "quote",
+            "predicate": {
+              "field": "market.quote.price",
+              "operator": "GT",
+              "value": "81147.90687500"
+            },
+            "conclusion": "Quote is above the 32-bar SMA at 81147.91, indicating short-term trend support."
+          },
+          {
+            "evidence_ref": "quote",
+            "predicate": {
+              "field": "market.quote.change_pct",
+              "operator": "GT",
+              "value": "2.0"
+            },
+            "conclusion": "The 24h change is +2.098%, showing momentum but also some extension risk."
+          },
+          {
+            "evidence_ref": "features:5m",
+            "predicate": {
+              "field": "market.features.5m.relative_volume",
+              "operator": "GT",
+              "value": "1.4"
+            },
+            "conclusion": "Relative volume is 1.478, confirming elevated participation during the move."
+          },
+          {
+            "evidence_ref": "features:5m",
+            "predicate": {
+              "field": "market.features.5m.atr",
+              "operator": "LT",
+              "value": "70"
+            },
+            "conclusion": "The 5m ATR is about 62.56, roughly 0.077% of price, so one-hour volatility may not clear round-trip costs."
+          },
+          {
+            "evidence_ref": "book",
+            "predicate": {
+              "field": "market.book.spread",
+              "operator": "LT",
+              "value": "0.02"
+            },
+            "conclusion": "The spread is 0.01, so execution conditions are tight if a better setup appears."
+          },
+          {
+            "evidence_ref": "costs",
+            "predicate": {
+              "field": "costs.fee_rate",
+              "operator": "EQ",
+              "value": "0.001"
+            },
+            "conclusion": "The 0.1% fee per side plus the 20 bps slippage assumption creates a meaningful cost hurdle for a short holding period."
+          }
+        ],
+        "watch_conditions": [
+          {
+            "kind": "PRICE_ABOVE",
+            "evidence_ref": "quote",
+            "value": "81823.00000000"
+          },
+          {
+            "kind": "PRICE_BELOW",
+            "evidence_ref": "quote",
+            "value": "81350.00000000"
+          },
+          {
+            "kind": "NEW_BAR",
+            "evidence_ref": "candles:5m",
+            "value": null
+          }
+        ],
+        "next_review_at": "2026-10-28T09:17:11.019954Z"
+      }
+    },
+    {
+      "profile_id": "default",
+      "role": "repair",
+      "snapshot_hash": "a035753788df152125e7b86f5cc2e5824ce92e73c96be103abd2ce2bc83d6afe",
+      "config_revision": 5,
+      "input_hash": "3c668ece63b3697e5bc6a10f7155829f695415a3d94f88e2f30f00cfc55a1d91",
+      "status": "SUCCEEDED",
+      "usage": {
+        "input_tokens": 5048,
+        "output_tokens": 2697
+      },
+      "response": {
+        "schema_revision": "assessment_v1",
+        "summary": "No position and no actionable breakout confirmation. Momentum is positive: price is +2.098%, the 5m window returns +0.700%, relative volume is 1.478, and the spread is tight at 0.01 USDT. However, price is below the recent 5m high of 81823 after a pullback/consolidation around 81480-81515, and news is unavailable. Waiting is preferable to chasing a mature move; monitor for breakout confirmation above 81823 or loss of nearby support at 81452.",
+        "proposal": null,
+        "evidence_claims": [
+          {
+            "evidence_ref": "quote",
+            "predicate": {
+              "field": "market.quote.change_pct",
+              "operator": "GT",
+              "value": "2"
+            },
+            "conclusion": "BTC is up 2.098% on the snapshot, confirming positive session momentum but not a fresh breakout trigger."
+          },
+          {
+            "evidence_ref": "features:5m",
+            "predicate": {
+              "field": "market.features.5m.return_pct",
+              "operator": "GT",
+              "value": "0.5"
+            },
+            "conclusion": "The 5m window has a positive return of 0.700%, supportive of trend but already extended."
+          },
+          {
+            "evidence_ref": "features:5m",
+            "predicate": {
+              "field": "market.features.5m.relative_volume",
+              "operator": "GT",
+              "value": "1"
+            },
+            "conclusion": "Relative volume at 1.478 indicates above-normal participation."
+          },
+          {
+            "evidence_ref": "candles:5m",
+            "predicate": null,
+            "conclusion": "The latest closed bars show a push to 81823 followed by a pullback and consolidation around 81480-81515, so immediate continuation is unconfirmed."
+          },
+          {
+            "evidence_ref": "book",
+            "predicate": {
+              "field": "market.book.spread",
+              "operator": "LT",
+              "value": "0.1"
+            },
+            "conclusion": "The spread is 0.01 USDT, indicating tight execution liquidity."
+          },
+          {
+            "evidence_ref": "quote",
+            "predicate": {
+              "field": "market.quote.price",
+              "operator": "LT",
+              "value": "81823"
+            },
+            "conclusion": "Current price remains below the recent 5m high, so breakout confirmation is absent."
+          }
+        ],
+        "watch_conditions": [
+          {
+            "kind": "PRICE_ABOVE",
+            "evidence_ref": "quote",
+            "value": "81823.00"
+          },
+          {
+            "kind": "PRICE_BELOW",
+            "evidence_ref": "quote",
+            "value": "81452.00"
+          },
+          {
+            "kind": "NEW_BAR",
+            "evidence_ref": "candles:5m",
+            "value": null
+          }
+        ],
+        "next_review_at": "2026-10-28T09:17:11.019954+00:00"
+      }
+    }
+  ],
+  "adjudication_history": [],
+  "snapshot_id": "snapshot:a035753788df152125e7b86f5cc2e582",
+  "snapshot_hash": "a035753788df152125e7b86f5cc2e5824ce92e73c96be103abd2ce2bc83d6afe",
+  "input_hash": "aae084b22fa44acdc593ffa6d189901fee532b89b20f6958ee9db9926004920c",
+  "strategy_revision": 8,
+  "prompt_revision": "decision-evidence-3",
+  "decision_policy": "unanimous",
+  "decision_policy_revision": "1",
+  "analysis_mode": "single",
+  "required_profile_ids": [
+    "default"
+  ],
+  "model_profile_ids": [
+    "default"
+  ],
+  "profile_revisions": {
+    "default": 5
+  },
+  "model_profiles": [
+    {
+      "profile_id": "default",
+      "profile_name": "默认模型",
+      "model": "deepseek-flash",
+      "config_revision": 5
+    }
+  ],
+  "data_as_of": "2026-10-28T09:12:11.019954+00:00",
+  "risk_status": "NOT_EVALUATED",
+  "source": "AI",
+  "budget": {
+    "max_calls": 2,
+    "calls": 2,
+    "reserved_output_tokens": null,
+    "usage_complete": true
+  },
+  "strategy_id": "f47b292b-7632-43f1-9d2b-2b968a37871c",
+  "strategy_name": "持续真实行情 PAPER 自测",
+  "execution_status": "NO_ACTION",
+  "execution_reason": "有效观察结论；原保护和退出责任保持。",
+  "order_id": null
+}
