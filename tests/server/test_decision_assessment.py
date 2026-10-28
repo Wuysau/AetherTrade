@@ -188,3 +188,16 @@ def test_optional_missing_news_is_a_soft_review_preference():
     snap=snapshot();snap['task_profile']['optional']=['news']
     report=validate_review({'schema_revision':'review_v1','issues':[dict(category='PREFERENCE',evidence_ref='news',predicate=None,severity='SOFT',suggestion='News unavailable')]},snap)
     assert report['status']=='SOFT'
+
+
+def test_unset_output_budget_preserves_usage_and_call_limit(svc,monkeypatch):
+    with svc.store.transaction() as conn:
+        config=model_repository.read_profile(conn,'default')
+        config['max_output_tokens']=None
+        model_repository.write_profile(conn,'default',config)
+    result,calls=run(svc,monkeypatch,[candidate()])
+    assert result['decision']['assessment_status']=='DECIDED'
+    assert result['decision']['budget']['reserved_output_tokens'] is None
+    assert result['decision']['budget']['max_calls']==2
+    assert result['usage']['output_tokens']==4
+    assert 'max_tokens' not in calls[0]

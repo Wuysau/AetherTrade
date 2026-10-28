@@ -1,5 +1,18 @@
 # Current task
 
+## OUTPUT_LIMIT_UNSET — 2026-10-28 16:38 +08:00
+
+User requested no model output cap. Default DeepSeek profile revision5 now has
+max_output_tokens=null; Responses/Chat requests omit the optional token limit.
+The 60-second timeout, bounded call count, response/schema validation and venue
+controls remain unchanged. Actual provider defaults/limits still apply. UI field
+may be left blank; Anthropic requires an explicit limit. No inference was manually
+triggered for this change. Backend model regressions115 passed/1 PG deselected;
+frontend115 passed; build/typecheck passed. API reloaded idle, strategy unchanged.
+Local verification: .runtime/live-market-paper/output-limit-disabled.json.
+Protocol reference: https://developers.openai.com/api/reference/resources/responses/methods/create
+
+
 ## QUOTE_READINESS_FIXED — 2026-10-28
 
 Implemented on public-snapshot at user request: bounded clock settlement,

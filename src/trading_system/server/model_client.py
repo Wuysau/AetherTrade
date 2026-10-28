@@ -133,13 +133,13 @@ def payload(config, context):
         instructions = REVIEW_INSTRUCTIONS if context.get('role') == 'review' else ASSESSMENT_INSTRUCTIONS + json.dumps(ContractCodec()._schemas['decision-proposal'])
     common = {'model': config['model']}
     if config['protocol'] == 'openai_responses':
-        return '/responses', dict(common, input=text, instructions=instructions, max_output_tokens=config['max_output_tokens'], store=False)
+        return '/responses', dict(common, input=text, instructions=instructions, store=False, **({'max_output_tokens': config['max_output_tokens']} if config['max_output_tokens'] is not None else {}))
     messages = [{'role': 'user', 'content': text}]
     if config['protocol'] == 'anthropic':
         return '/messages', dict(common, system=instructions, messages=messages, max_tokens=config['max_output_tokens'], stream=False)
     token_field = 'max_completion_tokens' if urlsplit(config['base_url']).hostname == 'api.openai.com' else 'max_tokens'
     return '/chat/completions', dict(common, messages=[{'role': 'system', 'content': instructions}] + messages,
-                                     stream=False, **{token_field: config['max_output_tokens']})
+                                     stream=False, **({token_field: config['max_output_tokens']} if config['max_output_tokens'] is not None else {}))
 
 
 def parse(config, body, symbol, *, schema=None):

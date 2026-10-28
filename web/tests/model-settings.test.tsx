@@ -116,3 +116,13 @@ it('manual one-off analysis never activates a strategy or submits a PAPER order'
   fireEvent.change(screen.getByLabelText('分析标的'), { target: { value: 'BTCUSDT' } }); fireEvent.click(screen.getByRole('checkbox')); fireEvent.click(screen.getByRole('button', { name: '生成一次分析' }));
   await waitFor(() => expect(saved).toHaveBeenCalledWith(expect.stringContaining('未执行订单'))); expect(generate).toHaveBeenCalledTimes(1); expect(order).not.toHaveBeenCalled(); expect(strategy).not.toHaveBeenCalled();
 });
+
+it('persists an unset application output limit as null',async()=>{
+ const api=new RuntimeApi();const save=vi.spyOn(api,'saveModelConfig').mockResolvedValue({...config,max_output_tokens:null,revision:2});
+ render(<ConfigForm config={config} api={api} onConfig={vi.fn()} onSaved={vi.fn()}/>);
+ fireEvent.click(screen.getByText('高级设置'));
+ fireEvent.change(screen.getByLabelText('最大输出 token'),{target:{value:''}});
+ fireEvent.click(screen.getByRole('button',{name:'保存配置'}));
+ await waitFor(()=>expect(save).toHaveBeenCalledTimes(1));
+ expect(save.mock.calls[0][0].max_output_tokens).toBeNull();
+});

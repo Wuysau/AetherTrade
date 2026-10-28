@@ -112,6 +112,8 @@ class ModelService:
             if type(config[key]) is not bool:
                 raise ApiError('INVALID_MODEL_CONFIG', '模型开关需为布尔值。')
         for key, lower, upper in [('max_output_tokens', 128, 8192), ('timeout_seconds', 5, 120)]:
+            if key == 'max_output_tokens' and config[key] is None and config['protocol'] != 'anthropic':
+                continue
             if type(config[key]) is not int or not lower <= config[key] <= upper:
                 raise ApiError('INVALID_MODEL_CONFIG', '模型请求限制不在允许范围内。')
         if not isinstance(config['model'], str) or not 1 <= len(config['model'].strip()) <= 200 or any(ord(c) < 32 for c in config['model']):
@@ -579,7 +581,7 @@ class ModelService:
                         prompt_revision=PROMPT_REVISION, decision_policy=policy, decision_policy_revision='1',
                         analysis_mode=mode, required_profile_ids=ids, model_profile_ids=ids, profile_revisions=revisions,
                         model_profiles=[self._identity(configs[p][0]) for p in ids], data_as_of=snapshot['evidence_cutoff'],
-                        risk_status='NOT_EVALUATED', source='AI', budget={'max_calls':max_calls,'calls':len(record['requests']), 'reserved_output_tokens': sum(configs[r['profile_id']][0]['max_output_tokens'] for r in record['requests']), 'usage_complete': all(c.get('usage', {}).get('output_tokens') is not None for c in components)})
+                        risk_status='NOT_EVALUATED', source='AI', budget={'max_calls':max_calls,'calls':len(record['requests']), 'reserved_output_tokens': (None if any(configs[r['profile_id']][0]['max_output_tokens'] is None for r in record['requests']) else sum(configs[r['profile_id']][0]['max_output_tokens'] for r in record['requests'])), 'usage_complete': all(c.get('usage', {}).get('output_tokens') is not None for c in components)})
         if status == 'DATA_BLOCKED':
             from .analysis_snapshot import readiness_summary
             decision.update(summary=readiness_summary(snapshot), data_quality=snapshot['quality'],

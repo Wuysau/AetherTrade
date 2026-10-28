@@ -106,7 +106,7 @@ export interface ActionReceipt { id: string; action: PaperAction; status: 'APPLI
 
 export interface Instrument { symbol: SymbolName; name: string; asset_class: 'CRYPTO' | 'BSTOCK'; base_asset: string; quote_asset: string; underlying_symbol: string | null }
 export type ModelProtocol = 'openai_responses' | 'openai_chat' | 'anthropic';
-export interface ModelFields { protocol: ModelProtocol; base_url: string; model: string; enabled: boolean; local_mode: boolean; max_output_tokens: number; timeout_seconds: number; anthropic_version: string }
+export interface ModelFields { protocol: ModelProtocol; base_url: string; model: string; enabled: boolean; local_mode: boolean; max_output_tokens: number | null; timeout_seconds: number; anthropic_version: string }
 export interface ModelConfig extends ModelFields { revision: number; has_api_key: boolean; key_available: boolean; connection_status: 'NOT_CONFIGURED' | 'CONFIGURED' | 'CONNECTED' | 'UNAVAILABLE'; last_test_at: string | null; last_error: string | null }
 export interface ModelInput extends ModelFields { expected_revision: number; api_key?: string; clear_api_key?: boolean }
 export interface ModelProfile extends ModelConfig { id: string; name: string }
