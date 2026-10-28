@@ -29,8 +29,17 @@ produce fills. SQLite execution fails closed. Existing console fills remain
 read-only legacy synthetic records and are never silently imported as unified
 evidence. Protection verification is labeled VERIFIED_SYNTHETIC to users.
 
-The integrated lifecycle is not fully qualified: dispatch-time whole-account
-risk revaluation and reductions with active protection have outstanding P1
-findings, with full integration gates still pending. The user resumed the task
-on 2026-10-28; see current-task.md for active work and HANDOFF-2026-10-28.md for
-the preserved pause checkpoint.
+The local synthetic PAPER engineering gate passed on fixed backend `6cbc870`:
+802 mandatory Linux/PostgreSQL tests, no skips/failures; frontend108 passed.
+Dispatch-time whole-account risk, protected reductions and reviewed recovery
+have regression coverage and no currently unresolved reviewed P0/P1/P2 findings.
+Real HTTP/CLI/browser examples preserve explicit synthetic provenance.
+
+This is local engineering qualification only. Console composition remains the
+existing Spot shape; final USD-M/Stocks scope is preserved but each real adapter
+needs separate qualification. Remote CI, Testnet/Demo, real model calls, actual
+venue liquidity/protection and LIVE readiness are not established. Daily unlock
+is conservative: next configured risk day + flat complete account + separate
+reviewer + explicit review id. No price-based or model-based automatic unlock.
+See current-task.md and FINAL_PAPER_REPORT_2026-10-28.md for the final boundary;
+HANDOFF-2026-10-28.md remains a historical pause checkpoint.

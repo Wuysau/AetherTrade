@@ -1,5 +1,12 @@
 # 统一 PAPER：终端与网页复现步骤
 
+**执行记录已补齐（2026-10-28）：**见
+[真实 HTTP/CLI/PostgreSQL/浏览器证据](evidence/2026-10-28-real-demo/README.md)。
+已观察到独立 owner、显式部分成交、保护验证、撤单UNKNOWN、受审核减仓续接、
+剩余止损成交、API重启和最终FLAT_VERIFIED；此处下方的“尚未执行”仅是配方初稿历史。
+最终环境与测试边界以 [交付报告](FINAL_PAPER_REPORT_2026-10-28.md) 为准，
+不能把合成价格/成交解释为真实交易所资格。
+
 此recipe按集成源码 `21f9ddf` 的 [CLI](../src/trading_system/server/cli.py)、[provision](../src/trading_system/server/paper_provision.py)、[runtime](../src/trading_system/server/paper_runtime.py)、[API](../src/trading_system/server/app.py) 与 [输入schema](../src/trading_system/server/validation.py) 编写。**本文档提交时演示尚未执行：原始终端输出、网页截图、全C组合结果为NOT_RUN**；最终证据见 [acceptance.md](acceptance.md)，不能把下面的预期检查点当执行记录。远端CI及Testnet/LIVE均NOT_RUN。
 
 仅用一次性本地PostgreSQL、虚拟余额和明确注入的合成事件。公开报价是入场校验输入，模拟成交价格是测试人员显式给定；模拟不证明真实滑点、流动性或保护。AI/RULE/HYBRID共享控制契约；本控制台模拟组合为Spot，不证明USD-M或真实Stocks适配资格。bStocks现货也不是实际证券适配器的资格证据。

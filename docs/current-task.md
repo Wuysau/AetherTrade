@@ -1,6 +1,30 @@
 # Current task
 
-## ACTIVE — resumed 2026-10-28
+## LOCAL_PAPER_COMPLETE — 2026-10-28
+
+当前任务的实现与本地工程验收已完成，详细边界见
+[FINAL_PAPER_REPORT_2026-10-28.md](FINAL_PAPER_REPORT_2026-10-28.md) 和
+[acceptance.md](acceptance.md)。最终后端 `6cbc870`：20个必需 Linux/PG suite
+802通过、零失败/错误/跳过；普通Python2373通过/362跳过/90取消选择。最终前端
+`c4520da`：108通过，类型检查/构建退出0；其后端源码与6cbc完全相同。
+
+真实生产HTTP+CLI+隔离PG+浏览器闭环已执行，最终现金/权益9998.921、费用0.079、
+实际持仓0、FLAT_VERIFIED、独立审核后活动锁0，owner在控制API重启时保持存活。
+原始命令/退出码/账本/截图在 `docs/evidence/2026-10-28-real-demo/`；完整门禁
+及哈希在 `docs/evidence/2026-10-28-final-qualification/`。
+
+已修复两项原P1与审查发现的恢复卡死、有效状态判定、真实CLI导入、止损费用统计
+和RULE详情展示；本轮独立审查报告的问题均已解决（不声称覆盖所有未审查能力）。所有先前WIP已验证并提交。
+保留实施分支与所有worktree，不合并主目录、不push、不自行继续下一项任务。
+远端CI、真实云模型、Binance Testnet/Demo及任何实盘写入均NOT_RUN，native禁用。
+
+后续仅在用户明确要求时处理公共分支集成或独立连接器资格；不要重做此轮已有证据。
+
+## Historical continuation checkpoints
+
+以下为执行历史，旧的ACTIVE/暂停/未完成表述不代表当前任务状态。
+
+### ACTIVE — resumed 2026-10-28 (historical)
 
 用户已明确要求“继续执行任务”，撤销先前暂停。已核对 Git：实施分支 HEAD
 `dd4fda4`，六份 WIP 原位保留。两项 P1 分别在独立的

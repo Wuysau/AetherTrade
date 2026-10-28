@@ -1,5 +1,38 @@
 # 统一 PAPER：证据索引与未完成项
 
+## 当前判定：本地统一 PAPER 工程验收通过（2026-10-28）
+
+最终后端固定源 `6cbc870`，最终前端代码 `c4520da`（前端/文档差异，后端源码
+blob 未改变）。[最终交付报告](FINAL_PAPER_REPORT_2026-10-28.md)、
+[原始测试及校验器](evidence/2026-10-28-final-qualification/README.md)、
+[真实 HTTP/CLI/PG/手机演示](evidence/2026-10-28-real-demo/README.md)。
+
+- 必需 Linux/PostgreSQL：20 suites，**802 passed / 0 failed / 0 errors / 0 skipped**。
+- 普通 Python：**2373 passed / 362 skipped / 90 deselected**，exit 0。可选项未运行
+  状态保留，不以它们替代另一必需 job 的实际数据库安全验证。
+- 前端：**108 passed**；typecheck/tests/build 原始退出码均 0。
+
+| 原任务 C 要求（原顺序） | 本地结果与来源 |
+| --- | --- |
+| 隔离真 PostgreSQL 并发/恢复，skip 不绿 | PASS：固定源完整门禁及 JUnit；所有必需 suite 无 skip |
+| 相同目标/竞争预算/人工减仓不补回 | PASS：duplicate-target、reservations、runtime-faults、三模式 marked server；手动 override 持久化 |
+| 接单 ACK 丢失，原 ID 查询不重发 | PASS：实际独立模拟 venue 提交与 Linux kill，UNKNOWN/MAY 保持原身份 |
+| 40% 保护责任，60% 撤单未知不释放 | PASS：runtime 部分成交/精确模拟保护、CANCEL_UNKNOWN；实际 demo 全100.200预留保持，再确认/审核 |
+| 止损及紧急退出失败，重启锁与事项保留 | PASS：protection 与统一 runtime 的 REJECTED/EXIT_ONLY/restart 反例 |
+| 日亏损反弹仍锁，合法减仓/保护修复 | PASS：全账户多标的发送校验、各迟发边界、scope权限交集及独立日审核；不自动解锁 |
+| durable/提交/ACK/保护写入边界强制终止 | PASS：runtime-faults 的5个实际 Linux SIGKILL边界及原始前/后/恢复账本 |
+| AI 超时/过期/乱序拒增险，维护继续 | PASS：marked server 过期与权限反例；独立维护在旧入场授权/行情过期后仍须真实受权、有界、VENUE_CONFIRMED；应用/UoW时钟注入明确记录，PG时钟未伪造 |
+| 手机/终端五类状态，200/202不等于完成 | PASS：真实浏览器对生产 API 操作，CLI+SQL，同一三库；桌面/390px截图、HTTP202待成交、ACK非验证、FLAT_VERIFIED与费用对齐 |
+| 三种模式同一单笔风险与所有权 | PASS：三模式实际 PG 正/反例；RULE零模型调用、HYBRID显式绑定和规则；原 Schema 未改 |
+
+这是明确范围的合成 PAPER 验收，不是所有原 T/Q 平台资格通过。控制台组合为既有
+现货形态；USD-M/真实 Stocks 最终产品范围保留、真实连接器资格独立。远端 GitHub
+Actions、Binance Testnet/Demo、真实云模型、滑点/流动性、真实证券/合约/LIVE均
+**NOT_RUN / NOT QUALIFIED**。native 禁用门禁没有解除。下一任务必须另行明确发起。
+
+<details>
+<summary>早期验收矩阵历史（当时的 NOT_RUN 不能覆盖上方最新固定源结果）</summary>
+
 > **2026-10-28 用户已恢复任务。** 以下矩阵是早期文档基线，局部执行证据已增加，
 > 最新状态、未提交测试及两项 P1 见 [暂停交接](HANDOFF-2026-10-28.md)。
 > 最终固定集成树的全套门禁尚未运行，不能把本矩阵或各批局部绿灯当作完整通过；
@@ -32,3 +65,5 @@
 | AI/RULE/HYBRID同一单笔风险和owner控制 | [ingress](../src/trading_system/intents/ingress.py)、[reservations](../src/trading_system/risk/reservations.py)、[dispatcher](../src/trading_system/execution/dispatcher.py) | 三模式最终共同入口验证 **NOT_RUN** |
 
 历史230通过/8 deselected的adapter记录与原子目标29/预留67/单元189通过只覆盖其记录的固定树及场景，不是当前完整C的总计。测试用synthetic证据不代表真实平台成交、滑点、保护、Testnet或LIVE资格。旧console434/server98/web等历史检查也不证明统一链。完整验收缺口不能通过删反例、改SPEC、开启native或减少AI/RULE/HYBRID、Spot/USD-M/Stocks范围消除。
+
+</details>

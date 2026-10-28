@@ -64,3 +64,8 @@ or frontend checks; earlier screenshots/results are not relabeled as final.
 This proves synthetic PAPER application behavior only. Real market liquidity,
 slippage, stop execution, Binance Testnet/Demo, USD-M and real-equity connector
 qualification, remote GitHub Actions and LIVE readiness are NOT_RUN here.
+
+The temporary demo control APIs and independent virtual owner were explicitly
+stopped after capture. `helper-stop.json` records only the owned process IDs and
+stop scope. All database volumes, generated private profiles and worktrees were
+retained; no application database or real account was reset.

@@ -14,16 +14,16 @@ Approved architecture: `TradingHandoff/AI_Trading_System_Implementation_Package_
 
 ## Independently reviewable tasks
 
-1. [ ] Capture `3062154` baseline: full Python failures, Windows long IDs, CI configuration/status, Linux + isolated PostgreSQL pre-fix evidence with commands, exit codes, server/version and migration checksum.
-2. [ ] Fix P0 deterministic rule type binding, model TLS hostname typing, and generated product-specific stock/spot order payloads; independent regression tests and commits.
-3. [ ] Correct defective tests/fixtures while retaining every negative case: typed money, valid authorization time, stale handoff revision, equity tokenize setting, recovery helper argument and future-evidence context, protocol introspection, oversized parameter IDs. Commit independently with root-cause evidence.
-4. [ ] Derive verified allowed operations under persistent `NO_NEW_RISK`/`EXIT_ONLY` from fresh server-owned evidence; never classify solely by a requested verb. Keep quantity/direction/owner/auth/UNKNOWN and both dispatch checks; fail closed if proof is missing. Integrate reservation and dispatcher gates, tests and commit.
-5. [ ] Implement a durable console daily-loss cause lock with verified risk-day evidence and explicit evidence-backed resolution; persist denial despite transaction rollback and keep reductions/protection correctly authorized. Test price rebound and restart with SQLite and genuine isolated PostgreSQL.
-6. [ ] Design and implement the common PAPER command service: AI/RULE/HYBRID/manual and exit handling; compile current target vs actual vs in-flight under the same collateral transaction, authorize/freshness/ownership, risk decision, intent/reservation/command/outbox before effect, one owner and explicit PAPER engine composition. Retain native bridge gate.
-7. [ ] Implement eventful PAPER execution and projection: SUBMITTED/PARTIALLY_FILLED/FILLED/CANCEL_UNKNOWN/EXPIRED/REJECTED, original client-order-ID query and no blind resend; partial-fill protection, unresolved reservations, persistent protection gaps and restart recovery. Migrate/label legacy console records safely.
-8. [ ] Connect UI/CLI to shared projection and all three decision modes. Distinguish target, in-flight, fills, verified protection and locks; API receipt is not a fill. Include real decision/risk/exit details; protect existing model and bStocks behaviors.
-9. [ ] Execute all user C acceptance scenarios on actual isolated PostgreSQL plus forced process failures; record migration digest, fixed commit, reproducible scripts, ledger before/after, outputs and exit codes. Run full Python + web CI and explicit capability matrices; record skipped/NOT_RUN honestly.
-10. [ ] Deliver `TRADE_LIFECYCLE.md`, `FAILURE_PLAYBOOK.md`, `DESIGN_DECISIONS.md`, minimal terminal/web demonstration and final scoped reviews. Keep Testnet/real funds gated. No push/merge unless requested.
+1. [x] Capture `3062154` baseline: full Python failures, Windows long IDs, CI configuration/status, Linux + isolated PostgreSQL pre-fix evidence with commands, exit codes, server/version and migration checksum.
+2. [x] Fix P0 deterministic rule type binding, model TLS hostname typing, and generated product-specific stock/spot order payloads; independent regression tests and commits.
+3. [x] Correct defective tests/fixtures while retaining every negative case: typed money, valid authorization time, stale handoff revision, equity tokenize setting, recovery helper argument and future-evidence context, protocol introspection, oversized parameter IDs. Commit independently with root-cause evidence.
+4. [x] Derive verified allowed operations under persistent `NO_NEW_RISK`/`EXIT_ONLY` from fresh server-owned evidence; never classify solely by a requested verb. Keep quantity/direction/owner/auth/UNKNOWN and both dispatch checks; fail closed if proof is missing. Integrate reservation and dispatcher gates, tests and commit.
+5. [x] Implement a durable console daily-loss cause lock with verified risk-day evidence and explicit evidence-backed resolution; persist denial despite transaction rollback and keep reductions/protection correctly authorized. Test price rebound and restart with SQLite and genuine isolated PostgreSQL.
+6. [x] Design and implement the common PAPER command service: AI/RULE/HYBRID/manual and exit handling; compile current target vs actual vs in-flight under the same collateral transaction, authorize/freshness/ownership, risk decision, intent/reservation/command/outbox before effect, one owner and explicit PAPER engine composition. Retain native bridge gate.
+7. [x] Implement eventful PAPER execution and projection: SUBMITTED/PARTIALLY_FILLED/FILLED/CANCEL_UNKNOWN/EXPIRED/REJECTED, original client-order-ID query and no blind resend; partial-fill protection, unresolved reservations, persistent protection gaps and restart recovery. Migrate/label legacy console records safely.
+8. [x] Connect UI/CLI to shared projection and all three decision modes. Distinguish target, in-flight, fills, verified protection and locks; API receipt is not a fill. Include real decision/risk/exit details; protect existing model and bStocks behaviors.
+9. [x] Execute all user C acceptance scenarios on actual isolated PostgreSQL plus forced process failures; record migration digest, fixed commit, reproducible scripts, ledger before/after, outputs and exit codes. Run full Python + web CI and explicit capability matrices; record skipped/NOT_RUN honestly.
+10. [x] Deliver `TRADE_LIFECYCLE.md`, `FAILURE_PLAYBOOK.md`, `DESIGN_DECISIONS.md`, minimal terminal/web demonstration and final scoped reviews. Keep Testnet/real funds gated. No push/merge unless requested.
 
 ## Integration scan
 
@@ -37,3 +37,12 @@ Approved architecture: `TradingHandoff/AI_Trading_System_Implementation_Package_
 | Legacy console / shared ledger | balances, orders, risk | Explicit provenance and reconciled transfer; no silent creation of verified external events |
 | Model/rule/manual UX / API | proposal, permission and visible state | Modes share one service; response state and risk/protection evidence remain distinct |
 | Linux / PostgreSQL tests | dedicated per-suite DB | Separate named DBs and isolated cluster, require actual Linux; never point at application data |
+
+## Final local engineering result (2026-10-28)
+
+Implementation and local qualification completed. Exact fixed-source results and
+limits: `docs/FINAL_PAPER_REPORT_2026-10-28.md`. Backend802 mandatory gate passed;
+ordinary Python2373 passed (optional362 skipped/90deselected retained); frontend108
+passed. Real HTTP/CLI/PG desktop/mobile demonstration archived. Remote CI and all
+venue/Testnet/LIVE qualification remain NOT_RUN. Branch/worktrees retained, no
+push/public merge; do not start the next connector task without explicit request.
