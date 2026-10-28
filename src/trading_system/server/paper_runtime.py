@@ -426,6 +426,10 @@ class UnifiedPaperRuntime:
             delta = target - actual
             if not delta:
                 return {'status': 'NO_ACTION'}
+            if delta > 0 and strategy.get('mode') == 'HYBRID':
+                rule = strategy.get('rule')
+                if not rule or not (price <= D(rule['price']) if rule['operator'] == 'LTE' else price >= D(rule['price'])):
+                    raise ApiError('RULE_NOT_MET', '混合策略的价格规则未满足。', 409)
             if delta > 0 and data['account']['paused']:
                 raise ApiError('ENTRIES_PAUSED', '新增风险已暂停。', 409)
             budget = min(D(strategy['budget']), D(data['account']['initial_cash']) * D(strategy['target_pct']) / 100)

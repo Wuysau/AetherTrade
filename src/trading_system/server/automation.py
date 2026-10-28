@@ -275,6 +275,14 @@ class AutomationService:
         return "PENDING", "已通过统一 PAPER 风控并持久化命令；等待执行与成交事件。"
 
     def _execute_assessment(self, connection, job, strategy, decision, market):
+        from trading_system.contracts.canonical import utc_timestamp
+        try:
+            valid = (0 <= (now() - utc_timestamp(decision['created_at'])).total_seconds() <= 120
+                and 0 <= (now() - utc_timestamp(decision['data_as_of'])).total_seconds() <= self.settings.quote_max_age_seconds)
+        except (KeyError, ValueError, TypeError):
+            valid = False
+        if not valid:
+            raise ApiError('STALE_DECISION', '决策或依据已过期。', 409)
         proposal = decision.get('proposal')
         if proposal and proposal.get('action') != 'HOLD':
             basis = (job.get('watch_observation') or {}).get('price')
@@ -464,6 +472,14 @@ class AutomationService:
                 context = await build_analysis_context(self.store, self.feed, job['symbol'],
                     self.settings.quote_max_age_seconds, task_profile={**(job.get('task_profile') or {}), 'strategy_revision': job['strategy_revision']})
                 snapshot = context['analysis_snapshot']
+                from .analysis_snapshot import _digest
+                with self.store.transaction() as connection:
+                    current_strategy = read(connection, strategies, job['strategy_id'])
+                equity = snapshot['portfolio']['account'].get('equity')
+                if equity is not None and current_strategy:
+                    snapshot['constraints']['maximum_target_notional'] = str(min(Decimal(current_strategy['budget']), Decimal(equity)*Decimal(current_strategy['target_pct'])/100))
+                    snapshot['snapshot_hash'] = _digest(snapshot)
+                    snapshot['snapshot_id'] = 'snapshot:' + snapshot['snapshot_hash'][:32]
                 quote = context.get('quote', {})
                 closed = [v.get('closed_until') for v in snapshot.get('market', {}).get('features', {}).values() if v.get('closed_until')]
                 observation = {'price': quote.get('price'), 'closed_until': max(closed) if closed else None}

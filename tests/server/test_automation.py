@@ -31,6 +31,9 @@ def system(tmp_path, request):
     model.save_config(dict(expected_revision=0, model="fixture", base_url="http://127.0.0.1:18083/v1", local_mode=True, enabled=True))
     service = AutomationService(store, model, market, Settings(testing=True, model_key_path=tmp_path / "test-only.key"))
     service.test_console = harness
+    if harness:
+        from support.decision_fixture import ResearchFeed
+        service.feed = ResearchFeed(lambda: service.quote_snapshot())
     provider[0] = lambda: service.quote_snapshot()
     yield service
     asyncio.run(model.close())
@@ -49,6 +52,9 @@ def complete_pending(service):
 def strategy(service, **changes):
     payload = dict(name="Test AI", symbol="BTCUSDT", mode="AI", budget="10000", target_pct="10", status="ACTIVE", acknowledge_model_cost=True)
     payload.update(changes)
+    if service.test_console and payload['mode'] != 'RULE':
+        from support.decision_fixture import PROFILE
+        payload.update(decision_schema='assessment_v1',task_profile=PROFILE)
     return service.store.create_strategy(payload)
 
 
@@ -65,10 +71,17 @@ def fake(service, action="BUY", callback=None):
         decision = dict(id=key, symbol=symbol, action=action, summary="Fixture advice", risk_status="NOT_EVALUATED", created_at=stamp(),
                         data_as_of=context['quote']['as_of'])
         result = {"decision": decision}
+        if 'analysis_snapshot' in context:
+            from support.decision_fixture import result as assessment_result
+            result = assessment_result(symbol, revision, key, context, action)
         with service.store.transaction() as connection:
             repository.write_run(connection, key, dict(status="SUCCEEDED", result=result), new=True)
         return result
     service.models.generate = generate
+    if service.test_console:
+        async def analyze(symbol, mode, identifiers, revisions, key, context, **options):
+            return await service.models.generate(symbol,revisions[identifiers[0]],key,context)
+        service.models.analyze = analyze
     return calls
 
 
@@ -307,6 +320,12 @@ def test_real_model_transport_and_notification_api(tmp_path):
     requests = []
     def handle(request):
         requests.append(request)
+        context = json.loads(json.loads(request.content)['messages'][-1]['content'])
+        if 'analysis_snapshot' in context:
+            from support.decision_fixture import plan
+            snap=context['analysis_snapshot']
+            advice=plan('BTCUSDT','BUY',snap['market']['quote']['price'],Decimal('0.1'))
+            return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'content':json.dumps(advice)}}]})
         advice = dict(symbol="BTCUSDT", action="BUY", summary="Fixture BUY", counter_evidence=["Risk"], invalidation="Change")
         return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(advice)}}]})
     transport = httpx.AsyncClient(transport=httpx.MockTransport(handle))
@@ -314,7 +333,8 @@ def test_real_model_transport_and_notification_api(tmp_path):
     harness = provision_console(tmp_path, setup=False)
     settings = Settings(**harness.settings_kwargs, testing=True, market_enabled=False,
                         allowed_origins=("http://testserver",), model_key_path=tmp_path / 'test-only.key')
-    app = create_app(settings, quote_provider=Feed(), model_client=transport)
+    from support.decision_fixture import ResearchFeed, PROFILE
+    app = create_app(settings, quote_provider=ResearchFeed(Feed().snapshot), model_client=transport)
     with TestClient(app) as client:
         client.headers['Origin'] = 'http://testserver'
         assert client.get('/api/notifications').status_code == 401
@@ -323,7 +343,7 @@ def test_real_model_transport_and_notification_api(tmp_path):
                                                          enabled=True, base_url='http://127.0.0.1:18083/v1')).status_code == 200
         payload = dict(name='API AI', mode='AI', symbol='BTCUSDT', budget='10000', target_pct='10', status='ACTIVE')
         assert client.post('/api/strategies', json=payload).status_code == 409
-        payload.update(acknowledge_model_cost=True, auto_execute=True)
+        payload.update(acknowledge_model_cost=True, auto_execute=True,decision_schema='assessment_v1',task_profile=PROFILE)
         created = client.post('/api/strategies', json=payload)
         assert created.status_code == 200
         assert '_activation_authorized' not in created.json()
@@ -371,6 +391,15 @@ def test_cross_store_claim_and_restart_receipt(system):
         winner, job = winners[0]
         result = {'decision': dict(id='claimed', symbol='BTCUSDT', action='BUY', created_at=stamp(),
             data_as_of=market()['quotes'][0]['as_of'], risk_status='NOT_EVALUATED')}
+        from support.decision_fixture import result as assessment_result
+        from trading_system.server.analysis_snapshot import build_analysis_context
+        context = asyncio.run(build_analysis_context(system.store, system.feed, 'BTCUSDT',90,dict(job['task_profile'],strategy_revision=job['strategy_revision'])))
+        snap=context['analysis_snapshot']
+        with system.store.transaction() as connection:
+            stored=read(connection,jobs,job['id'])
+            stored.update(snapshot_id=snap['snapshot_id'],snapshot_hash=snap['snapshot_hash'],watch_observation={'price':context['quote']['price']})
+            put(connection,jobs,job['id'],stored)
+        result=assessment_result('BTCUSDT',1,job['model_key'],context)
         winner._finish(job, result)
         winner._finish(job, result)
         assert len(system.store.dashboard(market())['orders']) == 1
@@ -401,7 +430,7 @@ def test_cash_bound_includes_fee_and_sell_rejects_other_strategy(system):
     assert remaining_cash == Decimal('100000') - entry_notional - entry_fee
     assert remaining_cash >= entry_fee
     assert remaining_cash - entry_fee < Decimal('0.000001')
-    assert '建议买入' in first['notifications']['items'][0]['message']
+    assert '分析结果' in first['notifications']['items'][0]['message']
     assert 'Fixture advice' in first['notifications']['items'][0]['message']
     other = strategy(system, name='Other', auto_execute=True)
     fake(system, 'SELL')

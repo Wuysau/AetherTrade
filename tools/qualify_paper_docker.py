@@ -26,6 +26,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--commit', required=True, help='Exact committed source to test')
     parser.add_argument('--timeout', type=int, default=5400, help='Whole run deadline in seconds')
+    parser.add_argument('--suite', help='One diagnostic PostgreSQL suite; not full qualification')
     parser.add_argument('--python-suite', action='store_true', help='Also run the ordinary full Python suite (DB skips remain explicit)')
     args = parser.parse_args(argv)
     if args.timeout < 60 or args.timeout > 14400:
@@ -50,7 +51,7 @@ def main(argv=None):
     manifest = {'source_commit': commit, 'started_utc': datetime.now(timezone.utc).isoformat(),
                 'postgres_container': pg, 'runner_container': runner, 'commands': [],
                 'launcher_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                'scope': 'LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION', 'deadline_seconds': args.timeout}
+                'scope': 'LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION', 'diagnostic_suite': args.suite, 'deadline_seconds': args.timeout}
     deadline = time.monotonic() + args.timeout
 
     def invoke(command, name, timeout=600, check=True):
@@ -94,7 +95,7 @@ def main(argv=None):
         invoke(['docker', 'exec', '-w', '/tmp/source', runner, 'python', '-m', 'pip', 'install', '-e', '.[test]'], 'python-dependencies', 900)
         invoke(['docker', 'exec', '-w', '/tmp/source', runner, 'python', 'tools/ci_paper_postgres.py', '--initialize'], 'initialize-marker')
         pg_exit = invoke(['docker', 'exec', '-w', '/tmp/source', runner, 'python', 'tools/ci_paper_postgres.py',
-                          '--evidence-dir', '/handoff/evidence/postgres'], 'postgres-suites', 4200, check=False)
+                          '--evidence-dir', '/handoff/evidence/postgres'] + (['--suite', args.suite] if args.suite else []), 'postgres-suites', 4200, check=False)
         python_exit = None
         if args.python_suite:
             # The mandatory PG runner separately executes DB suites with isolation.

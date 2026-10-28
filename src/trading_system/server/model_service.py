@@ -210,6 +210,9 @@ class ModelService:
             snapshot = validate_snapshot(context['analysis_snapshot'])
             if snapshot['market']['quote'] is not None and snapshot['market']['quote']['symbol'] != symbol:
                 raise ApiError('INVALID_MODEL_CONTEXT', 'Snapshot symbol mismatch.')
+            cutoff = datetime.fromisoformat(snapshot['evidence_cutoff'])
+            if not 0 <= (datetime.now(timezone.utc)-cutoff).total_seconds() <= context.get('quote_max_age_seconds', 90):
+                raise ApiError('MODEL_QUOTE_UNAVAILABLE', '分析快照已过期。', 409)
             return {'symbol': symbol, 'analysis_snapshot': snapshot}
         try:
             quote = context['quote']
@@ -560,6 +563,9 @@ class ModelService:
             if any(self._profile(connection, p)['revision'] != revisions[p] for p in ids):
                 status, reason = 'EXPIRED', 'MODEL_REVISION_CHANGED'
         proposal = selected['proposal'] if selected and status == 'DECIDED' else None
+        if selected and status == 'DECIDED' and proposal is None:
+            reason = 'WAIT_CONDITION' if selected['watch_conditions'] else 'MAINTAIN_POSITION' if snapshot['portfolio'].get('position') else 'NO_EDGE'
+
         decision = dict(id=str(uuid4()), symbol=symbol, created_at=stamp(), schema_revision='assessment_v1',
                         assessment_status=status, reason_code=reason, proposal=proposal,
                         action=(proposal['action'] if proposal else 'HOLD') if status == 'DECIDED' else None,
