@@ -1,0 +1,13 @@
+........F..                                                              [100%]
+================================== FAILURES ===================================
+______ test_repeat_dispatch_receipt_needs_no_new_risk_admission[UNKNOWN] ______
+tests\integration\test_paper_dispatch_account_risk.py:125: in test_repeat_dispatch_receipt_needs_no_new_risk_admission
+    if state == 'VENUE_CONFIRMED':
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert 'VENUE_CONFIRMED' == 'UNKNOWN'
+E     
+E     - UNKNOWN
+E     + VENUE_CONFIRMED
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_repeat_dispatch_receipt_needs_no_new_risk_admission[UNKNOWN]
+1 failed, 10 passed in 62.61s (0:01:02)

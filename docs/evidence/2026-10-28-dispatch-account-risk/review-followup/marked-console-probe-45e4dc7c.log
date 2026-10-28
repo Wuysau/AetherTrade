@@ -1,0 +1,40 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+______ test_repeat_dispatch_receipt_needs_no_new_risk_admission[UNKNOWN] ______
+tests\integration\test_paper_dispatch_account_risk.py:125: in test_repeat_dispatch_receipt_needs_no_new_risk_admission
+    assert CommandRepository(tx).get(command).state == state
+E   AssertionError: assert 'VENUE_CONFIRMED' == 'UNKNOWN'
+E     
+E     - UNKNOWN
+E     + VENUE_CONFIRMED
+___ test_repeat_dispatch_receipt_needs_no_new_risk_admission[MAY_HAVE_SENT] ___
+tests\integration\test_paper_dispatch_account_risk.py:132: in test_repeat_dispatch_receipt_needs_no_new_risk_admission
+    receipt = dispatcher.dispatch(command, lease)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\execution\dispatcher.py:124: in dispatch
+    self.before_check(command_id)
+src\trading_system\server\paper_runtime.py:737: in account_check
+    callback(request, command)
+src\trading_system\server\paper_account_risk.py:25: in check
+    value = Decimal(position['quantity']) * store._price(
+src\trading_system\server\store.py:364: in _price
+    raise ApiError("QUOTE_UNAVAILABLE", f"{symbol} 缺少有效的新鲜行情；未执行交易。", 409) from None
+E   trading_system.server.errors.ApiError: QUOTE_UNAVAILABLE
+__ test_repeat_dispatch_receipt_needs_no_new_risk_admission[VENUE_CONFIRMED] __
+tests\integration\test_paper_dispatch_account_risk.py:132: in test_repeat_dispatch_receipt_needs_no_new_risk_admission
+    receipt = dispatcher.dispatch(command, lease)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\execution\dispatcher.py:124: in dispatch
+    self.before_check(command_id)
+src\trading_system\server\paper_runtime.py:737: in account_check
+    callback(request, command)
+src\trading_system\server\paper_account_risk.py:25: in check
+    value = Decimal(position['quantity']) * store._price(
+src\trading_system\server\store.py:364: in _price
+    raise ApiError("QUOTE_UNAVAILABLE", f"{symbol} 缺少有效的新鲜行情；未执行交易。", 409) from None
+E   trading_system.server.errors.ApiError: QUOTE_UNAVAILABLE
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_repeat_dispatch_receipt_needs_no_new_risk_admission[UNKNOWN]
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_repeat_dispatch_receipt_needs_no_new_risk_admission[MAY_HAVE_SENT]
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_repeat_dispatch_receipt_needs_no_new_risk_admission[VENUE_CONFIRMED]
+3 failed in 20.00s

@@ -1,0 +1,21 @@
+from pathlib import Path
+import hashlib
+import subprocess
+import sys
+
+target = Path('src/trading_system/execution/dispatcher.py')
+fixed = target.read_bytes()
+old = subprocess.run(['git', 'show', '7334c5e:src/trading_system/execution/dispatcher.py'],
+    check=True, capture_output=True).stdout
+test = Path('tests/integration/test_paper_dispatch_account_risk.py')
+Path('.runtime/repeat-corrected-red-source-sha256.txt').write_text(
+    hashlib.sha256(old).hexdigest() + '  ' + str(target) + '\n' +
+    hashlib.sha256(test.read_bytes()).hexdigest() + '  ' + str(test) + '\n', encoding='utf-8')
+try:
+    target.write_bytes(old)
+    result = subprocess.run([sys.executable, '.runtime/run_probe.py',
+        'tests/integration/test_paper_dispatch_account_risk.py::test_repeat_dispatch_receipt_needs_no_new_risk_admission[stale-UNKNOWN]'])
+finally:
+    target.write_bytes(fixed)
+assert target.read_bytes() == fixed
+raise SystemExit(result.returncode)

@@ -1,0 +1,18 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_repeat_dispatch_receipt_needs_no_new_risk_admission[stale-UNKNOWN] ___
+tests\integration\test_paper_dispatch_account_risk.py:148: in test_repeat_dispatch_receipt_needs_no_new_risk_admission
+    receipt = dispatcher.dispatch(command, lease)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\execution\dispatcher.py:124: in dispatch
+    self.before_check(command_id)
+src\trading_system\server\paper_runtime.py:737: in account_check
+    callback(request, command)
+src\trading_system\server\paper_account_risk.py:25: in check
+    value = Decimal(position['quantity']) * store._price(
+src\trading_system\server\store.py:364: in _price
+    raise ApiError("QUOTE_UNAVAILABLE", f"{symbol} 缺少有效的新鲜行情；未执行交易。", 409) from None
+E   trading_system.server.errors.ApiError: QUOTE_UNAVAILABLE
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_repeat_dispatch_receipt_needs_no_new_risk_admission[stale-UNKNOWN]
+1 failed in 8.31s

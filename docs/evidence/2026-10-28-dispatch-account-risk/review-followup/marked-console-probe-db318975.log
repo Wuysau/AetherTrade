@@ -1,0 +1,30 @@
+........F..F..F..                                                        [100%]
+================================== FAILURES ===================================
+___ test_repeat_dispatch_receipt_needs_no_new_risk_admission[stale-UNKNOWN] ___
+tests\integration\test_paper_dispatch_account_risk.py:129: in test_repeat_dispatch_receipt_needs_no_new_risk_admission
+    assert CommandRepository(tx).get(command).state == state
+E   AssertionError: assert 'VENUE_CONFIRMED' == 'UNKNOWN'
+E     
+E     - UNKNOWN
+E     + VENUE_CONFIRMED
+___ test_repeat_dispatch_receipt_needs_no_new_risk_admission[loss-UNKNOWN] ____
+tests\integration\test_paper_dispatch_account_risk.py:129: in test_repeat_dispatch_receipt_needs_no_new_risk_admission
+    assert str(dispatcher.dispatch(command, lease).status) == 'UNKNOWN'
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert 'VENUE_CONFIRMED' == 'UNKNOWN'
+E     
+E     - UNKNOWN
+E     + VENUE_CONFIRMED
+_ test_repeat_dispatch_receipt_needs_no_new_risk_admission[price_change-UNKNOWN] _
+tests\integration\test_paper_dispatch_account_risk.py:129: in test_repeat_dispatch_receipt_needs_no_new_risk_admission
+    assert str(dispatcher.dispatch(command, lease).status) == 'UNKNOWN'
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert 'VENUE_CONFIRMED' == 'UNKNOWN'
+E     
+E     - UNKNOWN
+E     + VENUE_CONFIRMED
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_repeat_dispatch_receipt_needs_no_new_risk_admission[stale-UNKNOWN]
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_repeat_dispatch_receipt_needs_no_new_risk_admission[loss-UNKNOWN]
+FAILED tests/integration/test_paper_dispatch_account_risk.py::test_repeat_dispatch_receipt_needs_no_new_risk_admission[price_change-UNKNOWN]
+3 failed, 14 passed in 105.28s (0:01:45)
