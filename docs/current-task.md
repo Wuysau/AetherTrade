@@ -1,5 +1,27 @@
 # Current task
 
+## BINANCE_ORDERS_OP_A_REVIEWED — 2026-10-28
+
+Worktree: TradingHandoff/AutoDispatchWorktrees/binance-orders; branch
+codex/binance-order-capabilities; baseline b168966d, no initial tracked delta.
+All11 handoff files copied/hash-recorded. Native not installed in actual venv;
+lock deployment/wheel/container unresolved. Official46-feature catalog retained;
+DOC01–03 reconfirmed, DOC04 retrieval unresolved; latest Nautilus docs2.x differ
+from stable1.x installation. See [OP-A review](orders/OP-A-REVIEW.md).
+
+Material contract conflict: old native ALGORITHM_CHILD inventory requires an
+independent command, new design requires venue child observation only. Concrete
+[ADR-ORDER-001](orders/ADR-ORDER-001.md) proposes preserving per-local-write
+durable/permit checks and parent-authorized native child ingestion. Await this
+contract decision per user conflict gate before OP-B; do not silently rewrite
+old schemas/UNKNOWN records. OP-B boundaries and migration/rollback are in ADR.
+
+Executable OP-A tool and regressions406 passed; original metadata24/24. All56
+ORD scenarios NOT_RUN, no DB/native/paid-model/account tests and no runtime
+configuration changes. OP-B–G and full functional goal remain unfinished.
+Main branch untracked evidence/worktrees-archive preserved untouched.
+
+
 ## STRUCTURED_MODEL_VERIFIED — 2026-10-28 17:13 +08:00
 
 Actual scheduled model response diagnosed as wrong outer schema_revision, not

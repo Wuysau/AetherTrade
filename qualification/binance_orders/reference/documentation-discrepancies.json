@@ -1,0 +1,51 @@
+{
+  "checked_on": "2026-10-28",
+  "status": "REQUIRES_PINNED_BUILD_AND_PROTOCOL_VERIFICATION",
+  "items": [
+    {
+      "id": "DOC-01",
+      "subject": "USD-M条件订单路由",
+      "observed": "共享下单schema枚举含条件类型，但2025-12-09生效变更要求改走/fapi/v1/algoOrder。",
+      "resolution_policy": "按具体端点说明和生效日志编译；实际锁定build做映射测试，不由通用enum自动选路由。",
+      "sources": [
+        "B09",
+        "B10"
+      ],
+      "protocol_test": "NOT_RUN"
+    },
+    {
+      "id": "DOC-02",
+      "subject": "USD-M trailing callbackRate",
+      "observed": "Binance 2026-10-23日志上限20；Nautilus latest文档仍写10。",
+      "resolution_policy": "追踪精确adapter源码/测试；更新或扩展经过同一owner控制的客户端；不宣称已部署版本已兼容20。",
+      "sources": [
+        "B10",
+        "N01"
+      ],
+      "protocol_test": "NOT_RUN"
+    },
+    {
+      "id": "DOC-03",
+      "subject": "股票事件包含stop/trailing",
+      "observed": "事件类型范围不能证明股票下单接口支持这些类型；本次Place接口只确认MARKET/LIMIT。",
+      "resolution_policy": "接收容错与提交能力分开。不得把用户流枚举转成新下单权限。",
+      "sources": [
+        "B12",
+        "B14"
+      ],
+      "protocol_test": "NOT_RUN"
+    },
+    {
+      "id": "DOC-04",
+      "subject": "Spot quoteNotionalLimit FAQ",
+      "observed": "官方导航出现quoteNotionalLimit；此次英文/中文正文均未能读取，已读Spot Trade页面未检到同名参数。",
+      "resolution_policy": "登记待核验的文档发现，不猜请求字段、支持类型、参数限制或已生效状态。实施时核验当前官方schema与changelog后纳入目录；文档补齐前不宣称支持该项。",
+      "sources": [
+        "B01",
+        "B05"
+      ],
+      "unread_reference": "https://developers.binance.com/en/docs/products/spot/faqs/quoteNotionalLimit",
+      "protocol_test": "NOT_RUN"
+    }
+  ]
+}

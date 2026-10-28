@@ -1,0 +1,159 @@
+{
+  "checked_on": "2026-10-28",
+  "method": "OFFICIAL_WEB_DOCUMENT_REVIEW_NOT_PROTOCOL_TEST",
+  "sources": [
+    {
+      "id": "B01",
+      "url": "https://developers.binance.com/en/docs/catalog/core-trading-spot-trading/api/rest-api/trade",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B02",
+      "url": "https://developers.binance.com/en/docs/products/spot/enums",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B03",
+      "url": "https://developers.binance.com/en/docs/products/spot/faqs/trailing-stop-faq",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B04",
+      "url": "https://developers.binance.com/en/docs/products/spot/faqs/pegged_orders",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B05",
+      "url": "https://developers.binance.com/en/docs/products/spot/faqs/opo",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B06",
+      "url": "https://developers.binance.com/en/docs/products/spot/faqs/sor_faq",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B07",
+      "url": "https://developers.binance.com/en/docs/products/spot/filters",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B08",
+      "url": "https://developers.binance.com/zh-CN/docs/products/spot/faqs/order_amend_keep_priority",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B09",
+      "url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/trade",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B10",
+      "url": "https://developers.binance.com/en/docs/products/derivatives-trading-usds-futures/change-log",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B11",
+      "url": "https://developers.binance.com/zh-CN/docs/products/derivatives-trading-usds-futures/common-definition",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B12",
+      "url": "https://developers.binance.com/en/docs/catalog/advanced-trading-stocks-trading/api/rest-api/trade",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B13",
+      "url": "https://developers.binance.com/en/docs/products/stocks/common-definition",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B14",
+      "url": "https://developers.binance.com/en/docs/catalog/advanced-trading-stocks-trading/api/ws-streams/user-streams",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B15",
+      "url": "https://developers.binance.com/en/docs/catalog/advanced-trading-algo-trading/api/rest-api/spot-algo",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B16",
+      "url": "https://developers.binance.com/en/docs/catalog/advanced-trading-algo-trading/api/rest-api/future-algo",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B17",
+      "url": "https://developers.binance.com/en/docs/catalog",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B18",
+      "url": "https://developers.binance.com/en/docs/products/spot/rest-api",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "N01",
+      "url": "https://nautilustrader.io/docs/latest/integrations/binance/",
+      "status": "READ_DOCUMENTATION_ONLY"
+    },
+    {
+      "id": "B19",
+      "url": "https://developers.binance.com/en/docs/products/spot/faqs/price_range_execution_rules",
+      "status": "READ_DOCUMENTATION_ONLY"
+    }
+  ],
+  "installation_source": "https://nautilustrader.io/docs/latest/getting_started/installation/",
+  "discrepancies": {
+    "DOC-01": {
+      "status": "CONFIRMED_DOCUMENTATION_ONLY",
+      "sources": [
+        "B09",
+        "B10"
+      ],
+      "finding": "Five conditional types route to /fapi/v1/algoOrder since 2025-12-09; ordinary/batch rejects -4120. Algo uses triggerPrice/activatePrice."
+    },
+    "DOC-02": {
+      "status": "CONFIRMED_CONFLICT",
+      "sources": [
+        "B09",
+        "B10",
+        "N01"
+      ],
+      "finding": "Algo endpoint callbackRate 0.1–20; Nautilus latest documents 0.1–10. Shared test section has stale max5. Exact installed mapping unavailable."
+    },
+    "DOC-03": {
+      "status": "CONFIRMED_DOCUMENTATION_ONLY",
+      "sources": [
+        "B12",
+        "B14"
+      ],
+      "finding": "Place MARKET/LIMIT only; broader user-event enums do not grant submission support."
+    },
+    "DOC-04": {
+      "status": "BLOCKED_DOCUMENT_RETRIEVAL",
+      "sources": [
+        "B01",
+        "B05"
+      ],
+      "finding": "English and Chinese quoteNotionalLimit FAQ failed; Spot Trade search no match. No invented fields."
+    },
+    "NATIVE-VERSION": {
+      "status": "BLOCKED_UNPINNED_BUILD",
+      "sources": [
+        "N01"
+      ],
+      "finding": "Latest docs cover2.x prerelease; default stable installation is1.x and APIs differ. Low-level Rust HTTP/WS not exposed via Python. No actual distribution installed in tested venv."
+    }
+  },
+  "parameter_constraints": [
+    "PRIMARY_PEG LIMIT requires GTC; LIMIT_MAKER PRIMARY_PEG only; SOR excludes peg.",
+    "OPO working BUY/pending SELL; net receipt derived only after full working fill, fee/filter/locked-receipt rules apply.",
+    "Stocks fractional GTC requires EXTENDED/24H; MARKET forbids tradingSession; BUY uses notional, SELL quantity.",
+    "Algo STP effective only IOC/GTC/GTD; conditional algo and SAPI execution algo have distinct identity namespaces.",
+    "Spot execution price range EXPIRED event reason EXECUTION_RULE_PRICE_RANGE_EXCEEDED (stream eR)."
+  ],
+  "account_or_symbol_queries": 0,
+  "venue_order_requests": 0,
+  "pinned_native_source_verification": "NOT_RUN"
+}
