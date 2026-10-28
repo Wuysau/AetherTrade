@@ -496,7 +496,7 @@ class UnifiedPaperRuntime:
                         protection_responsibility='RETAINED_UNTIL_EXIT_OR_VERIFIED_REPLACEMENT')
             return self._accept(payload, key, market, maximum_age, data, strategy)
 
-    def _accept(self, payload, key, market, maximum_age, data, strategy=None):
+    def _accept(self, payload, key, market, maximum_age, data, strategy=None, *, proposal_adjustment=None):
         scope, reading = scope_for(payload['symbol']), self.clock()
         fingerprint = canonical_hash(payload)
         command_id = 'console-command:' + canonical_hash({'key': key, 'account': ACCOUNT})
@@ -522,7 +522,7 @@ class UnifiedPaperRuntime:
                     raise ApiError('POSITION_OWNERSHIP', '当前持仓属于其他策略或人工；未创建命令。', 409)
                 manual_reduction = tx.execute("SELECT payload->>'requested_at' FROM ledger.audit_events WHERE scope_id=%s "
                     "AND sequence=1 AND record_id LIKE 'console:request:%%' AND payload->>'mode'='MANUAL' "
-                    "AND payload->>'side'='SELL' ORDER BY processed_at DESC LIMIT 1", (scope_id(scope),)).fetchone()
+                    "AND payload->>'side'='SELL' AND record_id<>%s ORDER BY processed_at DESC LIMIT 1", (scope_id(scope), 'console:request:'+proposal_adjustment if proposal_adjustment else '')).fetchone()
                 if payload.get('decision_run_id') and manual_reduction and strategy.get('_activated_at', '') <= manual_reduction[0]:
                     raise ApiError('MANUAL_REDUCTION_REAUTH_REQUIRED', '人工减仓后旧目标已停用；需重新明确激活策略。', 409)
             quantity = amount(payload['quantity'])
@@ -574,7 +574,8 @@ class UnifiedPaperRuntime:
                         review_due_at=candidate.exit_plan.review_due_at,
                         maximum_holding_seconds=candidate.exit_plan.maximum_holding_seconds))
                 # Keep the original wire proposal as immutable replay evidence.
-                tx._append('audit_events', 'console:proposal:' + command_id, payload['proposal'], 0)
+                from .paper_maintenance import ReviewArchive
+                tx._append('audit_events', 'console:proposal:' + command_id, ReviewArchive(payload['proposal']), 0)
             logical_id = 'logical:' + command_id
             body = {'side': payload['side'], 'order_type': 'MARKET', 'quantity': format(quantity, 'f'),
                 'reduce_only': False, 'full_position_exit': False, 'position_side': 'BOTH'}
@@ -721,7 +722,7 @@ class UnifiedPaperRuntime:
                 candidate = ContractCodec().decode('decision-proposal', payload['proposal'])
                 if utc_timestamp(self.clock().utc_now) >= min(utc_timestamp(candidate.valid_until), utc_timestamp(candidate.entry.entry_deadline)):
                     raise ApiError('STALE_DECISION', '原提案已过期；保护责任仍需处理。', 409)
-                return self._accept(payload, 'adjustment-close:' + cancel_id, market, maximum_age, data, current)
+                return self._accept(payload, 'adjustment-close:' + cancel_id, market, maximum_age, data, current, proposal_adjustment=cancel_id)
             return self.accept(dict(symbol=symbol, side='SELL', quantity=record['quantity']),
                 'adjustment-close:' + cancel_id, market, maximum_age, data)
 

@@ -514,6 +514,23 @@ class Store:
         with self.transaction() as connection:
             return self._order(connection, payload, key, market, maximum_age)
 
+    def _check_buy(self, connection, data, symbol, quantity, price, market, maximum_age, strategy=None):
+        account = data['account']
+        strategy_id = strategy['id'] if strategy else None
+        if account["paused"]:
+            raise ApiError("ENTRIES_PAUSED", "PAPER 新开仓已暂停；仍可卖出已有持仓。", 409)
+        equity, held = self._valuation(connection, account, market, fresh=True, maximum_age=maximum_age)
+        self._daily_loss(connection, data, equity, prospective_fee=quantity * price * FEE, deny=True)
+        previous = next((Decimal(item["market_value"]) for item in held if item["symbol"] == symbol), Decimal(0))
+        post_equity = equity - quantity * price * FEE
+        if post_equity <= 0 or (previous + quantity * price) * 100 > post_equity * Decimal(data["risk"]["max_position_pct"]):
+            raise ApiError("POSITION_LIMIT", "该订单将超过 PAPER 单品种仓位上限。", 409)
+        if strategy_id:
+            if strategy["status"] == "PAUSED":
+                raise ApiError("STRATEGY_PAUSED", "所选策略已暂停。", 409)
+            if previous + quantity * price > Decimal(strategy["budget"]):
+                raise ApiError("STRATEGY_BUDGET", "订单将超过策略预算。", 409)
+
     def _order(self, connection, payload, key, market, maximum_age):
         """Only the unified durable service can create an execution command."""
         cached, fingerprint = self._cached(connection, key, "order", payload)
@@ -532,19 +549,7 @@ class Store:
                 raise ApiError("STRATEGY_MISMATCH", "订单必须关联同一品种的现有策略。")
         price = self._price(market, symbol, maximum_age)
         if side == "BUY":
-            if account["paused"]:
-                raise ApiError("ENTRIES_PAUSED", "PAPER 新开仓已暂停；仍可卖出已有持仓。", 409)
-            equity, held = self._valuation(connection, account, market, fresh=True, maximum_age=maximum_age)
-            self._daily_loss(connection, data, equity, prospective_fee=quantity * price * FEE, deny=True)
-            previous = next((Decimal(item["market_value"]) for item in held if item["symbol"] == symbol), Decimal(0))
-            post_equity = equity - quantity * price * FEE
-            if post_equity <= 0 or (previous + quantity * price) * 100 > post_equity * Decimal(data["risk"]["max_position_pct"]):
-                raise ApiError("POSITION_LIMIT", "该订单将超过 PAPER 单品种仓位上限。", 409)
-            if strategy_id:
-                if strategy["status"] == "PAUSED":
-                    raise ApiError("STRATEGY_PAUSED", "所选策略已暂停。", 409)
-                if previous + quantity * price > Decimal(strategy["budget"]):
-                    raise ApiError("STRATEGY_BUDGET", "订单将超过策略预算。", 409)
+            self._check_buy(connection, data, symbol, quantity, price, market, maximum_age, strategy if strategy_id else None)
         if self.execution is None or self.sqlite:
             raise ApiError("UNIFIED_PAPER_REQUIRED", "统一 PAPER 尚未配置：需要独立 PostgreSQL 业务账本与受限模拟平台数据库；未创建订单。", 503)
         if rows(connection, orders) or rows(connection, positions):

@@ -182,3 +182,9 @@ def test_d13_soft_review_cannot_increase_target(svc,monkeypatch):
     result,calls=run(svc,monkeypatch,[candidate(),soft,larger], 'consensus','evidence_review')
     assert result['decision']['assessment_status']=='INVALID_PLAN'
     assert result['decision']['proposal'] is None
+
+
+def test_optional_missing_news_is_a_soft_review_preference():
+    snap=snapshot();snap['task_profile']['optional']=['news']
+    report=validate_review({'schema_revision':'review_v1','issues':[dict(category='PREFERENCE',evidence_ref='news',predicate=None,severity='SOFT',suggestion='News unavailable')]},snap)
+    assert report['status']=='SOFT'

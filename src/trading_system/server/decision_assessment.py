@@ -111,6 +111,9 @@ def validate_assessment(value: dict, snapshot: dict) -> DecisionAssessment:
         raise ValueError('Operation not allowed')
     if instant(typed.valid_until) <= now or instant(typed.entry.entry_deadline) > instant(typed.valid_until) or instant(typed.entry.entry_deadline) <= now:
         raise ValueError('Expired proposal or invalid deadline')
+    horizon = snapshot['task_profile'].get('holding_period_seconds')
+    if horizon is not None and (typed.exit_plan.maximum_holding_seconds > horizon or (instant(typed.valid_until)-now).total_seconds() > horizon):
+        raise ValueError('Plan exceeds authorized horizon')
     if instant(typed.exit_plan.review_due_at) <= now:
         raise ValueError('Expired exit review')
     if proposal.get('requested_leverage', 1) != 1 or (snapshot['product'] == 'SPOT' and typed.target.side == 'SHORT'):
@@ -154,7 +157,7 @@ def validate_review(value, snapshot):
     for issue in value['issues']:
         if not isinstance(issue, dict) or set(issue) != {'category', 'evidence_ref', 'predicate', 'severity', 'suggestion'}:
             raise ValueError('Invalid issue')
-        if issue['category'] not in ('FACT', 'PREFERENCE') or issue['severity'] not in ('HARD', 'SOFT') or issue['evidence_ref'] not in snapshot['evidence_refs']:
+        if issue['category'] not in ('FACT', 'PREFERENCE') or issue['severity'] not in ('HARD', 'SOFT') or issue['evidence_ref'] not in (snapshot['evidence_refs'] + (snapshot['task_profile'].get('optional', []) if issue['category'] == 'PREFERENCE' and issue['severity'] == 'SOFT' else [])):
             raise ValueError('Invalid issue scope')
         text(issue['suggestion'])
         status = 'SOFT'

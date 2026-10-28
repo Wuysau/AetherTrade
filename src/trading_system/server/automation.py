@@ -293,6 +293,14 @@ class AutomationService:
             return 'NO_ACTION', '有效观察结论；原保护和退出责任保持。'
         if self.store.execution is None or self.store.sqlite:
             raise ApiError('UNIFIED_PAPER_REQUIRED', '统一 PAPER 执行服务未配置。', 503)
+        from .decision_execution import proposal_target
+        current = self.store._price(market, job['symbol'], self.settings.quote_max_age_seconds)
+        target = proposal_target(proposal['target'], current)
+        held = next((p for p in self.store.execution.account_view()['positions'] if p['symbol'] == job['symbol']), None)
+        actual = Decimal(held['quantity']) if held else Decimal(0)
+        if target > actual:
+            self.store._check_buy(connection, self.store._state(connection), job['symbol'], target-actual,
+                current, market, self.settings.quote_max_age_seconds, strategy)
         result = self.store.execution.accept_proposal(proposal, 'auto-proposal:' + job['id'], market,
             self.settings.quote_max_age_seconds, self.store._state(connection), strategy, decision)
         if result.get('status') == 'NO_ACTION':
@@ -447,7 +455,7 @@ class AutomationService:
                 if snapshot['quality']['status'] != 'READY':
                     continue
                 closed = [v['closed_until'] for v in snapshot['market']['features'].values() if v.get('closed_until')]
-                if closed and watch_triggered(conditions, schedule['watch_baseline'], {'closed_until': max(closed)}):
+                if closed and watch_triggered(conditions, schedule['watch_baseline'], {'closed_until': max(closed), 'closed_by_interval': {k:v['closed_until'] for k,v in snapshot['market']['features'].items()}}):
                     with self.store.transaction() as connection:
                         latest = read(connection, schedules, strategy['id']) or {}
                         if latest == schedule:
@@ -482,7 +490,7 @@ class AutomationService:
                     snapshot['snapshot_id'] = 'snapshot:' + snapshot['snapshot_hash'][:32]
                 quote = context.get('quote', {})
                 closed = [v.get('closed_until') for v in snapshot.get('market', {}).get('features', {}).values() if v.get('closed_until')]
-                observation = {'price': quote.get('price'), 'closed_until': max(closed) if closed else None}
+                observation = {'price': quote.get('price'), 'closed_until': max(closed) if closed else None, 'closed_by_interval':{k:v['closed_until'] for k,v in snapshot['market']['features'].items()}}
                 with self.store.transaction() as connection:
                     saved = read(connection, jobs, job['id'])
                     saved.update(snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'], watch_observation=observation)

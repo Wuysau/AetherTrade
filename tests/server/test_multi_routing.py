@@ -25,7 +25,7 @@ def profile(service, name):
 def analyze_fake(service, *, action="BUY", consensus="AGREED", callback=None):
     calls = []
 
-    async def analyze(symbol, mode, identifiers, revisions, key, context):
+    async def analyze(symbol, mode, identifiers, revisions, key, context, **options):
         calls.append(dict(symbol=symbol, analysis_mode=mode, model_profile_ids=identifiers,
                           profile_revisions=revisions, key=key))
         if callback:
@@ -40,6 +40,16 @@ def analyze_fake(service, *, action="BUY", consensus="AGREED", callback=None):
                      decision=dict(symbol=symbol, action="SELL" if consensus == "DISAGREED" and index else action))
                 for index, identifier in enumerate(identifiers)
             ])
+        if 'analysis_snapshot' in context:
+            from support.decision_fixture import result as assessment_result
+            previous=decision
+            decision=assessment_result(symbol,revisions[identifiers[0]],key,context,action)['decision']
+            decision.update(analysis_mode=mode,required_profile_ids=identifiers,model_profile_ids=identifiers,profile_revisions=revisions,
+                component_results=[dict(decision['component_results'][0],profile_id=p,config_revision=revisions[p]) for p in identifiers])
+            if mode=='consensus':
+                decision.update(consensus_status=consensus,model_results=previous['model_results'])
+                if consensus!='AGREED':
+                    decision.update(assessment_status='REVIEW_REQUIRED',proposal=None,reason_code='模型分析失败或不完整' if consensus=='INCOMPLETE' else '模型计划分歧')
         result = dict(decision=decision, usage=None)
         with service.store.transaction() as connection:
             repository.write_run(connection, key, dict(status="SUCCEEDED", result=result), new=True)
@@ -139,7 +149,7 @@ def test_consensus_execution_requires_complete_direction_agreement(system, statu
     notification = result["notifications"]["items"][0]
     assert notification["decision_id"] == decision["id"]
     if status == "INCOMPLETE":
-        assert notification["kind"] == "AI_ERROR" and notification["severity"] == "warning"
+        assert decision['assessment_status'] == 'REVIEW_REQUIRED' and decision['proposal'] is None and notification['severity'] == 'warning'
         assert "失败" in notification["message"] or "不完整" in notification["message"]
     if status == "DISAGREED":
         assert "分歧" in notification["message"] and notification["severity"] != "success"
@@ -240,6 +250,9 @@ def test_real_consensus_service_controls_paper_execution(system, directions, exp
     second = profile(system, "Second")
     strategy(system, analysis_mode="consensus", model_profile_ids=["default", second["id"]], auto_execute=True)
     requests = []
+    from support.decision_fixture import plan
+    from decimal import Decimal
+    plans={action:plan('BTCUSDT',action,'50000',Decimal('.1')) for action in ('BUY','SELL','HOLD')}
 
     def handle(request):
         body = json.loads(request.content)
@@ -247,7 +260,7 @@ def test_real_consensus_service_controls_paper_execution(system, directions, exp
         action = directions[0 if body["model"] == "fixture" else 1]
         if action == "FAIL":
             return httpx.Response(503, json={"error": "controlled unavailable"})
-        advice = dict(symbol="BTCUSDT", action=action, summary="Controlled response", counter_evidence=["Risk"], invalidation="Change")
+        advice = plans[action]
         return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(advice)}}]})
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handle))
@@ -257,8 +270,8 @@ def test_real_consensus_service_controls_paper_execution(system, directions, exp
         result = dashboard(system)
         assert len(requests) == 2 and len(result["decisions"]) == 1
         decision = result["decisions"][0]
-        assert decision["consensus_status"] == expected_status
-        assert len(decision["model_results"]) == 2
+        assert decision['assessment_status'] == ('DECIDED' if expected_status=='AGREED' else 'REVIEW_REQUIRED')
+        assert len(decision['component_results']) == 2
         assert len(result["orders"]) == order_count
         assert result["notifications"]["items"][0]["decision_id"] == decision["id"]
     finally:

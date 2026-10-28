@@ -24,6 +24,7 @@ export interface Order {
 }
 export interface ResearchTaskProfile {decision_interval:string; holding_period_seconds:number; allowed_operations:string[]; required:string[]; optional:string[]; windows:Record<string,number>}
 export interface Decision {
+  component_results?: {profile_id:string; role?:string; status:string; config_revision:number}[];
   assessment_status?: string; reason_code?: string; decision_policy?: string; snapshot_id?:string; strategy_revision?:number;
   watch_conditions?: unknown[]; review_report?: unknown;
   proposal?: {action:string; target:{side:string;sizing:string;value:string}; exit_plan:{stop_price:string|null;review_due_at:string}; valid_until:string} | null;

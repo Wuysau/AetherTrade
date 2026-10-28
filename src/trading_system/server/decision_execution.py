@@ -19,7 +19,10 @@ def watch_triggered(conditions, previous, current):
     for condition in conditions:
         kind = condition.get('kind')
         if kind == 'NEW_BAR':
-            if current.get('closed_until') and previous.get('closed_until') and current['closed_until'] > previous['closed_until']:
+            interval = condition.get('evidence_ref', '').removeprefix('candles:')
+            before = previous.get('closed_by_interval', {}).get(interval, previous.get('closed_until'))
+            after = current.get('closed_by_interval', {}).get(interval, current.get('closed_until'))
+            if before and after and after > before:
                 return True
         elif kind in ('PRICE_ABOVE', 'PRICE_BELOW') and previous.get('price') and current.get('price'):
             before, after, threshold = map(Decimal, (previous['price'], current['price'], condition['value']))

@@ -132,3 +132,51 @@ def test_d10_d11_real_unified_proposal_creates_only_target_and_preserves_exit(sy
                 service.settings.quote_max_age_seconds, service.store._state(connection), current,
                 {'id':'assessment-second','snapshot_id':'evidence-second'})
     assert len(runtime.projection()['commands']) == 1
+
+@pytest.mark.paper_runtime
+def test_d12_real_partial_target_preserves_protected_cancel_and_original_plan(system):
+    service=system; saved=strategy(service,auto_execute=True); runtime=service.store.execution
+    price=Decimal(service.quote_snapshot()['quotes'][0]['price'])
+    def submit(value,key):
+        p=proposal(value);p['exit_plan']['stop_price']=format(price*Decimal('.95'),'f')
+        with service.store.transaction() as connection:
+            return runtime.accept_proposal(p,key,service.quote_snapshot(),90,service.store._state(connection),saved,{'id':key,'snapshot_id':'fixture'}),p
+    entry,p=submit('.1','entry-target')
+    service.test_console.fill(entry,service.quote_snapshot())
+    stop=runtime.protect(entry['command_id'],'protect-entry')
+    runtime.dispatch(stop['command_id'])
+    runtime.inject(stop['command_id'],dict(event_id='verified',status='PROTECTION_VERIFIED',cumulative_quantity='0'))
+    runtime.recover(entry['command_id'],resolver_dsn=service.test_console.profile.resolver_dsn)
+    reduction,p=submit('.05','half-target')
+    assert reduction['operation']=='PROTECTED_REDUCTION'
+    assert Decimal(reduction['quantity'])==Decimal('.05')
+    assert Decimal(runtime.account_view()['positions'][0]['quantity'])==Decimal('.1')
+    assert runtime.dispatch(reduction['command_id'])['status']=='UNKNOWN'
+    with pytest.raises(ApiError): submit('.05','repeat-unknown')
+    runtime.inject(reduction['command_id'],dict(event_id='cancel-confirmed',status='CANCELED',cumulative_quantity='0'))
+    runtime.recover(reduction['command_id'],resolver_dsn=service.test_console.profile.resolver_dsn)
+    with service.store.transaction() as connection:
+        close=runtime.continue_reduction(reduction['command_id'],service.quote_snapshot(),90,service.store._state(connection))
+    assert Decimal(close['quantity'])==Decimal('.05')
+    service.test_console.fill(close,service.quote_snapshot())
+    assert Decimal(runtime.account_view()['positions'][0]['quantity'])==Decimal('.05')
+    with runtime.uow.transaction(__import__('trading_system.server.paper_runtime',fromlist=['scope_for']).scope_for('BTCUSDT')) as tx:
+        request=runtime._request(tx,close['command_id'])
+        assert request.intent.exit_plan.stop_price==p['exit_plan']['stop_price']
+
+
+@pytest.mark.paper_runtime
+def test_d21_owner_protection_continues_without_model_budget(system):
+    service=system;saved=strategy(service);runtime=service.store.execution
+    price=Decimal(service.quote_snapshot()['quotes'][0]['price'])
+    p=proposal('.01');p['exit_plan']['stop_price']=format(price*Decimal('.95'),'f')
+    with service.store.transaction() as connection:
+        entry=runtime.accept_proposal(p,'protection-duty',service.quote_snapshot(),90,service.store._state(connection),saved,{'id':'failure-test','snapshot_id':'fixture'})
+    service.test_console.fill(entry,service.quote_snapshot())
+    async def failed(*args,**kw): raise ApiError('MODEL_BUDGET_EXHAUSTED','No model budget',409)
+    service.models.analyze=failed
+    import asyncio
+    asyncio.run(service.tick())
+    runtime.tick()
+    assert any(c['operation']=='SET_PROTECTION' for c in runtime.projection()['commands'])
+    assert Decimal(runtime.account_view()['positions'][0]['quantity'])==Decimal('.01')
