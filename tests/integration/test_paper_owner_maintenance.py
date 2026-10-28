@@ -131,3 +131,41 @@ def test_daily_review_retains_lock_for_nonflat_account(paper):
     with pytest.raises(ValueError,match='FLAT_COMPLETE_ACCOUNT_REQUIRED'):
         review_daily(runtime,record['lock_id'],resolver_dsn=profile.resolver_dsn,operator_review_id='review')
     assert any(lock['cause']=='DAILY_LOSS' for lock in runtime.projection()['risk_locks'])
+
+def test_maintenance_outlives_entry_quote_and_entry_grant_without_model(paper, monkeypatch):
+    runtime, store, _ = paper
+    entry = runtime.accept(dict(symbol='BTCUSDT',side='BUY',quantity='1'),'old-entry',market(),90,data())
+    runtime.dispatch(entry['command_id'])
+    runtime.inject(entry['command_id'],dict(event_id='old-partial',status='PARTIALLY_FILLED',cumulative_quantity='0.4',price='100'))
+    reading = runtime.clock()
+    future = datetime.fromisoformat(reading.utc_now)+timedelta(minutes=5)
+    runtime.clock = lambda: replace(reading,utc_now=future.isoformat(),monotonic_ns=reading.monotonic_ns+300*10**9)
+    def unavailable(*_):
+        raise AssertionError('entry/model/control path unavailable')
+    runtime.current_control = unavailable
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        original = runtime._request(tx,entry['command_id'])
+        assert datetime.fromisoformat(original.authorization.authorization.expires_at) < future
+        assert (future-datetime.fromisoformat(original.quote_at)).total_seconds() > original.maximum_age
+    from trading_system.execution.dispatcher import CommandDispatcher
+    diagnostics = []
+    check = CommandDispatcher._check
+    def traced(self, *args, **kwargs):
+        try:
+            return check(self, *args, **kwargs)
+        except Exception as exc:
+            diagnostics.append(str(exc))
+            raise
+    monkeypatch.setattr(CommandDispatcher, '_check', traced)
+    results = runtime.tick()
+    assert not any(r.get('error_type') for r in results), (results, diagnostics)
+    with runtime.connect() as conn:
+        rows = conn.execute("SELECT record_id FROM ledger.commands WHERE sequence=1 AND payload->>'operation'='SET_PROTECTION'").fetchall()
+        assert len(rows) == 1
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        request = runtime._request(tx, rows[0][0])
+        assert request.mode == 'MAINTENANCE' and request.quantity == '0.4'
+        assert request.quote_at == original.quote_at  # no fabricated fresh quote
+        assert datetime.fromisoformat(request.authorization.authorization.valid_from) == future
+    assert runtime.projection()['targets'][0]['protected_quantity'] == '0'
+    assert runtime.projection()['risk_locks']

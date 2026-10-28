@@ -1195,7 +1195,15 @@ class UnifiedPaperRuntime:
                 sequence=book.sequence + 1, basis_fingerprint=canonical_hash(payload), evidence=(ref,))
             if (next_book.positions == book.positions and next_book.active_orders == book.active_orders
                     and next_book.balances == book.balances):
-                next_book = book
+                if all(0 <= (utc_timestamp(now) - utc_timestamp(e.visible_at)).total_seconds() < 30
+                        for e in book.evidence):
+                    next_book = book
+                else:
+                    # A complete new original-ID query renews observation evidence,
+                    # while unchanged economics retain their target fingerprint.
+                    next_book = replace(next_book, basis_fingerprint=book.basis_fingerprint)
+                    tx.projections.save_book(next_book, book.sequence)
+                    self._record_target(tx, next_book)
             else:
                 tx.projections.save_book(next_book, book.sequence)
                 self._record_target(tx, next_book)
