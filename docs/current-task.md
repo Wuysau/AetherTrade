@@ -1,5 +1,16 @@
 # Current task
 
+## MERGED_AND_RUNNING — 2026-10-28
+
+用户要求合并至公开分支、移除实施worktree，并明确选择真实行情+PAPER虚拟资金。
+已在主目录 `D:/Projects/Python/AetherTrade/AetherTrade` 的 `public-snapshot` 快进合并
+`d2ec4f7`，归档校验后移除 `paper-execution` worktree。当前API8787与独立owner运行；
+Binance官方WebSocket LIVE，自测PENDING→SUBMITTED→EXPIRED、幂等通过，现金100000、
+无持仓/活动风险锁。当前操作说明与配置位置见
+[REAL_MARKET_PAPER_2026-10-28.md](REAL_MARKET_PAPER_2026-10-28.md)。未push或启用真实交易。
+
+下方旧worktree路径仅作工程交付历史，不应作为继续开发目录。
+
 ## LOCAL_PAPER_COMPLETE — 2026-10-28
 
 当前任务的实现与本地工程验收已完成，详细边界见

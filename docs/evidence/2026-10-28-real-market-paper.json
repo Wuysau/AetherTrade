@@ -1,0 +1,83 @@
+{
+  "started_at": "2026-10-28T04:36:49.292254+00:00",
+  "environment": "PAPER",
+  "real_venue_writes": false,
+  "steps": [
+    {
+      "operation": "accept-and-idempotent-replay",
+      "http": 200,
+      "receipt": {
+        "order": {
+          "id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+          "command_id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+          "symbol": "BTCUSDT",
+          "side": "BUY",
+          "status": "PENDING",
+          "quantity": "0.000246761258",
+          "price": "81050.01000000",
+          "notional": "0",
+          "fee": "0",
+          "strategy_id": null,
+          "created_at": "2026-10-28T04:36:51.521210+00:00"
+        },
+        "account_revision": 1
+      }
+    },
+    {
+      "operation": "independent-owner-submit",
+      "projection": {
+        "command_id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+        "symbol": "BTCUSDT",
+        "state": "VENUE_CONFIRMED",
+        "order_status": "SUBMITTED",
+        "quantity": "0.000246761258",
+        "filled_quantity": "0",
+        "leaves_quantity": "0.000246761258",
+        "reason": "受权人工 PAPER 请求"
+      }
+    },
+    {
+      "operation": "explicit-virtual-expiry",
+      "http": 200,
+      "result": {
+        "command_id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+        "status": "EXPIRED",
+        "filled_quantity": "0",
+        "leaves_quantity": "0",
+        "protection_state": "NO_POSITION",
+        "simulation_notice": "本地虚拟 PAPER；无交易所或模型调用。价格与成交事件为明确注入，不能证明真实滑点、流动性或原生保护。"
+      }
+    }
+  ],
+  "market": {
+    "status": "CONNECTED",
+    "source": "Binance 官方行情",
+    "transport": {
+      "mode": "websocket",
+      "status": "LIVE",
+      "last_event_at": "2026-10-28T04:36:50.224Z",
+      "last_error": null,
+      "reconnect_attempt": 0
+    },
+    "quote": {
+      "symbol": "BTCUSDT",
+      "price": "81050.00000000",
+      "change_pct": "1.712",
+      "as_of": "2026-10-28T04:36:50.002Z",
+      "open": "79686.01000000",
+      "high": "81300.00000000",
+      "low": "79506.00000000",
+      "volume": "12765.87708000",
+      "quote_volume": "1026792613.78499790",
+      "source": "Binance 官方行情",
+      "stale": false
+    }
+  },
+  "final": {
+    "cash": "100000",
+    "positions": [],
+    "risk_locks": [],
+    "mode": "UNIFIED_PAPER"
+  },
+  "passed": true
+}
