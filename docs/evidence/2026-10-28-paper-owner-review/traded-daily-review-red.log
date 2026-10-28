@@ -1,0 +1,16 @@
+F.F                                                                      [100%]
+================================== FAILURES ===================================
+_ test_daily_review_after_actual_flat_cycle_uses_effective_commands_and_fees[False-False] _
+tests\integration\test_paper_owner_maintenance.py:301: in test_daily_review_after_actual_flat_cycle_uses_effective_commands_and_fees
+    assert reviewed['resolved'] is not pending_foreign_command, reviewed
+E   AssertionError: {'lock_id': 'console-daily:2026-10-27', 'resolved': False, 'remaining_locks': [{'lock_id': 'console-daily:2026-10-27',...uid': 'console-paper:BTCUSDT', ...}, 'cause': 'DAILY_LOSS', 'state': 'ACTIVE', ...}], 'missing': ['DAILY_LOSS_REVIEW']}
+E   assert False is not False
+_ test_daily_review_after_actual_flat_cycle_uses_effective_commands_and_fees[False-True] _
+tests\integration\test_paper_owner_maintenance.py:301: in test_daily_review_after_actual_flat_cycle_uses_effective_commands_and_fees
+    assert reviewed['resolved'] is not pending_foreign_command, reviewed
+E   AssertionError: {'lock_id': 'console-daily:2026-10-27', 'resolved': False, 'remaining_locks': [{'lock_id': 'console-daily:2026-10-27',...uid': 'console-paper:BTCUSDT', ...}, 'cause': 'DAILY_LOSS', 'state': 'ACTIVE', ...}], 'missing': ['DAILY_LOSS_REVIEW']}
+E   assert False is not False
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_owner_maintenance.py::test_daily_review_after_actual_flat_cycle_uses_effective_commands_and_fees[False-False]
+FAILED tests/integration/test_paper_owner_maintenance.py::test_daily_review_after_actual_flat_cycle_uses_effective_commands_and_fees[False-True]
+2 failed, 1 passed, 11 deselected in 21.19s

@@ -48,3 +48,49 @@ Final fixed-source verification at 9db778f1c8edd672da08e8f72e3f569a40327141:
 Exit 0, **18 passed in 61.36s**. Raw stdout: 9db778f-green.log.
 Seven focused owner/review regressions plus eleven existing real-PG runtime tests;
 this is not a full repository qualification claim. `git diff --check` also passed.
+
+## Follow-up reviewer findings and corrected validation
+
+- `b13eaae`: expired maintenance READY was retained forever with no projection.
+  After complete original-ID order/fill absence on the synthetic source, the
+  worker now calls the existing SQL-guarded `abort_unsent` under both the control
+  fence and collateral mutex. It never retires MAY_HAVE_SENT/UNKNOWN. Aborted
+  immutable READY snapshots no longer count as queued reducible exposure; a
+  deterministic replacement identity incorporates retired IDs. The active holding
+  duty and current actual quantity still bound the replacement grant.
+- Expiry regression against original `f81347e` production source (new tests
+  retained): `pytest -q --tb=short tests/integration/test_paper_owner_maintenance.py
+  -k expired_ready_protection`: exit 1, one failed; original remains DURABLE_READY.
+  Raw output: expired-maintenance-red.log.
+- `b13eaae` fixed-source command adds `tests/unit/test_locked_actions.py` to the
+  prior two suites: exit 0, **141 passed in 90.37s**. See b13eaae-green.log.
+- Validation correction: the earlier stale-entry test rejected error_type but
+  did not require a confirmed stop receipt, so UNKNOWN could satisfy that older
+  assertion. That result alone did not prove accepted maintenance. The corrected
+  test explicitly requires effective `VENUE_CONFIRMED`, unchanged old quote, fresh
+  maintenance grant and exact actual quantity. It advances runtime and UoW wall/
+  monotonic issuance clocks together. PostgreSQL's OS clock remains unchanged.
+  These controlled clocks are held constant during each action; they do not prove
+  physical clock/fencing/deadline qualification. The corrected test is included
+  in the 141-pass fixed-source result.
+- `0c9fcf4`: flat-after-trading daily review previously checked raw command
+  snapshots, which remain MAY_HAVE_SENT after confirmed receipt append. A scoped
+  read-only wrapper now uses `CommandRepository.get` for every symbol under the
+  SAME collateral-locked resolver transaction. Only confirmed/rejected or
+  authoritatively aborted commands qualify; all held reservations must be zero.
+- Traded daily-review regression against `b13eaae`: `pytest -q --tb=short
+  tests/integration/test_paper_owner_maintenance.py -k daily_review_after_actual`:
+  exit 1, two failed / one passed. Both real flat cycles failed review; a foreign
+  ETH READY command correctly remained blocked. See traded-daily-review-red.log.
+  New fixed tests close a real synthetic 1-unit fill/verified stop/stop fill cycle,
+  assert cash **9994.805** including both fees, and prove review can also proceed
+  after a genuinely retired unsent stop has no remaining financial obligation.
+
+Final fixed-source follow-up: `0c9fcf4`.
+`pytest -q --tb=short tests/integration/test_paper_owner_maintenance.py
+ tests/integration/test_unified_paper_runtime.py tests/unit/test_locked_actions.py`
+returned exit 0, **144 passed in 118.42s**. Raw stdout: 0c9fcf4-green.log.
+This includes fourteen focused maintenance/review cases, eleven existing unified
+runtime PostgreSQL cases, and 119 locked-actions unit cases. Scope remains the
+isolated local PAPER runtime; full integration, CI, process-supervision and browser
+qualification are separate. `git diff --check` also passed.

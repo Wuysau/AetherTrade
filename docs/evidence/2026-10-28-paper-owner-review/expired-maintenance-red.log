@@ -1,0 +1,13 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_expired_ready_protection_is_retired_before_fresh_bounded_attempt ____
+tests\integration\test_paper_owner_maintenance.py:224: in test_expired_ready_protection_is_retired_before_fresh_bounded_attempt
+    assert repo.get(stop_id).state == 'ABORTED_UNSENT', result
+E   AssertionError: [{'receipt_id': 'paper-ack:console-command:91f2c823b15fac9a792f0a7c305015fb1a9e0ab2627b8c8ff7d0838c14fa71c9', 'command...5c707e1c461f92b84e9777b8b9e92cfb6d6cec059f5193e', 'status': 'RECONCILIATION_REQUIRED', 'error_type': 'DispatchDenied'}]
+E   assert 'DURABLE_READY' == 'ABORTED_UNSENT'
+E     
+E     - ABORTED_UNSENT
+E     + DURABLE_READY
+=========================== short test summary info ===========================
+FAILED tests/integration/test_paper_owner_maintenance.py::test_expired_ready_protection_is_retired_before_fresh_bounded_attempt
+1 failed, 10 deselected in 3.17s
