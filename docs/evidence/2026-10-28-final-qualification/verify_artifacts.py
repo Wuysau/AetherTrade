@@ -30,7 +30,12 @@ if scope_path.exists():
     scope = json.loads(scope_path.read_text())
     backend = json.loads((root / scope['backend_gate_index']).read_text())
     frontend = json.loads((root / scope['frontend_check_index']).read_text())
-    assert backend['source_commit'] == scope['current_source_commit']
+    assert backend['source_commit'] == scope['backend_gate_source_commit']
+    if 'backend_identity_index' in scope:
+        identity = json.loads((root / scope['backend_identity_index']).read_text())['backend_identity_verified']
+        assert identity['all_matching']
+        assert identity['qualified_source'] == backend['source_commit']
+        assert identity['current_source'] == scope['current_source_commit']
     assert frontend['source_commit'] == scope['frontend_check_source_commit']
     assert len(set(scope['frontend_tree_identity_verified'].values())) == 1
 print(f'Verified {archives} archives / {members} original files; all SHA256 checks match.')
