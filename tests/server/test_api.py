@@ -156,3 +156,47 @@ def test_login_works_after_logout_and_api_errors_hide_password(client):
     assert "token" not in response.json()
     response = client.post("/api/session/login", json={"username": "owner", "password": "a-long-password", "extra": "secret"})
     assert response.status_code == 422 and "a-long-password" not in response.text
+
+
+@pytest.mark.paper_runtime
+def test_protected_reduction_web_continuation_requires_csrf_and_separate_review(tmp_path):
+    from support.unified_console import provision_console
+    harness = provision_console(tmp_path, setup=False)
+    settings = Settings(**harness.settings_kwargs, testing=True, market_enabled=False,
+        allowed_origins=('http://testserver',), model_key_path=tmp_path / 'demo-only.key')
+    app = create_app(settings, quote_provider=Feed())
+    try:
+        with TestClient(app) as api:
+            api.headers['Origin'] = 'http://testserver'
+            setup(api)
+            root = api.post('/api/paper/orders', json=dict(symbol='BTCUSDT', side='BUY', quantity='0.01'),
+                headers={'Idempotency-Key':'protected-entry'}).json()['order']['command_id']
+            runtime = app.state.store.execution
+            runtime.dispatch(root)
+            runtime.inject(root, dict(event_id='entry-fill', status='FILLED', cumulative_quantity='0.01', price='50000'))
+            stop = runtime.protect(root, 'protect-entry')['command_id']
+            runtime.dispatch(stop)
+            runtime.inject(stop, dict(event_id='verified-stop', status='PROTECTION_VERIFIED', cumulative_quantity='0'))
+            runtime.recover(stop, resolver_dsn=harness.profile.resolver_dsn)
+            response = api.post('/api/paper/orders', json=dict(symbol='BTCUSDT', side='SELL', quantity='0.005'),
+                headers={'Idempotency-Key':'protected-reduction'})
+            assert response.status_code == 200, response.text
+            cancel = response.json()['order']['command_id']
+            path = '/api/paper/' + cancel + '/reduction-continue'
+            csrf = api.headers.pop('X-CSRF-Token')
+            assert api.post(path).status_code == 403
+            api.headers['X-CSRF-Token'] = csrf
+            assert api.post(path).status_code == 409  # Still working protection.
+            runtime.dispatch(cancel)
+            runtime.inject(cancel, dict(event_id='confirmed-cancel', status='CANCELED', cumulative_quantity='0'))
+            assert api.post(path).status_code == 409  # UNKNOWN requires reviewer.
+            runtime.recover(cancel, resolver_dsn=harness.profile.resolver_dsn)
+            first = api.post(path)
+            assert first.status_code == 202, first.text
+            second = api.post(path)
+            assert second.status_code == 202
+            assert first.json()['order']['command_id'] == second.json()['order']['command_id']
+            assert first.json()['order']['status'] == 'PENDING'
+            assert api.get('/api/dashboard').json()['positions'][0]['quantity'] == '0.01'
+    finally:
+        harness.close()

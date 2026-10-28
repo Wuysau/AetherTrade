@@ -77,3 +77,19 @@ it('counts actual fills rather than submitted quantities, including canceled par
   expect(paperProtectionLabel('GAP')).toBe('保护缺口');
   expect(paperProtectionLabel('PENDING')).toBe('保护待确认');
 });
+
+it('exposes bounded continuation only after server reports cancellation reviewed', async () => {
+  const data = snapshot(), api = new RuntimeApi(), saved = vi.fn();
+  data.execution!.protection_adjustments = [{cancel_command_id:'original-cancel', stop_command_id:'stop',
+    reduction_command_id:null, symbol:'BTCUSDT', quantity:'0.2', phase:'REVIEW_REQUIRED', protection_responsibility:'RETAINED'}];
+  const submit = vi.spyOn(api, 'continueReduction').mockResolvedValue({order:{id:'bounded-close',status:'PENDING'},account_revision:2});
+  const view = render(<PaperExecutionView data={data} api={api} onSaved={saved} />);
+  expect(screen.queryByRole('button', {name:'继续有界减仓'})).toBeNull();
+  expect(submit).not.toHaveBeenCalled();
+  data.execution!.protection_adjustments[0].phase = 'READY_TO_CONTINUE';
+  view.rerender(<PaperExecutionView data={data} api={api} onSaved={saved} />);
+  fireEvent.click(screen.getByRole('button', {name:'继续有界减仓'}));
+  await waitFor(() => expect(saved).toHaveBeenCalled());
+  expect(submit).toHaveBeenCalledWith('original-cancel');
+  expect(saved.mock.calls[0][0]).not.toContain('已成交');
+});

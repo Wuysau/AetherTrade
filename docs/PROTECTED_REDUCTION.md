@@ -34,3 +34,12 @@ replacement gap. During that gap new risk remains locked. A race changing actual
 quantity, ambiguous ownership, UNKNOWN, another working order or missing evidence
 requires review instead of silently rebasing the authorized reduction. Full exit
 needs no replacement. Partial adjustment under EXIT_ONLY is rejected.
+
+The authenticated browser uses the normal SELL request to begin adjustment.
+`execution.protection_adjustments` exposes its phase and original cancel ID.
+Only `READY_TO_CONTINUE` shows the bounded continuation button. It posts to
+`/api/paper/{cancel_command_id}/reduction-continue`, with the existing session,
+Origin and CSRF checks; the server independently revalidates current quantities,
+authorization and evidence. HTTP 202 is a PENDING command receipt, not a fill.
+The same continuation ID is returned on replay. The browser cannot supply
+reviewer credentials or bypass an unresolved UNKNOWN lock.

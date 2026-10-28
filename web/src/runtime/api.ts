@@ -73,6 +73,9 @@ export class RuntimeApi {
   order(values: PaperOrderInput, key: string) {
     return this.request<{ order: { id: string; status?: string; command_id?: string }; command_id?: string; account_revision: number }>('/paper/orders', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(values) });
   }
+  continueReduction(commandId: string) {
+    return this.request<{order: {id: string; status: string}; account_revision: number}>(`/paper/${encodeURIComponent(commandId)}/reduction-continue`, {method:'POST'});
+  }
   action(action: PaperAction, revision: number, key: string, confirmation?: string) {
     return this.request<ActionReceipt>('/paper/actions', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ action, expected_revision: revision, ...(confirmation ? { confirmation } : {}) }) });
   }

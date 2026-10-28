@@ -1,5 +1,7 @@
 import type { Dashboard, Order } from './types';
 import { Alert, Badge, Empty, Panel } from './ui';
+import { useState } from 'react';
+import { errorMessage, type RuntimeApi } from './api';
 
 export const paperOrderLabel = (status?: string) => ({
   PENDING: '已排队 · 等待执行', DURABLE_READY: '已持久化 · 等待执行',
@@ -17,13 +19,27 @@ export const paperProtectionLabel = (state: string): string => ({
   UNCONFIGURED: '未配置', UNVERIFIED: '未验证',
 }[state] ?? state);
 
-export function PaperExecutionView({ data }: { data: Dashboard }) {
+export function PaperExecutionView({ data, api, onSaved }: { data: Dashboard; api?: RuntimeApi; onSaved?: (message: string) => void }) {
   const execution = data.execution;
+  const [busy, setBusy] = useState<string | null>(null), [error, setError] = useState('');
+  async function continueReduction(id: string) {
+    if (!api) return;
+    setBusy(id); setError('');
+    try { const result = await api.continueReduction(id); onSaved?.(`减仓命令已提交 · 等待成交事件 · ${result.order.id}`); }
+    catch (cause) { setError(errorMessage(cause)); } finally { setBusy(null); }
+  }
   const locks = (execution?.risk_locks ?? data.risk_locks ?? []).filter(lock => lock.state === 'ACTIVE');
   return <Panel title="PAPER 执行进度" caption="目标、在途和成交分别记录；收到请求回执不代表成交" className="paper-execution">
     <div className="panel-body">
       <p className="field-help">{execution?.simulation_notice ?? '当前快照未提供统一执行链证据。历史本地账本不代表已通过统一 PAPER 验收。'}</p>
       {execution && <p className="field-help">执行模式：{execution.mode} · 模拟无法验证真实滑点和流动性</p>}
+      {execution?.protection_adjustments?.map(adjustment => <section className="paper-target" key={adjustment.cancel_command_id} aria-label="保护调整与减仓">
+        <h3>{adjustment.symbol} · 减仓 {adjustment.quantity}</h3>
+        <p>{({CANCEL_CONFIRM_REQUIRED:'原保护撤单待确认；持仓与保护责任仍在。', REVIEW_REQUIRED:'撤单需确认及独立审核。请在审核终端完成原命令对账后继续。', READY_TO_CONTINUE:'已确认原保护撤销，可继续已授权的有界减仓；等待期间存在保护缺口。', REDUCTION_ACCEPTED:'减仓已提交，等待成交及剩余持仓保护验证。'} as Record<string,string>)[adjustment.phase] ?? adjustment.phase}</p>
+        <p className="field-help">原撤单命令：{adjustment.cancel_command_id}</p>
+        {adjustment.phase === 'READY_TO_CONTINUE' && api && <button className="button small" disabled={busy !== null} onClick={() => void continueReduction(adjustment.cancel_command_id)}>{busy === adjustment.cancel_command_id ? '正在提交减仓…' : '继续有界减仓'}</button>}
+      </section>)}
+      {error && <Alert error>{error}</Alert>}
       {locks.length > 0 && <Alert error><strong>新增风险受限</strong><ul className="paper-locks">{locks.map(lock => <li key={lock.lock_id}>{lock.cause} · {lock.permission}<span className="field-help">{lock.lock_id}</span></li>)}</ul>风险锁需有证据的审核解除；价格回升或恢复开仓不会清除。</Alert>}
       {execution?.targets.length ? <div className="paper-targets">{execution.targets.map((target, index) => <section className="paper-target" key={`${target.symbol}:${target.strategy_id ?? 'manual'}:${index}`} aria-label={`${target.symbol} 执行进度`}>
         <h3>{target.symbol}<span className="field-help">{target.strategy_id ?? '手动操作'}</span></h3>

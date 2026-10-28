@@ -281,6 +281,14 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
             raise ApiError('IDEMPOTENCY_REQUIRED', '保护请求需要有效的 Idempotency-Key。')
         return {'order': paper_runtime().protect(command_id, idempotency_key)}
 
+    @app.post('/api/paper/{command_id}/reduction-continue', status_code=202)
+    def paper_reduction_continue(command_id: str, _=Depends(mutation)):
+        runtime = paper_runtime()
+        with store.transaction() as connection:
+            data = store._state(connection)
+            order = runtime.continue_reduction(command_id, market_snapshot(), settings.quote_max_age_seconds, data)
+            return {'order': order, 'account_revision': data['account']['revision']}
+
     @app.post("/api/notifications/read")
     def read_notifications(payload: dict, _=Depends(mutation)):
         return automation.mark_read(payload)

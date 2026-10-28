@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.paper_runtime
+
 from trading_system.server.errors import ApiError
 from trading_system.server.paper_provision import provision
 from trading_system.server.paper_runtime import UnifiedPaperRuntime

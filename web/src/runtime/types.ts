@@ -91,6 +91,8 @@ export interface PaperCommand {
 export interface PaperExecution {
   mode: string; simulation_notice: string; targets: PaperTarget[];
   commands: PaperCommand[]; risk_locks: PaperRiskLock[];
+  protection_adjustments?: {cancel_command_id: string; stop_command_id: string; reduction_command_id: string | null;
+    quantity: string; symbol: string; phase: string; protection_responsibility: string}[];
 }
 export interface PaperOrderInput { symbol: SymbolName; side: 'BUY' | 'SELL'; quantity: string; strategy_id: string | null }
 export interface ActionReceipt { id: string; action: PaperAction; status: 'APPLIED'; affected_count: number; detail: string; created_at: string }
