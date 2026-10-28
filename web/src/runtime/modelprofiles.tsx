@@ -1,3 +1,4 @@
+import {AssessmentDetails} from './assessment';
 import { Alert, Badge } from './ui';
 import type { AnalysisMode, Dashboard, Decision, ModelProfile, ModelResult, Strategy } from './types';
 
@@ -95,6 +96,7 @@ function ModelResultRow({ result }: { result: ModelResult }) {
 }
 
 export function ModelOutcomes({ decision }: { decision: Decision }) {
+  if (decision.assessment_status) return <AssessmentDetails decision={decision} />;
   if (decision.analysis_mode !== 'consensus' && !decision.model_results?.length) {
     return decision.profile_name ? <div className="detail-block">
       <h3>分析模型</h3>

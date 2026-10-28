@@ -22,7 +22,11 @@ export interface Order {
   filled_quantity?: string; leaves_quantity?: string; provenance?: string;
   strategy_id: string | null; created_at: string;
 }
+export interface ResearchTaskProfile {decision_interval:string; holding_period_seconds:number; allowed_operations:string[]; required:string[]; optional:string[]; windows:Record<string,number>}
 export interface Decision {
+  assessment_status?: string; reason_code?: string; decision_policy?: string; snapshot_id?:string; strategy_revision?:number;
+  watch_conditions?: unknown[]; review_report?: unknown;
+  proposal?: {action:string; target:{side:string;sizing:string;value:string}; exit_plan:{stop_price:string|null;review_due_at:string}; valid_until:string} | null;
   id: string; symbol: string; action: string; source: string; summary: string;
   counter_evidence: string[]; invalidation: string; risk_status: string;
   created_at: string; next_review_at: string | null;
@@ -35,10 +39,10 @@ export interface Decision {
 export type AnalysisMode = 'single' | 'consensus';
 export interface TokenUsage { input_tokens: number | null; output_tokens: number | null }
 export interface ModelResult { profile_id: string; profile_name: string; model: string; config_revision: number; status: 'SUCCEEDED' | 'FAILED'; decision?: Partial<Decision>; error?: string; usage?: TokenUsage | null }
-export interface AnalysisInput { symbol: SymbolName; analysis_mode: AnalysisMode; model_profile_ids: string[]; expected_revisions: Record<string, number>; acknowledge_cost: true }
+export interface AnalysisInput { decision_schema?: 'legacy'|'assessment_v1'; decision_policy?:'unanimous'|'evidence_review'; task_profile?: ResearchTaskProfile; symbol: SymbolName; analysis_mode: AnalysisMode; model_profile_ids: string[]; expected_revisions: Record<string, number>; acknowledge_cost: true }
 export type StrategyStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED';
 export interface PriceRule { kind: 'PRICE_THRESHOLD'; operator: 'LTE' | 'GTE'; price: string; stop_loss_pct: string }
-export interface StrategyInput { status?: StrategyStatus; rule?: PriceRule; acknowledge_paper_automation?: boolean; analysis_mode?: AnalysisMode; model_profile_ids?: string[]; analysis_interval_seconds?: number; auto_execute?: boolean; acknowledge_model_cost?: boolean; name: string; symbol: SymbolName; mode: Mode; budget: string; target_pct: string }
+export interface StrategyInput { decision_schema?: 'legacy'|'assessment_v1'; decision_policy?:'unanimous'|'evidence_review'; task_profile?: ResearchTaskProfile; status?: StrategyStatus; rule?: PriceRule; acknowledge_paper_automation?: boolean; analysis_mode?: AnalysisMode; model_profile_ids?: string[]; analysis_interval_seconds?: number; auto_execute?: boolean; acknowledge_model_cost?: boolean; name: string; symbol: SymbolName; mode: Mode; budget: string; target_pct: string }
 export interface Strategy extends StrategyInput {
   id: string; status: StrategyStatus; runtime_status?: string; next_analysis_at?: string | null; last_analysis_at?: string | null; last_analysis_error?: string | null; revision: number; created_at: string; updated_at: string;
 }

@@ -60,6 +60,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
             journal_directory=settings.paper_journal_directory), market_snapshot)
 
     automation = AutomationService(store, models, market_snapshot, settings)
+    automation.feed = feed
 
     async def refresh():
         nonlocal refresh_failed
@@ -333,16 +334,25 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     async def test_model(payload: ModelTest, _=Depends(mutation)):
         return await models.test_connection(payload.expected_revision)
 
+    async def decision_context(payload):
+        if payload.decision_schema == 'assessment_v1':
+            if payload.task_profile is None:
+                raise ApiError('TASK_PROFILE_REQUIRED', '请选择研究周期与必需数据。')
+            from .analysis_snapshot import build_analysis_context
+            return await build_analysis_context(store, feed, payload.symbol,
+                settings.quote_max_age_seconds, dict(payload.task_profile.model_dump(), strategy_revision=1))
+        return await run_in_threadpool(store.analysis_context, payload.symbol, market_snapshot(), settings.quote_max_age_seconds)
+
     @app.post('/api/decisions/generate')
     async def generate_decision(payload: ModelAnalysis, idempotency_key: str | None = Header(default=None), _=Depends(mutation)):
-        context = await run_in_threadpool(store.analysis_context, payload.symbol, market_snapshot(), settings.quote_max_age_seconds)
+        context = await decision_context(payload)
         return await models.generate(payload.symbol, payload.expected_revision, idempotency_key, context)
 
     @app.post('/api/decisions/analyze')
     async def analyze_with_profiles(payload: ProfileAnalysis, idempotency_key: str | None = Header(default=None), _=Depends(mutation)):
-        context = await run_in_threadpool(store.analysis_context, payload.symbol, market_snapshot(), settings.quote_max_age_seconds)
+        context = await decision_context(payload)
         return await models.analyze(payload.symbol, payload.analysis_mode, payload.model_profile_ids,
-                                    payload.expected_revisions, idempotency_key, context)
+                                    payload.expected_revisions, idempotency_key, context, **({"decision_policy": payload.decision_policy} if payload.decision_schema == "assessment_v1" else {}))
 
     @app.post("/api/market/refresh")
     async def market_refresh(_=Depends(mutation)):

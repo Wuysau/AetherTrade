@@ -58,7 +58,19 @@ class PriceRule(Payload):
     stop_loss_pct: StrictStr = '5'
 
 
+class ResearchTaskProfile(Payload):
+    decision_interval: Literal['1m', '5m', '15m', '1h', '4h', '1d']
+    holding_period_seconds: StrictInt = Field(ge=60, le=2592000)
+    allowed_operations: list[Literal['SET_TARGET', 'UPDATE_EXIT', 'HOLD']] = Field(min_length=1, max_length=3)
+    required: list[StrictStr] = Field(min_length=1, max_length=10)
+    optional: list[StrictStr] = Field(default_factory=list, max_length=10)
+    windows: dict[StrictStr, StrictInt]
+
+
 class StrategyCreate(Payload):
+    task_profile: ResearchTaskProfile | None = None
+    decision_schema: Literal['legacy', 'assessment_v1'] = 'legacy'
+    decision_policy: Literal['unanimous', 'evidence_review'] = 'unanimous'
     name: StrictStr = Field(min_length=1, max_length=80)
     symbol: Symbol
     mode: Literal["AI", "RULE", "HYBRID"]
@@ -75,6 +87,9 @@ class StrategyCreate(Payload):
 
 
 class StrategyPatch(Payload):
+    task_profile: ResearchTaskProfile | None = None
+    decision_schema: Literal['legacy', 'assessment_v1'] | None = None
+    decision_policy: Literal['unanimous', 'evidence_review'] | None = None
     name: StrictStr | None = Field(default=None, min_length=1, max_length=80)
     symbol: Symbol | None = None
     mode: Literal["AI", "RULE", "HYBRID"] | None = None
@@ -123,6 +138,8 @@ class ModelTest(Payload):
 
 
 class ModelAnalysis(ModelTest):
+    task_profile: ResearchTaskProfile | None = None
+    decision_schema: Literal['legacy', 'assessment_v1'] = 'legacy'
     symbol: Symbol
     acknowledge_cost: StrictBool
 

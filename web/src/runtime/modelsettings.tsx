@@ -1,3 +1,4 @@
+import {researchProfile} from './assessment';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { ApiError, errorMessage, type RuntimeApi } from './api';
@@ -141,6 +142,7 @@ export function ConfigForm({ config, api, onConfig, onSaved, profileId, profileN
 export function ManualAnalysis({ config, profiles, data, api, onSaved }: { config?: ModelConfig; profiles?: ModelProfile[]; data: Dashboard; api: RuntimeApi; onSaved: (message: string) => void }) {
   const [symbol, setSymbol] = useState<SymbolName | ''>(''), [ack, setAck] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [mode, setMode] = useState<AnalysisMode>('single'), [ids, setIds] = useState<string[]>(() => profiles?.some(p => p.id === 'default') ? ['default'] : []);
+  const [structured, setStructured] = useState(false), [policy,setPolicy] = useState<'unanimous'|'evidence_review'>('unanimous'), [interval,setInterval] = useState('15m');
   const attempt = useRef<{ input: AnalysisInput; key: string } | null>(null);
   const available = profiles ?? (config ? [{ ...config, id: 'default', name: '默认模型' }] : []);
   const selectedIds = profiles ? ids : ['default'];
@@ -154,7 +156,7 @@ export function ManualAnalysis({ config, profiles, data, api, onSaved }: { confi
     e.preventDefault();
     if (busy || !ack || (!attempt.current && (!symbol || !fresh || !ready))) return;
     setBusy(true); setError('');
-    if (!attempt.current) attempt.current = { input: { symbol: symbol as SymbolName, analysis_mode: mode, model_profile_ids: [...selectedIds], expected_revisions: Object.fromEntries(selectedIds.map(id => [id, available.find(p => p.id === id)!.revision])), acknowledge_cost: true }, key: crypto.randomUUID() };
+    if (!attempt.current) attempt.current = { input: { ...(structured ? {decision_schema:'assessment_v1' as const, decision_policy:mode === 'consensus' ? policy : 'unanimous', task_profile:researchProfile(interval)} : {}), symbol: symbol as SymbolName, analysis_mode: mode, model_profile_ids: [...selectedIds], expected_revisions: Object.fromEntries(selectedIds.map(id => [id, available.find(p => p.id === id)!.revision])), acknowledge_cost: true }, key: crypto.randomUUID() };
     try {
       const { input, key } = attempt.current;
       const result = profiles ? await api.analyzeDecision(input, key) : await api.generateDecision(input.symbol, input.expected_revisions.default, key);
@@ -165,6 +167,7 @@ export function ManualAnalysis({ config, profiles, data, api, onSaved }: { confi
   return <form className="manual-analysis" onSubmit={generate}><h3>手动生成分析</h3><p className="field-help">仅发送所选标的的公开报价与相关 PAPER 账户摘要。分析是建议记录，不是订单或风控批准。</p>
     <label className="field"><span>分析标的</span><select required value={symbol} disabled={locked} onChange={e => { setSymbol(e.target.value as SymbolName); reset(); }}><option value="">请选择标的</option><InstrumentOptions instruments={data.instruments} /></select></label>
     {profiles && <ModelSelection profiles={profiles} mode={mode} ids={ids} disabled={locked} onChange={(nextMode, nextIds) => { setMode(nextMode); setIds(nextIds); reset(); }} />}
+    {profiles && <><label className="model-check"><input type="checkbox" checked={structured} disabled={locked} onChange={e=>{setStructured(e.target.checked);reset();}}/>使用结构化证据与交易计划</label>{structured && <><label className="field"><span>研究周期（32 根已收盘 K 线）</span><select value={interval} disabled={locked} onChange={e=>{setInterval(e.target.value);reset();}}>{['5m','15m','1h','4h'].map(v=><option key={v}>{v}</option>)}</select></label><p className="field-help">观察持有期 1 小时；报价、K 线为必需，新闻与盘口为辅助。缺少必需数据时不调用模型。</p>{mode === 'consensus' && <label className="field"><span>交叉决策政策</span><select value={policy} disabled={locked} onChange={e=>{setPolicy(e.target.value as 'unanimous'|'evidence_review');reset();}}><option value="unanimous">所有模型一致</option><option value="evidence_review">证据复核（最多增加一次裁决调用）</option></select></label>}</>}</>}
     <label className="model-check"><input type="checkbox" checked={ack} disabled={busy} onChange={e => setAck(e.target.checked)} />我确认调用已配置的模型服务，可能产生 API 费用</label>
     {selectionError && <p className="field-help">{selectionError}</p>}{!ready && !selectionError && <p className="field-help">所选模型尚不可用，请检查启用状态、密钥和连接配置；不会自动替换模型。</p>}
     {symbol && !fresh && !attempt.current && <Alert error>所选标的缺少有效报价，请刷新行情后再生成。</Alert>}

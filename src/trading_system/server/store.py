@@ -235,7 +235,7 @@ class Store:
         if type(expected) is not int or current != expected:
             raise ApiError("REVISION_CONFLICT", "数据已更新，请刷新后重试。", 409)
 
-    def _strategy_values(self, payload, *, connection, previous_status="DRAFT", previous_routing=None):
+    def _strategy_values(self, payload, *, connection, previous_status="DRAFT", previous_routing=None, previous_decision=None):
         from . import model_repository as repository
         if not isinstance(payload.get("name"), str) or not 1 <= len(payload["name"].strip()) <= 80:
             raise ApiError("INVALID_STRATEGY", "策略名称不能为空且最多 80 字符。")
@@ -272,6 +272,19 @@ class Store:
             raise ApiError("PAPER_AUTOMATION_ACK_REQUIRED", "激活前请明确授权周期性 PAPER 自动执行。", 409)
         payload.setdefault("analysis_mode", "single")
         payload.setdefault("model_profile_ids", [repository.DEFAULT_PROFILE_ID] if payload["mode"] == "AI" else [])
+        payload.setdefault('decision_schema', 'legacy')
+        payload.setdefault('decision_policy', 'unanimous')
+        schema, policy = payload['decision_schema'], payload['decision_policy']
+        profile = payload.get('task_profile')
+        if schema == 'assessment_v1':
+            if profile is None:
+                raise ApiError('TASK_PROFILE_REQUIRED', '请选择研究周期与必需数据。')
+            from .analysis_snapshot import validate_task_profile
+            validate_task_profile(dict(profile, strategy_revision=payload.get('revision', 1)))
+
+        if (schema not in ('legacy', 'assessment_v1') or policy not in ('unanimous', 'evidence_review')
+                or policy == 'evidence_review' and (schema != 'assessment_v1' or payload['analysis_mode'] != 'consensus')):
+            raise ApiError('INVALID_DECISION_POLICY', 'Evidence review requires assessment_v1 and consensus.')
         analysis_mode, identifiers = payload["analysis_mode"], payload["model_profile_ids"]
         if (analysis_mode not in ("single", "consensus") or not isinstance(identifiers, list)
                 or len(identifiers) > 3 or any(type(identifier) is not str or not 1 <= len(identifier) <= 64 for identifier in identifiers)
@@ -288,7 +301,7 @@ class Store:
         acknowledgement = payload.pop("acknowledge_model_cost", False)
         if type(acknowledgement) is not bool:
             raise ApiError("INVALID_STRATEGY", "模型费用确认需为布尔值。")
-        if payload["mode"] != "RULE" and previous_status == "ACTIVE" and previous_routing != (analysis_mode, identifiers) and acknowledgement is not True:
+        if payload["mode"] != "RULE" and previous_status == "ACTIVE" and (previous_routing != (analysis_mode, identifiers) or previous_decision != (schema, policy, profile)) and acknowledgement is not True:
             raise ApiError("MODEL_COST_ACK_REQUIRED", "更改已激活策略的模型选择前，请确认周期性模型调用费用。", 409)
         if status == "ACTIVE" and previous_status != "ACTIVE":
             if payload["mode"] != "RULE" and acknowledgement is not True:
@@ -314,6 +327,7 @@ class Store:
             if data is None:
                 raise ApiError("STRATEGY_NOT_FOUND", "策略不存在。", 404)
             self._revision(data["revision"], payload.get("expected_revision"))
+            previous_decision = (data.get('decision_schema', 'legacy'), data.get('decision_policy', 'unanimous'), data.get('task_profile'))
             previous_symbol = data["symbol"]
             previous_status = data["status"]
             previous_auto = data.get("auto_execute", False)
@@ -321,7 +335,7 @@ class Store:
             data.update({key: value for key, value in payload.items() if key != "expected_revision"})
             if payload.get("auto_execute") is True and not previous_auto and previous_status != "ACTIVE" and payload.get("status") != "ACTIVE":
                 raise ApiError("INVALID_STRATEGY", "启用自动下单时请明确激活策略并确认模型费用。")
-            self._strategy_values(data, connection=connection, previous_status=previous_status, previous_routing=previous_routing)
+            self._strategy_values(data, connection=connection, previous_status=previous_status, previous_routing=previous_routing, previous_decision=previous_decision)
             owned_positions = self.execution.account_view()['positions'] if self.execution else rows(connection, positions)
             if data["symbol"] != previous_symbol and any(
                 item.get("strategy_id") == identifier and Decimal(item["quantity"]) != 0

@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import Field, StrictBool, StrictInt, StrictStr, field_validator, model_validator
 
-from .validation import Payload, Symbol
+from .validation import Payload, Symbol, ResearchTaskProfile
 
 
 class ProfileVersion(Payload):
@@ -11,6 +11,9 @@ class ProfileVersion(Payload):
 
 
 class ProfileAnalysis(Payload):
+    task_profile: ResearchTaskProfile | None = None
+    decision_schema: Literal['legacy', 'assessment_v1'] = 'legacy'
+    decision_policy: Literal['unanimous', 'evidence_review'] = 'unanimous'
     symbol: Symbol
     analysis_mode: Literal['single', 'consensus']
     model_profile_ids: list[StrictStr] = Field(min_length=1, max_length=3)
@@ -26,6 +29,10 @@ class ProfileAnalysis(Payload):
 
     @model_validator(mode='after')
     def selection(self):
+        if self.decision_policy == 'evidence_review' and (self.decision_schema != 'assessment_v1' or self.analysis_mode != 'consensus'):
+            raise ValueError('evidence review requires explicit structured consensus')
+        if self.decision_schema == 'assessment_v1' and self.task_profile is None:
+            raise ValueError('structured assessment requires task profile')
         identifiers = self.model_profile_ids
         if (len(set(identifiers)) != len(identifiers)
                 or any(not 1 <= len(identifier) <= 64 for identifier in identifiers)
