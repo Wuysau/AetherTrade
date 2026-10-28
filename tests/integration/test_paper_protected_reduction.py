@@ -32,6 +32,8 @@ def record_ledger(runtime, stage):
         ledger = {table: [row[0] for row in conn.execute('SELECT payload FROM ledger.' + table
             + ' ORDER BY scope_id,record_id,sequence').fetchall()] for table in
             ('commands', 'order_projections', 'fills', 'risk_locks', 'protection_plans')}
+        ledger['adjustment_audits'] = [row[0] for row in conn.execute("SELECT payload FROM ledger.audit_events "
+            "WHERE record_id LIKE 'paper:adjustment%%' ORDER BY scope_id,record_id,sequence").fetchall()]
     path = Path(destination)
     path.mkdir(parents=True, exist_ok=True)
     (path / (stage + '.json')).write_text(json.dumps(dict(projection=runtime.projection(), ledger=ledger),
@@ -156,3 +158,39 @@ def test_existing_store_sell_returns_durable_adjustment_receipt(prepared):
     finally:
         store.close()
 
+
+def test_obsolete_adjustment_is_durably_invalidated_after_review_and_allows_repair(prepared):
+    from trading_system.server.paper_runtime import scope_for
+    runtime, profile, stop = prepared
+    cancel = runtime.begin_reduction(stop, '0.5', 'race-adjust')['command_id']
+    runtime.dispatch(cancel)
+    runtime.inject(stop, dict(event_id='race-quarter', status='PARTIALLY_FILLED', cumulative_quantity='0.25', price='95'))
+    runtime.inject(cancel, dict(event_id='race-terminal', status='CANCELED', cumulative_quantity='0.25'))
+    record_ledger(runtime, 'race-01-terminal-cancel-unknown-review-required')
+    from trading_system.server.paper_maintenance import maintain
+    assert maintain(runtime) == []
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        assert runtime.pending_protected_adjustment(tx)
+    runtime.recover(cancel, resolver_dsn=profile.resolver_dsn)
+    assert any(lock['cause'] == 'PROTECTION_PENDING' for lock in runtime.projection()['risk_locks'])
+    assert runtime.projection()['protection_adjustments'][0]['phase'] == 'REVIEW_REQUIRED'
+    with pytest.raises(ApiError):
+        runtime.continue_reduction(cancel, market(), 90, data())
+    receipts = maintain(runtime)
+    assert len(receipts) == 1 and receipts[0]['status'] == 'VENUE_CONFIRMED'
+    record_ledger(runtime, 'race-02-invalidated-and-residual-protection-submitted')
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        assert not runtime.pending_protected_adjustment(tx)
+
+    runtime = UnifiedPaperRuntime(**profile.runtime_kwargs())
+    assert runtime.projection()['protection_adjustments'][0]['phase'] == 'INVALIDATED_QUANTITY_CHANGED'
+    assert runtime.account_view()['positions'][0]['quantity'] == '0.75'
+    assert all(c['reason'] != '受权人工 PAPER 请求' or c['quantity'] != '0.5'
+        for c in runtime.projection()['commands'])
+    repair = receipts[0]['command_id']
+    assert maintain(runtime) == []
+    assert runtime.account_view()['positions'][0]['quantity'] == '0.75'
+    runtime.inject(repair, dict(event_id='raced-repair-ok', status='PROTECTION_VERIFIED', cumulative_quantity='0'))
+    assert runtime.projection()['targets'][0]['protected_quantity'] == '0.75'
+    assert runtime.projection()['risk_locks']  # Repair never silently resolves duties.
+    record_ledger(runtime, 'race-03-residual-protection-verified')

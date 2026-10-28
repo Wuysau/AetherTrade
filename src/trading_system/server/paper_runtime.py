@@ -555,11 +555,15 @@ class UnifiedPaperRuntime:
             return self._cancel(command_id, key)
 
     def pending_protected_adjustment(self, tx):
-        rows = tx.execute("SELECT payload->>'cancel' FROM ledger.audit_events WHERE scope_id=%s "
+        from trading_system.risk.protection_adjustment import invalidate_obsolete
+        rows = tx.execute("SELECT payload FROM ledger.audit_events WHERE scope_id=%s "
             "AND record_id LIKE 'paper:adjustment:%%'", (scope_id(tx.scope),)).fetchall()
-        for cancel_id, in rows:
+        for record, in rows:
+            cancel_id = record['cancel']
             close_id = 'console-command:' + canonical_hash({'key': 'adjustment-close:' + cancel_id, 'account': ACCOUNT})
             close = CommandRepository(tx).get(close_id)
+            if close is None and invalidate_obsolete(tx, record, owner=OWNER, now=self.clock().utc_now):
+                continue
             order = tx._latest('order_projections', close.logical_client_order_id, t.OrderProjection) if close else None
             if order is None or order.lifecycle_state not in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED'):
                 return True
@@ -571,11 +575,13 @@ class UnifiedPaperRuntime:
             return self._cancel(command_id, key, adjustment_quantity=quantity)
 
     def continue_reduction(self, cancel_id, market, maximum_age, data):
-        from trading_system.risk.protection_adjustment import adjustment
+        from trading_system.risk.protection_adjustment import adjustment, invalidation
         with self.control_guard():
             scope, symbol = self._scope_command(cancel_id)
             with self.uow.transaction(scope) as tx:
                 record = adjustment(tx, cancel_id)
+                if invalidation(tx, cancel_id):
+                    raise ApiError('REDUCTION_ADJUSTMENT_INVALIDATED', '原调整数量已过时且已作废；保护责任仍在，请审查当前实际仓位。', 409)
                 close_id = 'console-command:' + canonical_hash({'key': 'adjustment-close:' + cancel_id, 'account': ACCOUNT})
                 existing = self._request(tx, close_id)
                 if existing and CommandRepository(tx).get(close_id):

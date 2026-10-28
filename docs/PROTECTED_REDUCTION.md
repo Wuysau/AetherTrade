@@ -43,3 +43,13 @@ Origin and CSRF checks; the server independently revalidates current quantities,
 authorization and evidence. HTTP 202 is a PENDING command receipt, not a fill.
 The same continuation ID is returned on replay. The browser cannot supply
 reviewer credentials or bypass an unresolved UNKNOWN lock.
+
+If the old stop fills while cancellation is pending, the original reduction
+quantity becomes obsolete. After original-ID queries and separate UNKNOWN review,
+maintenance proves the canceled stop terminal, all command outcomes known, no
+working orders, current ownership, fresh complete evidence and the exact durable
+fill balance. It records an immutable `INVALIDATED_QUANTITY_CHANGED` adjustment
+audit and resumes protection maintenance for the actual residual quantity. It
+creates no replacement sale and never clears risk locks. Old continuation returns
+`REDUCTION_ADJUSTMENT_INVALIDATED`; before sufficient evidence the adjustment
+remains pending with `REVIEW_REQUIRED`, rather than advertising readiness.
