@@ -145,13 +145,26 @@ def candle(item, interval, *, now=None):
     low, high = Decimal(result["low"]), Decimal(result["high"])
     if low > high or any(not low <= Decimal(result[key]) <= high for key in ("open", "close")):
         raise InvalidMarketData()
+    # Older chart-only providers may omit this evidence. Such bars remain
+    # usable for charts but are never inferred closed for decision research.
+    if 'close_time' in item or 'closed' in item:
+        end = item.get('close_time')
+        closed = item.get('closed')
+        if type(end) is not int or end != opened + INTERVAL_MS[interval] - 1 or type(closed) is not bool:
+            raise InvalidMarketData()
+        if closed and end > int((now or utc_now()).timestamp() * 1000):
+            raise InvalidMarketData()
+        result.update(close_time=end, closed=closed)
     return result
 
 
 def kline(row, interval, *, now=None):
     if not isinstance(row, list) or not 6 <= len(row) <= 12:
         raise InvalidMarketData()
-    return candle(dict(zip(("time", "open", "high", "low", "close", "volume"), row)), interval, now=now)
+    item = dict(zip(("time", "open", "high", "low", "close", "volume"), row))
+    if len(row) > 6:
+        item.update(close_time=row[6], closed=type(row[6]) is int and row[6] <= int((now or utc_now()).timestamp() * 1000))
+    return candle(item, interval, now=now)
 
 
 def loads(raw):

@@ -112,6 +112,8 @@ class LiveMarketFeed:
             self._sequence += 1
         self._snapshot_fingerprint = fingerprint
         return {"source": self._source(), "status": status,
+                "source_id": self._instance, "source_generation": self._generation,
+                "venue": "BINANCE", "product": "SPOT",
                 "last_updated": min((q["as_of"] for q in quotes), default=None),
                 "error": self._error or ("行情已过期" if quotes and not fresh else None),
                 "quotes": quotes, "groups": groups, "instance_id": self._instance,
@@ -482,7 +484,8 @@ class LiveMarketFeed:
             item = data.get("k")
             if not isinstance(item, dict) or item.get("s") != symbol or item.get("i") != interval:
                 raise parse.InvalidMarketData()
-            candle = parse.candle({"time": item.get("t"), **{dest: item.get(key) for key, dest in (("o", "open"), ("h", "high"), ("l", "low"), ("c", "close"), ("v", "volume"))}}, interval)
+            metadata = {"closed": item.get("x"), "close_time": item.get("T")} if "x" in item or "T" in item else {}
+            candle = parse.candle({"time": item.get("t"), **metadata, **{dest: item.get(key) for key, dest in (("o", "open"), ("h", "high"), ("l", "low"), ("c", "close"), ("v", "volume"))}}, interval)
             return self._put_candle(symbol, interval, candle, event)
         raise parse.InvalidMarketData()
 
@@ -585,6 +588,7 @@ class LiveMarketFeed:
     @_locked
     def _history_result(self, symbol, interval, limit):
         return {"symbol": symbol, "interval": interval, "source_revision": self._config["revision"] if self._config else 0,
+                "source_id": self._instance, "source_generation": self._generation, "venue": "BINANCE", "product": "SPOT",
                 "candles": copy.deepcopy(self._history.get((symbol, interval), [])[-limit:]), "source": self._source()}
 
     async def test_connection(self, expected_revision):
