@@ -31,5 +31,6 @@ evidence. Protection verification is labeled VERIFIED_SYNTHETIC to users.
 
 The integrated lifecycle is not fully qualified: dispatch-time whole-account
 risk revaluation and reductions with active protection have outstanding P1
-findings, with full integration gates still pending. The task is paused at the
-user's request; see current-task.md and HANDOFF-2026-10-28.md before resuming.
+findings, with full integration gates still pending. The user resumed the task
+on 2026-10-28; see current-task.md for active work and HANDOFF-2026-10-28.md for
+the preserved pause checkpoint.

@@ -56,3 +56,37 @@ AI、RULE、HYBRID 和人工表达目标，不直接持有发送能力。[Target
 已提交的 [atomic evidence](evidence/2026-10-27-paper-atomic/README.md) 与 [PaperEngine provisioning/security evidence](evidence/2026-10-27-paper-engine-fresh-provisioning.md) 是真实Linux/PostgreSQL上的**独立子任务**记录，各自有固定源提交和范围。它们不自动证明新集成树、控制台/CLI完整链或任务C组合通过。[ci_paper_postgres.py](../tools/ci_paper_postgres.py) 对skipped安全项拒绝资格；完整C还须实际进程kill矩阵、前后账本和UI/CLI演示。
 
 Testnet/Demo是下一个独立连接器资格任务，需核对当时官方环境能力与独立虚拟余额凭据；目前未执行。真实资金须另行准入与明确授权，本文和愿意承担本金损失都不授予实盘许可。保留全部既定产品/模式范围，不以缩小范围换取全绿。
+
+## 9. 首次保护待确认与已知保护失败分开
+
+本轮风险语义裁决：新增成交立即保存 `ProtectionPlan.GAP` 和保护责任；首次
+保护尚在安装/验证时，以 `PROTECTION_PENDING / NO_NEW_RISK` 阻止新增风险，
+允许验证过的有界保护安装和减仓。这使任务 A 要求的保护修复能够通过同一
+owner/数量/授权门禁。明确拒单或失败后升级为原有的
+`PROTECTION_GAP / EXIT_ONLY`，不放宽 EXIT_ONLY；只允许可证明的退出和对账。
+其他 UNKNOWN/恢复锁的权限仍取交集，不能借 PENDING 绕过它们。
+
+参见 [cause policies](../src/trading_system/risk/locks.py)、
+[action verifier](../src/trading_system/risk/locked_actions.py) 和
+[PAPER composition](../src/trading_system/server/paper_runtime.py)。模拟保护 ACK
+不构成覆盖证据，必须查询当前精确 stop 参数和已成交数量，并收到独立受权
+控制器的验证事件。冻结契约中的 `VERIFIED_NATIVE` 在此仅表示模拟场所中的
+相应订单形态；用户投影显式输出 `VERIFIED_SYNTHETIC`。这不是 Nautilus、真实
+交易所止损或任何 Testnet/LIVE 资格，原 native 禁用门禁保持不变。
+
+## 10. PAPER 多次数据库校验使用有界有效期
+
+领域 UnitOfWork 默认发送许可仍为 1000ms。独立 PAPER 组合选择最多 5000ms，
+覆盖受限角色连接、风险/权限重读和独立模拟数据库提交；每次检查仍受更早的
+grant/intent/quote 截止时间限制。副作用 guard 等待后再次检查，超过 5 秒的
+故障注入必须拒绝写入并保留 UNKNOWN/预留。此配置没有打开 native 或延长
+原用户授权，也不构成跨宿主的外部 fencing 保证。
+
+## 11. 旧即时成交测试迁移到实际事件链
+
+原有金额、手续费、重复请求、并发预算、权限、重启和回滚断言不以假成交替代。
+执行场景标为 `paper_runtime`，缺少真实隔离数据库即失败；普通测试作显式筛选，
+另一个必须通过的 PostgreSQL job 运行这些场景且不允许跳过。测试控制器先保留
+PENDING 收据，再显式提交/注入成交；SQLite 只验证交互、拒绝写入和历史只读投影。
+控制台事务失败不能回滚另一数据库已 durable 的命令，因此相应反例验证的是
+资金零变化、命令可查询和原 ID 恢复，不能再声称跨库原子回滚。

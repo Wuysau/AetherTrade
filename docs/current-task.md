@@ -1,6 +1,16 @@
 # Current task
 
-## PAUSED_BY_USER — 2026-10-28
+## ACTIVE — resumed 2026-10-28
+
+用户已明确要求“继续执行任务”，撤销先前暂停。已核对 Git：实施分支 HEAD
+`dd4fda4`，六份 WIP 原位保留。两项 P1 分别在独立的
+`paper-dispatch-account-risk` / `paper-protected-reduction` worktree 处理；
+`paper-runtime-resume` 继续完成独立 owner 与证据解锁。root 负责原 WIP 测试、
+集成与最终验证。先复现失败，再最小修复；TESTNET/LIVE 门禁不变。
+
+暂停交接仍是恢复基线，以下暂停文字仅作历史，不再阻止本轮已授权工作。
+
+### Historical pause checkpoint
 
 用户要求暂停所有任务并记录。**不得自动继续实施或测试。** 当前实施工作区是
 `D:/Projects/Python/AetherTrade/TradingHandoff/AutoDispatchWorktrees/paper-execution`，
