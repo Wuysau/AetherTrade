@@ -41,3 +41,14 @@ Economic changes still advance it. A later exposure gap re-arms a previously
 resolved protection cause using an intent-bound identity. This is local PAPER
 behavior and conveys no Testnet, real venue, liquidity, or native protection
 qualification.
+
+Expired maintenance grants do not authorize retries by themselves. The worker
+queries the original synthetic command ID under the control fence and retires
+only an expired, effectively DURABLE_READY SET_PROTECTION command with proven
+complete order/fill absence. The existing SQL abort guard verifies the unsent
+boundary under the collateral mutex and preserves the immutable original history.
+MAY_HAVE_SENT, UNKNOWN, observed venue orders and failed/incomplete queries never
+permit retirement or replacement. A fresh child identity includes retired command
+IDs, making recovery deterministic; it still uses the existing holding-duty limit,
+current actual quantity and all normal dispatcher checks. Authoritatively aborted
+immutable READY rows do not count as competing queued risk-reduction commands.

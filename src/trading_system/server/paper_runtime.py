@@ -980,6 +980,8 @@ class UnifiedPaperRuntime:
                 command = CommandRepository(tx).get(command_id)
                 if command is None:
                     raise ApiError('COMMAND_NOT_ACCEPTED', '原请求没有通过原子风控。', 409)
+                if command.state == 'ABORTED_UNSENT':
+                    return domain_payload(CommandRepository(tx).receipt(command_id))
                 ready = command.state == 'DURABLE_READY'
             if probe.orders:
                 if ready:

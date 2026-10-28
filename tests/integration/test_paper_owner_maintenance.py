@@ -11,6 +11,7 @@ from trading_system.server.paper_maintenance import run_owner, review_daily
 from trading_system.server.paper_provision import provision
 from trading_system.server.store import Store, cause_locks
 from trading_system.contracts import types as t
+from trading_system.storage.models import scope_id
 from integration.test_unified_paper_runtime import market, data
 
 pytestmark = pytest.mark.paper_runtime
@@ -145,6 +146,7 @@ def test_maintenance_outlives_entry_quote_and_entry_grant_without_model(paper, m
     def unavailable(*_):
         raise AssertionError('entry/model/control path unavailable')
     runtime.current_control = unavailable
+    align_permit_clock(runtime, monkeypatch)
     with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
         original = runtime._request(tx,entry['command_id'])
         assert datetime.fromisoformat(original.authorization.authorization.expires_at) < future
@@ -166,8 +168,96 @@ def test_maintenance_outlives_entry_quote_and_entry_grant_without_model(paper, m
         assert len(rows) == 1
     with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
         request = runtime._request(tx, rows[0][0])
+        from trading_system.execution.commands import CommandRepository
+        assert CommandRepository(tx).get(rows[0][0]).state == 'VENUE_CONFIRMED'
         assert request.mode == 'MAINTENANCE' and request.quantity == '0.4'
         assert request.quote_at == original.quote_at  # no fabricated fresh quote
         assert datetime.fromisoformat(request.authorization.authorization.valid_from) == future
     assert runtime.projection()['targets'][0]['protected_quantity'] == '0'
     assert runtime.projection()['risk_locks']
+
+def align_permit_clock(runtime, monkeypatch):
+    # UoW owns issuance clocks separately from runtime. Advance both application
+    # clocks, while leaving the real PostgreSQL OS clock untouched.
+    import trading_system.storage.uow as storage
+    reading = runtime.clock()
+    class ApplicationTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime.fromisoformat(reading.utc_now)
+    monkeypatch.setattr(storage, 'datetime', ApplicationTime)
+    monkeypatch.setattr(storage, 'monotonic_ns', lambda: reading.monotonic_ns)
+
+
+def expired_stop(runtime, monkeypatch):
+    entry = runtime.accept(dict(symbol='BTCUSDT',side='BUY',quantity='1'),'expire-entry',market(),90,data())
+    runtime.dispatch(entry['command_id'])
+    runtime.inject(entry['command_id'],dict(event_id='expire-fill',status='FILLED',cumulative_quantity='1',price='100'))
+    stop = runtime.protect(entry['command_id'],'crashed-before-send')
+    reading = runtime.clock()
+    future = datetime.fromisoformat(reading.utc_now)+timedelta(seconds=40)
+    runtime.clock = lambda: replace(reading,utc_now=future.isoformat(),monotonic_ns=reading.monotonic_ns+40*10**9)
+    align_permit_clock(runtime, monkeypatch)
+    return stop['command_id']
+
+
+def test_expired_ready_protection_is_retired_before_fresh_bounded_attempt(paper,monkeypatch):
+    from trading_system.execution.commands import CommandRepository
+    runtime, _, _ = paper
+    stop_id = expired_stop(runtime,monkeypatch)
+    result = runtime.tick()
+
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        repo = CommandRepository(tx)
+        assert repo.get(stop_id).state == 'ABORTED_UNSENT', result
+        commands = tx.execute("SELECT record_id FROM ledger.commands WHERE scope_id=%s AND sequence=1 "
+            "AND payload->>'operation'='SET_PROTECTION'", (scope_id(tx.scope),)).fetchall()
+        assert len(commands)==2, result
+        replacement = repo.get(next(i for i, in commands if i != stop_id))
+        assert replacement.state == 'VENUE_CONFIRMED', result
+        assert replacement.canonical_payload.quantity == '1'
+        assert replacement.venue_client_order_id != repo.get(stop_id).venue_client_order_id
+    runtime.tick()
+    with runtime.connect() as conn:
+        assert conn.execute("SELECT count(*) FROM ledger.commands WHERE sequence=1 AND payload->>'operation'='SET_PROTECTION'").fetchone()[0]==2
+    assert runtime.projection()['targets'][0]['protected_quantity']=='0'
+    assert runtime.projection()['risk_locks']
+
+
+@pytest.mark.parametrize('state', ['MAY_HAVE_SENT', 'UNKNOWN'])
+def test_expired_potentially_sent_stop_keeps_original_id_without_replacement(paper,monkeypatch,state):
+    from trading_system.execution.commands import CommandRepository
+    from trading_system.server.paper_maintenance import maintain
+    runtime, _, _ = paper
+    stop_id = expired_stop(runtime,monkeypatch)
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        repo=CommandRepository(tx)
+        repo.mark_may_have_sent(tx, stop_id, 'DURABLE_READY')
+    if state == 'UNKNOWN':
+        with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+            CommandRepository(tx).recover_unknown(stop_id,runtime.clock().utc_now)
+    maintain(runtime)
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        assert CommandRepository(tx).get(stop_id).state == state
+        assert not tx.execute('SELECT 1 FROM ledger.command_aborts WHERE command_id=%s',(stop_id,)).fetchone()
+    with runtime.connect() as conn:
+        assert conn.execute("SELECT count(*) FROM ledger.commands WHERE sequence=1 AND payload->>'operation'='SET_PROTECTION'").fetchone()[0]==1
+
+
+def test_expired_ready_without_complete_absence_proof_stays_pending(paper,monkeypatch):
+    from trading_system.engine.paper import PaperEngine
+    from trading_system.execution.commands import CommandRepository
+    from trading_system.server.paper_maintenance import maintain
+    runtime, _, _ = paper
+    stop_id=expired_stop(runtime,monkeypatch)
+    query=PaperEngine.query
+    def failed_query(self,*args,**kwargs):
+        source=query(self,*args,**kwargs)
+        return replace(source,coverage=replace(source.coverage,query_succeeded=False,pagination_complete=False))
+    monkeypatch.setattr(PaperEngine,'query',failed_query)
+    result=maintain(runtime)
+    assert any(r.get('error_type') for r in result)
+    with runtime.uow.transaction(scope_for('BTCUSDT')) as tx:
+        assert CommandRepository(tx).get(stop_id).state=='DURABLE_READY'
+    with runtime.connect() as conn:
+        assert conn.execute("SELECT count(*) FROM ledger.commands WHERE sequence=1 AND payload->>'operation'='SET_PROTECTION'").fetchone()[0]==1

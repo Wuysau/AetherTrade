@@ -16,7 +16,7 @@ from fractions import Fraction
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, decimal_string, domain_payload, utc_timestamp
 from trading_system.contracts.wire import ABSENT, ContractCodec
-from trading_system.execution.commands import command_hash
+from trading_system.execution.commands import command_hash, CommandRepository as EffectiveCommands
 from trading_system.protection.native import owned, report_errors
 from trading_system.recovery.reconciler import valid_ref
 from trading_system.storage.models import scope_id
@@ -112,7 +112,9 @@ class LockedActionVerifier:
             'FROM ledger.commands WHERE scope_id=%s ORDER BY record_id,sequence DESC) c '
             "WHERE c.record_id<>%s AND c.payload->>'state'='DURABLE_READY'",
             (scope_id(scope), command.command_id)).fetchall()
-        if queued:
+        # Immutable READY rows survive an authoritative unsent abort. Only
+        # effective queued work can consume the same reducible position.
+        if any(EffectiveCommands(tx).get(identifier).state != 'ABORTED_UNSENT' for identifier, in queued):
             return None
         proof = self.read_proof(tx, command, intent, book)
         if (type(proof) is not ActionProof or not tx.transaction_id

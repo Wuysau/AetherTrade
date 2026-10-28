@@ -15,8 +15,9 @@ class ReviewArchive:
 
 from trading_system.contracts import types as t
 from trading_system.contracts.wire import ExecutionCommand
-from trading_system.contracts.canonical import domain_payload, utc_timestamp
+from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp
 from trading_system.engine.paper import PaperEngine
+from trading_system.execution.commands import CommandRepository
 from trading_system.risk.locks import RiskLockService
 from trading_system.storage.models import decode, scope_id
 from trading_system.storage.uow import UnitOfWork
@@ -40,12 +41,47 @@ def run_owner(runtime, *, stopped=lambda: False, sleep=time.sleep, report=print)
         sleep(1)
 
 
+def retire_expired_unsent(runtime, scope):
+    """Fresh absence plus SQL's unsent boundary proof; never infer from age alone."""
+    from .paper_runtime import OWNER
+    with runtime.control_guard(), runtime.uow.transaction(scope) as tx:
+        repo = CommandRepository(tx)
+        for identifier, in tx.execute("SELECT record_id FROM ledger.commands WHERE scope_id=%s AND sequence=1 "
+                "AND payload->>'operation'='SET_PROTECTION'", (scope_id(scope),)).fetchall():
+            command = repo.get(identifier)
+            if command.state != 'DURABLE_READY':
+                continue
+            request = runtime._request(tx, identifier)
+            if request is None or request.mode != 'MAINTENANCE':
+                continue
+            now = utc_timestamp(runtime.clock().utc_now)
+            if now < min(utc_timestamp(request.intent.valid_until),
+                    utc_timestamp(request.authorization.authorization.expires_at)):
+                continue
+            engine = PaperEngine(scope, dsn=runtime.venue_dsn, authority_guard=lambda _: None,
+                owner_strategy_id=OWNER, quantity_unit='BASE', price_currency='USDT', clock=runtime.clock)
+            source = engine.query(runtime._query_case(scope, identifier))
+            if (not source.coverage.query_succeeded or not source.coverage.pagination_complete
+                    or not source.coverage.supported
+                    or set(source.coverage.missing) != {'COMMAND_NOT_OBSERVED',
+                        'PAPER_BALANCES_POSITIONS_PROTECTION_NOT_COVERED'}
+                    or source.orders or source.fills):
+                raise ValueError('EXPIRED_READY_ORIGINAL_ID_ABSENCE_UNPROVEN')
+            tx._append('audit_events', 'console:unsent-maintenance-query:' + identifier,
+                ReviewArchive({'command_id': identifier, 'report': domain_payload(source),
+                    'reason': 'EXPIRED_MAINTENANCE_GRANT_OR_INTENT'}), 0)
+            # The definer function verifies immutable READY under this same
+            # collateral mutex; MAY_HAVE_SENT/UNKNOWN cannot become unsent.
+            repo.abort_unsent(identifier, 'EXPIRED_MAINTENANCE_QUERY_ABSENT_UNSENT_BOUNDARY')
+
+
 def maintain(runtime):
     from .paper_runtime import SYMBOLS, scope_for
     results = []
     for symbol in SYMBOLS:
         scope = scope_for(symbol)
         try:
+            retire_expired_unsent(runtime, scope)
             with runtime.uow.transaction(scope) as tx:
                 plan = tx._latest('protection_plans', 'protection:' + scope_id(scope), t.ProtectionPlan)
                 if plan is None or plan.state not in ('GAP', 'REPAIRING') or plan.coverage_quantity.value <= 0:
@@ -53,9 +89,13 @@ def maintain(runtime):
                 if hasattr(runtime, 'pending_protected_adjustment') and runtime.pending_protected_adjustment(tx):
                     continue
                 pending = False
+                retired = []
                 for raw, in tx.execute("SELECT payload FROM ledger.commands WHERE scope_id=%s AND sequence=1 "
                         "AND payload->>'operation'='SET_PROTECTION'", (scope_id(scope),)).fetchall():
-                    command = decode(ExecutionCommand, raw)
+                    command = CommandRepository(tx).get(decode(ExecutionCommand, raw).command_id)
+                    if command.state == 'ABORTED_UNSENT':
+                        retired.append(command.command_id)
+                        continue
                     projected = tx._latest('order_projections', command.logical_client_order_id, t.OrderProjection)
                     if projected is None or projected.lifecycle_state not in ('FILLED','CANCELED','EXPIRED','REJECTED'):
                         pending = True
@@ -65,7 +105,8 @@ def maintain(runtime):
                     "AND payload->>'operation'='SUBMIT' AND payload->'canonical_payload'->>'side'='BUY' "
                     "ORDER BY processed_at DESC LIMIT 1", (scope_id(scope),)).fetchone()
             if row:
-                duty = runtime.protect(row[0], 'owner-duty:' + str(plan.replacement_revision))
+                duty = runtime.protect(row[0], 'owner-duty:' + str(plan.replacement_revision)
+                    + ':' + canonical_hash({'retired': sorted(retired)}))
                 results.append(runtime.dispatch(duty['command_id']))
         except Exception as exc:
             results.append({'scope': scope_id(scope), 'status': 'RECONCILIATION_REQUIRED', 'error_type': type(exc).__name__})
