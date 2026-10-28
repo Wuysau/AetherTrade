@@ -9,6 +9,8 @@ from support.unified_console import provision_console, default_market
 from trading_system.server.errors import ApiError
 from trading_system.server.store import cause_locks
 
+pytestmark = pytest.mark.paper_runtime
+
 
 def prepare(tmp_path):
     harness = provision_console(tmp_path, initial_cash='10000')
