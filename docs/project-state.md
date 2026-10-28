@@ -19,6 +19,17 @@ PAPER, TESTNET and LIVE qualifications are distinct. Do not change approved SPEC
 or historical evidence to make a gate green. No real orders or paid model calls.
 Keep one writer per worktree; preserve existing worktrees and branches.
 
-The console's original immediate-fill ledger has not yet been replaced by the
-domain PAPER lifecycle. Existing console fills are legacy synthetic records,
-not evidence of the unified chain. See current-task.md for current work.
+The common PostgreSQL PAPER composition now lives in `server/paper_runtime.py`;
+explicit three-database provisioning is in `server/paper_provision.py`. Ordinary
+runtime, venue submission, synthetic event control and trusted resolution use
+separate authority boundaries. The native path remains disabled.
+
+Console orders now create durable PENDING commands; explicit synthetic events
+produce fills. SQLite execution fails closed. Existing console fills remain
+read-only legacy synthetic records and are never silently imported as unified
+evidence. Protection verification is labeled VERIFIED_SYNTHETIC to users.
+
+The integrated lifecycle is not fully qualified: dispatch-time whole-account
+risk revaluation and reductions with active protection have outstanding P1
+findings, with full integration gates still pending. The task is paused at the
+user's request; see current-task.md and HANDOFF-2026-10-28.md before resuming.

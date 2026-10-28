@@ -1,5 +1,24 @@
 # Current task
 
+## PAUSED_BY_USER — 2026-10-28
+
+用户要求暂停所有任务并记录。**不得自动继续实施或测试。** 当前实施工作区是
+`D:/Projects/Python/AetherTrade/TradingHandoff/AutoDispatchWorktrees/paper-execution`，
+分支 `codex/unified-paper-execution`，暂停前代码 HEAD `fcdc5ce`。
+
+最新、优先采用的完整记录是 [HANDOFF-2026-10-28.md](HANDOFF-2026-10-28.md)，
+包括六份未提交修改、待集成 `9f0b1cb` / `1b5e3bd` / `96bb6fa`、原始证据位置、
+最近 6 passed / 2 failed 的 HYBRID 测试结果，以及两个尚未修复的 P1：
+发送前跨标的全账户风险重估缺失、健康保护单阻断合法减仓。
+
+最终完整集成门禁、真实终端/网页组合演示及远端 CI 均 NOT_RUN。
+TESTNET/LIVE 继续禁止，不能把局部测试通过称为完整任务已完成。
+
+收尾核对：无活动子代理或 Python 测试进程；未找到本次 Vite preview；Docker
+引擎停止，未启动或清理任何资源。只保存文档及忽略目录内的 WIP/日志副本。
+
+**以下为暂停前阶段性历史，含旧的“下一步”表述；不能据此自行恢复。**
+
 ## Objective
 
 Resume `AetherTrade_Next_Engineering_Task_2026-10-27.md`: unified PAPER execution
