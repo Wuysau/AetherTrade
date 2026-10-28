@@ -201,3 +201,12 @@ def test_unset_output_budget_preserves_usage_and_call_limit(svc,monkeypatch):
     assert result['decision']['budget']['max_calls']==2
     assert result['usage']['output_tokens']==4
     assert 'max_tokens' not in calls[0]
+
+
+def test_parser_diagnostic_is_persisted_without_response_text(svc,monkeypatch):
+    result,calls=run(svc,monkeypatch,[{'schema_revision':'wrong'}])
+    decision=result['decision']
+    assert decision['reason_code']=='MODEL_RESPONSE_SCHEMA_REVISION'
+    detail=decision['component_results'][0]['response_diagnostic']
+    assert detail['stage']=='schema_revision' and detail['schema_revision_matches'] is False
+    assert 'text' not in detail and 'wrong' not in json.dumps(detail)

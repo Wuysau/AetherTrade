@@ -252,6 +252,12 @@ class ModelService:
     @staticmethod
     def _error(exc):
         # Never expose arbitrary transport exception text or a provider body.
+        diagnostic = getattr(exc, 'response_diagnostic', None)
+        if isinstance(exc, ApiError) and diagnostic:
+            stages = {'provider_envelope':'响应协议结构', 'provider_completion':'服务商完成状态',
+                'output_size':'返回正文长度', 'json_format':'JSON 格式', 'schema_revision':'决策协议版本字段', 'advice_fields':'建议字段'}
+            return dict(code=exc.code, error=exc.message + ' 检查阶段：' + stages.get(diagnostic['stage'], '响应校验'),
+                response_diagnostic=diagnostic)
         return ({'code': exc.code, 'error': exc.message} if isinstance(exc, ApiError) else
                 {'code': 'MODEL_REQUEST_FAILED', 'error': '模型请求未完成；不会自动重试。'})
 
@@ -498,6 +504,7 @@ class ModelService:
                 raise
 
         status, reason, selected, report = 'DECIDED', 'VALID_ASSESSMENT', None, None
+        failure_summary = None
         try:
             if snapshot['quality']['status'] != 'READY':
                 status, reason = 'DATA_BLOCKED', 'REQUIRED_EVIDENCE_MISSING'
@@ -553,6 +560,9 @@ class ModelService:
             status, reason = 'INVALID_PLAN', 'INVALID_ASSESSMENT'
         except Exception as exc:
             status, reason = 'MODEL_ERROR', 'MODEL_REQUEST_FAILED'
+            failure_summary = self._error(exc)['error']
+            if getattr(exc, 'response_diagnostic', None):
+                reason = 'MODEL_RESPONSE_' + exc.response_diagnostic['stage'].upper()
             if isinstance(exc, ApiError) and exc.code == 'MODEL_BUDGET_EXHAUSTED':
                 status, reason = 'REVIEW_REQUIRED', exc.code
         if selected is not None and status == 'DECIDED':
@@ -571,7 +581,7 @@ class ModelService:
         decision = dict(id=str(uuid4()), symbol=symbol, created_at=stamp(), schema_revision='assessment_v1',
                         assessment_status=status, reason_code=reason, proposal=proposal,
                         action=(proposal['action'] if proposal else 'HOLD') if status == 'DECIDED' else None,
-                        summary=selected['summary'] if selected else reason, counter_evidence=[], invalidation='',
+                        summary=selected['summary'] if selected else failure_summary or reason, counter_evidence=[], invalidation='',
                         evidence_claims=selected['evidence_claims'] if selected else [],
                         watch_conditions=selected['watch_conditions'] if selected and status == 'DECIDED' else [],
                         next_review_at=selected['next_review_at'] if selected and status == 'DECIDED' else None,

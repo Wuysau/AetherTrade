@@ -143,6 +143,7 @@ def payload(config, context):
 
 
 def parse(config, body, symbol, *, schema=None):
+    diagnostic = {'stage':'provider_envelope'}
     try:
         protocol = config['protocol']
         if protocol == 'openai_chat':
@@ -158,8 +159,14 @@ def parse(config, body, symbol, *, schema=None):
                 raise ValueError()
             text = ''.join(block['text'] for block in body['content'])
         else:
+            diagnostic['stage'] = 'provider_completion'
+            diagnostic['completion_status'] = body.get('status') if body.get('status') in ('completed','incomplete','failed','cancelled') else 'OTHER'
+            incomplete = body.get('incomplete_details') or {}
+            cause = incomplete.get('reason') if isinstance(incomplete, dict) else None
+            diagnostic['incomplete_reason'] = cause if cause in ('max_output_tokens','content_filter') else None
             if body.get('status') != 'completed':
                 raise ValueError()
+            diagnostic['stage'] = 'provider_envelope'
             parts = []
             for item in body['output']:
                 if item['type'] == 'reasoning':
@@ -171,13 +178,23 @@ def parse(config, body, symbol, *, schema=None):
                         raise ValueError()
                     parts.append(block['text'])
             text = ''.join(parts)
+        diagnostic['stage'] = 'output_size'
+        if isinstance(text, str):
+            diagnostic.update(text_characters=len(text), fenced=text.lstrip().startswith('```'))
         if not isinstance(text, str) or len(text) > 16000:
             raise ValueError()
+        diagnostic['stage'] = 'json_format'
         advice = strict_json(text)
         if schema is not None:
+            diagnostic['stage'] = 'schema_revision'
+            diagnostic['expected_schema'] = schema
+            if isinstance(advice, dict):
+                diagnostic['known_fields_present'] = sorted(set(advice) & {'schema_revision','proposal','contract_version','action','symbol','summary','evidence_claims','watch_conditions','next_review_at'})
+                diagnostic['schema_revision_matches'] = advice.get('schema_revision') == schema
             if not isinstance(advice, dict) or advice.get('schema_revision') != schema:
                 raise ValueError()
             return advice, _usage(body)
+        diagnostic['stage'] = 'advice_fields'
         if set(advice) != {'symbol', 'action', 'summary', 'counter_evidence', 'invalidation'} or advice['symbol'] != symbol or advice['action'] not in ('HOLD', 'BUY', 'SELL'):
             raise ValueError()
         for field in ('summary', 'invalidation'):
@@ -192,7 +209,9 @@ def parse(config, body, symbol, *, schema=None):
             raise ValueError()
         return advice, usage
     except (KeyError, TypeError, ValueError, AttributeError, RecursionError):
-        raise invalid() from None
+        error = invalid()
+        error.response_diagnostic = diagnostic
+        raise error from None
 
 
 def _usage(body):

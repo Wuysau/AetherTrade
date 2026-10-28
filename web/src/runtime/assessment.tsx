@@ -9,7 +9,7 @@ export function AssessmentDetails({decision:d}: {decision:Decision}) {
     <p>{d.reason_code}</p><p className="field-help">{d.decision_policy === 'evidence_review' ? '交叉证据复核' : '单模型 / 全票政策'} · 分析结论仍须通过执行风控。</p>
     {d.proposal && <><p>目标：{d.proposal.target.side} · {d.proposal.target.value} {d.proposal.target.sizing === 'QUOTE_NOTIONAL' ? '计价币名义金额' : '基础资产数量'}</p><p>止损参考：{d.proposal.exit_plan.stop_price ?? '无'} · 计划有效至 {time(d.proposal.valid_until)}</p><p>退出复查：{time(d.proposal.exit_plan.review_due_at)}</p></>}
     {d.watch_conditions?.length ? <details><summary>复查条件（{d.watch_conditions.length}）</summary><pre>{JSON.stringify(d.watch_conditions,null,2)}</pre></details> : null}
-    {d.component_results?.length ? <details><summary>模型参与记录（{d.component_results.length} 次调用）</summary><ul>{d.component_results.map((r,i)=><li key={i}>{r.profile_id} · {r.role ?? '分析'} · {r.status === 'SUCCEEDED' ? '已完成' : '失败'} · 配置版本 {r.config_revision}</li>)}</ul></details> : null}
+    {d.component_results?.length ? <details><summary>模型参与记录（{d.component_results.length} 次调用）</summary><ul>{d.component_results.map((r,i)=><li key={i}>{r.profile_id} · {r.role ?? '分析'} · {r.status === 'SUCCEEDED' ? '已完成' : '失败'} · 配置版本 {r.config_revision}{r.error && <p className="field-help">{r.error}</p>}</li>)}</ul></details> : null}
     {Boolean(d.review_report) && <details><summary>复核记录</summary><pre>{JSON.stringify(d.review_report,null,2)}</pre></details>}
     <p className="field-help">快照：{d.snapshot_id ?? '未提供'} · 策略版本：{d.strategy_revision ?? '研究记录'}</p>
   </section>;
