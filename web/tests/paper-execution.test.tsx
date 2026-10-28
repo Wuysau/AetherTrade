@@ -92,4 +92,9 @@ it('exposes bounded continuation only after server reports cancellation reviewed
   await waitFor(() => expect(saved).toHaveBeenCalled());
   expect(submit).toHaveBeenCalledWith('original-cancel');
   expect(saved.mock.calls[0][0]).not.toContain('已成交');
+  data.execution!.protection_adjustments[0].phase = 'INVALIDATED_QUANTITY_CHANGED';
+  data.execution!.protection_adjustments[0].invalidated_actual_quantity = '0.75';
+  view.rerender(<PaperExecutionView data={data} api={api} onSaved={saved} />);
+  expect(screen.queryByRole('button', {name:'继续有界减仓'})).toBeNull();
+  expect(screen.getByText('当前已核对持仓：0.75')).toBeDefined();
 });
