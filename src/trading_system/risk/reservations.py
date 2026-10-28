@@ -241,6 +241,22 @@ class ReservationService:
                     order_raw = tx.execute('SELECT payload FROM ledger.order_projections WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
                         (source[0], stored.logical_client_order_id)).fetchone()
                     order = decode(t.OrderProjection, order_raw[0]) if order_raw else None
+                    if result is not None and result.receipt.status == t.CommandState.ABORTED_UNSENT:
+                        # An authoritative abort has no venue order. Require the
+                        # SQL-guarded immutable send-boundary proof, not merely
+                        # an audit receipt claiming that nothing was sent.
+                        abort = tx.execute('SELECT command_payload,outcome FROM ledger.command_aborts '
+                            'WHERE scope_id=%s AND command_id=%s', (source[0], cid)).fetchone()
+                        if (abort is None or abort[0] != raw[0] or abort[1] != outcome[0]
+                                or stored.state != 'DURABLE_READY' or order is not None
+                                or result.provenance != 'LOCAL_UNSENT_ABORT'
+                                or result.command_id != cid or result.receipt.command_id != cid
+                                or stored.intent_id != r.intent_id
+                                or result.request_hash != command_hash(stored)
+                                or result.durable_record_ref != stored.durable_record_ref
+                                or release.evidence.command_certainty != 'NOT_SENT'):
+                            return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+                        continue
                     if (result is None or result.command_id != cid or result.receipt.command_id != cid
                             or stored.intent_id != r.intent_id or result.request_hash != command_hash(stored)
                             or result.durable_record_ref != stored.durable_record_ref

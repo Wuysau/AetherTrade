@@ -1,0 +1,295 @@
+{
+  "model_test": {
+    "started_at": "2026-10-28T04:58:33.233831+00:00",
+    "real_model_call": true,
+    "environment": "UNIFIED_PAPER",
+    "real_venue_writes": false,
+    "before": {
+      "account": {
+        "id": "paper-local",
+        "name": "本地 PAPER 账户",
+        "currency": "USDT",
+        "initial_cash": "100000",
+        "cash": "100000",
+        "revision": 1,
+        "paused": false,
+        "equity": "100000",
+        "day_pnl": "0",
+        "day_pnl_pct": "0",
+        "exposure_pct": "0",
+        "risk_used": "0",
+        "risk_limit": "2000"
+      },
+      "positions": [],
+      "command_count": 1
+    },
+    "config": {
+      "protocol": "openai_responses",
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-flash",
+      "revision": 3,
+      "max_output_tokens": 1024,
+      "timeout_seconds": 30
+    },
+    "connection_test": {
+      "http": 200,
+      "success": true
+    },
+    "idempotency_key": "deepseek-paper-selftest-a901ca9f-00ee-458c-b69d-1c8bdbd66937",
+    "analysis": {
+      "http": 200,
+      "elapsed_seconds": 5.6,
+      "result": {
+        "decision": {
+          "symbol": "BTCUSDT",
+          "action": "HOLD",
+          "summary": "HOLD: the supplied quote shows BTCUSDT at 81002.09, up 1.615%, but a single price snapshot provides no trend, volume, support/resistance, volatility, or entry/exit setup. PAPER equity is 100000 USDT with a 25% position cap and 2000 daily loss limit, but there is no risk-defined trade to approve from this data alone.",
+          "counter_evidence": [
+            "Only one quote snapshot is supplied, so momentum and trend persistence cannot be assessed.",
+            "No volume, volatility, support/resistance, or order-book data is provided.",
+            "The positive 1.615% change alone does not establish a validated entry setup.",
+            "Position sizing cannot be justified without a defined stop or invalidation level."
+          ],
+          "invalidation": "Reassess if additional market data provide a defined setup and risk plan, or if PAPER risk limits/data quality change; the current HOLD is not invalidated by the supplied snapshot alone.",
+          "id": "79e7248a-410d-4b14-b25f-c6f8d6c71139",
+          "created_at": "2026-10-28T04:58:41.059123+00:00",
+          "next_review_at": null,
+          "risk_status": "NOT_EVALUATED",
+          "source": "AI · openai_responses",
+          "model": "deepseek-flash",
+          "config_revision": 3,
+          "analysis_mode": "single",
+          "model_profile_id": "default",
+          "profile_name": "默认模型",
+          "model_profile_ids": [
+            "default"
+          ],
+          "profile_revisions": {
+            "default": 3
+          },
+          "model_profiles": [
+            {
+              "profile_id": "default",
+              "profile_name": "默认模型",
+              "model": "deepseek-flash",
+              "config_revision": 3
+            }
+          ],
+          "data_as_of": "2026-10-28T04:58:36.004Z",
+          "snapshot_hash": "b5ff05131967c0f3132818048b806d8b8093d23e920c60db58c108b6f2ffa11c"
+        },
+        "usage": {
+          "input_tokens": 210,
+          "output_tokens": 657
+        }
+      }
+    },
+    "replay": {
+      "http": 200,
+      "same_receipt": true
+    },
+    "after": {
+      "account": {
+        "id": "paper-local",
+        "name": "本地 PAPER 账户",
+        "currency": "USDT",
+        "initial_cash": "100000",
+        "cash": "100000",
+        "revision": 1,
+        "paused": false,
+        "equity": "100000",
+        "day_pnl": "0",
+        "day_pnl_pct": "0",
+        "exposure_pct": "0",
+        "risk_used": "0",
+        "risk_limit": "2000"
+      },
+      "positions": [],
+      "command_count": 1,
+      "risk_locks": [],
+      "market_status": "CONNECTED",
+      "transport": {
+        "mode": "websocket",
+        "status": "LIVE",
+        "last_event_at": "2026-10-28T04:58:42.475Z",
+        "last_error": null,
+        "reconnect_attempt": 0
+      }
+    },
+    "passed": true
+  },
+  "execution_first_rejection": {
+    "first_attempt": {
+      "http": 409,
+      "code": "QUOTE_UNAVAILABLE",
+      "message": "BTCUSDT 缺少有效的新鲜行情；未执行交易。"
+    },
+    "samples": [
+      {
+        "observed_at": "2026-10-28T04:59:22.773789+00:00",
+        "quote_as_of": "2026-10-28T04:59:22.012Z",
+        "age_seconds": 0.761772,
+        "stale": false,
+        "status": "CONNECTED"
+      },
+      {
+        "observed_at": "2026-10-28T04:59:24.389095+00:00",
+        "quote_as_of": "2026-10-28T04:59:23.001Z",
+        "age_seconds": 1.38808,
+        "stale": false,
+        "status": "CONNECTED"
+      },
+      {
+        "observed_at": "2026-10-28T04:59:26.059806+00:00",
+        "quote_as_of": "2026-10-28T04:59:25.013Z",
+        "age_seconds": 1.046796,
+        "stale": false,
+        "status": "CONNECTED"
+      },
+      {
+        "observed_at": "2026-10-28T04:59:29.020606+00:00",
+        "quote_as_of": "2026-10-28T04:59:26.008Z",
+        "age_seconds": 3.012599,
+        "stale": false,
+        "status": "CONNECTED"
+      },
+      {
+        "observed_at": "2026-10-28T04:59:30.523365+00:00",
+        "quote_as_of": "2026-10-28T04:59:29.003Z",
+        "age_seconds": 1.520354,
+        "stale": false,
+        "status": "CONNECTED"
+      },
+      {
+        "observed_at": "2026-10-28T04:59:32.148573+00:00",
+        "quote_as_of": "2026-10-28T04:59:31.010Z",
+        "age_seconds": 1.138559,
+        "stale": false,
+        "status": "CONNECTED"
+      }
+    ]
+  },
+  "execution_attempts": {
+    "started_at": "2026-10-28T05:00:15.056491+00:00",
+    "environment": "PAPER",
+    "real_venue_writes": false,
+    "steps": [],
+    "market": {
+      "status": "CONNECTED",
+      "source": "Binance 官方行情",
+      "transport": {
+        "mode": "websocket",
+        "status": "LIVE",
+        "last_event_at": "2026-10-28T05:00:15.807Z",
+        "last_error": null,
+        "reconnect_attempt": 0
+      },
+      "quote": {
+        "symbol": "BTCUSDT",
+        "price": "80994.01000000",
+        "change_pct": "1.568",
+        "as_of": "2026-10-28T05:00:16.010Z",
+        "open": "79744.00000000",
+        "high": "81300.00000000",
+        "low": "79506.00000000",
+        "volume": "12681.93017000",
+        "quote_volume": "1020216117.63143850",
+        "source": "Binance 官方行情",
+        "stale": false
+      }
+    },
+    "submission_attempts": [
+      {
+        "http": 200,
+        "response": {
+          "order": {
+            "id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+            "command_id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+            "symbol": "BTCUSDT",
+            "side": "BUY",
+            "status": "PENDING",
+            "quantity": "0.000246931841",
+            "price": "80994.00000000",
+            "notional": "0",
+            "fee": "0",
+            "strategy_id": null,
+            "created_at": "2026-10-28T05:00:18.550895+00:00"
+          },
+          "account_revision": 1
+        },
+        "observed_at": "2026-10-28T05:00:20.000331+00:00",
+        "following_quote": {
+          "symbol": "BTCUSDT",
+          "price": "80994.01000000",
+          "change_pct": "1.568",
+          "as_of": "2026-10-28T05:00:19.006Z",
+          "open": "79744.00000000",
+          "high": "81300.00000000",
+          "low": "79506.00000000",
+          "volume": "12681.90166000",
+          "quote_volume": "1020213851.65470760",
+          "source": "Binance 官方行情",
+          "stale": false
+        },
+        "market_status": "CONNECTED"
+      }
+    ]
+  },
+  "final": {
+    "checked_at": "2026-10-28T05:03:45.055674+00:00",
+    "account": {
+      "id": "paper-local",
+      "name": "本地 PAPER 账户",
+      "currency": "USDT",
+      "initial_cash": "100000",
+      "cash": "100000",
+      "revision": 1,
+      "paused": false,
+      "equity": "100000",
+      "day_pnl": "0",
+      "day_pnl_pct": "0",
+      "exposure_pct": "0",
+      "risk_used": "0",
+      "risk_limit": "2000"
+    },
+    "positions": [],
+    "commands": [
+      {
+        "command_id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+        "symbol": "BTCUSDT",
+        "state": "VENUE_CONFIRMED",
+        "order_status": "EXPIRED",
+        "quantity": "0.000246761258",
+        "filled_quantity": "0",
+        "leaves_quantity": "0",
+        "reason": "受权人工 PAPER 请求"
+      },
+      {
+        "command_id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+        "symbol": "BTCUSDT",
+        "state": "DURABLE_READY",
+        "order_status": "PENDING",
+        "quantity": "0.000246931841",
+        "filled_quantity": "0",
+        "leaves_quantity": "0.000246931841",
+        "reason": "受权人工 PAPER 请求"
+      }
+    ],
+    "risk_locks": [],
+    "mode": "UNIFIED_PAPER",
+    "strategies": [],
+    "market_status": "CONNECTED",
+    "transport": {
+      "mode": "websocket",
+      "status": "LIVE",
+      "last_event_at": "2026-10-28T05:03:43.422Z",
+      "last_error": null,
+      "reconnect_attempt": 0
+    }
+  },
+  "overall_passed": false,
+  "execution_blocker": "Accepted command remained DURABLE_READY/PENDING; owner reported review needed. Later diagnostic dispatch rejected stale saved request quote (QUOTE_UNAVAILABLE). Initial dispatch failure cause not established.",
+  "execution_rejected_attempts_before_acceptance": 2,
+  "model_additional_calls": 0,
+  "real_venue_writes": false
+}

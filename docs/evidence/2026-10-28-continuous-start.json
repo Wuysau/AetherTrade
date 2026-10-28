@@ -1,0 +1,114 @@
+{
+  "mode": "UNIFIED_PAPER",
+  "market_status": "CONNECTED",
+  "transport_status": "LIVE",
+  "cash": "100000",
+  "equity": "100000",
+  "positions": [],
+  "commands": [
+    {
+      "command_id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+      "symbol": "BTCUSDT",
+      "state": "VENUE_CONFIRMED",
+      "order_status": "EXPIRED",
+      "quantity": "0.000246761258",
+      "filled_quantity": "0",
+      "leaves_quantity": "0",
+      "reason": "受权人工 PAPER 请求"
+    },
+    {
+      "command_id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+      "symbol": "BTCUSDT",
+      "state": "ABORTED_UNSENT",
+      "order_status": "ABORTED_UNSENT",
+      "quantity": "0.000246931841",
+      "filled_quantity": "0",
+      "leaves_quantity": "0",
+      "reason": "受权人工 PAPER 请求"
+    },
+    {
+      "command_id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+      "symbol": "BTCUSDT",
+      "state": "ABORTED_UNSENT",
+      "order_status": "ABORTED_UNSENT",
+      "quantity": "0.000246992831",
+      "filled_quantity": "0",
+      "leaves_quantity": "0",
+      "reason": "受权人工 PAPER 请求"
+    },
+    {
+      "command_id": "console-command:9d5f0101c4307e746d5f15ec5db446160df67a63adfbca04fe63e33efd5fc930",
+      "symbol": "BTCUSDT",
+      "state": "VENUE_CONFIRMED",
+      "order_status": "EXPIRED",
+      "quantity": "0.000247001341",
+      "filled_quantity": "0",
+      "leaves_quantity": "0",
+      "reason": "受权人工 PAPER 请求"
+    }
+  ],
+  "risk_locks": [],
+  "strategies": [
+    {
+      "name": "持续真实行情 PAPER 自测",
+      "symbol": "BTCUSDT",
+      "mode": "AI",
+      "budget": "20",
+      "target_pct": "100",
+      "status": "ACTIVE",
+      "analysis_interval_seconds": 300,
+      "auto_execute": true,
+      "analysis_mode": "single",
+      "model_profile_ids": [
+        "default"
+      ],
+      "id": "f47b292b-7632-43f1-9d2b-2b968a37871c",
+      "revision": 3,
+      "created_at": "2026-10-28T05:06:16.505035+00:00",
+      "updated_at": "2026-10-28T05:07:48.019148+00:00",
+      "runtime_status": "READY",
+      "next_analysis_at": "2026-10-28T05:22:03.239455+00:00",
+      "last_analysis_at": "2026-10-28T05:17:03.239441+00:00",
+      "last_analysis_error": null
+    }
+  ],
+  "automation": {
+    "enabled": true,
+    "active_strategies": 1,
+    "auto_order_strategies": 1,
+    "running_jobs": 0
+  },
+  "decisions": [
+    {
+      "id": "f54cbd1d-f75b-4f45-bc2b-9ee97a2c91de",
+      "created_at": "2026-10-28T05:17:02.779989+00:00",
+      "action": "HOLD",
+      "execution_status": "NO_ACTION",
+      "execution_reason": "模型建议观望；未下单。"
+    },
+    {
+      "id": "9b1adcae-1b57-4195-b736-0db57e5461b4",
+      "created_at": "2026-10-28T05:11:47.354163+00:00",
+      "action": "HOLD",
+      "execution_status": "NO_ACTION",
+      "execution_reason": "模型建议观望；未下单。"
+    },
+    {
+      "id": "eee793d4-efdf-42fd-a144-36318bb79b39",
+      "created_at": "2026-10-28T05:06:36.791613+00:00",
+      "action": "HOLD",
+      "execution_status": "NOT_ENABLED",
+      "execution_reason": "分析已完成；此周期未授权自动 PAPER 下单。"
+    },
+    {
+      "id": "79e7248a-410d-4b14-b25f-c6f8d6c71139",
+      "created_at": "2026-10-28T04:58:41.059123+00:00",
+      "action": "HOLD",
+      "execution_status": null,
+      "execution_reason": null
+    }
+  ],
+  "observed_at": "2026-10-28T05:18:08.468888+00:00",
+  "monitor_pid": 33608,
+  "stop_policy": "USER_REQUEST_ONLY"
+}

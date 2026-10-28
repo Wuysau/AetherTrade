@@ -813,11 +813,17 @@ class UnifiedPaperRuntime:
         # Session advisory lock is held across both ledger transactions and the
         # separate synthetic venue commit. A crashed connection releases it.
         with self.connect() as conn:
-            locked = conn.execute('SELECT pg_try_advisory_lock(hashtextextended(%s,0))',
-                ('console-owner:' + shard.venue_account_id + ':' + str(shard.product),)).fetchone()[0]
+            # Queue briefly behind console reads instead of losing every race
+            # to a polling dashboard. The bounded wait preserves single-owner
+            # exclusion while allowing a fresh command to reach dispatch.
+            try:
+                conn.execute("SET LOCAL lock_timeout = '2s'")
+                conn.execute('SELECT pg_advisory_lock(hashtextextended(%s,0))',
+                    ('console-owner:' + shard.venue_account_id + ':' + str(shard.product),))
+            except psycopg.errors.LockNotAvailable:
+                conn.rollback()
+                raise ApiError('OWNER_ALREADY_RUNNING', '另一个 PAPER 执行者正在处理该账户。', 409) from None
             conn.commit()
-            if not locked:
-                raise ApiError('OWNER_ALREADY_RUNNING', '另一个 PAPER 执行者正在处理该账户。', 409)
             try:
                 yield
             finally:

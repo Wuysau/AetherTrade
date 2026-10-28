@@ -16,7 +16,9 @@ The 2026-10-27 engineering task preserves AI/RULE/HYBRID and Spot/USD-M/Stocks.
 Persist commands before side effects. Query original IDs after uncertainty.
 Cause locks require evidence-backed resolution. Native paths remain disabled;
 PAPER, TESTNET and LIVE qualifications are distinct. Do not change approved SPEC
-or historical evidence to make a gate green. No real orders or paid model calls.
+or historical evidence to make a gate green. No real venue orders. The user has
+now authorized real DeepSeek calls for the continuing real-market PAPER test;
+that authorization does not enable any real-account trading connector.
 Keep one writer per worktree; preserve existing worktrees and branches.
 
 The common PostgreSQL PAPER composition now lives in `server/paper_runtime.py`;
@@ -43,3 +45,11 @@ is conservative: next configured risk day + flat complete account + separate
 reviewer + explicit review id. No price-based or model-based automatic unlock.
 See current-task.md and FINAL_PAPER_REPORT_2026-10-28.md for the final boundary;
 HANDOFF-2026-10-28.md remains a historical pause checkpoint.
+
+Current operational update (2026-10-28): the unified implementation is merged
+into local public-snapshot. Real Binance quotes plus DeepSeek BTC analysis run
+continuously at the user's request, until the user requests pause. Model calls
+have now passed; earlier NOT_RUN model statements describe historical gates.
+The 300-second strategy, independent PAPER owner and 30-second read-only monitor
+are running from the main checkout. See current-task.md for current processes,
+repairs, explicit synthetic expiry evidence and the pause procedure.

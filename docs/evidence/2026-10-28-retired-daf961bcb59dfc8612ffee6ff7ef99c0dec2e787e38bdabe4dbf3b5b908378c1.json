@@ -1,0 +1,174 @@
+{
+  "command_id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+  "original_id_query": {
+    "coverage": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "paper-local",
+        "product": "SPOT",
+        "instrument_uid": "console-paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "query_succeeded": true,
+      "pagination_complete": true,
+      "supported": true,
+      "missing": [
+        "PAPER_BALANCES_POSITIONS_PROTECTION_NOT_COVERED",
+        "COMMAND_NOT_OBSERVED"
+      ]
+    },
+    "orders": [],
+    "positions": [],
+    "balances": [],
+    "fills": [],
+    "evidence": [
+      {
+        "id": "paper-query:console-query:a03ae0583f974c018a3d29b41f028f24",
+        "hash": "5a446822a3bc4924e993ac1d86e57b9d55e98f0c2d68a838c7e8963ffc777a34",
+        "environment": "PAPER",
+        "source": "PAPER_SYNTHETIC_NOT_EXCHANGE_EVIDENCE",
+        "visible_at": "2026-10-28T05:13:41.054803+00:00"
+      }
+    ],
+    "next_cursor": null,
+    "as_of": "2026-10-28T05:13:41.054803+00:00"
+  },
+  "reason": "EXPIRED_SELFTEST_UNSENT_ABORT",
+  "real_venue_writes": false,
+  "receipt": {
+    "receipt_id": "ip10:abort:console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+    "command_id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+    "status": "ABORTED_UNSENT",
+    "reason": "EXPIRED_SELFTEST_ORIGINAL_ID_ABSENT_UNSENT_PROVEN",
+    "existing_result_ref": "pending-atomic-commit"
+  },
+  "released_reservations": [
+    {
+      "reservation": {
+        "reservation_id": "0fbf57d8-843a-40e4-836c-fdc96ebd7f36",
+        "environment": "PAPER",
+        "collateral_group_id": "console-paper-collateral",
+        "venue_account_id": "paper-local",
+        "owner_strategy_id": "console-paper-owner",
+        "intent_id": "intent:console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+        "asset": "USDT",
+        "amount": "20.03999996725695462000000",
+        "reflected_amount": "0",
+        "state": "RELEASED",
+        "created_at": "2026-10-28T05:11:02.444587+00:00",
+        "expires_at": "2026-10-28T05:11:32.241230+00:00",
+        "command_refs": [
+          "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1"
+        ],
+        "evidence_watermark": "selftest-unsent-review:a8a57cdc60d14381ba1addd4c53847cf:5105c2c37561117bc92578515315f85b74748ca11ac7b351b26902a60bfd22eb:93669c1cdaff449e9a9e3ab004467ed6623c758aab5cf4ddafb4bef3642efffa"
+      },
+      "held": "0",
+      "reflected": "0",
+      "release_pending": "0",
+      "sequence": 1
+    }
+  ],
+  "projection": {
+    "mode": "UNIFIED_PAPER",
+    "simulation_notice": "本地虚拟 PAPER；无交易所或模型调用。价格与成交事件为明确注入，不能证明真实滑点、流动性或原生保护。",
+    "targets": [
+      {
+        "symbol": "BTCUSDT",
+        "strategy_id": null,
+        "target_quantity": "0.000246992831",
+        "actual_quantity": "0",
+        "in_flight_quantity": "0",
+        "protection_state": "NO_POSITION",
+        "protected_quantity": "0",
+        "command_id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+        "reason": "受权人工 PAPER 请求"
+      }
+    ],
+    "commands": [
+      {
+        "command_id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+        "symbol": "BTCUSDT",
+        "state": "VENUE_CONFIRMED",
+        "order_status": "EXPIRED",
+        "quantity": "0.000246761258",
+        "filled_quantity": "0",
+        "leaves_quantity": "0",
+        "reason": "受权人工 PAPER 请求"
+      },
+      {
+        "command_id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+        "symbol": "BTCUSDT",
+        "state": "ABORTED_UNSENT",
+        "order_status": "ABORTED_UNSENT",
+        "quantity": "0.000246931841",
+        "filled_quantity": "0",
+        "leaves_quantity": "0",
+        "reason": "受权人工 PAPER 请求"
+      },
+      {
+        "command_id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+        "symbol": "BTCUSDT",
+        "state": "ABORTED_UNSENT",
+        "order_status": "ABORTED_UNSENT",
+        "quantity": "0.000246992831",
+        "filled_quantity": "0",
+        "leaves_quantity": "0",
+        "reason": "受权人工 PAPER 请求"
+      }
+    ],
+    "orders": [
+      {
+        "id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+        "command_id": "console-command:7c969dd0607624288f615e73fa36f377b6be5a20626a3ccd47146a09b6624e65",
+        "symbol": "BTCUSDT",
+        "provenance": "UNIFIED_PAPER_SYNTHETIC",
+        "side": "BUY",
+        "quantity": "0.000246761258",
+        "filled_quantity": "0",
+        "price": "81050.01000000",
+        "notional": "0",
+        "fee": "0",
+        "status": "EXPIRED",
+        "realized_pnl": null,
+        "strategy_id": null,
+        "created_at": "2026-10-28T04:36:51.521210+00:00"
+      },
+      {
+        "id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+        "command_id": "console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785",
+        "symbol": "BTCUSDT",
+        "provenance": "UNIFIED_PAPER_SYNTHETIC",
+        "side": "BUY",
+        "quantity": "0.000246931841",
+        "filled_quantity": "0",
+        "price": "80994.00000000",
+        "notional": "0",
+        "fee": "0",
+        "status": "ABORTED_UNSENT",
+        "realized_pnl": null,
+        "strategy_id": null,
+        "created_at": "2026-10-28T05:00:18.550895+00:00"
+      },
+      {
+        "id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+        "command_id": "console-command:daf961bcb59dfc8612ffee6ff7ef99c0dec2e787e38bdabe4dbf3b5b908378c1",
+        "symbol": "BTCUSDT",
+        "provenance": "UNIFIED_PAPER_SYNTHETIC",
+        "side": "BUY",
+        "quantity": "0.000246992831",
+        "filled_quantity": "0",
+        "price": "80974.01000000",
+        "notional": "0",
+        "fee": "0",
+        "status": "ABORTED_UNSENT",
+        "realized_pnl": null,
+        "strategy_id": null,
+        "created_at": "2026-10-28T05:11:02.241230+00:00"
+      }
+    ],
+    "positions": [],
+    "protection_plans": [],
+    "protection_adjustments": [],
+    "risk_locks": []
+  }
+}

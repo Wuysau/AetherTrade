@@ -1,5 +1,52 @@
 # Current task
 
+## CONTINUOUS_PAPER_RUNNING — 2026-10-28 13:16 +08:00
+
+用户明确要求持续真实行情/PAPER测试，由用户决定暂停时间。没有设置结束时间。
+当前策略 `f47b292b-7632-43f1-9d2b-2b968a37871c`：BTCUSDT、DeepSeek default、
+300秒周期、20USDT策略预算。创建时自动委托关闭；随后页面保存的revision3已将
+auto_execute打开，已保留该最新设置。两轮周期分析成功返回HOLD；无真实交易所写入。
+原有模型费用限制/行情/账户风险检查仍生效；未配置无限重试失败推理。
+
+已查询原ID证明两笔测试待发委托从未发送，使用SQL保护的abort_unsent和正式预留资金
+核销流程终止并释放；没有伪造平台终态。随后修复：
+- 已释放的ABORTED_UNSENT预留资金跨账本快照重新认证时，校验真实SQL终止记录与
+  原始命令/结果/NOT_SENT证明绑定，不再要求不存在的平台订单。
+- owner账户锁从立即抢锁改为最多2秒排队，避免网页轮询让派发反复错过窗口；仍互斥。
+
+独立新建PostgreSQL测试库16项核心回归与17项派发账户风控回归通过（共33项）。实际真实行情PAPER复测完成
+PENDING→SUBMITTED→显式EXPIRED、幂等回执一致，余额100000、无持仓/活动风险锁。
+这是零成交委托生命周期测试，不是滑点/真实成交/原生保护资格。
+
+运行中的API、诊断owner、只读监控均在主目录；每30秒状态落盘于
+`.runtime/live-market-paper/continuous-status.json`，变化记录在`continuous-events.jsonl`，
+派发诊断在`owner-diagnostics.jsonl`。PID见`processes.json`。运行脚本同目录。
+监控无期限结束；本机进程停止/休眠会影响测试。用户要求暂停时，应先通过策略PATCH
+将该策略PAUSED，再检查未完成委托/持仓，按正式流程处理，最后停止监控；不要仅停
+监控就声称策略已停止。监控停止标记为`STOP_CONTINUOUS_MONITOR`，该标记不会停策略。
+证据见`evidence/2026-10-28-continuous-start.json`、`continuous-probe-result.json`
+（同日期前缀）及回归JUnit。下方BLOCKED是修复前历史。
+
+## REAL_MODEL_PASS_PAPER_EXECUTION_BLOCKED — 2026-10-28 13:03 +08:00
+
+用户填写 DeepSeek 官方 API 后要求继续真实行情 + PAPER 自测。默认配置 revision 3：
+`https://api.deepseek.com` / `openai_responses` / `deepseek-flash`。目录检测和一次真实
+BTC 分析均 HTTP 200，5.6 秒，210 input / 657 output tokens，结果 HOLD；同一幂等键
+重放回执一致，没有重复推理或由分析自动创建委托。
+
+独立约20 USDT人工 PAPER 测试未通过：前两次提交被 QUOTE_UNAVAILABLE 拒绝，之后
+接单成功但未完成 owner 提交。待处理命令
+`console-command:05c593049a7fc8d5d3f8dbdc109c6fcd3c517dc5fdd45b15625716b38ca1d785`
+保持 DURABLE_READY/PENDING、成交0。owner 报告 NEEDS_OPERATOR_REVIEW；停机后诊断
+定位到 account_risk_reader -> Store._price 的 QUOTE_UNAVAILABLE，此时 CLI saved_quotes
+读取的请求原始行情已经过期。初次未提交的原因尚未确定，不声称已修复。
+
+API与真实行情保持运行；诊断后已恢复独立 owner（PID记录已更新）。现金/权益100000、
+无持仓、无活动风险锁、无策略；但存在上述待处理命令，不能判定执行闭环通过。没有
+绕过行情/授权检查、补造成交、修改密钥或启用真实账户交易。后续应定位接单后派发失败，
+并通过原ID查询及正式未发送终止流程处理过期命令，不能新ID重发或直接改账本状态。
+证据：`evidence/2026-10-28-deepseek-paper-selftest.json`。
+
 ## MERGED_AND_RUNNING — 2026-10-28
 
 用户要求合并至公开分支、移除实施worktree，并明确选择真实行情+PAPER虚拟资金。
