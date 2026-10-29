@@ -52,6 +52,16 @@ exec57061:42 mandatory PG suites plus ordinary Python, timeout5400, fresh privat
 Docker with explicit immutable offline dependency image. Do not restart this
 handle on observation timeout. It remains source-specific and has no result yet.
 
+Subsequent root2dde8f6 serially integrated the independently reviewed consumed
+source guard/public boundary method; focused60 tests passed and own14-case PG
+diagnostic72303 is RUNNING (peer14 PG remains source-specific). Actual public
+quote attachment has3 true PG REDs at649dc24 for its missing reader port;
+candidate now uses exact static bundle dispatch and SAME V3 request/funding/ID/
+outbox plus old immutable original-ID reader. Focused44 tests passed; its fixed
+candidate3-case PG is RUNNING. No quote MAY/consume or MARKET qualification is
+claimed; additive0015/current quote dispatch proof remains required. Later code
+does not upgrade the older fixed0a55692 full gate.
+
 Next: full expanded PG+Python gate; actual public interval durable attachment,
 trusted MARKET enforcement and fee/dust residual persistence. Parent implements
 same-ledger fills/postings/positions/book with explicit unit bridges and mixed
