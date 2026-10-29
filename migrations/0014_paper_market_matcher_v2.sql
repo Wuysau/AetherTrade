@@ -87,6 +87,7 @@ BEGIN
  IF coalesce((terms->>'model_revision')::int,1)<>2 THEN RETURN true; END IF;
  spec=terms->'spec';trigger_spec=spec->'trigger';
  SELECT * INTO original FROM public.paper_engine_orders WHERE scope_key=p_scope AND client_id=p_client FOR UPDATE;
+ IF original.lifecycle IN ('FILLED','CANCELED','EXPIRED','REJECTED') THEN RETURN false; END IF;
  SELECT arrival_sequence INTO arrival FROM public.paper_order_terms WHERE scope_key=p_scope AND client_id=p_client;
  SELECT event_id INTO current_event FROM public.paper_market_books WHERE market_key=p_market;
  INSERT INTO public.paper_order_runtime_v2(scope_key,client_id,active,phase,effective_type,effective_limit,visible_remaining,queue_priority)
