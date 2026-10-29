@@ -3,9 +3,57 @@
 Owned checkout: `binance-opc-local-activation`, branch
 `codex/binance-opc-local-activation`, clean implementation commit071a33c.
 Basebdbd9b0 includes the actual SAME-kernel financial writer and V3 lifecycle
-contracts/reducers. No native command0012 or activation0013 schema is installed.
-The witness/attachment dependency is delivered; actual local activation is NOT
-implemented yet. No existing task, worktree or source data was removed.
+contracts/reducers. Actual local activation is implemented at2d0d310 and verified
+with real isolated PostgreSQL. No native command0012 or activation0013 schema is
+installed in this branch. No existing task, worktree or source data was removed.
+
+## Actual activation delivered
+
+`execution/local_program_activation.py` exports
+`activate_local_program(tx,bundle,*,load_clock)` -> `LocalActivationReceipt`
+(`activation_id`, `financial_intent_id`, `bundle_hash`) and
+`read_local_activation(tx,activation_id)` -> `ProgrammeActivation | None`.
+The receipt and persisted record never authorize an external write. The outer
+public admission service owns commit and its final current authority barrier.
+
+The writer requires the live same-transaction kernel witness and claims its
+empty external command tuple once. It derives real ParentAuthorityV3, an
+ORDINARY LOCAL_PROGRAM_ACTIVATION binding without parent command/client/venue
+IDs, role-specific FUNDING_AUTHORITY/PARENT_BINDING proofs, and runs the actual
+prepare/bind/activate reducers. Original authority/binding/proofs and the three
+states live in existing append-only audit_events; programme and funding links
+use existing order_programs/order_funding_links. No old V2 state is reinterpreted.
+
+The durable getter authenticates bounded intake, replays complete compiler,
+target, exposure and risk source, derives proof bytes, and compares physical
+PostgreSQL xmin across bundle, intent, initial reservations, activation, proof,
+state and funding links. Copying the original caller UUID cannot establish this
+provenance. Final clock and kernel witness are checked after physical attachment.
+An old committed orphan bundle cannot obtain a fresh activation.
+
+`storage/local_programs.py` is the neutral obligation source. Local pools block
+another exact-scope target, including zero-asset reductions and expired source
+authority. Changed/UNKNOWN/raw-terminal states retain the original allocation
+and block the collateral group across accounts/products. Locked reductions see
+these obligations too. No current state label or proposal expiry discharges
+cash, quantities, per-asset fees or MANAGE_UNTIL_FLAT responsibility.
+
+Evidence: `docs/evidence/binance-orders/op-c-local-activation/environment.json`
+binds source2d0d310, image IDs, raw RED/GREEN/JUnit/source hashes. Actual local
+activation15/15, Python unit/contracts/intents1470/1470, PostgreSQL financial12,
+application obligations18, credit8, closure27, legacy programmes32: zero skips.
+Regression PG cohorts ran at56f7cbb before the final authority re-poll; the final
+activation/Python suites include that fix. Initial RED5 missing-module failures
+and the real first-activation clock-drift RED are retained. Two synthetic legacy
+reader fixtures now explicitly return no local-source rows; assertions remain.
+
+Public integration writer `/root/integration_next` consumes these exact APIs.
+Public admission positive closure must be tested on its integrated commit.
+No scheduler, local child admission, external V3 permit/transport qualification,
+or production lifecycle reader is installed by this activation slice. Actual
+owner-transfer integration is not covered here; durable original owner/epoch
+retention and denied direct owner overwrites are covered. All46/56 and OP-D/E/F/G
+remain the full parent objective; this is no native/TESTNET/LIVE qualification.
 
 ## Completed and actually verified
 
@@ -28,7 +76,7 @@ failures/skips. Raw logs/XML/source/image hashes are committed under
 Command writer `/root/command_fresh` and root writer `/root/integration_next`
 have the commit/API. Parent/root only performs coordination/read/QA.
 
-## Approved next implementation (not another design approval)
+## Approved implementation requirements (implemented above)
 
 1. Internal module `execution/local_program_activation.py` APIs:
    `activate_local_program(tx,bundle,load_clock=...)` returning a typed receipt

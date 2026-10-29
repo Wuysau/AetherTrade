@@ -1,0 +1,87 @@
+{
+  "commit": "2d0d310e7316647a3ccbedc08178cc4d79c21b79",
+  "scope": "LOCAL_PAPER_FRESH_DATABASE_ON_ISOLATED_OWN_CLUSTER",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opc-local-activation\\.runtime\\paper-qualification-e2f3364172f6\\source-final.bundle",
+        "HEAD",
+        "2d0d310e7316647a3ccbedc08178cc4d79c21b79"
+      ],
+      "exit_code": 0,
+      "log": "green-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-final.bundle",
+        "2d0d310e7316647a3ccbedc08178cc4d79c21b79"
+      ],
+      "exit_code": 0,
+      "log": "green-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "2d0d310e7316647a3ccbedc08178cc4d79c21b79"
+      ],
+      "exit_code": 0,
+      "log": "green-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=2d0d310e7316647a3ccbedc08178cc4d79c21b79",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "local-program-activation",
+        "--evidence-dir",
+        "/handoff/evidence/green"
+      ],
+      "exit_code": 0,
+      "log": "green-pg.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "python",
+        "-m",
+        "pytest",
+        "tests/unit",
+        "tests/contracts",
+        "tests/intents",
+        "-q",
+        "--tb=short",
+        "--junitxml=/handoff/evidence/python-final.xml"
+      ],
+      "exit_code": 0,
+      "log": "python-final.txt"
+    }
+  ]
+}
