@@ -12,7 +12,7 @@ DO $$ BEGIN
 END $$;
 CREATE TABLE public.paper_market_inputs(
  market_key text NOT NULL,event_id text NOT NULL,sequence bigint NOT NULL CHECK(sequence>0),
- payload_hash text NOT NULL CHECK(length(payload_hash)=64),payload jsonb NOT NULL,
+ payload_hash text NOT NULL CHECK(length(payload_hash)=64),payload jsonb NOT NULL,before_levels jsonb NOT NULL,
  PRIMARY KEY(market_key,event_id),UNIQUE(market_key,sequence));
 CREATE TABLE public.paper_market_books(
  market_key text PRIMARY KEY,product text NOT NULL,instrument_uid text NOT NULL,stream_id text NOT NULL,

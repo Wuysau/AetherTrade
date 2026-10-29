@@ -160,6 +160,10 @@ class PaperEngine:
         from .paper_market import query_creation
         return query_creation(self,command_id)
 
+    def query_market_evidence(self,command_id):
+        from .paper_market import query_market_evidence
+        return query_market_evidence(self,command_id)
+
     def cancel(self, command, permit):
         return self._write(command, permit, {'CANCEL'})
 

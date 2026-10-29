@@ -64,7 +64,8 @@ def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,n
     if node_fees is not None:
         c.facts=replace(c.facts,budget_facts=replace(c.facts.budget_facts,node_facts=tuple(
             replace(row,fees=node_fees) for row in c.facts.budget_facts.node_facts)),
-            node_bounds=tuple(replace(row,execution_fees=node_fees) for row in c.facts.node_bounds))
+            node_bounds=tuple(replace(row,execution_fees=node_fees) for row in c.facts.node_bounds),
+            inputs=replace(c.facts.inputs,fee_reserve=tuple(f.amount for f in node_fees)))
     group='program-group-'+suffix
     tf=replace(c.facts.target_facts,collateral_group_id=group)
     budget=replace(c.facts.budget_facts,collateral_group_id=group)

@@ -4,7 +4,7 @@ This module never reserves business cash or constructs a permit. Inputs are
 depth, not requested fills. The SQL reducer alone computes visible-liquidity
 execution; runtime cannot supply execution quantities or mutate market sources.
 """
-from dataclasses import dataclass,replace
+from dataclasses import dataclass,replace,fields
 from decimal import Decimal,localcontext,Inexact,Rounded
 from pathlib import Path
 from typing import Literal
@@ -15,6 +15,10 @@ from psycopg.types.json import Jsonb
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,domain_payload,utc_timestamp
 from trading_system.contracts.order_lifecycle_v3 import FeeV3
+from trading_system.contracts.application_write_v3 import ApplicationWriteV3
+from trading_system.contracts.order_snapshots import OrderRuleSnapshot
+from trading_system.execution.creation_requests import VenueCreationRequest
+from trading_system.intents.program_compilation import ProgramCompilation
 from trading_system.storage.models import decode
 
 SOURCE='PAPER_MARKET_REPLAY_SYNTHETIC'
@@ -116,6 +120,70 @@ class PaperMatchedOrder:
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
+class PaperExecutionTerms:
+    scope:t.ScopeKey
+    client_id:str
+    node_id:str
+    namespace:str
+    quantity:str
+    quantity_step:str
+    side:Literal['BUY','SELL']
+    order_type:str
+    limit_price:str
+    post_only:bool
+    tif:str
+    multiplier:str
+    quote_asset:str
+    quote_fee_rate:str
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperAcceptedContext:
+    original_write:ApplicationWriteV3
+    request:VenueCreationRequest
+    compilation:ProgramCompilation
+    rules:OrderRuleSnapshot
+    model:PaperMatchingModel
+    terms:PaperExecutionTerms
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperDepthState:
+    side:Literal['BID','ASK']
+    price:str
+    reported:str
+    available:str
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperMarketInput:
+    event:PaperMarketEvent
+    event_hash:str
+    before_levels:tuple[PaperDepthState,...]
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperLiquidityConsumption:
+    market_key:str
+    event_id:str
+    scope:t.ScopeKey
+    client_id:str
+    fill_id:str
+    side:Literal['BID','ASK']
+    price:Decimal
+    quantity:Decimal
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperMarketEvidence:
+    command_id:str
+    request_hash:str
+    inputs:tuple[PaperMarketInput,...]
+    consumptions:tuple[PaperLiquidityConsumption,...]
+    evidence:t.EvidenceRef
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
 class PaperMarketFill:
     fill_id:str
     client_id:str
@@ -136,10 +204,11 @@ class PaperMarketFill:
 @dataclass(frozen=True,slots=True,kw_only=True)
 class PaperCreationReport:
     command_id:str
-    request:object
+    request:VenueCreationRequest
     orders:tuple[PaperMatchedOrder,...]
     fills:tuple[PaperMarketFill,...]
     evidence:t.EvidenceRef
+    accepted_contexts:tuple[PaperAcceptedContext,...]=()
     @property
     def status(self):
         require(len(self.orders)==1,'PAPER_GROUP_REQUIRES_MEMBER_STATES');return self.orders[0].status
@@ -173,6 +242,25 @@ def provision_paper_market(admin_dsn,roles):
 
 def _evidence(identifier,payload,now):
     return t.EvidenceRef(id=identifier,hash=canonical_hash(payload),environment=t.Environment.PAPER,source=SOURCE,visible_at=now)
+
+
+def _accepted_context(payload,request):
+    names={f.name for f in fields(PaperExecutionTerms)}
+    require(set(payload)==names|{'write','request','compilation','rules','model'},'PAPER_ACCEPTED_CONTEXT_SHAPE_INVALID')
+    context=PaperAcceptedContext(original_write=decode(ApplicationWriteV3,payload['write']),
+        request=decode(VenueCreationRequest,payload['request']),compilation=decode(ProgramCompilation,payload['compilation']),
+        rules=decode(OrderRuleSnapshot,payload['rules']),model=decode(PaperMatchingModel,payload['model']),
+        terms=decode(PaperExecutionTerms,{key:payload[key] for key in names}))
+    p=context.compilation;w=context.original_write;n=p.nodes[0];o=n.original.order
+    require(digest(context.request)==digest(request) and w.command_id==request.command_id
+        and w.request_hash==digest(request) and w.compilation_hash==request.compilation_hash==digest(p)
+        and p.rules_hash==digest(context.rules) and context.terms.scope==request.scope,'PAPER_ACCEPTED_SOURCE_MISMATCH')
+    expected=PaperExecutionTerms(scope=request.scope,client_id=request.assigned_ids.members[0].client_id,node_id=n.original.node_id,
+        namespace=request.namespace.value,quantity=o.quantity.value,quantity_step=context.rules.quantity_step,side=o.side,
+        order_type=n.order_type,limit_price=o.price.value,post_only=o.post_only,tif='GTC' if n.order_type=='LIMIT_MAKER' else o.tif.kind,
+        multiplier=n.quantity_multiplier,quote_asset=context.rules.quote_asset,quote_fee_rate=context.model.quote_fee_rate)
+    require(digest(context.terms)==digest(expected),'PAPER_ACCEPTED_EXECUTION_TERMS_CHANGED')
+    return context
 
 
 def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
@@ -260,22 +348,64 @@ def query_creation(engine,command_id):
             'PAPER_REQUEST_QUERY_BINDING_CHANGED')
         rows=db.execute('SELECT o.*,t.terms FROM public.paper_engine_orders o JOIN public.paper_order_terms t '
             'USING(scope_key,client_id) WHERE o.scope_key=%s AND o.client_id=%s',(engine._scope_key,command['target_client_id'])).fetchall()
-        orders=[];fills=[]
+        orders=[];fills=[];contexts=[]
         for row in rows:
             terms=row['terms'];remaining=Decimal(0) if row['lifecycle'] in ('FILLED','CANCELED','EXPIRED','REJECTED') else row['quantity']-row['filled']
+            contexts.append(_accepted_context(terms,request))
             orders.append(PaperMatchedOrder(client_id=row['client_id'],node_id=terms['node_id'],namespace=terms['namespace'],
                 status=row['lifecycle'],quantity=row['quantity'],filled_quantity=row['filled'],remaining_quantity=remaining,quantity_unit=row['quantity_unit']))
             for event in db.execute('SELECT * FROM public.paper_engine_events WHERE scope_key=%s AND client_id=%s AND fill_delta>0 '
                     'ORDER BY occurred_at,event_id',(engine._scope_key,row['client_id'])).fetchall():
                 payload=event['payload'];require(payload.get('record_kind')=='PAPER_MARKET_FILL','PAPER_MARKET_SOURCE_REQUIRED')
+                source=db.execute('SELECT c.quantity,c.price,i.payload_hash FROM public.paper_market_consumptions c '
+                    'JOIN public.paper_market_inputs i USING(market_key,event_id) WHERE c.scope_key=%s AND c.client_id=%s AND c.fill_id=%s',
+                    (engine._scope_key,row['client_id'],event['event_id'])).fetchone()
+                require(source is not None and source['quantity']==event['fill_delta'] and source['price']==event['price']
+                    and source['payload_hash']==payload['market_hash'],'PAPER_FILL_LIQUIDITY_SOURCE_REQUIRED')
                 fills.append(PaperMarketFill(fill_id=event['event_id'],client_id=row['client_id'],node_id=terms['node_id'],
                     namespace=terms['namespace'],quantity=event['fill_delta'],quantity_unit=row['quantity_unit'],
                     price=event['price'],price_asset=row['price_currency'],gross_notional=Decimal(payload['gross_notional']),
                     fees=tuple(decode(FeeV3,f) for f in payload['fees']),market_event_id=payload['market_event_id'],market_hash=payload['market_hash'],
                     occurred_at=event['occurred_at'].isoformat(),evidence=_evidence(event['event_id'],payload,event['occurred_at'].isoformat())))
-        payload={'request':domain_payload(request),'orders':[domain_payload(o) for o in orders],'fills':[domain_payload(f) for f in fills]}
+            require(sum((f.quantity for f in fills if f.client_id==row['client_id']),Decimal(0))==row['filled'],
+                'PAPER_FILL_SOURCE_INCOMPLETE')
+        payload={'request':domain_payload(request),'orders':[domain_payload(o) for o in orders],'fills':[domain_payload(f) for f in fills],
+            'accepted_contexts':[domain_payload(c) for c in contexts]}
         return PaperCreationReport(command_id=command_id,request=request,orders=tuple(orders),fills=tuple(fills),
-            evidence=_evidence('paper-market-query:'+command_id,payload,engine._clock().utc_now))
+            accepted_contexts=tuple(contexts),evidence=_evidence('paper-market-query:'+command_id,payload,engine._clock().utc_now))
+
+
+def query_market_evidence(engine,command_id):
+    """Server-only bounded source archive, including competing allocations."""
+    with engine._connect() as db:
+        db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+        command=db.execute('SELECT * FROM public.paper_engine_commands WHERE scope_key=%s AND command_id=%s AND operation=%s',
+            (engine._scope_key,command_id,'CREATE_REQUEST')).fetchone()
+        if command is None:return None
+        request=decode(VenueCreationRequest,command['request'])
+        require(request.scope==engine.scope and request.command_id==command_id and digest(request)==command['request_hash'],
+            'PAPER_MARKET_QUERY_BINDING_CHANGED')
+        event_rows=db.execute('SELECT DISTINCT i.market_key,i.event_id,i.payload_hash,i.payload,i.before_levels FROM public.paper_market_inputs i '
+            'JOIN public.paper_market_consumptions c USING(market_key,event_id) WHERE c.scope_key=%s AND c.client_id=%s '
+            'ORDER BY i.market_key,i.event_id LIMIT 4097',(engine._scope_key,command['target_client_id'])).fetchall()
+        require(len(event_rows)<=4096,'PAPER_MARKET_EVIDENCE_BOUND_EXCEEDED')
+        inputs=[];consumptions=[]
+        for row in event_rows:
+            event=decode(PaperMarketEvent,row['payload']);require(digest(event)==row['payload_hash'],'PAPER_MARKET_ARCHIVE_HASH_CHANGED')
+            inputs.append(PaperMarketInput(event=event,event_hash=row['payload_hash'],before_levels=tuple(
+                decode(PaperDepthState,level) for level in row['before_levels'])))
+            rows=db.execute('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price,quantity '
+                'FROM public.paper_market_consumptions WHERE market_key=%s AND event_id=%s ORDER BY fill_id LIMIT 100001',
+                (row['market_key'],row['event_id'])).fetchall()
+            require(len(rows)<=100000,'PAPER_MARKET_ALLOCATION_BOUND_EXCEEDED')
+            for allocated in rows:
+                consumptions.append(PaperLiquidityConsumption(market_key=allocated['market_key'],event_id=allocated['event_id'],
+                    scope=decode(t.ScopeKey,allocated['scope_key']),client_id=allocated['client_id'],fill_id=allocated['fill_id'],
+                    side=allocated['side'],price=allocated['price'],quantity=allocated['quantity']))
+        payload={'command_id':command_id,'request_hash':digest(request),'inputs':[domain_payload(i) for i in inputs],
+            'consumptions':[domain_payload(c) for c in consumptions]}
+        return PaperMarketEvidence(command_id=command_id,request_hash=digest(request),inputs=tuple(inputs),consumptions=tuple(consumptions),
+            evidence=_evidence('paper-market-source:'+command_id,payload,engine._clock().utc_now))
 
 
 class PaperMatcher:
@@ -301,8 +431,11 @@ class PaperMatcher:
                 and utc_timestamp(event.occurred_at)>=book['occurred_at']),'PAPER_MARKET_SEQUENCE_CONFLICT')
             require(event.kind=='DEPTH_SNAPSHOT' or (book is not None and event.sequence==book['sequence']+1),
                 'PAPER_DELTA_GAP_REQUIRES_SNAPSHOT')
-            db.execute('INSERT INTO public.paper_market_inputs VALUES(%s,%s,%s,%s,%s)',
-                (event.market_key,event.event_id,event.sequence,digest(event),Jsonb(domain_payload(event))))
+            before=db.execute('SELECT side,price,reported,available FROM public.paper_market_levels WHERE market_key=%s ORDER BY side,price',
+                (event.market_key,)).fetchall()
+            before_payload=[dict(side=r['side'],price=format(r['price'],'f'),reported=format(r['reported'],'f'),available=format(r['available'],'f')) for r in before]
+            db.execute('INSERT INTO public.paper_market_inputs VALUES(%s,%s,%s,%s,%s,%s)',
+                (event.market_key,event.event_id,event.sequence,digest(event),Jsonb(domain_payload(event)),Jsonb(before_payload)))
             db.execute('INSERT INTO public.paper_market_books VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(market_key) DO UPDATE '
                 'SET sequence=excluded.sequence,event_id=excluded.event_id,occurred_at=excluded.occurred_at',
                 (event.market_key,str(event.product),event.instrument_uid,event.stream_id,event.sequence,event.event_id,event.occurred_at))
