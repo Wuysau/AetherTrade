@@ -1,6 +1,6 @@
 # Native quote quantity interval integration plan
 
-Status: next engineering design for parent review, not implemented qualification.
+Status: approved next engineering design, not implemented qualification.
 The current scalar path and all of its historical hashes remain unchanged. This
 plan never treats a normalization mark as an execution or fill price.
 
@@ -19,14 +19,19 @@ obligations, and the immutable request's quoteOrderQty/notional. They must never
 be equated merely because all are denominated in the quote asset. A changed
 request amount requires a new proposal/compilation, not hidden resizing.
 
-The first binding question is explicit: current QUOTE_NOTIONAL is normalized
+The approved source ruling is explicit: current QUOTE_NOTIONAL is normalized
 through a declared limit or trusted reference by the scalar target contract.
 Variable native quote fills cannot inherit an exact base-position goal from that
-normalization. A new source revision must carry an explicit admissible absolute
-position-value band and valuation basis, or an explicitly authorized cumulative
-quote-usage goal. Existing scalar sources cannot silently acquire tolerance or a
-new economic meaning. The new source must retain actual/working/UNKNOWN position
-and quote obligations, their units, owner and original command identities.
+normalization. The first new source revision carries an explicit
+ABSOLUTE_POSITION_VALUE_BAND and declared valuation basis, retaining SET_TARGET.
+Cumulative quote usage is not the first default and cannot be inferred as a
+position goal. Existing scalar sources cannot silently acquire tolerance or a
+new economic meaning. The new source retains actual/working/UNKNOWN position and
+quote obligations, their units, owner and original command identities. A desired
+band minimum does not imply that no-fill or partial execution reaches the goal;
+unmet goal and management responsibility persist. All possible upper positions,
+fees and existing obligations must fit the explicit band and authorization or
+require replanning, without capping or resizing the immutable native request.
 
 ## Enforced price, lot and fee facts
 
@@ -104,3 +109,10 @@ position-value goal band does not authorize deleting residual inventory or holds
 
 All46 targets/56 cases and OP-D/E/F/G remain required. No LIVE/TESTNET/account,
 paid model call or production qualification reader is introduced by this plan.
+
+The pure nonauthorizing Fraction enclosure now passes9 focused cases after its
+missing-module RED. It explicitly includes zero and returns no full-spend lower
+claim. It preserves quote currency/ledger units and outward rounding, including
+an explicitly supplied gross quote overshoot ceiling. This is only arithmetic:
+new source, enforced facts, actual allocation/risk/financial/dispatch integration
+and PG/fill/restart/residual proof remain required by this approved plan.

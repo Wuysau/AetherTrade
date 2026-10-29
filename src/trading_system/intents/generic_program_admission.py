@@ -13,6 +13,9 @@ from trading_system.intents.program_compilation import ProgramCompilation,Operat
 from trading_system.intents.generic_program_intake import read_program_source,current_fence,intake_key
 from trading_system.risk.admission_clock import AdmissionWindow
 from trading_system.risk.program_financial_admission import ProgramFinancialBundle,BUNDLE_PREFIX
+from trading_system.risk.program_financial_admission import (
+    ProgramFinancialAttachment,ATTACHMENT_PREFIX,current_program_bundle_witness)
+from trading_system.storage.models import scope_id
 
 ADMISSION_PREFIX='generic-program-admission:'
 
@@ -121,13 +124,14 @@ class GenericProgramAdmissionService:
             attachment=self._attach_bundle(tx,bundle,ids)
             require(type(attachment) is AdmissionAttachment and attachment.command_ids==ids,
                 'PROGRAM_ADMISSION_ATTACHMENTS_REQUIRED')
+            attachment_until=self._verify_attachments(tx,bundle,attachment)
             # Attachment readers run inside the same financial transaction. Their
             # latency or a changed deployment/book must not renew admission.
             window=AdmissionWindow(started_at=utc_timestamp(clock.utc_now),started_ns=clock.monotonic_ns,
                 wall_clock=self.reservations.clock,monotonic_clock=self.reservations.monotonic_clock)
             self._clock(tx)
             expires=min(map(utc_timestamp,(bundle.intent.valid_until,bundle.decision.expires_at,
-                bundle.archive.risk_terms.submission_deadline)))
+                bundle.archive.risk_terms.submission_deadline,attachment_until)))
             require(window.poll(expires) is not None,'PROGRAM_ADMISSION_EXPIRED')
             require(digest(current_fence(tx,context))==fence,'STALE_REVISION')
             require(digest(tx.projections.book(self.scope))==book,'PROGRAM_CURRENT_BOOK_CHANGED')
@@ -160,6 +164,45 @@ class GenericProgramAdmissionService:
             hashes.append(digest(request))
         return AdmissionAttachment(command_ids=ids,request_hashes=tuple(hashes),activation_id=None)
 
+    def _verify_attachments(self,tx,bundle,attachment,*,same_transaction=True):
+        claim=tx._latest('audit_events',ATTACHMENT_PREFIX+bundle.intent.intent_id,ProgramFinancialAttachment)
+        require(claim is not None,'PROGRAM_ADMISSION_ATTACHMENT_REQUIRED')
+        witness=current_program_bundle_witness(tx,bundle) if same_transaction else None
+        require(claim.intent_id==bundle.intent.intent_id and claim.bundle_hash==digest(bundle)
+            and claim.command_ids==attachment.command_ids
+            and claim.mode==('EXTERNAL_REQUESTS' if attachment.command_ids else 'LOCAL_ACTIVATION'),
+            'PROGRAM_ADMISSION_ATTACHMENT_CHANGED')
+        require(not same_transaction or claim.admission_transaction_id==tx.transaction_id,
+            'PROGRAM_ADMISSION_ATTACHMENT_TRANSACTION_CHANGED')
+        bundle_row=tx.execute('SELECT transaction_id FROM ledger.audit_events WHERE scope_id=%s '
+            'AND record_id=%s AND sequence=1',(scope_id(tx.scope),BUNDLE_PREFIX+bundle.intent.intent_id)).fetchone()
+        require(bundle_row is not None and bundle_row[0]==claim.admission_transaction_id,
+            'PROGRAM_ADMISSION_ATTACHMENT_TRANSACTION_CHANGED')
+        if attachment.command_ids:
+            from trading_system.execution.program_commands import ProgramCommandRepository
+            repo=ProgramCommandRepository(tx)
+            rows=tx.execute('SELECT record_id,transaction_id FROM ledger.order_writes_v2 '
+                'WHERE scope_id=%s AND sequence=1 AND payload->>\'intent_id\'=%s',
+                (scope_id(tx.scope),bundle.intent.intent_id)).fetchall()
+            require(len(rows)==len(attachment.command_ids)
+                and {row[0] for row in rows}==set(attachment.command_ids)
+                and all(row[1]==claim.admission_transaction_id for row in rows),
+                'PROGRAM_ADMISSION_WRITES_INCOMPLETE')
+            for command_id,request_hash in zip(attachment.command_ids,attachment.request_hashes,strict=True):
+                write,request=repo.write(command_id),repo.request(command_id)
+                require(write is not None and request is not None and write.command_id==request.command_id==command_id
+                    and write.scope==request.scope==tx.scope and write.intent_id==bundle.intent.intent_id
+                    and write.request_hash==digest(request)==request_hash
+                    and write.archive_hash==bundle.intent.hashes.archive
+                    and (not same_transaction or write.state=='DURABLE_READY'),
+                    'PROGRAM_ADMISSION_ATTACHMENT_CHANGED')
+        else:
+            from trading_system.execution.local_program_activation import read_local_activation
+            local=read_local_activation(tx,attachment.activation_id)
+            require(local is not None and local.financial_intent_id==bundle.intent.intent_id
+                and local.bundle_hash==digest(bundle),'PROGRAM_ADMISSION_ATTACHMENT_CHANGED')
+        return None if witness is None else witness.expires_at
+
     def _validate_replay(self,tx,receipt,source,record,compilation,ids):
         require(receipt.intent_id==record.intent_id and receipt.source_hash==digest(source)
             and receipt.context_hash==digest(record.context) and receipt.compilation_hash==digest(compilation)
@@ -167,17 +210,4 @@ class GenericProgramAdmissionService:
         bundle=tx._latest('audit_events',BUNDLE_PREFIX+record.intent_id,ProgramFinancialBundle)
         require(bundle is not None and digest(bundle)==receipt.bundle_hash
             and tx.intents.get(record.intent_id)==bundle.intent,'PROGRAM_ADMISSION_BUNDLE_REQUIRED')
-        if ids:
-            from trading_system.contracts.application_write_v3 import ApplicationWriteV3
-            for command_id,request_hash in zip(ids,receipt.attachment.request_hashes,strict=True):
-                write=tx._latest('order_writes_v2',command_id,ApplicationWriteV3)
-                require(write is not None and write.command_id==command_id
-                    and write.scope==tx.scope and write.intent_id==record.intent_id
-                    and write.request_hash==request_hash and write.archive_hash==bundle.intent.hashes.archive,
-                    'PROGRAM_ADMISSION_ATTACHMENT_CHANGED')
-        else:
-            from trading_system.execution.local_program_activation import read_local_activation
-            local=read_local_activation(tx,receipt.attachment.activation_id)
-            require(local is not None and local.financial_intent_id==record.intent_id
-                and local.bundle_hash==receipt.bundle_hash,
-                'PROGRAM_ADMISSION_ATTACHMENT_CHANGED')
+        self._verify_attachments(tx,bundle,receipt.attachment,same_transaction=False)

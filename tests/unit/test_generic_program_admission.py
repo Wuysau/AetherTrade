@@ -44,7 +44,7 @@ def test_different_canonical_numeric_source_cannot_reuse_a_creation_identity():
     assert creation_command_ids(a.intent_id,p)!=creation_command_ids(a.intent_id,changed)
 
 
-@pytest.mark.parametrize('fault',['none','commit_failure','attachment_failure','expiry','fence','book','clock'])
+@pytest.mark.parametrize('fault',['none','commit_failure','attachment_failure','expiry','qualification_expiry','fence','book','clock'])
 def test_public_admission_returns_only_after_the_shared_financial_commit(monkeypatch,fault):
     """Composition-only probe. Actual restricted SQL admission is tested in PG."""
     from types import SimpleNamespace
@@ -85,11 +85,14 @@ def test_public_admission_returns_only_after_the_shared_financial_commit(monkeyp
         events.append('attachment')
         if fault=='attachment_failure':raise OSError('injected attachment failure')
         if fault=='expiry':state['wall']=bundle.intent.valid_until
+        if fault=='qualification_expiry':state['wall']='2026-10-28T10:00:02Z'
         if fault=='fence':state['fence']=replace(state['fence'],ownership_epoch=2)
         if fault=='book':state['book']=replace(state['book'],sequence=state['book'].sequence+1)
         if fault=='clock':state['clock']=replace(state['clock'],clock_health='UNHEALTHY')
         return m.AdmissionAttachment(command_ids=ids,request_hashes=('f'*64,),activation_id=None)
     monkeypatch.setattr(service,'_attach_bundle',attach)
+    monkeypatch.setattr(service,'_verify_attachments',lambda tx,value,attachment:
+        '2026-10-28T10:00:01Z' if fault=='qualification_expiry' else bundle.intent.valid_until)
     if fault!='none':
         with pytest.raises((OSError,ValueError)):
             service.admit(record.proposal,record.context,a.compilation)
@@ -99,3 +102,16 @@ def test_public_admission_returns_only_after_the_shared_financial_commit(monkeyp
         assert events==['financial','attachment','commit']
         assert result.intent_id==a.intent_id and not result.execution_authorized
         assert result.attachment.command_ids==m.creation_command_ids(a.intent_id,a.compilation)
+
+
+def test_attachment_description_cannot_stand_in_for_a_physical_financial_attachment():
+    from types import SimpleNamespace
+    from trading_system.intents import generic_program_admission as m
+    a=actual_archive()
+    service=object.__new__(m.GenericProgramAdmissionService)
+    bundle=SimpleNamespace(intent=SimpleNamespace(intent_id=a.intent_id))
+    ids=m.creation_command_ids(a.intent_id,a.compilation)
+    tx=SimpleNamespace(_latest=lambda *args:None)
+    claimed=m.AdmissionAttachment(command_ids=ids,request_hashes=('f'*64,),activation_id=None)
+    with pytest.raises(ValueError,match='PROGRAM_ADMISSION_ATTACHMENT_REQUIRED'):
+        service._verify_attachments(tx,bundle,claimed)
