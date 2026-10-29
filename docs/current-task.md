@@ -1,5 +1,23 @@
 # Current task
 
+## OP_C_INTEGRATION_NEXT_SOLE_WRITER — 2026-10-29
+
+Parent root delegated sole write ownership of this binance-orders worktree to
+integration_next at clean5a3b7bc. Parent reads/reviews/coordinates only. The older
+handoff-to-parent below is historical and does not release this new delegation.
+Goal stays ACTIVE; all46 targets/56 cases and OP-D/E/F/G remain required.
+
+Command peer pin_native_build owns binance-opc-program-commands; local activation
+peer admission_review now owns binance-opc-local-activation basedbdbd9b0. No peer
+writes this integration tree. Integration_next implements actual public generic
+admission using the same ReservationService financial transaction, real V3
+request/outbox or internal activation, and commit-before-permit dispatch/recovery.
+Then native quote intervals, fee/dust residual contracts and OP-D/E/F/G continue.
+No LIVE/TESTNET/account/model calls, public merge/push, or main/archive edits.
+
+Root gate81820/86745/80618 are TERMINAL, never restart them. Prior evidence is
+source-specific; a fresh complete combined gate remains due after integrations.
+
 ## OP_C_IMPLEMENTATION_COHORT_HANDOFF_TO_PARENT — 2026-10-29
 
 integration_lead completed its concrete root implementation cohort and now
