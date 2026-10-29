@@ -160,6 +160,8 @@ Unknown holds are never released here; every operation is conservatively blocked
         # excluding is a legacy command ID. The distinct program namespace must
         # still block, including when its original ID has the same text.
         unresolved.extend(write.identity for write in application_write_obligations(self.tx) if write.unresolved)
+        from trading_system.storage.local_programs import local_program_obligations
+        unresolved.extend(p.identity for p in local_program_obligations(self.tx) if p.unresolved)
         return tuple(unresolved)
 
     @atomic_write
