@@ -170,6 +170,8 @@ Unknown holds are never released here; every operation is conservatively blocked
             raise ValueError('PROGRAM_UNRESOLVED_EXCLUSION_INVALID')
         unresolved.extend(write.identity for write in actual if write.unresolved and
             (write.current.state=='UNKNOWN' or canonical_hash(domain_payload(write.original)) not in excluded))
+        from trading_system.storage.local_programs import local_program_obligations
+        unresolved.extend(p.identity for p in local_program_obligations(self.tx) if p.unresolved)
         return tuple(unresolved)
 
     @atomic_write

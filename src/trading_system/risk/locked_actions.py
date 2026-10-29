@@ -106,6 +106,8 @@ class LockedActionVerifier:
             if 'EXIT' not in allowed or read_proof is None:return None
             from trading_system.storage.application_writes import application_write_obligations
             if application_write_obligations(tx,scope_only=True):return None
+            from trading_system.storage.local_programs import local_program_obligations
+            if local_program_obligations(tx,scope_only=True):return None
             queued=tx.execute('SELECT c.record_id FROM (SELECT DISTINCT ON (record_id) record_id,payload '
                 'FROM ledger.commands WHERE scope_id=%s ORDER BY record_id,sequence DESC) c '
                 "WHERE c.payload->>'state'='DURABLE_READY'",(scope_id(tx.scope),)).fetchall()
@@ -180,6 +182,9 @@ class LockedActionVerifier:
         # They cannot share reducible quantity with a legacy queued reduction,
         # even when the two command namespaces happen to use the same text ID.
         if application_write_obligations(tx, scope_only=True):
+            return None
+        from trading_system.storage.local_programs import local_program_obligations
+        if local_program_obligations(tx,scope_only=True):
             return None
         # A second queued reduction could otherwise spend the same reducible
         # position before either command has produced a working-order event.

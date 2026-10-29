@@ -180,6 +180,10 @@ class TargetReportService:
 
 def target_obligations(tx, intent, book, scope_holds, now, *, program_exclusion=()):
     """Return verified unsent quantity; any sent uncertainty requires a report."""
+    from trading_system.storage.local_programs import local_program_obligations
+    local=local_program_obligations(tx,scope_only=True)
+    require(not any(p.unresolved for p in local),'LOCAL_PROGRAM_TARGET_RECONCILIATION_REQUIRED')
+    require(not local,'LOCAL_PROGRAM_TARGET_ALLOCATION_REQUIRED')
     from trading_system.storage.application_writes import application_write_obligations
     program_writes = application_write_obligations(tx, scope_only=True)
     if program_exclusion:
