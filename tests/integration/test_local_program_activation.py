@@ -17,10 +17,15 @@ def admit(c,*,fault=None):
             key=revision_key(bundle.archive.source.context)
             previous=tx._latest('audit_events',key,IngressRevision)
             tx._append('audit_events',key,replace(previous,sequence=previous.sequence+1,enabled=False),previous.sequence)
+        readings=0
         def clock(tx):
+            nonlocal readings
+            readings+=1
             current=c.c.facts.inputs.clock
             if fault=='clock':return replace(current,clock_health='UNHEALTHY')
             if fault=='expired':return replace(current,utc_now=bundle.reservations[0].reservation.expires_at)
+            if fault=='expired_during_activation' and readings>1:
+                return replace(current,utc_now=bundle.reservations[0].reservation.expires_at)
             return current
         receipt=activate_local_program(tx,bundle,load_clock=clock)
         assert activate_local_program(tx,bundle,load_clock=clock)==receipt
@@ -54,7 +59,7 @@ def test_real_local_program_activates_with_sum_pool_without_external_parent(data
     assert not receipt.execution_authorized
 
 
-@pytest.mark.parametrize('fault',['clock','expired','owner','rollback'])
+@pytest.mark.parametrize('fault',['clock','expired','expired_during_activation','owner','rollback'])
 def test_activation_failure_rolls_back_financial_bundle_and_lifecycle(database,fault):
     from trading_system.execution.local_program_activation import read_local_activation
     c=real_case(database,template='TWAP',mode='LOCAL_SYNTHETIC')
