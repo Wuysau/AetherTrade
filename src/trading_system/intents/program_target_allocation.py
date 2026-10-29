@@ -243,7 +243,14 @@ def _compile_program_target(plan,book,facts):
     if delta.remaining.value==0:blockers.append('TARGET_ALREADY_SATISFIED' if not delta.cancel_first else 'TARGET_ALLOCATION_WAITING')
     # Existing scalar working-order arithmetic cannot collapse native OCO leaves
     # to a proven group bound. Do not invent a parallel grouped target calculator.
-    if program.template=='OCO':blockers.append('EXCLUSIVE_TARGET_ALLOCATION_PROOF_REQUIRED')
+    native_oco=program.template=='OCO' and program.execution_mode=='VENUE_NATIVE'
+    if program.template=='OCO' and not native_oco:blockers.append('EXCLUSIVE_TARGET_ALLOCATION_PROOF_REQUIRED')
+    if native_oco:
+        require(len(initial)==2 and len(program.exclusive_groups)==1
+            and set(program.exclusive_groups[0])=={n.original.node_id for n in initial}
+            and len(plan.requests)==1 and plan.requests[0].native_mother
+            and set(plan.requests[0].node_ids)=={n.original.node_id for n in initial},
+            'NATIVE_OCO_TARGET_MEMBERSHIP_REQUIRED')
     if any(n.quantity.kind=='QUOTE_NOTIONAL' for n in initial):blockers.append('QUOTE_REQUEST_TARGET_ALLOCATION_UNRESOLVED')
     if incoming:
         if proposal.target_side=='FLAT':
@@ -258,6 +265,7 @@ def _compile_program_target(plan,book,facts):
                     blockers.append('CONTINGENT_QUANTITY_EXCEEDS_TARGET')
     obligations=('LOCKED_FINANCIAL_ADMISSION_REQUIRED','CURRENT_AUTHORIZATION_AND_OWNER_RECHECK',
                  'CURRENT_COMPILATION_AND_RULES_REVALIDATION','SOURCE_QUANTITIES_NOT_RESIZED','NO_PERMIT_CREATED')
+    if native_oco:obligations+=('NATIVE_EXCLUSIVE_FINANCIAL_PROOF_REQUIRED','NATIVE_PAIR_OUTCOME_RECONCILIATION_REQUIRED')
     if 'TARGET_PRECISION_RESIDUAL_UNRESOLVED' in blockers:
         obligations+=('EXPLICIT_RESIDUAL_AND_PROTECTION_ACCOUNTING_REQUIRED',)
     nodes=[];requests=[]
@@ -282,9 +290,11 @@ def _compile_program_target(plan,book,facts):
             total+=ledger.value
             nodes.append(NodeTargetAllocation(node_id=node.original.node_id,phase=phase,side=side,
                 native_quantity=native,ledger_quantity=ledger,obligations=checks))
-        require(total==amount,'PROGRAM_NODE_QUANTITY_REPLAN_REQUIRED')
+        if native_oco:
+            require(all(n.ledger_quantity.value==amount for n in nodes),'PROGRAM_NODE_QUANTITY_REPLAN_REQUIRED')
+        else:require(total==amount,'PROGRAM_NODE_QUANTITY_REPLAN_REQUIRED')
         if len(initial)>1:
-            require(program.template=='BATCH','MULTI_INITIAL_TARGET_ALLOCATION_UNSUPPORTED')
+            require(program.template=='BATCH' or native_oco,'MULTI_INITIAL_TARGET_ALLOCATION_UNSUPPORTED')
         for node in plan.nodes:
             if node.original.node_id not in incoming:continue
             require(node.original.role=='PENDING' and node.activation_requires_full_fill,'CONTINGENT_ACTIVATION_UNPROVEN')

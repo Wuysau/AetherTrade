@@ -166,8 +166,8 @@ def test_same_direction_batch_uses_sum_of_immutable_node_quantities(mode):
         compile_program_target(plan,book,facts)
 
 
-def test_native_oco_requires_group_quantity_semantics_instead_of_new_parallel_arithmetic():
-    plan,rules=plan_for(template='OCO');book,facts=scenario(plan,rules,actual='2')
+def test_local_oco_still_requires_group_race_quantity_proof_instead_of_native_guarantees():
+    plan,rules=plan_for(template='OCO',mode='LOCAL_SYNTHETIC');book,facts=scenario(plan,rules,actual='2')
     result=compile_program_target(plan,book,facts)
     assert result.delta.remaining.value==-1
     assert result.blockers==('EXCLUSIVE_TARGET_ALLOCATION_PROOF_REQUIRED',) and not result.requests

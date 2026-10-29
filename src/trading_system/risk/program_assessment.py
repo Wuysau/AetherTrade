@@ -253,6 +253,12 @@ def _derive(inputs,terms,plan,a,e,book,policy,facts,codes):
     require(expected==plan,'PROGRAM_RISK_COMPILATION_CHANGED')
     require(compile_program_target(plan,book,target)==a,'PROGRAM_RISK_ALLOCATION_CHANGED')
     require(not a.blockers,a.blockers[0] if a.blockers else 'PROGRAM_RISK_ALLOCATION_BLOCKED')
+    if plan.original_program.template=='OCO':
+        require(plan.original_program.execution_mode=='VENUE_NATIVE'
+            and len(plan.original_program.exclusive_groups)==1
+            and frozenset(plan.original_program.exclusive_groups[0]) in {
+                frozenset(g.node_ids) for g in facts.budget_facts.atomic_groups or ()},
+            'NATIVE_EXCLUSIVE_TARGET_PROOF_REQUIRED')
     valuation=Valuation(policy.valuation_currency,inputs.fx_rates)
     require(all(rate.evidence_id in {ref.id for ref in inputs.evidence} for rate in inputs.fx_rates),'FX_EVIDENCE_UNBOUND')
     require(derive_program_exposure(plan,facts.budget_facts,now=inputs.clock.utc_now,valuation=valuation)==e,'PROGRAM_RISK_BUDGET_CHANGED')
@@ -363,7 +369,12 @@ def _portfolio(inputs,terms,plan,a,e,book,facts,bounds,valuation):
     no_fill=replace(a.delta,target=t.Quantity(value=a.delta.actual.value+a.delta.working.value,unit=terms.target.unit),
         remaining=t.Quantity(value=D(0),unit=terms.target.unit),classification='NONE')
     reports.append(calculator(()).project(book,no_fill))
-    reports.append(calculator(proposed).project(book,a.delta))
+    native_oco=plan.original_program.template=='OCO' and plan.original_program.execution_mode=='VENUE_NATIVE'
+    if native_oco:
+        # Exact native pair proof was required above. Each complete leg is a
+        # separate possible fill, never two fictitious simultaneous proposals.
+        for alternative in proposed:reports.append(calculator((alternative,)).project(book,a.delta))
+    else:reports.append(calculator(proposed).project(book,a.delta))
     deferred=[n for n in a.nodes if n.phase in ('AFTER_FULL_FILL','AFTER_NET_RECEIPT')]
     if deferred:
         by_id={n.original.node_id:n for n in plan.nodes};quantities={}
@@ -421,7 +432,8 @@ def _portfolio(inputs,terms,plan,a,e,book,facts,bounds,valuation):
 
 
 def _protection(inputs,terms,plan,a,book,facts):
-    if a.delta.target.value==0:return 0
+    retained_oco=plan.original_program.template=='OCO' and a.delta.actual.value!=0
+    if a.delta.target.value==0 and not retained_oco:return 0
     require(terms.stop_price is not None and terms.stop_price>0,'STOP_REQUIRED')
     required={'PARTIAL_FILL','FULL_FILL'}
     if a.delta.actual.value:required.add('RETAINED_POSITION')
@@ -492,14 +504,16 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
     require(facts.maximum_live_orders>=len(plan.nodes)+sum(b.maximum_live_children for b in bounds.values())+protection_orders,
         'PROGRAM_RISK_ORDER_COUNT_UNDERBOUND')
     quote=inputs.instrument.quote_currency;mult=inputs.multiplier
-    per_order=[];loss_quote=D(0)
+    per_order=[];loss_quote=D(0);new_losses=[]
     current_mark=next(m for m in inputs.marks if m.scope==terms.scope)
-    loss_unknown=terms.target.value and reducing and terms.stop_price is None
-    if terms.target.value and reducing and not loss_unknown:
+    retained=abs(a.delta.actual.value) if plan.original_program.template=='OCO' else terms.target.value
+    loss_unknown=retained and reducing and terms.stop_price is None
+    if retained and reducing and not loss_unknown:
         # A reduction leaves physical inventory at risk. Fees-only applies to a
         # genuinely flat target, never to a still-open long/short residual.
-        adverse=current_mark.price.value-terms.stop_price if a.delta.target.value>0 else terms.stop_price-current_mark.price.value
-        loss_quote=terms.target.value*mult*(adverse+current_mark.price.value*facts.entry_slippage_bps/10000)
+        retained_side=a.delta.actual.value if plan.original_program.template=='OCO' else a.delta.target.value
+        adverse=current_mark.price.value-terms.stop_price if retained_side>0 else terms.stop_price-current_mark.price.value
+        loss_quote=retained*mult*(adverse+current_mark.price.value*facts.entry_slippage_bps/10000)
     elif not reducing and a.delta.actual.value:
         require(terms.stop_price is not None and (terms.stop_price<current_mark.price.value
             if a.delta.actual.value>0 else terms.stop_price>current_mark.price.value),'INVALID_STOP')
@@ -516,7 +530,8 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
             entry=bound.maximum_price.value if node.side=='BUY' else bound.minimum_price.value
             require(terms.stop_price<bound.minimum_price.value if node.side=='BUY' else terms.stop_price>bound.maximum_price.value,'INVALID_STOP')
             adverse=entry-terms.stop_price if node.side=='BUY' else terms.stop_price-entry
-            loss_quote+=quantity*mult*(adverse+entry*facts.entry_slippage_bps/10000)
+            new_losses.append(quantity*mult*(adverse+entry*facts.entry_slippage_bps/10000))
+    loss_quote+=max(new_losses,default=D(0)) if plan.original_program.template=='OCO' else sum(new_losses,D(0))
     # Existing working/pending loss is separately supplied as a complete bound
     # for prior obligations; it is not manufactured from reservation currency.
     loss=None if loss_unknown else valuation.convert(t.Money(amount=loss_quote,currency=quote),liability=True).amount+fees+funding
@@ -554,7 +569,7 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
 
 
 def _stop_validity(inputs,terms,plan,a,facts,*,allow_missing=False):
-    if terms.target.value==0:return
+    if terms.target.value==0 and not (plan.original_program.template=='OCO' and a.delta.actual.value):return
     stop=terms.stop_price;spec=inputs.instrument
     if stop is None and allow_missing:return
     require(isinstance(stop,D) and stop.is_finite() and stop>0 and on_grid(stop,spec.tick_size.value)
@@ -575,4 +590,5 @@ def _stop_validity(inputs,terms,plan,a,facts,*,allow_missing=False):
             'HOSTED_STOP_TRIGGER_UNSUPPORTED')
     if a.delta.actual.value:
         mark=next((m for m in inputs.marks if m.scope==terms.scope),None)
-        require(mark is not None and (stop<mark.price.value if a.delta.target.value>0 else stop>mark.price.value),'INVALID_STOP')
+        retained_side=a.delta.actual.value if plan.original_program.template=='OCO' else a.delta.target.value
+        require(mark is not None and (stop<mark.price.value if retained_side>0 else stop>mark.price.value),'INVALID_STOP')
