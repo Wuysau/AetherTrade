@@ -362,3 +362,15 @@ def test_disabled_actual_source_fence_after_consume_blocks_sim_side_effect(datab
             with pytest.raises(ValueError,match='DEPLOYMENT_FENCE_REQUIRED|STALE_REVISION|PAPER_CURRENT_FENCE_CHANGED'):
                 pending.result(timeout=30)
     assert c.engine.query_creation(c.write.command_id) is None
+
+
+def test_equity_session_is_explicitly_unqualified_until_real_v2_calendar(database,venue,tmp_path):
+    c=case(database,venue,tmp_path,product=t.Product.US_EQUITY,actual='1',target='0',quantity='1',side='SELL',
+        financial_capacity=(t.Money(currency='USD',amount=D('1000000')),t.Money(currency='AAPL',amount=D('10'))))
+    assert c.request.scope.product==t.Product.US_EQUITY
+    assert c.bundle.archive.compilation.nodes[0].original.order.trading_session=='24H'
+    with pytest.raises(ValueError,match='PAPER_EQUITY_SESSION_MODEL_REQUIRED'):submit(c)
+    assert c.engine.query_creation(c.write.command_id) is None
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',
+            (c.write.command_id,)).fetchone()==(0,)

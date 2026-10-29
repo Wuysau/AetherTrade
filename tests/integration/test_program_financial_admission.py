@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,**risk_options):
+def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,financial_capacity=None,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -116,7 +116,7 @@ def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,n
     ingress=GenericProgramIngress(intake,scope,lambda *args:ingress_facts,clock=lambda:now)
     source,record=ingress.accept(c.plan.original_proposal,context)
     service=ReservationService(owner,scope,None,clock=lambda:now,monotonic_clock=lambda:c.facts.inputs.clock.monotonic_ns)
-    capacity=(t.Money(currency='USDT',amount=D('1000000')),)
+    capacity=financial_capacity if financial_capacity is not None else (t.Money(currency='USDT',amount=D('1000000')),)
     def load(tx,actual_source,intake_record,book,clock):
         current=replace(c.facts.inputs,intent_id=intake_record.intent_id,clock=clock)
         tf=replace(c.facts.target_facts,transaction_id=tx.transaction_id,inputs=replace(
