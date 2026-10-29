@@ -1,5 +1,24 @@
 # Current task
 
+## OP_F_PROGRAM_REVIEW_COMPONENT_VERIFIED — 2026-10-29
+
+Parent/root sole writer of this independent OPF tree. New514d9f8 programme
+research evidence review and8df844e final-expiry fix independently reviewed;
+8RED then54relatedGREEN. Shared legacy/new validate_review+aggregation; SOFT
+primary adjudication, HARD/UNVERIFIED/failure suppresscandidate, no increased/
+reversed target or leverage. Cost ack binds policy; default unqualified zero
+provider; all tests use fake providers. No public newstrategy/HTTP opt-in.
+
+Source90d32b5 actualordinary server531passed/56paper-runtime deselections;
+the selected missingPG fixture error was completed via newisolated mandatory
+console-contract56passed0fail/error/skip. All rawRED/GREEN/commanderrors/log/XML
+and pinneddependencyimage metadata are in op-f-program-review with SHA map.
+Final-expiry54 result is8df source, no broadpost-expiryqualification claimed.
+FullOPF host/control/crossmode integration and complete46/56 remain ACTIVE.
+Root integration_next alone writes binance-orders; reports_fresh now owns new
+native-adapter tree, its old report tree clean5ef7d9a ready for integration.
+Main/archive untouched; no TESTNET/LIVE/realaccount/paidprovider calls.
+
 ## OP_F_PARENT_REVIEWED_COHORT — 2026-10-29
 
 Parent/root owns THIS binance-opf-observability worktree after observability_fresh

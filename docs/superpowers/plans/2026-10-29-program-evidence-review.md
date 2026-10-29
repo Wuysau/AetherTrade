@@ -24,3 +24,18 @@
 1. Add RED cases for valid full V3 review prompt (review_v1, full candidate), manual-policy binding and SOFT→primary adjudication. Add HARD/UNVERIFIED/reviewer failure cases that preserve journal evidence and block candidate.
 2. Update programme prompt selection and programme research branch to reuse validate_review. Keep unanimous mode behavior; add evidence_review only for explicit consensus. Allow at most one primary adjudication. New target cannot increase/reverse primary exposure or leverage; full independent compiler/risk still gates later admission.
 3. Run all new and existing model/assessment tests; retain RED/GREEN. No new public protocol opt-in. Update OP-F remaining work and provide reviewed commits to integration_next. Real financial handoff remains separately tested, never replaced by fake admit success.
+
+## Actual progress
+
+Code514d9f8:8 genuine missing-policy/prompt REDs→52 focused passes. Additional
+policy binding and final expiry counterexamples are retained. Code8df844e adds
+the final current-context/proposal expiry check after review;54 focused passes.
+Source90d32b5 ordinary server531passed/56paper-runtime deselected; the missing-
+DSN setup error was then completed in real isolated console-contract PG56passed,
+zero failures/errors/skips on the same fixed source. No safety test was deleted,
+weakened or treated as passed merely through marker exclusion. The separate
+file-not-found command executed0 tests and is preserved as a command error.
+
+Real provider/venue calls remain absent. All candidate research remains
+UNQUALIFIED and the default automatic branch is provider-free. Public opt-in,
+qualified current host and whole46/56 integration remain active work.

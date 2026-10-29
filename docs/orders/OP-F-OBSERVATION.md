@@ -81,6 +81,15 @@ are retained but remain unadmitted. Model-authored flags/hashes cannot authorize
 research or trading. No new public strategy/HTTP opt-in is enabled by this slice,
 and historical strategies are not upgraded.
 
+Explicit consensus research now also reuses the existing review_v1 language and
+the same factual/preference report aggregation as legacy assessment. SOFT issues
+return to the primary for one adjudication; HARD verified facts, unverified
+critical facts and failed required review expose no approvable proposal. Original
+candidates remain in journal/component records. Adjudication cannot increase
+target exposure/leverage or reverse it, and an expired final context/proposal is
+classified EXPIRED. Research cost acknowledgement binds the exact review policy.
+This research result still grants no admission, permit, execution or release.
+
 ## Evidence and remaining work
 
 See `docs/evidence/binance-orders/op-f-observation/README.md` for exact source,
