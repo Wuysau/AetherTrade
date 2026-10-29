@@ -166,7 +166,9 @@ BEGIN
   UPDATE public.paper_engine_orders SET lifecycle=resulting_status,revision=revision+1 WHERE scope_key=ord.scope_key AND client_id=ord.client_id;
   IF reason IS NOT NULL THEN
    fill_payload=jsonb_build_object('record_kind','PAPER_MARKET_DISPOSITION','source','PAPER_MARKET_REPLAY_SYNTHETIC',
-    'reason',reason,'status',resulting_status,'market_event_id',book.event_id,'model',ord.terms->'model',
+    'reason',reason,'status',resulting_status,'market_event_id',book.event_id,'market_key',market_id,
+    'market_hash',(SELECT payload_hash FROM public.paper_market_inputs WHERE market_key=market_id AND event_id=book.event_id),
+    'model',ord.terms->'model',
     'execution_envelope',ord.terms->'execution_envelope','observed_best_price',best_price,'market_occurred_at',book.occurred_at,'execution_at',execution_at);
    INSERT INTO public.paper_engine_events(environment,scope_key,event_id,client_id,payload_hash,payload,fill_delta,price,occurred_at)
     VALUES('PAPER',ord.scope_key,'paper-disposition:'||encode(sha256(convert_to(jsonb_build_array(ord.scope_key::jsonb,ord.client_id,book.event_id,reason)::text,'UTF8')),'hex'),ord.client_id,
