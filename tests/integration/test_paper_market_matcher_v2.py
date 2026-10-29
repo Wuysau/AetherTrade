@@ -146,11 +146,14 @@ def test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority(da
 
 def test_terminal_v2_order_is_not_reactivated_by_later_reference_or_depth(database,venue_v2,tmp_path):
     from trading_system.engine.paper_market import PaperMatcher
-    c=advanced_case(database,venue_v2,tmp_path,tif='NONE',order_transform=market_order);matcher=PaperMatcher(c.engine)
-    matcher.apply_market_event(event(c,quantity='1'));submit(c)
+    def stop_limit(order):
+        return replace(order,trigger=TriggerSpec(kind='STATIC',purpose='STOP_LOSS',source='LAST',price='83000',
+            activation_price=None,offset=None,offset_unit=None,price_protect=False))
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=stop_limit);matcher=PaperMatcher(c.engine)
+    submit(c);matcher.apply_market_event(event(c,quantity='1'));matcher.apply_market_event(reference(c,2,'LAST','83000'))
     before=c.engine.query_creation(c.write.command_id)
     assert before.status=='FILLED'
-    matcher.apply_market_event(reference(c,2,'LAST','83000'))
+    matcher.apply_market_event(reference(c,3,'LAST','83100'))
     after=c.engine.query_creation(c.write.command_id)
     assert after.status=='FILLED' and after.filled_quantity==1 and not after.orders[0].runtime.active
     assert after.orders[0].lifecycle_revision==before.orders[0].lifecycle_revision
