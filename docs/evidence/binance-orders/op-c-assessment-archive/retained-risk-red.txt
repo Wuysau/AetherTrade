@@ -1,0 +1,20 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+___ test_partial_reduction_archive_preserves_derived_retained_position_loss ___
+tests\unit\test_assessment_archive.py:240: in test_partial_reduction_archive_preserves_derived_retained_position_loss
+    assert a.risk_metrics.planned_loss.amount>0
+E   AssertionError: assert Decimal('0') > 0
+E    +  where Decimal('0') = Money(amount=Decimal('0'), currency='USDT').amount
+E    +    where Money(amount=Decimal('0'), currency='USDT') = RiskMetrics(source=RiskSource(kind='ORDER_PROPOSAL', version='2026-10-28', hash='4744c99439f54fc8581dec9c4c2ae185a2a03...aaaaa', environment=<Environment.PAPER: 'PAPER'>, source='ISOLATED_TARGET_FACTS', visible_at='2026-10-28T10:00:00Z'),)).planned_loss
+E    +      where RiskMetrics(source=RiskSource(kind='ORDER_PROPOSAL', version='2026-10-28', hash='4744c99439f54fc8581dec9c4c2ae185a2a03...aaaaa', environment=<Environment.PAPER: 'PAPER'>, source='ISOLATED_TARGET_FACTS', visible_at='2026-10-28T10:00:00Z'),)) = ProgramFinancialAssessmentArchive(contract_version='2026-10-29', record_kind='PROGRAM_FINANCIAL_ASSESSMENT_ARCHIVE', i...CURRENT_OWNER_REQUIRED', 'NO_COMMAND_OR_PERMIT_CREATED', 'UNFILLED_ORDERS_RETAIN_PROTECTION_AND_RECONCILIATION_DUTY'))).risk_metrics
+__ test_partial_reduction_bad_retained_stop_cannot_become_financial_metadata __
+tests\unit\test_assessment_archive.py:247: in test_partial_reduction_bad_retained_stop_cannot_become_financial_metadata
+    assert a.assessment.verdict=='DENY'
+E   AssertionError: assert 'ALLOW' == 'DENY'
+E     
+E     - DENY
+E     + ALLOW
+=========================== short test summary info ===========================
+FAILED tests/unit/test_assessment_archive.py::test_partial_reduction_archive_preserves_derived_retained_position_loss
+FAILED tests/unit/test_assessment_archive.py::test_partial_reduction_bad_retained_stop_cannot_become_financial_metadata
+2 failed, 24 deselected in 0.73s
