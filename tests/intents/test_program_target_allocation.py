@@ -23,6 +23,10 @@ def plan_for(*,target='1',quantity='1',side='BUY',product=t.Product.SPOT,templat
     target=format(D(target),'f');quantity=format(D(quantity),'f')
     if template!='ATOMIC':
         old=make_plan(template,mode,product);p=replace(old.original_proposal,target_sizing='BASE_QUANTITY',target_value=target,target_side='FLAT' if D(target)==0 else 'LONG')
+        if template in ('TWAP','VP'):
+            root=p.program.nodes[0]
+            p=replace(p,program=replace(p.program,nodes=(replace(root,order=replace(root.order,
+                side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))),)))
         _,r,c,k=inputs(product)
     else:
         p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
