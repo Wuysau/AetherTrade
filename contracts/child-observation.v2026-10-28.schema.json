@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-28"
+      ]
+    },
+    "origin": {
+      "enum": [
+        "VENUE_GENERATED_CHILD"
+      ]
+    },
+    "observation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "venue_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "product": {
+          "enum": [
+            "SPOT",
+            "USD_M_PERP",
+            "US_EQUITY"
+          ]
+        },
+        "instrument_uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue_leg": {
+          "enum": [
+            "BOTH",
+            "LONG",
+            "SHORT"
+          ]
+        }
+      },
+      "required": [
+        "environment",
+        "venue_account_id",
+        "product",
+        "instrument_uid",
+        "venue_leg"
+      ],
+      "additionalProperties": false
+    },
+    "venue": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "namespace": {
+      "enum": [
+        "ORDINARY",
+        "ORDER_LIST",
+        "CONDITIONAL_ALGO",
+        "EXECUTION_ALGO"
+      ]
+    },
+    "parent_client_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "parent_venue_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "child_order_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "child_client_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    "status": {
+      "enum": [
+        "SUBMITTED",
+        "PARTIALLY_FILLED",
+        "FILLED",
+        "CANCELED",
+        "EXPIRED",
+        "REJECTED",
+        "UNKNOWN",
+        "CANCEL_PENDING",
+        "CANCEL_UNKNOWN"
+      ]
+    },
+    "quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "cumulative_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "fills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "native_trade_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "price": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "fees": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "asset": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "amount": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "asset",
+                "amount"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "occurred_at": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "native_trade_id",
+          "quantity",
+          "price",
+          "fees",
+          "occurred_at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "occurred_at": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  },
+  "required": [
+    "contract_version",
+    "origin",
+    "observation_id",
+    "scope",
+    "venue",
+    "namespace",
+    "parent_client_id",
+    "parent_venue_id",
+    "child_order_id",
+    "child_client_id",
+    "side",
+    "status",
+    "quantity",
+    "cumulative_quantity",
+    "fills",
+    "occurred_at"
+  ],
+  "additionalProperties": false
+}

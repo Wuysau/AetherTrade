@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-28"
+      ]
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "venue_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "product": {
+          "enum": [
+            "SPOT",
+            "USD_M_PERP",
+            "US_EQUITY"
+          ]
+        },
+        "instrument_uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue_leg": {
+          "enum": [
+            "BOTH",
+            "LONG",
+            "SHORT"
+          ]
+        }
+      },
+      "required": [
+        "environment",
+        "venue_account_id",
+        "product",
+        "instrument_uid",
+        "venue_leg"
+      ],
+      "additionalProperties": false
+    },
+    "venue": {
+      "enum": [
+        "BINANCE"
+      ]
+    },
+    "adapter_build_digest": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "transport": {
+      "enum": [
+        "REST",
+        "WS",
+        "FIX",
+        "PAPER"
+      ]
+    },
+    "rule_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "capability_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "qualification": {
+      "enum": [
+        "NOT_RUN",
+        "PAPER_VERIFIED",
+        "TESTNET_VERIFIED",
+        "LIVE_VERIFIED"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "hash": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "environment": {
+            "enum": [
+              "RESEARCH",
+              "PAPER",
+              "TESTNET",
+              "LIVE"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "visible_at": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "id",
+          "hash",
+          "environment",
+          "source",
+          "visible_at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "as_of": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "valid_until": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  },
+  "required": [
+    "contract_version",
+    "snapshot_id",
+    "scope",
+    "venue",
+    "adapter_build_digest",
+    "transport",
+    "rule_revision",
+    "capability_ids",
+    "qualification",
+    "evidence",
+    "as_of",
+    "valid_until"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-28"
+      ]
+    },
+    "program_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "ACTIVE",
+        "SUBMIT_UNKNOWN",
+        "CANCEL_PENDING",
+        "CANCEL_UNKNOWN",
+        "STOPPED",
+        "COMPLETED",
+        "RECONCILIATION_REQUIRED"
+      ]
+    },
+    "unallocated_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "child_order_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "child_client_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "side": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "cumulative_quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "fills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "native_trade_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "quantity": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "price": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "fees": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "asset": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      "amount": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    },
+                    "required": [
+                      "asset",
+                      "amount"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "occurred_at": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "native_trade_id",
+                "quantity",
+                "price",
+                "fees",
+                "occurred_at"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "occurred_at": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "child_order_id",
+          "child_client_id",
+          "side",
+          "status",
+          "quantity",
+          "cumulative_quantity",
+          "fills",
+          "occurred_at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "observation_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "restriction_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "protection_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  },
+  "required": [
+    "contract_version",
+    "program_id",
+    "sequence",
+    "status",
+    "unallocated_quantity",
+    "children",
+    "observation_ids",
+    "restriction_codes",
+    "protection_quantity"
+  ],
+  "additionalProperties": false
+}
