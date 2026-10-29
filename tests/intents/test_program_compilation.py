@@ -355,3 +355,45 @@ def test_base_market_price_envelope_is_visible_to_financial_admission():
     result=compile_order_program(p,r,c,**k)
     assert result.nodes[0].worst_case_quote_notional=='90000'
     assert result.nodes[0].sizing_price_bound=='90000'
+
+
+def test_catalog_instrument_handle_is_distinct_from_bound_native_instrument_uid():
+    p,r,c,k=inputs()
+    handle='catalog:BTC-USDT'
+    p=replace(p,instrument_ref=handle,program=replace(p.program,instrument_ref=handle))
+    k['expected_instrument_ref']=handle
+    result=compile_order_program(p,r,c,**k)
+    assert result.original_program.instrument_ref==handle
+    assert result.scope.instrument_uid==r.scope.instrument_uid!=handle
+
+
+@pytest.mark.parametrize('expiry',['9999-12-31T23:59:58.000001Z','9999-12-31T23:59:58.000000001Z'])
+def test_gtd_far_future_fraction_is_not_erased_by_float_or_datetime_precision(expiry):
+    p,r,c,k=inputs(t.Product.USD_M_PERP)
+    p=change(p,tif=TimeInForceSpec(kind='GTD',expires_at=expiry))
+    with pytest.raises(ProposalRejected,match='GTD_REQUIRES_WHOLE_SECONDS'):
+        compile_order_program(p,r,c,**k)
+
+
+def test_gtd_far_future_whole_seconds_use_exact_epoch_milliseconds():
+    p,r,c,k=inputs(t.Product.USD_M_PERP)
+    p=change(p,tif=TimeInForceSpec(kind='GTD',expires_at='9999-12-31T23:59:58Z'))
+    result=compile_order_program(p,r,c,**k)
+    assert fields(result.nodes[0])[FieldName.GOOD_TILL_DATE]==253402300798000
+
+
+@pytest.mark.parametrize('expiry',['2026-10-28T10:10:00Z','9999-12-31T23:59:59Z'])
+def test_gtd_exact_lower_and_upper_boundaries_remain_exclusive(expiry):
+    p,r,c,k=inputs(t.Product.USD_M_PERP)
+    p=change(p,tif=TimeInForceSpec(kind='GTD',expires_at=expiry))
+    with pytest.raises(ProposalRejected,match='INVALID_GTD_DEADLINE'):
+        compile_order_program(p,r,c,**k)
+
+
+def test_resolved_handle_does_not_relax_scope_instrument_binding():
+    p,r,c,k=inputs()
+    p=replace(p,instrument_ref='catalog:BTC-USDT',program=replace(p.program,instrument_ref='catalog:BTC-USDT'))
+    k['expected_instrument_ref']='catalog:BTC-USDT'
+    k['profile']=replace(k['profile'],scope=replace(k['scope'],instrument_uid='native:other'))
+    with pytest.raises(ProposalRejected,match='SCOPE_MISMATCH'):
+        compile_order_program(p,r,c,**k)
