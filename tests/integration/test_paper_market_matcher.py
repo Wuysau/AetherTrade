@@ -351,6 +351,6 @@ def test_disabled_actual_source_fence_after_consume_blocks_sim_side_effect(datab
                 previous=tx._latest('audit_events',key,IngressRevision)
                 tx._append('audit_events',key,replace(previous,sequence=previous.sequence+1,enabled=False),previous.sequence)
             blocker.commit()
-            with pytest.raises(ValueError,match='STALE_REVISION|PAPER_CURRENT_FENCE_CHANGED'):
+            with pytest.raises(ValueError,match='DEPLOYMENT_FENCE_REQUIRED|STALE_REVISION|PAPER_CURRENT_FENCE_CHANGED'):
                 pending.result(timeout=30)
     assert c.engine.query_creation(c.write.command_id) is None
