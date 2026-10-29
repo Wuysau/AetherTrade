@@ -143,6 +143,10 @@ def payload(config, context):
             '2026-10-30 POSITION_VALUE_BAND is pending and cannot be silently converted to scalar quantity. '
             'Use the same bounded evidence_claims/watch_conditions syntax as assessment_v1. '
             'The following schema applies ONLY to proposal: '+json.dumps(proposal_schema))
+        if context.get('role')=='review':
+            instructions=REVIEW_INSTRUCTIONS+(' Review the supplied complete 2026-10-29 programme candidate against '
+                'the unchanged analysis snapshot. Preserve its order identities and full terms in the supplied context. '
+                'Return review issues only; do not replace the proposal, grant qualification or authorize execution.')
     elif 'analysis_snapshot' in context:
         from ..contracts.wire import ContractCodec
         instructions = REVIEW_INSTRUCTIONS if context.get('role') == 'review' else ASSESSMENT_INSTRUCTIONS + 'The following JSON Schema applies ONLY to the nested proposal, not the outer assessment envelope: ' + json.dumps(ContractCodec()._schemas['decision-proposal'])

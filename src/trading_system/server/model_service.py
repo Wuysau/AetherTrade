@@ -441,7 +441,7 @@ class ModelService:
             await self._owned_client.aclose()
 
     async def _assess(self, symbol, mode, ids, revisions, key, context, policy):
-        from .decision_assessment import validate_assessment, validate_review, PROMPT_REVISION
+        from .decision_assessment import validate_assessment, validate_review, combine_review_reports, PROMPT_REVISION
         clean = self._clean_context(symbol, context)
         snapshot = clean['analysis_snapshot']
         fingerprint = self._hash([symbol, mode, ids, revisions, policy, 'assessment_v1', snapshot['task_profile']])
@@ -543,8 +543,7 @@ class ModelService:
                             break
                         reports.append(review)
                     if status == 'DECIDED':
-                        report = {'issues': [issue for item in reports for issue in item['issues']],
-                                  'status': next((s for s in ('HARD', 'UNVERIFIED', 'SOFT') if any(r['status']==s for r in reports)), 'VERIFIED')}
+                        report = combine_review_reports(reports)
                         if report['status'] == 'HARD':
                             status, reason = 'INVALID_PLAN', 'VERIFIED_REVIEW_DEFECT'
                         elif report['status'] == 'UNVERIFIED':
