@@ -7,6 +7,7 @@ No model-authored hash, qualification claim or callback can admit an order.
 import copy,json
 from dataclasses import dataclass
 from datetime import datetime,timezone
+from fractions import Fraction
 from typing import Literal
 from jsonschema import ValidationError
 
@@ -34,6 +35,8 @@ class FrozenProgramContext:
     rules:OrderRuleSnapshot
     expected_build_digest:str
     capability_decision:t.CapabilityDecision|None=None
+    financial_market_snapshot:t.SnapshotPacket|None=None
+    financial_book:t.BookSnapshot|None=None
     @property
     def payload(self):return json.loads(self._json)
     @property
@@ -54,7 +57,7 @@ class ProgramModelAssessment:
 
 
 def build_program_context(analysis_snapshot,*,decision_context,capabilities,rules,strategy_revision,
-                          expected_build_digest,capability_decision=None):
+                          expected_build_digest,capability_decision=None,financial_market_snapshot=None,financial_book=None):
     require(type(decision_context) is t.DecisionContext,'PROGRAM_DECISION_CONTEXT_REQUIRED')
     require(type(capabilities) is OrderCapabilitySnapshot and type(rules) is OrderRuleSnapshot,
             'PROGRAM_TYPED_SNAPSHOTS_REQUIRED')
@@ -66,9 +69,9 @@ def build_program_context(analysis_snapshot,*,decision_context,capabilities,rule
         'PROGRAM_STRATEGY_REVISION_MISMATCH')
     require(snapshot['instrument_ref']==scope.instrument_uid and snapshot['product']==str(scope.product),
             'PROGRAM_INSTRUMENT_BINDING_REQUIRED')
-    require(decision_context.snapshot_ref.id==snapshot['snapshot_id']
-        and decision_context.snapshot_ref.hash==snapshot['snapshot_hash']
-        and decision_context.snapshot_ref.environment==scope.environment,'PROGRAM_SNAPSHOT_BINDING_REQUIRED')
+    require(decision_context.snapshot_ref.environment==scope.environment
+        and utc_timestamp(decision_context.snapshot_ref.visible_at)<=utc_timestamp(snapshot['evidence_cutoff']),
+        'PROGRAM_SNAPSHOT_BINDING_REQUIRED')
     require(capabilities.rule_revision==rules.revision and capabilities.adapter_build_digest==expected_build_digest,
             'PROGRAM_RULE_OR_BUILD_CHANGED')
     require(capability_decision is None or type(capability_decision) is t.CapabilityDecision,
@@ -77,11 +80,40 @@ def build_program_context(analysis_snapshot,*,decision_context,capabilities,rule
     cap=codec.encode('order-capability-snapshot',capabilities)
     rule=codec.encode('order-rule-snapshot',rules)
     blockers=['HOST_ADMISSION_NOT_REGISTERED','CURRENT_QUALIFICATION_NOT_REGISTERED']
+    financial_packet=None;book=None;link_hash=None
+    if financial_market_snapshot is None or financial_book is None:
+        blockers.append('ANALYSIS_FINANCIAL_LINK_NOT_ESTABLISHED')
+    else:
+        from trading_system.market.snapshots import snapshot_content_hash
+        market=financial_market_snapshot
+        require(type(market) is t.SnapshotPacket and type(financial_book) is t.BookSnapshot
+            and market.scope==financial_book.scope==scope and market.ref==decision_context.snapshot_ref,
+            'PROGRAM_FINANCIAL_SNAPSHOT_SCOPE_MISMATCH')
+        require(snapshot_content_hash(market)==market.ref.hash,'PROGRAM_FINANCIAL_SNAPSHOT_HASH_MISMATCH')
+        cutoff=utc_timestamp(snapshot['evidence_cutoff'])
+        maximum_age=float(snapshot['quality']['quote_check']['maximum_age_seconds'])
+        require(all(0<=(cutoff-utc_timestamp(at)).total_seconds()<=maximum_age for at in (
+            market.quote.occurred_at,market.quote.received_at,market.published_at,market.revision_visible_at)),
+            'PROGRAM_FINANCIAL_SNAPSHOT_CUTOFF_MISMATCH')
+        quote=snapshot['market']['quote']
+        require(quote is not None and market.quote.last is not None
+            and Fraction(quote['price'])==Fraction(market.quote.last.value),'PROGRAM_ANALYSIS_QUOTE_LINK_MISMATCH')
+        analysis_position=snapshot['portfolio']['position']
+        actual=sum((Fraction(p.actual_quantity.value) for p in financial_book.positions),Fraction(0))
+        require(actual==Fraction(analysis_position['quantity']) if analysis_position else actual==0,
+                'PROGRAM_ANALYSIS_POSITION_LINK_MISMATCH')
+        financial_packet=domain_payload(market);book=domain_payload(financial_book)
+        link_hash=canonical_hash(dict(analysis_snapshot_hash=snapshot['snapshot_hash'],
+            financial_market_snapshot_ref=domain_payload(market.ref),financial_book_hash=canonical_hash(book),
+            analysis_quote=quote,financial_quote=financial_packet['quote']))
     if capability_decision is None:blockers.append('CAPABILITY_INTERSECTION_NOT_REGISTERED')
     elif capability_decision.rejection_codes:blockers.extend(capability_decision.rejection_codes)
     # No production qualified host is registered. These are historical claims,
     # not a new qualification flag or a replacement CapabilityCatalog decision.
     order_context=dict(proposal_version='2026-10-29',scope=domain_payload(scope),
+        analysis_snapshot_ref=snapshot['snapshot_id'],analysis_snapshot_hash=snapshot['snapshot_hash'],
+        financial_market_snapshot_ref=domain_payload(decision_context.snapshot_ref),
+        financial_market_snapshot=financial_packet,financial_book=book,analysis_financial_link_hash=link_hash,
         decision_context=domain_payload(decision_context),strategy_revision=strategy_revision,
         capabilities=cap,rules=rule,capabilities_hash=canonical_hash(cap),rules_hash=canonical_hash(rule),
         expected_build_digest=expected_build_digest,
@@ -91,7 +123,8 @@ def build_program_context(analysis_snapshot,*,decision_context,capabilities,rule
     payload=dict(model_schema_revision=SCHEMA,analysis_snapshot=snapshot,order_context=order_context)
     return FrozenProgramContext(_json=canonical_json(payload),decision_context=decision_context,
         capabilities=capabilities,rules=rules,expected_build_digest=expected_build_digest,
-        capability_decision=capability_decision)
+        capability_decision=capability_decision,financial_market_snapshot=financial_market_snapshot,
+        financial_book=financial_book)
 
 
 def validate_program_context(frame):
@@ -99,7 +132,8 @@ def validate_program_context(frame):
     rebuilt=build_program_context(frame.payload['analysis_snapshot'],decision_context=frame.decision_context,
         capabilities=frame.capabilities,rules=frame.rules,
         strategy_revision=frame.decision_context.strategy_revision,expected_build_digest=frame.expected_build_digest,
-        capability_decision=frame.capability_decision)
+        capability_decision=frame.capability_decision,financial_market_snapshot=frame.financial_market_snapshot,
+        financial_book=frame.financial_book)
     require(rebuilt._json==frame._json,'PROGRAM_CONTEXT_CHANGED')
     return frame.payload
 
@@ -165,6 +199,8 @@ def admit_program_assessment(assessment,frame,*,admission_service=None):
         and assessment.proposal.action=='SET_TARGET','PROGRAM_ADMISSION_TARGET_REQUIRED')
     service=admission_service;proposal=assessment.proposal;context=frame.decision_context
     require(service.scope==frame.capabilities.scope,'PROGRAM_ADMISSION_SCOPE_MISMATCH')
+    if frame.financial_market_snapshot is None or frame.financial_book is None:
+        raise ApiError('MODEL_FINANCIAL_LINK_REQUIRED','分析与资金快照关联尚未建立。',409)
     ingress=service.ingress
     with ingress.uow.transaction(service.scope) as tx:
         require(callable(ingress.load_inputs),'PROGRAM_CURRENT_INPUT_READER_REQUIRED')
@@ -182,7 +218,23 @@ def admit_program_assessment(assessment,frame,*,admission_service=None):
             expected_instrument_ref=facts.expected_instrument_ref,allow_round_down=facts.allow_round_down)
         require(canonical_hash(domain_payload(compilation))==canonical_hash(domain_payload(facts.compilation)),
                 'PROGRAM_CURRENT_COMPILATION_CHANGED')
-    receipt=service.admit(proposal,context,compilation)
+    original_load=service.load_inputs
+    def guarded_inputs(tx,source,record,book,clock):
+        from trading_system.risk.program_financial_admission import ProgramFinancialInputs
+        actual=original_load(tx,source,record,book,clock)
+        require(type(actual) is ProgramFinancialInputs,'PROGRAM_FINANCIAL_INPUTS_REQUIRED')
+        if (canonical_hash(domain_payload(book))!=canonical_hash(domain_payload(frame.financial_book))
+            or canonical_hash(domain_payload(actual.archive.risk_facts.market))
+               !=canonical_hash(domain_payload(frame.financial_market_snapshot))):
+            raise ApiError('REPLAN_REQUIRED','模型所见行情或持仓、在途、资金状态已变化。',409)
+        return actual
+    # Same service class/kernel/UoW and all independent qualification/wallet/
+    # dispatch readers. This adds a stricter frame check INSIDE its actual
+    # financial transaction; no shared service mutation or fake success callback.
+    guarded=GenericProgramAdmissionService(service.ingress,service.reservations,load_inputs=guarded_inputs,
+        load_clock=service.load_clock,load_qualification=service.load_qualification,
+        load_action_proof=service.load_action_proof,load_lease=service.load_lease,load_wallet=service.load_wallet)
+    receipt=guarded.admit(proposal,context,compilation)
     require(type(receipt) is GenericProgramAdmissionReceipt,'PROGRAM_COMMITTED_RECEIPT_REQUIRED')
     return receipt # committed intake/financial attachment only, never permit/fill
 

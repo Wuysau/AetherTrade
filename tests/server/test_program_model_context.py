@@ -169,3 +169,13 @@ def test_server_context_uses_actual_existing_four_layer_catalog_intersection(mon
         capability_catalog=catalog,capability_query=query)
     assert actual.payload['order_context']['capability_intersection']['rejection_codes']==['AUTHORIZATION_UNKNOWN_OR_CHANGED']
     assert actual.payload['order_context']['qualification_status']=='UNQUALIFIED'
+
+def test_analysis_and_financial_snapshot_hash_domains_are_separate_with_explicit_missing_link(monkeypatch):
+    snapshot,context,c,r,frame,_=case(monkeypatch)
+    financial_ref=replace(context.snapshot_ref,id='financial-market',hash='b'*64)
+    result=build_program_context(snapshot,decision_context=replace(context,snapshot_ref=financial_ref),
+        capabilities=c,rules=r,strategy_revision=1,expected_build_digest=c.adapter_build_digest)
+    binding=result.payload['order_context']
+    assert binding['analysis_snapshot_hash']==snapshot['snapshot_hash']
+    assert binding['financial_market_snapshot_ref']['hash']=='b'*64
+    assert 'ANALYSIS_FINANCIAL_LINK_NOT_ESTABLISHED' in binding['blockers']

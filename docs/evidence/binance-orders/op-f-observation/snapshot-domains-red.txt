@@ -1,0 +1,14 @@
+............F                                                            [100%]
+================================== FAILURES ===================================
+_ test_analysis_and_financial_snapshot_hash_domains_are_separate_with_explicit_missing_link _
+tests\server\test_program_model_context.py:176: in test_analysis_and_financial_snapshot_hash_domains_are_separate_with_explicit_missing_link
+    result=build_program_context(snapshot,decision_context=replace(context,snapshot_ref=financial_ref),
+src\trading_system\server\program_model_context.py:69: in build_program_context
+    require(decision_context.snapshot_ref.id==snapshot['snapshot_id']
+src\trading_system\server\program_model_context.py:26: in require
+    if not condition:raise ValueError(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_SNAPSHOT_BINDING_REQUIRED
+=========================== short test summary info ===========================
+FAILED tests/server/test_program_model_context.py::test_analysis_and_financial_snapshot_hash_domains_are_separate_with_explicit_missing_link
+1 failed, 12 passed in 1.44s
