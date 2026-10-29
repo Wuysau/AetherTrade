@@ -45,6 +45,10 @@ class WorkingRiskBound:
 class PendingRiskBound:
     obligation_id:str
     scope:t.ScopeKey
+    source_family:Literal['LEGACY_COMMAND','APPLICATION_WRITE']
+    service_namespace:Literal['ORDINARY','ORDER_LIST','CONDITIONAL_ALGO','EXECUTION_ALGO','EQUITY']
+    canonical_command_refs:tuple[str,...]
+    original_command_refs:tuple[str,...]
     minimum_price:t.Price|None
     maximum_price:t.Price|None
     evidence_refs:tuple[str,...]
