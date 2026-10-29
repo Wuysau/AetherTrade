@@ -1,0 +1,272 @@
+{
+  "source_commit": "a055f2c193ee3883ba600d075edb48592778a685",
+  "started_utc": "2026-10-29T06:32:10.654730+00:00",
+  "postgres_container": "aethertrade-qualification-pg-27ebf451a9fa",
+  "runner_container": "aethertrade-qualification-runner-27ebf451a9fa",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opc-program-risk\\.runtime\\paper-qualification-27ebf451a9fa\\source.bundle",
+        "HEAD",
+        "a055f2c193ee3883ba600d075edb48592778a685"
+      ],
+      "log": "bundle.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        "aethertrade-qualification-pg-27ebf451a9fa",
+        "--env-file",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opc-program-risk\\.runtime\\paper-qualification-27ebf451a9fa\\container.env",
+        "postgres:17-alpine"
+      ],
+      "log": "postgres-start.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        "aethertrade-qualification-runner-27ebf451a9fa",
+        "--network",
+        "container:aethertrade-qualification-pg-27ebf451a9fa",
+        "--env-file",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opc-program-risk\\.runtime\\paper-qualification-27ebf451a9fa\\container.env",
+        "--mount",
+        "type=bind,source=D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opc-program-risk\\.runtime\\paper-qualification-27ebf451a9fa,target=/handoff",
+        "python:3.12-slim",
+        "sleep",
+        "14400"
+      ],
+      "log": "runner-start.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.Image}}",
+        "aethertrade-qualification-pg-27ebf451a9fa",
+        "aethertrade-qualification-runner-27ebf451a9fa"
+      ],
+      "log": "container-images.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-27ebf451a9fa",
+        "sh",
+        "-c",
+        "apt-get update && apt-get install -y --no-install-recommends git"
+      ],
+      "log": "linux-dependencies.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-27ebf451a9fa",
+        "git",
+        "clone",
+        "/handoff/source.bundle",
+        "/tmp/source"
+      ],
+      "log": "source-clone.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-27ebf451a9fa",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "a055f2c193ee3883ba600d075edb48592778a685"
+      ],
+      "log": "source-checkout.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-27ebf451a9fa",
+        "python",
+        "-m",
+        "pip",
+        "install",
+        "-e",
+        ".[test]"
+      ],
+      "log": "python-dependencies.txt",
+      "timeout_seconds": 900,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-27ebf451a9fa",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--initialize"
+      ],
+      "log": "initialize-marker.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-27ebf451a9fa",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--evidence-dir",
+        "/handoff/evidence/postgres"
+      ],
+      "log": "postgres-suites.txt",
+      "timeout_seconds": 3467,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-27ebf451a9fa",
+        "python",
+        "-m",
+        "pip",
+        "freeze"
+      ],
+      "log": "resolved-dependencies.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "stop",
+        "--time",
+        "10",
+        "aethertrade-qualification-runner-27ebf451a9fa"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 30,
+      "log": "runner-stop.txt"
+    }
+  ],
+  "launcher_sha256": "28183f5dffced5f5ef774c534dc0e6b9ec0d2630449ec44b1b1d0956277ccea7",
+  "scope": "LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION",
+  "diagnostic_suite": null,
+  "deadline_seconds": 3600,
+  "exit_code": 0,
+  "finished_utc": "2026-10-29T06:43:05.288215+00:00",
+  "files_sha256": {
+    "bundle.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "container-images.txt": "ef6ccce9418a1c9a5c8f651a5e52d60acd1b6314828177017c99f335a01115ff",
+    "initialize-marker.txt": "950d831a070494277c15b1de879def7661ade4d4c3e921e65eb4e8a79e8383f4",
+    "linux-dependencies.txt": "2b9b214f9ede2ee607766b07fcb4cf1710611b4c48a9ee280a8fe591c9ea90e7",
+    "postgres/a055f2c193ee-14299c350335/aborted-projection.log": "61dbbd405a897a138f05429e6f819893c381689dc852c90ba89c27735bd165f4",
+    "postgres/a055f2c193ee-14299c350335/aborted-projection.xml": "6ce0b5f61f85928251dd2e84304db2cbdf7299f2f23a110ce97c76ae9d214e41",
+    "postgres/a055f2c193ee-14299c350335/application-write-obligations.log": "ba1b480e01e3998d9f4ba4d7fc3cd32bc90e987fc445a831e642c399f3630f75",
+    "postgres/a055f2c193ee-14299c350335/application-write-obligations.xml": "79b579f68d8d4831bbe963a6fd5876780d81e970d1f24142b574f5e2b4341194",
+    "postgres/a055f2c193ee-14299c350335/application-write-old-database.log": "ac03dc55bdc1ce87ab5a711fdf5a7d72d345e62c471c4cb4e9de283e03475f14",
+    "postgres/a055f2c193ee-14299c350335/application-write-old-database.xml": "b9b6a8688907f92d68853876e364a4c3e909357b527c6072a01990ec5047e852",
+    "postgres/a055f2c193ee-14299c350335/capacity-precision.log": "b263d69c44b612282137de0281bd9556f3ac416582ffd664301063cbd8c10652",
+    "postgres/a055f2c193ee-14299c350335/capacity-precision.xml": "00363c1e7217df3ad7371defb175b91386e44d49911f2f1041e23bcf1a562af4",
+    "postgres/a055f2c193ee-14299c350335/child-cancel.log": "073298c74833817705352bbf5f0089b316968b693b62a604435ff39bdd75dea9",
+    "postgres/a055f2c193ee-14299c350335/child-cancel.xml": "6ff208cb96f623b8f3699639a96e5a27e074ddbc1259eb9fe7886b0df4e13932",
+    "postgres/a055f2c193ee-14299c350335/console-contract.log": "7e1350e42b4c3df38a75fb030470f23b5236de688ca79a5f767aafce25351938",
+    "postgres/a055f2c193ee-14299c350335/console-contract.xml": "0db69ad4e7d284fcab6b18d62c571c203ef8ac3d9c99c55639b32cb3566feb46",
+    "postgres/a055f2c193ee-14299c350335/console.log": "49abd204d5b2583756e25e9ea7b8bf8f7d1a6754d9290781d0d6856a085cef29",
+    "postgres/a055f2c193ee-14299c350335/console.xml": "7de6cc4ee3bab56aed733f89350dae3d90a50abfe9bebda38bc1473126ef7af8",
+    "postgres/a055f2c193ee-14299c350335/dispatch-account-risk.log": "47cc8f694f93b820c722ac24afe336f3b37bea701243ac349f863e6b5754df5a",
+    "postgres/a055f2c193ee-14299c350335/dispatch-account-risk.xml": "50b1e576310e35f0d36f91aae4ccf1ec0e7ed353f5872b48acbb56dc6a6b81a5",
+    "postgres/a055f2c193ee-14299c350335/dispatch.log": "cfce33713781fc7fd07acc3b9fea6ca3beca1cf37afb4a54e81931125ef75b81",
+    "postgres/a055f2c193ee-14299c350335/dispatch.xml": "76fd1de24dec02800c0efa61f04ab91e0830d0aa7565ed0e4e1df227623a677f",
+    "postgres/a055f2c193ee-14299c350335/duplicate-target.log": "298d0f7261686dee7ce4fb6e854fa79870ace23db38c50083dc65fcfa22d37d1",
+    "postgres/a055f2c193ee-14299c350335/duplicate-target.xml": "069b3a47bb12874279e91e9400ba838ed5342c60c13ea7fe27cfde0db9219b52",
+    "postgres/a055f2c193ee-14299c350335/execution-evidence.log": "f1647d119e1567917af0267827995a1ed77e722845f87d96ded2cfedc5f15464",
+    "postgres/a055f2c193ee-14299c350335/execution-evidence.xml": "bdbfe3b8912ebc903685718aa84c568dcce9aa546735fa77cb899ae088b1a2d8",
+    "postgres/a055f2c193ee-14299c350335/group-daily-loss.log": "674e6eeb9e21ea5cef529c904bac71222c96b58eb0f209336cf1c0f0f3bd250b",
+    "postgres/a055f2c193ee-14299c350335/group-daily-loss.xml": "8c7ee8639e22d1bda95b9f31a1376883720a6a942eaf04337f51a488d90ede2f",
+    "postgres/a055f2c193ee-14299c350335/ledger.log": "1fa1673c9b700c83a6837bfeb02e566c68b33e51632ad799b2b40091538ced35",
+    "postgres/a055f2c193ee-14299c350335/ledger.xml": "461051a8c40b2dabeedabcc2313f49ab64a804d70da2f520e297155bdc1ecb79",
+    "postgres/a055f2c193ee-14299c350335/order-admission.log": "b9c88633a40429f0552c8a53512e0fbd7ad002acce8b4b81a07ca86de9ef689e",
+    "postgres/a055f2c193ee-14299c350335/order-admission.xml": "22b2c9ca5e7593f2d53360fa7c0d8fbf43dee9610ac0df336bfa01a398667626",
+    "postgres/a055f2c193ee-14299c350335/order-closure.log": "dd102a31c121d1a564c4778cec934d8b420d9e9a4fa50a24464946e293a6d0e7",
+    "postgres/a055f2c193ee-14299c350335/order-closure.xml": "d38d4ab05ba9929b65324a6a775bf91b1f41dd2b5673b01763ae0e3f201d93d6",
+    "postgres/a055f2c193ee-14299c350335/order-financial-credit.log": "3b45c40b02bbf6109765e64b36a39a7d5acba2f704406c3df8b08e9de548697a",
+    "postgres/a055f2c193ee-14299c350335/order-financial-credit.xml": "a210f76ae5ffcd75975747731bcc79fdc596bcce4422a8d2d6bfe6c2a62b779b",
+    "postgres/a055f2c193ee-14299c350335/order-programs.log": "32ed10e15c9514c0bd2f14ff96c967bb804697b43bd2682f742640ad8551d3f9",
+    "postgres/a055f2c193ee-14299c350335/order-programs.xml": "46a4ea3fc9dd7a31bf987d45faad7561efae62a8740a4ffd4569cea53bee7bf3",
+    "postgres/a055f2c193ee-14299c350335/owner-maintenance.log": "390cd74c81a1f22434697cb2bbd75d85ea78b36f880a3f0a70deb3f020a71581",
+    "postgres/a055f2c193ee-14299c350335/owner-maintenance.xml": "78f91aef7c1dc1edcd2c6c8ebff93c10895b5c06f90730aaf0129f701f3423c5",
+    "postgres/a055f2c193ee-14299c350335/ownership.log": "45ef1a2418c7c9f5f23fa6da6f19b56d0a396256971d130fc1aa3a111c109463",
+    "postgres/a055f2c193ee-14299c350335/ownership.xml": "533eae549682e9eed2b03fe10dac22605e0d5e828dde22806652abd0ee576563",
+    "postgres/a055f2c193ee-14299c350335/paper-engine.log": "57c2cfc9dd6875f4c14723721a563c98bf449a472a484dd8fadaf7eb065b2bd3",
+    "postgres/a055f2c193ee-14299c350335/paper-engine.xml": "04a513afab60ddc3d3b951abe49b115eb7a7aa97aef5447556d0053be8d91da6",
+    "postgres/a055f2c193ee-14299c350335/protected-reduction.log": "2049ae10aa2fc0e8beda6c91d319eb78d878a289913be4f8c0ddd2b2b9e4c147",
+    "postgres/a055f2c193ee-14299c350335/protected-reduction.xml": "027ecfa8038b8df396ae9f15c771979de5d2b881071b61c510812d3533292315",
+    "postgres/a055f2c193ee-14299c350335/protection.log": "673f78d6fad91f491757e11887ea4040b62f4f3cbb80ee7416607743a23982c8",
+    "postgres/a055f2c193ee-14299c350335/protection.xml": "9583fbd69b1cbd7fb8716d7b9219a38ee5b3d44b1596d41597a5318fbd5a2d69",
+    "postgres/a055f2c193ee-14299c350335/recovery.log": "34f35e388705b5851e6e3de93c20f7807839822ea9a909f55c9e23187d321efe",
+    "postgres/a055f2c193ee-14299c350335/recovery.xml": "d336ea8857108f69237b237a7e9058115e2b2994adbb92f912477e7008b89be4",
+    "postgres/a055f2c193ee-14299c350335/reservations.log": "023b2a7af4d09271a2415b36568eed967d28360167a1f2a75233d57037b90019",
+    "postgres/a055f2c193ee-14299c350335/reservations.xml": "f51d780f47ae82f8790f73b6a0773cbf6d3a3581b9062974c5fb862b7729ac22",
+    "postgres/a055f2c193ee-14299c350335/risk-locks.log": "89713b7749c347907165c1cf1b77f986f25c9c5eceb6ab0c193c09bfdbfd70f0",
+    "postgres/a055f2c193ee-14299c350335/risk-locks.xml": "e1ed3adf2991c7aac9ace39dd0ea9a3ce727ac2432a92bb222d7fc7e82a89ff1",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults-states/competing-strategies-7bc971a8119343ff85b62052ef602d92.json": "e39092408fc362e419a00f5ff493f53c8ad4bbe5351061383706af99a02b932c",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults-states/manual-reduction-old-target-6381c52516b44e8e92d542c6c23a5171.json": "7325ea65120bfd6c2651be9e7825e865a4ddef214b26b7047fea2ed2a5382bb1",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults-states/process-after-ack-d5431fdbe93045868f237bbafad09a9f.json": "5b41427f8ba5698f065b71695f5a4c0dbe05a3d0c77fed64c7594ed888f8de23",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults-states/process-after-venue-17d0cc654f8e4113a460fe0ad9ddd646.json": "789d82d201fd778cb0704786f6163d4b665c03482e56e831da762b6e4a1befe2",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults-states/process-before-venue-1bff083cb81f4be892f43e3d042f7941.json": "d69f903e60b343bdf6fb3d19afb73042accb791fae66468c792ba507f468f9ad",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults-states/process-durable-90712a7f396944d6962b17fab9d999be.json": "c19337d65aa0088e06ebffa34c09b86451620d7649a7d24899af820f4e55392c",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults-states/process-protection-302e3b617ac445108edb583b121ff22f.json": "bc06b792592ac6a5bf2174130abcebc68d83eab003ca1b216bb0f312e90608c0",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults-states/ready-query-order-2fa38d9b145246c4989955208f9fccd2.json": "412ff90e7c3b3769912647d3e5f83eef20ad3e5771378226eb9d4548619fe0ce",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults-states/stale-quote-aa572d4cddf8439fbfcfef1b15583536.json": "7dff1168b8fedf3bc09733be8b8dc0934837bfedc4c1020dd023641e902d06fd",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults.log": "6874181dc01434991058037eb0f6785c43bef3621690d2dbd5b19ffd27c0108e",
+    "postgres/a055f2c193ee-14299c350335/runtime-faults.xml": "39e217a690734ca9b93733ff50851d49cc62b4a86772270147b02829ef2dba41",
+    "postgres/a055f2c193ee-14299c350335/summary.json": "f0f3f38cb0048f359cf2f2db9117faf2708835de1701635e5e95746034818506",
+    "postgres/a055f2c193ee-14299c350335/unified-runtime.log": "1900cb26e91918a7a7d3bf224e8cc1e81ba4c18850741ed37378170838d342ad",
+    "postgres/a055f2c193ee-14299c350335/unified-runtime.xml": "4532b77bca99d5c92a4e1ccbae4453b2125e1285dcb0191b158cda273d8adc04",
+    "postgres-start.txt": "d8926b6a55ce7b01672a81efc983008b72c2db8122a49dff8b6d8d0017491843",
+    "postgres-suites.txt": "9f311e2bfb0655166a6a26fe070109628f7a5c8caf269c6c204ccbf1eaa981f9",
+    "python-dependencies.txt": "21b53a5367d7222c2e98d5f3d676b6d641d9fb876f4cba51d95fb37b925e51d3",
+    "resolved-dependencies.txt": "f076064e6d386fe534600584e016ac021ca077a29ef88e16dfe12e781a803d1b",
+    "runner-start.txt": "4175b551f149d0a19b7838b8af302bd257f2d75e9abff28bc81e212e55110d81",
+    "runner-stop.txt": "f7965573c0cccd82eaaba4e43bee31eece9f5673f01899a8127b2dcb87fe4d76",
+    "source-checkout.txt": "1f5c0aae00052829668217b0a6903fac78588404b4a27788289e6cd7369b36e8",
+    "source-clone.txt": "d06969564c6938a0ef49488ad54badc5b9ebf99beafb44e8e14795d19469edcf"
+  }
+}
