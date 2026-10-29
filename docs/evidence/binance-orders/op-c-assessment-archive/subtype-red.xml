@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.654" timestamp="2026-10-29T15:25:29.613239+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.unit.test_assessment_archive" name="test_genuine_bounded_exit_preserves_false_protection_unknown_loss_and_duties" time="0.347"><failure message="ValueError: invalid stored union">tests\unit\test_assessment_archive.py:283: in test_genuine_bounded_exit_preserves_false_protection_unknown_loss_and_duties
+    restored=ProgramFinancialAssessmentArchiveCodec().decode(ProgramFinancialAssessmentArchiveCodec().encode(a))
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_assessment_archive.py:100: in encode
+    require(self.decode(payload)==archive,'ASSESSMENT_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_assessment_archive.py:93: in decode
+    archive=decode(ProgramFinancialAssessmentArchive,payload)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\storage\models.py:101: in decode
+    return restore(cls, payload)
+           ^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\storage\models.py:97: in restore
+    return kind(**{k: restore(hints[k], v) for k, v in value.items()})
+                      ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\storage\models.py:77: in restore
+    raise ValueError('invalid stored union')
+E   ValueError: invalid stored union</failure></testcase></testsuite></testsuites>
