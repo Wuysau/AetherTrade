@@ -1,5 +1,49 @@
 # Current task
 
+## OP_C_CURRENT_PROGRAM_FINANCIAL_KERNEL — 2026-10-29
+
+Sole root writer remains integration_lead; parent reads/coordinates only.
+Root299f9db includes complete assessment archive52c55a6, structural request guards
+4b2fb7d, actual same-core full-source intake/financial writerb6b2dbb, current query
+age correction52ecf8e and native OCO allocation/risk41867ce. GenericProgramIngress
+writes original typed proposal/context through existing ledger_intake table;
+source hashes bind the actual immutable SQL row/transaction. Financial IDs bind
+physical scope. No fabricated legacy TradeIntent or new cash ledger exists.
+
+ReservationService._reserve_program is PRIVATE SAME-transaction attachment API:
+real current typed archive/auth/owner/fence/clock/book/quantity/group-holds,
+actual risk replay, independent current qualification plus PAPER_VERIFIED claims,
+same capacity/reconciled holds, LockedActionVerifier program branch and real
+intent/basis/decision/reservation persistence. Bounded residual EXIT_ONLY locks
+and MANAGE_UNTIL_FLAT data are written atomically. It issues no standalone public
+success or permit; actual external writes or typed internal activation must be
+attached in the enclosing transaction. Those integrations remain underway.
+
+Native OCO now keeps each exact full-delta leg, requires matching atomic group
+proof for mathematical ALLOW and evaluates alternative legs plus NO-FILL using
+the SAME exposure calculator. Conditional FLAT retains current position loss,
+stop/holding/protection duties. Local OCO remains explicitly SUM/race-unresolved.
+Native quote target intervals and fee/dust residual contracts still require real
+implementation; all46targets/56cases and OP-D/E/F/G remain in scope.
+
+Validation: new fixedb6b2dbb isolated PG8 passed, zero skips/errors/failures;
+.runtime/paper-qualification-328ab6397f7f/evidence. Broader contracts/intents/unit
+1468 passed after OCO/query-age code (before last tiny financial fence checks).
+Current final21 input/proof unit cases passed. New fixed299f9db diagnostic PG12
+RUNNING exec86745; full fixedb6b2dbb gate30suites+ordinaryPython RUNNING exec81820,
+.runtime/paper-qualification-92e9bd588799/evidence. Poll existing jobs; no restarts
+on observation timeout. b6 full gate predates later guards/OCO; do not promote it
+to current source or native qualification.
+
+Peer pin_native_build owns program-commands/0012; full V3 request/bundle bindings,
+original identities, single-use commit-before-permit, current server proofs.
+Dedicated NOLOGIN ledger_program_dispatch_verifier approved, no owner/control
+memberships/grants, same business execution owner/lease and no second keyholder.
+Peer admission_review owns financial-records, now planning real internal local
+TWAP/VP activation from existing ParentAuthorityV3/LOCAL_PROGRAM_ACTIVATION,
+without fictitious native parent or control_commands grants. Root receives tested
+commits; neither peer writes this worktree. Goal ACTIVE, PAPER only.
+
 ## OP_C_INTEGRATION_LEAD_SOLE_WRITER — 2026-10-29
 
 Root delegated sole write ownership of this binance-orders worktree to
