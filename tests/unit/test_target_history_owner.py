@@ -40,6 +40,8 @@ def history():
         group_id = old_intent.collateral_group_id
 
         def execute(self, query, params=()):
+            if 'FROM ledger.audit_events WHERE left(record_id,' in query and params==(25,'local-program-activation:'):
+                return SimpleNamespace(fetchall=lambda: [])
             if "to_regclass('ledger.order_writes_v2')" in query:
                 # This fixture models a historical ledger before migration0008.
                 return SimpleNamespace(fetchone=lambda: (None,))
