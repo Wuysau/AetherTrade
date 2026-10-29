@@ -86,3 +86,9 @@ changing legacy semantics. Versioned generic intent/risk/command persistence,
 owner/permit composition and native lifecycle units/group authority remain
 separate unfinished work. TESTNET/LIVE remain disabled; this does not promote any
 full ORD venue scenario or remove any of the46 targets.
+
+Final verification:154 focused tests and1087 unit/intents/contracts tests pass.
+Both implementation79eae93 and final reviewed sourcec71a540 pass all904 mandatory
+isolated PostgreSQL cases across26 suites, with no failures/errors/skips. Exact
+commands, RED evidence and source-bound raw outputs are retained in
+`docs/evidence/binance-orders/op-c-risk-core/`.
