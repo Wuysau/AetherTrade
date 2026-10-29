@@ -55,7 +55,7 @@ def project_program(payload, *, source):
         execution_mode=payload.get('execution_mode') if decoded else None,
         nodes=payload.get('nodes', []) if decoded else [],
         execution_state='NOT_OBSERVED', protection_status='NOT_OBSERVED',
-        children_complete=None, execution_authorized=False)
+        children_complete=None, state_origin='NOT_OBSERVED', execution_authorized=False)
 
 
 # Names are fixed implementation constants, never request parameters.
@@ -129,7 +129,8 @@ class OrderObservationService:
                 'SELECT scope_id,program_id,payload,source FROM programs WHERE (scope_id,program_id)>(%s,%s) '
                 'ORDER BY scope_id,program_id LIMIT %s')
             rows = conn.execute(query, tuple([keys] * len(parts)) + (*after, limit + 1)).fetchall()
-            items = [dict(project_program(row[2], source=row[3]), scope_id=row[0]) for row in rows[:limit]]
+            items = [dict(project_program(row[2], source=row[3]), scope_id=row[0],
+                          scope=domain_payload(self.scopes[row[0]])) for row in rows[:limit]]
             next_cursor = (base64.urlsafe_b64encode(json.dumps(list(rows[limit-1][:2])).encode()).decode()
                            if len(rows) > limit else None)
             return dict(items=items, next_cursor=next_cursor, scopes=self.scope_views(), read_only=True,
@@ -173,14 +174,16 @@ class OrderObservationService:
             records['local_states'], truncated['local_states'] = self._records(conn, available, 'audit_events', scope,
                 'record_id=ANY(%s)', (['local-program-state:'+r['payload']['activation_id'] for r in activations],))
             state = records['states'][0]['payload'] if records['states'] else None
+            state_origin = 'VENUE_LIFECYCLE_ARCHIVE' if state else 'NOT_OBSERVED'
             if not state and len(records['local_states'])==1:
                 state = records['local_states'][0]['payload']
+                state_origin = 'LOCAL_ACTIVATION'
             view['state_observation'] = None
             if state:
                 try:
                     VersionedOrderCodec().decode('program-state', state)
                     view.update(execution_state=state['status'],
-                        state_observation=state,
+                        state_observation=state, state_origin=state_origin,
                         protection_status=state.get('protection_status', 'UNVERIFIED_DUTY'),
                         children_complete=(state.get('parent_observation') or {}).get('child_inventory'))
                 except (ValueError, TypeError, KeyError, ValidationError):
