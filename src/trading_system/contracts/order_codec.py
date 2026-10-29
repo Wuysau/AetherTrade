@@ -6,11 +6,13 @@ from .resources import contract_path
 from .wire import ContractCodec
 from .order_program import OrderProgram,AtomicOrderSpec,OrderProposal,OrderProgramCodec
 from .order_lifecycle import ParentAuthority,ChildObservation,ProgramState,ApplicationWrite,ParentObservation
+from .order_program_v3 import OrderProgramV3,OrderProposalV3
 from .order_snapshots import OrderCapabilitySnapshot,OrderRuleSnapshot
 
 KINDS={'order-proposal':OrderProposal,'order-program':OrderProgram,'atomic-order':AtomicOrderSpec,'parent-authority':ParentAuthority,'parent-observation':ParentObservation,
        'child-observation':ChildObservation,'program-state':ProgramState,'application-write':ApplicationWrite,
        'order-capability-snapshot':OrderCapabilitySnapshot,'order-rule-snapshot':OrderRuleSnapshot}
+KINDS_BY_VERSION={'2026-10-28':KINDS,'2026-10-29':{'order-program':OrderProgramV3,'order-proposal':OrderProposalV3}}
 LEGACY={'decision-proposal','trade-intent','execution-command','risk-policy'}
 
 class VersionedOrderCodec:
@@ -18,14 +20,17 @@ class VersionedOrderCodec:
         from trading_system.storage.models import decode
         version=version or payload.get('contract_version')
         if version=='2026-10-20' and kind in LEGACY:return ContractCodec().decode(kind,payload)
-        if version!='2026-10-28' or kind not in KINDS:raise ValueError('Unknown contract version/kind; never recompile historical orders')
+        kinds=KINDS_BY_VERSION.get(version,{})
+        if kind not in kinds:raise ValueError('Unknown contract version/kind; never recompile historical orders')
         text=canonical_json(payload)
         if len(text.encode())>1048576:raise ValueError('Order record too large')
-        schema=json.loads(contract_path(kind+'.v2026-10-28.schema.json').read_text(encoding='utf-8'))
+        schema=json.loads(contract_path(kind+'.v'+version+'.schema.json').read_text(encoding='utf-8'))
         Draft202012Validator(schema,format_checker=FormatChecker()).validate(payload)
-        return decode(KINDS[kind],payload)
+        return decode(kinds[kind],payload)
     def encode(self,kind,record):
         if kind in LEGACY:return ContractCodec().encode(record)
-        if kind not in KINDS or type(record) is not KINDS[kind]:raise ValueError('Record kind mismatch')
-        payload=domain_payload(record);self.decode(kind,payload,version='2026-10-28');return payload
+        version=getattr(record,'contract_version','2026-10-28')
+        kinds=KINDS_BY_VERSION.get(version,{})
+        if kind not in kinds or type(record) is not kinds[kind]:raise ValueError('Record kind mismatch')
+        payload=domain_payload(record);self.decode(kind,payload,version=version);return payload
     def hash(self,kind,record):return canonical_hash(self.encode(kind,record))
