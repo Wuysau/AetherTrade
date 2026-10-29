@@ -244,6 +244,9 @@ def schema_for(cls):
 
 class OrderProgramCodec:
     def decode(self,payload):
+        if isinstance(payload,dict) and payload.get('contract_version')=='2026-10-29':
+            from .order_codec import VersionedOrderCodec
+            return VersionedOrderCodec().decode('order-program',payload)
         from trading_system.storage.models import decode
         canonical_json(payload)
         schema=json.loads(contract_path('order-program.v2026-10-28.schema.json').read_text(encoding='utf-8'))
@@ -251,6 +254,9 @@ class OrderProgramCodec:
         if len(canonical_json(payload).encode())>131072:raise ValueError('Program budget exceeded')
         return decode(OrderProgram,payload)
     def encode(self,record):
+        if getattr(record,'contract_version',None)=='2026-10-29':
+            from .order_codec import VersionedOrderCodec
+            return VersionedOrderCodec().encode('order-program',record)
         if type(record) is not OrderProgram:raise TypeError('OrderProgram required')
         payload=domain_payload(record);self.decode(payload);return payload
     def hash(self,record):return canonical_hash(self.encode(record))
