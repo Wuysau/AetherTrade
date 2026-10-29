@@ -17,7 +17,7 @@ from trading_system.intents.program_assessment_archive import (financial_intent_
 from trading_system.risk.program_financial_admission import (ProgramFinancialBundle,ARCHIVE_PREFIX,BASIS_PREFIX,
     DECISION_PREFIX,BUNDLE_PREFIX,program_bundle_command_ids,claim_program_attachment,current_program_bundle_witness)
 from trading_system.storage.models import scope_id,account_key,decode,encode,atomic_write,MissingEvidence
-from trading_system.storage.order_programs import OrderProgramRepository
+from trading_system.storage.order_programs import OrderProgramRepository,FundingLink
 from .creation_requests import VenueCreationRequest,EquityWalletSelection,verify_creation
 from trading_system.intents.program_compilation import Timing,Namespace
 
@@ -187,6 +187,12 @@ class ProgramCommandRepository:
         require(digest(self._bundle(write.intent_id))==digest(bundle),'PROGRAM_BUNDLE_CHANGED')
         require(self.write(write.command_id) is None,'PROGRAM_COMMAND_EXISTS_QUERY_ORIGINAL')
         OrderProgramRepository(self.tx).save_program(bundle.intent.proposal.program)
+        for projection in bundle.reservations:
+            reservation_id=projection.reservation.reservation_id
+            link=FundingLink(program_id=write.program_id,reservation_id=reservation_id,intent_id=write.intent_id)
+            existing=self.tx._latest('order_funding_links',reservation_id,FundingLink)
+            require(existing is None or digest(existing)==digest(link),'PROGRAM_FUNDING_LINK_CONFLICT')
+            if existing is None:self.tx._append('order_funding_links',reservation_id,link,0)
         self.tx._append('program_request_bindings',write.command_id,binding,0)
         ids=request.assigned_ids
         identities=tuple(m.client_id for m in ids.members)+((ids.parent_client_id,) if ids.parent_client_id else ())
