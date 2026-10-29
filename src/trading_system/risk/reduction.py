@@ -126,7 +126,8 @@ def validate_bounded_reduction(proof,inputs,terms,plan,a,book,facts):
         and emergency.maximum_slippage_bps.is_finite() and 0<=facts.entry_slippage_bps<=emergency.maximum_slippage_bps
         and emergency.maximum_quote_age_ms>0,'BOUNDED_REDUCTION_EMERGENCY_BINDING_MISMATCH')
     node=plan.nodes[0];order=node.original.order
-    require(node.order_type in emergency.allowed_order_types and order.side==('SELL' if delta.actual.value>0 else 'BUY'),
+    require(node.order_type in ('MARKET','LIMIT') and node.order_type in emergency.allowed_order_types
+        and order.side==('SELL' if delta.actual.value>0 else 'BUY'),
         'BOUNDED_REDUCTION_ORDER_NOT_AUTHORIZED')
     if terms.scope.product==t.Product.USD_M_PERP:
         require(inputs.observed_position_mode=='ONE_WAY' and terms.scope.venue_leg=='BOTH'
@@ -136,6 +137,7 @@ def validate_bounded_reduction(proof,inputs,terms,plan,a,book,facts):
     for lock in proof.locks:
         expected=POLICIES.get(lock.cause)
         require(expected is not None and lock.state=='ACTIVE' and lock.permission==expected[0]
+            and set(expected[1])<=set(lock.required_evidence)
             and lock.permission!=t.RiskPermission.RECOVERY_REQUIRED
             and lock.cause not in ('ORDER_OUTCOME_UNKNOWN','RESERVATION_COMMAND_UNKNOWN')
             and (lock.scope==terms.scope or lock.cause=='DAILY_LOSS'),'BOUNDED_REDUCTION_RECOVERY_OR_UNKNOWN_LOCK')

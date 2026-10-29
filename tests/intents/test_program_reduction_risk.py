@@ -122,3 +122,24 @@ def test_futures_emergency_exit_must_carry_the_existing_reduce_only_wire_guard()
     result=assess(bounded_case(product=t.Product.USD_M_PERP,reduce_only=True))
     assert result.verdict=='ALLOW',result.rejection_codes
     assert type(result.metrics) is ReductionRiskMetrics and result.metrics.protection_complete is False
+
+
+def test_conditional_order_is_not_an_existing_immediate_emergency_exit_permission():
+    c=bounded_case(conditional=True)
+    emergency=replace(c.facts.inputs.emergency,allowed_order_types=('STOP_LOSS',))
+    proof=replace(c.facts.reduction_proof,emergency=emergency)
+    c.facts=replace(c.facts,inputs=replace(c.facts.inputs,emergency=emergency),reduction_proof=proof)
+    result=assess(c)
+    assert result.verdict=='DENY' and 'BOUNDED_REDUCTION_ORDER_NOT_AUTHORIZED' in result.rejection_codes
+
+
+def test_cause_label_cannot_erase_its_required_recovery_evidence():
+    c=bounded_case();proof=c.facts.reduction_proof
+    lock=replace(proof.locks[0],required_evidence=());position=replace(c.book.positions[0],risk_locks=(lock,))
+    rebind(c,book=replace(c.book,positions=(position,)))
+    report=replace(proof.report,positions=(position,));ref=replace(proof.archive_ref,hash=digest(report))
+    proof=replace(proof,locks=(lock,),position=position,report=report,archive_ref=ref,
+        book_hash=digest(c.book),allocation_hash=digest(c.allocation))
+    c.facts=replace(c.facts,reduction_proof=proof,evidence=(*c.book.evidence,ref))
+    result=assess(c)
+    assert result.verdict=='DENY' and 'BOUNDED_REDUCTION_RECOVERY_OR_UNKNOWN_LOCK' in result.rejection_codes
