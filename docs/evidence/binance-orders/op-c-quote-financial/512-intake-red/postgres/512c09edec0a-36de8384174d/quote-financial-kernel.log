@@ -1,0 +1,88 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+____ test_quote_source_uses_the_same_restricted_intake_and_original_replay _____
+tests/integration/test_quote_financial_kernel_postgres.py:87: in test_quote_source_uses_the_same_restricted_intake_and_original_replay
+    c=quote_case(database)
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED
+_ test_quote_bundle_and_real_hold_share_kernel_sql_transaction_and_attachment_rollback _
+tests/integration/test_quote_financial_kernel_postgres.py:102: in test_quote_bundle_and_real_hold_share_kernel_sql_transaction_and_attachment_rollback
+    c=quote_case(database)
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED
+_ test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[missing_bounds] _
+tests/integration/test_quote_financial_kernel_postgres.py:124: in test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit
+    c=quote_case(database);original=c.qload
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED
+_ test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[changed_bounds] _
+tests/integration/test_quote_financial_kernel_postgres.py:124: in test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit
+    c=quote_case(database);original=c.qload
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED
+_ test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[capacity] _
+tests/integration/test_quote_financial_kernel_postgres.py:124: in test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit
+    c=quote_case(database);original=c.qload
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED
+_ test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[foreign_transaction] _
+tests/integration/test_quote_financial_kernel_postgres.py:124: in test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit
+    c=quote_case(database);original=c.qload
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED
+=========================== short test summary info ============================
+FAILED tests/integration/test_quote_financial_kernel_postgres.py::test_quote_source_uses_the_same_restricted_intake_and_original_replay
+FAILED tests/integration/test_quote_financial_kernel_postgres.py::test_quote_bundle_and_real_hold_share_kernel_sql_transaction_and_attachment_rollback
+FAILED tests/integration/test_quote_financial_kernel_postgres.py::test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[missing_bounds]
+FAILED tests/integration/test_quote_financial_kernel_postgres.py::test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[changed_bounds]
+FAILED tests/integration/test_quote_financial_kernel_postgres.py::test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[capacity]
+FAILED tests/integration/test_quote_financial_kernel_postgres.py::test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[foreign_transaction]
+6 failed in 4.37s

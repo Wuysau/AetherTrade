@@ -1,0 +1,80 @@
+### Result
+{
+  "program": "paper-limit-4000",
+  "account": "paper-01cbda0a03ef419faffe028565c44d81",
+  "projection": {
+    "reservation_id": "reservation-01cbda0a03ef419faffe028565c44d81",
+    "initial": {
+      "asset": "USDT",
+      "state": "HELD",
+      "amount": "9007199254740993.00000001",
+      "intent_id": "intent-01cbda0a03ef419faffe028565c44d81",
+      "created_at": "2026-10-20T06:39:03Z",
+      "expires_at": "2026-10-20T06:40:00Z",
+      "environment": "PAPER",
+      "command_refs": [],
+      "reservation_id": "reservation-01cbda0a03ef419faffe028565c44d81",
+      "reflected_amount": "0",
+      "venue_account_id": "paper-01cbda0a03ef419faffe028565c44d81",
+      "owner_strategy_id": "demo-ai-strategy",
+      "evidence_watermark": "unverified",
+      "collateral_group_id": "group-01cbda0a03ef419faffe028565c44d81"
+    },
+    "current_status": "RECORDED_PROJECTION",
+    "projection": {
+      "held": "9007199254740993.00000001",
+      "sequence": 2,
+      "reflected": "2",
+      "reservation": {
+        "asset": "USDT",
+        "state": "HELD",
+        "amount": "9007199254740993.00000001",
+        "intent_id": "intent-01cbda0a03ef419faffe028565c44d81",
+        "created_at": "2026-10-20T06:39:03Z",
+        "expires_at": "2026-10-20T06:40:00Z",
+        "environment": "PAPER",
+        "command_refs": [],
+        "reservation_id": "reservation-01cbda0a03ef419faffe028565c44d81",
+        "reflected_amount": "0",
+        "venue_account_id": "paper-01cbda0a03ef419faffe028565c44d81",
+        "owner_strategy_id": "demo-ai-strategy",
+        "evidence_watermark": "unverified",
+        "collateral_group_id": "group-01cbda0a03ef419faffe028565c44d81"
+      },
+      "release_pending": "3"
+    },
+    "raw_projection": {
+      "record_id": "ip07:reservation:reservation-01cbda0a03ef419faffe028565c44d81",
+      "sequence": 2,
+      "payload": {
+        "held": "9007199254740993.00000001",
+        "sequence": 2,
+        "reflected": "2",
+        "reservation": {
+          "asset": "USDT",
+          "state": "HELD",
+          "amount": "9007199254740993.00000001",
+          "intent_id": "intent-01cbda0a03ef419faffe028565c44d81",
+          "created_at": "2026-10-20T06:39:03Z",
+          "expires_at": "2026-10-20T06:40:00Z",
+          "environment": "PAPER",
+          "command_refs": [],
+          "reservation_id": "reservation-01cbda0a03ef419faffe028565c44d81",
+          "reflected_amount": "0",
+          "venue_account_id": "paper-01cbda0a03ef419faffe028565c44d81",
+          "owner_strategy_id": "demo-ai-strategy",
+          "evidence_watermark": "unverified",
+          "collateral_group_id": "group-01cbda0a03ef419faffe028565c44d81"
+        },
+        "release_pending": "3"
+      },
+      "transaction_id": "1da9e56e-04e4-4d8c-962f-ea0ad487532f",
+      "canonical_payload_hash": "d4d1a247b980a8af8c953e3e02dbfecdf4926acbc441271bf62ba05b70b2e306"
+    }
+  },
+  "creation": "HELD"
+}
+### Ran Playwright code
+```js
+await page.evaluate('async () => { const p=await(await fetch("/api/order-programs?limit=50")).json(); for(const n of p.items){const d=await(await fetch(`/api/order-programs/${encodeURIComponent(n.program_id)}?scope=${encodeURIComponent(n.scope_id)}`)).json(); if(d.reservation_observations?.some(x=>x.current_status==="RECORDED_PROJECTION")){return {program:d.program_id,account:d.scope.venue_account_id,projection:d.reservation_observations[0],creation:d.records.reservations[0].payload.state};}} return {found:false}; }');
+```

@@ -1,0 +1,12 @@
+### Result
+{
+  "width": 1440,
+  "documentWidth": 1440,
+  "latest": true,
+  "source": true,
+  "original": true
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ({width:innerWidth,documentWidth:document.documentElement.scrollWidth,latest:document.querySelector(".program-detail")?.textContent.includes("已读取最新记录投影"),source:document.querySelector(".program-detail")?.textContent.includes("2"),original:document.querySelector(".program-detail")?.textContent.includes("原始资金预留（创建记录）")})');
+```

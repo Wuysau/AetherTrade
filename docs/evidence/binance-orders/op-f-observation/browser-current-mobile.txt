@@ -1,0 +1,12 @@
+### Result
+{
+  "width": 390,
+  "documentWidth": 390,
+  "receipt": true,
+  "durable": true,
+  "nativeAccepted": true
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ({width:innerWidth,documentWidth:document.documentElement.scrollWidth,receipt:document.querySelector(".program-detail")?.textContent.includes("已记录接入回执"),durable:document.querySelector(".program-detail")?.textContent.includes("DURABLE_READY"),nativeAccepted:document.querySelector(".program-detail")?.textContent.includes("计划生命周期NOT_OBSERVED")})');
+```

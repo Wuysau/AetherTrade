@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="8" time="4.350" timestamp="2026-10-29T23:31:17.743288+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.server.test_program_evidence_review" name="test_programme_reviewer_prompt_reuses_review_contract_and_keeps_exact_candidate" time="0.024"><failure message="assert 'Return only review_v1' in 'Return only program_assessment_v1 JSON with exactly schema_revision, context_hash, summary, proposal (complete 2026-1...program&quot;, &quot;protection_policy&quot;, &quot;exit_plan&quot;, &quot;valid_until&quot;, &quot;evidence_refs&quot;, &quot;summary&quot;], &quot;additionalProperties&quot;: false}'">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F9278AA8B0&gt;
+
+    def test_programme_reviewer_prompt_reuses_review_contract_and_keeps_exact_candidate(monkeypatch):
+        *_,frame,value=case(monkeypatch)
+        config=dict(model='fixture',protocol='openai_chat',base_url='http://127.0.0.1',max_output_tokens=None)
+        context=dict(frame.payload,context_hash=frame.context_hash,role='review',candidate=value)
+        _,body=model_client.payload(config,context)
+&gt;       assert 'Return only review_v1' in body['messages'][0]['content']
+E       assert 'Return only review_v1' in 'Return only program_assessment_v1 JSON with exactly schema_revision, context_hash, summary, proposal (complete 2026-1...program", "protection_policy", "exit_plan", "valid_until", "evidence_refs", "summary"], "additionalProperties": false}'
+
+tests\server\test_program_evidence_review.py:53: AssertionError</failure></testcase><testcase classname="tests.server.test_program_evidence_review" name="test_soft_preferences_return_to_primary_without_discarding_valid_v3_candidate" time="0.485"><failure message="trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F925F7C3E0&gt;
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-376/test_soft_preferences_return_t0')
+
+    def test_soft_preferences_return_to_primary_without_discarding_valid_v3_candidate(monkeypatch,tmp_path):
+        with research(monkeypatch,tmp_path) as (service,store,frame,value,request,session):
+&gt;           authorized=authorize_research(service,request,session,'cross-soft',frame)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\server\test_program_evidence_review.py:59: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+service = &lt;trading_system.server.model_service.ModelService object at 0x000001F9279C8EC0&gt;
+request = ProfileAnalysis(task_profile=ResearchTaskProfile(decision_interval='1h', holding_period_seconds=3600, allowed_operatio...ensus', model_profile_ids=['default', 'review'], expected_revisions={'default': 0, 'review': 0}, acknowledge_cost=True)
+session_token = 'rrI5_kYbLHxB96a7YfxinDkkDuf3q3yaNus2P3Injx1gFdOXlLrJmJFRLR-YoY8e'
+key = 'cross-soft'
+frame = FrozenProgramContext(_json='{"analysis_snapshot":{"built_at":"2026-10-28T03:00:02+00:00","constraints":{"execution_sup...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', capability_decision=None, financial_market_snapshot=None, financial_book=None)
+
+    def authorize_research(service,request,session_token,key,frame):
+        """Bind existing authenticated, cost-acknowledged manual research only.
+    
+        This private in-memory witness is not accepted from model/JSON or a strategy
+        job. It grants no order action and is never persisted with the cookie.
+        """
+        from .model_api import ProfileAnalysis
+        if (type(request) is not ProfileAnalysis or request.acknowledge_cost is not True
+            or request.decision_schema!='assessment_v1' or request.decision_policy!='unanimous'):
+&gt;           raise ApiError('EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED','需要已确认费用的人工研究请求。',403)
+E           trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED
+
+src\trading_system\server\program_model_service.py:37: ApiError</failure></testcase><testcase classname="tests.server.test_program_evidence_review" name="test_critical_or_failed_review_retains_primary_evidence_without_an_approvable_proposal[hard-INVALID_PLAN]" time="0.358"><failure message="trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F9279D9010&gt;
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-376/test_critical_or_failed_review0')
+failure = 'hard', expected = 'INVALID_PLAN'
+
+    @pytest.mark.parametrize('failure,expected',[
+        ('hard','INVALID_PLAN'),('unverified','REVIEW_REQUIRED'),('request_failed','REVIEW_REQUIRED'),
+    ])
+    def test_critical_or_failed_review_retains_primary_evidence_without_an_approvable_proposal(monkeypatch,tmp_path,failure,expected):
+        with research(monkeypatch,tmp_path) as (service,store,frame,value,request,session):
+&gt;           authorized=authorize_research(service,request,session,'cross-critical',frame)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\server\test_program_evidence_review.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+service = &lt;trading_system.server.model_service.ModelService object at 0x000001F927A78B90&gt;
+request = ProfileAnalysis(task_profile=ResearchTaskProfile(decision_interval='1h', holding_period_seconds=3600, allowed_operatio...ensus', model_profile_ids=['default', 'review'], expected_revisions={'default': 0, 'review': 0}, acknowledge_cost=True)
+session_token = 'xmBXHgQTZku547_NTr-MDWmdP9fb0rTBM6QDQiOnk4NByubqYMTxJyJAhz3cEoCV'
+key = 'cross-critical'
+frame = FrozenProgramContext(_json='{"analysis_snapshot":{"built_at":"2026-10-28T03:00:02+00:00","constraints":{"execution_sup...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', capability_decision=None, financial_market_snapshot=None, financial_book=None)
+
+    def authorize_research(service,request,session_token,key,frame):
+        """Bind existing authenticated, cost-acknowledged manual research only.
+    
+        This private in-memory witness is not accepted from model/JSON or a strategy
+        job. It grants no order action and is never persisted with the cookie.
+        """
+        from .model_api import ProfileAnalysis
+        if (type(request) is not ProfileAnalysis or request.acknowledge_cost is not True
+            or request.decision_schema!='assessment_v1' or request.decision_policy!='unanimous'):
+&gt;           raise ApiError('EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED','需要已确认费用的人工研究请求。',403)
+E           trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED
+
+src\trading_system\server\program_model_service.py:37: ApiError</failure></testcase><testcase classname="tests.server.test_program_evidence_review" name="test_critical_or_failed_review_retains_primary_evidence_without_an_approvable_proposal[unverified-REVIEW_REQUIRED]" time="0.351"><failure message="trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F927A348D0&gt;
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-376/test_critical_or_failed_review1')
+failure = 'unverified', expected = 'REVIEW_REQUIRED'
+
+    @pytest.mark.parametrize('failure,expected',[
+        ('hard','INVALID_PLAN'),('unverified','REVIEW_REQUIRED'),('request_failed','REVIEW_REQUIRED'),
+    ])
+    def test_critical_or_failed_review_retains_primary_evidence_without_an_approvable_proposal(monkeypatch,tmp_path,failure,expected):
+        with research(monkeypatch,tmp_path) as (service,store,frame,value,request,session):
+&gt;           authorized=authorize_research(service,request,session,'cross-critical',frame)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\server\test_program_evidence_review.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+service = &lt;trading_system.server.model_service.ModelService object at 0x000001F927A7B110&gt;
+request = ProfileAnalysis(task_profile=ResearchTaskProfile(decision_interval='1h', holding_period_seconds=3600, allowed_operatio...ensus', model_profile_ids=['default', 'review'], expected_revisions={'default': 0, 'review': 0}, acknowledge_cost=True)
+session_token = 'Ut5usbJWn69wYssnLPn9R9xYgrfUeb_zyiBBp8FcrhaEnowHM97jQ7BKta-aknDz'
+key = 'cross-critical'
+frame = FrozenProgramContext(_json='{"analysis_snapshot":{"built_at":"2026-10-28T03:00:02+00:00","constraints":{"execution_sup...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', capability_decision=None, financial_market_snapshot=None, financial_book=None)
+
+    def authorize_research(service,request,session_token,key,frame):
+        """Bind existing authenticated, cost-acknowledged manual research only.
+    
+        This private in-memory witness is not accepted from model/JSON or a strategy
+        job. It grants no order action and is never persisted with the cookie.
+        """
+        from .model_api import ProfileAnalysis
+        if (type(request) is not ProfileAnalysis or request.acknowledge_cost is not True
+            or request.decision_schema!='assessment_v1' or request.decision_policy!='unanimous'):
+&gt;           raise ApiError('EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED','需要已确认费用的人工研究请求。',403)
+E           trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED
+
+src\trading_system\server\program_model_service.py:37: ApiError</failure></testcase><testcase classname="tests.server.test_program_evidence_review" name="test_critical_or_failed_review_retains_primary_evidence_without_an_approvable_proposal[request_failed-REVIEW_REQUIRED]" time="0.362"><failure message="trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F927A34E20&gt;
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-376/test_critical_or_failed_review2')
+failure = 'request_failed', expected = 'REVIEW_REQUIRED'
+
+    @pytest.mark.parametrize('failure,expected',[
+        ('hard','INVALID_PLAN'),('unverified','REVIEW_REQUIRED'),('request_failed','REVIEW_REQUIRED'),
+    ])
+    def test_critical_or_failed_review_retains_primary_evidence_without_an_approvable_proposal(monkeypatch,tmp_path,failure,expected):
+        with research(monkeypatch,tmp_path) as (service,store,frame,value,request,session):
+&gt;           authorized=authorize_research(service,request,session,'cross-critical',frame)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\server\test_program_evidence_review.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+service = &lt;trading_system.server.model_service.ModelService object at 0x000001F927B143E0&gt;
+request = ProfileAnalysis(task_profile=ResearchTaskProfile(decision_interval='1h', holding_period_seconds=3600, allowed_operatio...ensus', model_profile_ids=['default', 'review'], expected_revisions={'default': 0, 'review': 0}, acknowledge_cost=True)
+session_token = 'yuxIALq59C7vnzsbgTOikdG0yY-isE4GNE1iVK3nHpvMBB20McWS6X6b8QsFdFoa'
+key = 'cross-critical'
+frame = FrozenProgramContext(_json='{"analysis_snapshot":{"built_at":"2026-10-28T03:00:02+00:00","constraints":{"execution_sup...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', capability_decision=None, financial_market_snapshot=None, financial_book=None)
+
+    def authorize_research(service,request,session_token,key,frame):
+        """Bind existing authenticated, cost-acknowledged manual research only.
+    
+        This private in-memory witness is not accepted from model/JSON or a strategy
+        job. It grants no order action and is never persisted with the cookie.
+        """
+        from .model_api import ProfileAnalysis
+        if (type(request) is not ProfileAnalysis or request.acknowledge_cost is not True
+            or request.decision_schema!='assessment_v1' or request.decision_policy!='unanimous'):
+&gt;           raise ApiError('EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED','需要已确认费用的人工研究请求。',403)
+E           trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED
+
+src\trading_system\server\program_model_service.py:37: ApiError</failure></testcase><testcase classname="tests.server.test_program_evidence_review" name="test_adjudication_cannot_increase_or_reverse_primary_exposure[target]" time="0.382"><failure message="trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F927A17550&gt;
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-376/test_adjudication_cannot_incre0')
+change = 'target'
+
+    @pytest.mark.parametrize('change',['target','reverse','leverage'])
+    def test_adjudication_cannot_increase_or_reverse_primary_exposure(monkeypatch,tmp_path,change):
+        with research(monkeypatch,tmp_path) as (service,store,frame,value,request,session):
+&gt;           authorized=authorize_research(service,request,session,'cross-bounded',frame)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\server\test_program_evidence_review.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+service = &lt;trading_system.server.model_service.ModelService object at 0x000001F927B15480&gt;
+request = ProfileAnalysis(task_profile=ResearchTaskProfile(decision_interval='1h', holding_period_seconds=3600, allowed_operatio...ensus', model_profile_ids=['default', 'review'], expected_revisions={'default': 0, 'review': 0}, acknowledge_cost=True)
+session_token = 'VjmVoDofdgfazy9NhLl7PDPEixv0-pzcfM-92HbGrR6fhQBG5j-23_q-zjaUaNIN'
+key = 'cross-bounded'
+frame = FrozenProgramContext(_json='{"analysis_snapshot":{"built_at":"2026-10-28T03:00:02+00:00","constraints":{"execution_sup...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', capability_decision=None, financial_market_snapshot=None, financial_book=None)
+
+    def authorize_research(service,request,session_token,key,frame):
+        """Bind existing authenticated, cost-acknowledged manual research only.
+    
+        This private in-memory witness is not accepted from model/JSON or a strategy
+        job. It grants no order action and is never persisted with the cookie.
+        """
+        from .model_api import ProfileAnalysis
+        if (type(request) is not ProfileAnalysis or request.acknowledge_cost is not True
+            or request.decision_schema!='assessment_v1' or request.decision_policy!='unanimous'):
+&gt;           raise ApiError('EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED','需要已确认费用的人工研究请求。',403)
+E           trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED
+
+src\trading_system\server\program_model_service.py:37: ApiError</failure></testcase><testcase classname="tests.server.test_program_evidence_review" name="test_adjudication_cannot_increase_or_reverse_primary_exposure[reverse]" time="0.512"><failure message="trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F927B24550&gt;
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-376/test_adjudication_cannot_incre1')
+change = 'reverse'
+
+    @pytest.mark.parametrize('change',['target','reverse','leverage'])
+    def test_adjudication_cannot_increase_or_reverse_primary_exposure(monkeypatch,tmp_path,change):
+        with research(monkeypatch,tmp_path) as (service,store,frame,value,request,session):
+&gt;           authorized=authorize_research(service,request,session,'cross-bounded',frame)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\server\test_program_evidence_review.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+service = &lt;trading_system.server.model_service.ModelService object at 0x000001F927AB8290&gt;
+request = ProfileAnalysis(task_profile=ResearchTaskProfile(decision_interval='1h', holding_period_seconds=3600, allowed_operatio...ensus', model_profile_ids=['default', 'review'], expected_revisions={'default': 0, 'review': 0}, acknowledge_cost=True)
+session_token = 'ENCwskoFcELH0dBFHo2GWn0F365am-bFA9Kel1Tw9WYaF6mW1ouxqnkInB5aIttA'
+key = 'cross-bounded'
+frame = FrozenProgramContext(_json='{"analysis_snapshot":{"built_at":"2026-10-28T03:00:02+00:00","constraints":{"execution_sup...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', capability_decision=None, financial_market_snapshot=None, financial_book=None)
+
+    def authorize_research(service,request,session_token,key,frame):
+        """Bind existing authenticated, cost-acknowledged manual research only.
+    
+        This private in-memory witness is not accepted from model/JSON or a strategy
+        job. It grants no order action and is never persisted with the cookie.
+        """
+        from .model_api import ProfileAnalysis
+        if (type(request) is not ProfileAnalysis or request.acknowledge_cost is not True
+            or request.decision_schema!='assessment_v1' or request.decision_policy!='unanimous'):
+&gt;           raise ApiError('EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED','需要已确认费用的人工研究请求。',403)
+E           trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED
+
+src\trading_system\server\program_model_service.py:37: ApiError</failure></testcase><testcase classname="tests.server.test_program_evidence_review" name="test_adjudication_cannot_increase_or_reverse_primary_exposure[leverage]" time="0.366"><failure message="trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F9279B7020&gt;
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-376/test_adjudication_cannot_incre2')
+change = 'leverage'
+
+    @pytest.mark.parametrize('change',['target','reverse','leverage'])
+    def test_adjudication_cannot_increase_or_reverse_primary_exposure(monkeypatch,tmp_path,change):
+        with research(monkeypatch,tmp_path) as (service,store,frame,value,request,session):
+&gt;           authorized=authorize_research(service,request,session,'cross-bounded',frame)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\server\test_program_evidence_review.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+service = &lt;trading_system.server.model_service.ModelService object at 0x000001F9278D7BD0&gt;
+request = ProfileAnalysis(task_profile=ResearchTaskProfile(decision_interval='1h', holding_period_seconds=3600, allowed_operatio...ensus', model_profile_ids=['default', 'review'], expected_revisions={'default': 0, 'review': 0}, acknowledge_cost=True)
+session_token = 'U1EoPgc5YM7mD6SPmWplNrUWvdiEEnLURc0-vdtZUi5xwiOXQA3tfu0kRSFQqHEg'
+key = 'cross-bounded'
+frame = FrozenProgramContext(_json='{"analysis_snapshot":{"built_at":"2026-10-28T03:00:02+00:00","constraints":{"execution_sup...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', capability_decision=None, financial_market_snapshot=None, financial_book=None)
+
+    def authorize_research(service,request,session_token,key,frame):
+        """Bind existing authenticated, cost-acknowledged manual research only.
+    
+        This private in-memory witness is not accepted from model/JSON or a strategy
+        job. It grants no order action and is never persisted with the cookie.
+        """
+        from .model_api import ProfileAnalysis
+        if (type(request) is not ProfileAnalysis or request.acknowledge_cost is not True
+            or request.decision_schema!='assessment_v1' or request.decision_policy!='unanimous'):
+&gt;           raise ApiError('EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED','需要已确认费用的人工研究请求。',403)
+E           trading_system.server.errors.ApiError: EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED
+
+src\trading_system\server\program_model_service.py:37: ApiError</failure></testcase></testsuite></testsuites>

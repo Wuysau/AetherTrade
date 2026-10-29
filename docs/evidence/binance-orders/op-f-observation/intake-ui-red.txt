@@ -1,0 +1,411 @@
+
+> aethertrade-web@0.0.0 test
+> vitest run --run tests/order-observation.test.tsx
+
+
+ RUN  v4.1.12 D:/Projects/Python/AetherTrade/TradingHandoff/AutoDispatchWorktrees/binance-opf-observability/web
+
+ ❯ tests/order-observation.test.tsx (4 tests | 1 failed) 171ms
+   × keeps original intake evidence visible without manufacturing an execution result 12ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/order-observation.test.tsx > keeps original intake evidence visible without manufacturing an execution result
+TestingLibraryElementError: Unable to find an element with the text: intake-original-hash. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <article
+      aria-label="订单计划详情"
+      class="program-detail"
+    >
+      <div
+        class="action-strip"
+      >
+        <span
+          class="status "
+        >
+          2026-10-29
+        </span>
+        <span
+          class="status wait"
+        >
+          只读观察
+        </span>
+        <span
+          class="status "
+        >
+          VENUE_NATIVE
+        </span>
+      </div>
+      <h3>
+        original-limit
+      </h3>
+      <section>
+        <h4>
+          原计划
+        </h4>
+        <p
+          class="field-help"
+        >
+          ATOMIC
+           · 原参数保留，类型不会自动改为市价。
+        </p>
+        <section
+          class="program-node"
+        >
+          <h5>
+            entry
+             · 
+            ENTRY
+          </h5>
+          <p
+            class="field-help"
+          >
+            APPLICATION_GENERATED_CHILD
+          </p>
+          <dl
+            class="program-fields"
+          >
+            <div>
+              <dt>
+                方向
+              </dt>
+              <dd>
+                BUY
+              </dd>
+            </div>
+            <div>
+              <dt>
+                数量口径
+              </dt>
+              <dd>
+                模式: QUOTE_NOTIONAL · 数值: 4000
+              </dd>
+            </div>
+            <div>
+              <dt>
+                价格
+              </dt>
+              <dd>
+                模式: FIXED_LIMIT · 数值: 81490
+              </dd>
+            </div>
+            <div>
+              <dt>
+                触发
+              </dt>
+              <dd>
+                模式: STATIC · 来源: MARK_PRICE · 价格: 81330
+              </dd>
+            </div>
+            <div>
+              <dt>
+                在场期限
+              </dt>
+              <dd>
+                模式: GTC
+              </dd>
+            </div>
+          </dl>
+        </section>
+        <dl
+          class="program-fields"
+        >
+          <div>
+            <dt>
+              首次提交期限
+            </dt>
+            <dd>
+              未记录
+            </dd>
+          </div>
+          <div>
+            <dt>
+              持续管理责任
+            </dt>
+            <dd>
+              MANAGE_UNTIL_FLAT
+            </dd>
+          </div>
+          <div>
+            <dt>
+              执行算法
+            </dt>
+            <dd>
+              未记录
+            </dd>
+          </div>
+        </dl>
+      </section>
+      <section>
+        <h4>
+          持久化接入回执
+        </h4>
+        <p>
+          已记录接入回执
+        </p>
+        <p
+          class="field-help"
+        >
+          回执仅证明账本接入已提交；每次发送仍需当前授权与单次许可。
+        </p>
+        <p
+          class="program-id"
+        >
+          generic-program-admission:intent
+        </p>
+      </section>
+      <section>
+        <h4>
+          应用命令与原身份
+        </h4>
+        <div
+          class="program-node"
+        >
+          <strong>
+            MAY_HAVE_SENT
+          </strong>
+          <dl
+            class="program-fields"
+          >
+            <div>
+              <dt>
+                命令身份
+              </dt>
+              <dd>
+                cmd-original
+              </dd>
+            </div>
+            <div>
+              <dt>
+                原场所客户身份
+              </dt>
+              <dd>
+                client-original
+              </dd>
+            </div>
+            <div>
+              <dt>
+                服务命名空间
+              </dt>
+              <dd>
+                未记录
+              </dd>
+            </div>
+            <div>
+              <dt>
+                应用母命令
+              </dt>
+              <dd>
+                未记录
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+      <section>
+        <h4>
+          场所母单、子单与保护
+        </h4>
+        <dl
+          class="program-fields"
+        >
+          <div>
+            <dt>
+              计划生命周期
+            </dt>
+            <dd>
+              SUBMIT_UNKNOWN
+            </dd>
+          </div>
+          <div>
+            <dt>
+              状态来源
+            </dt>
+            <dd>
+              未记录
+            </dd>
+          </div>
+          <div>
+            <dt>
+              场所母单回报
+            </dt>
+            <dd>
+              未记录
+            </dd>
+          </div>
+          <div>
+            <dt>
+              保护观察状态
+            </dt>
+            <dd>
+              UNVERIFIED_DUTY
+            </dd>
+          </div>
+          <div>
+            <dt>
+              子单清单完整性
+            </dt>
+            <dd>
+              未记录
+            </dd>
+          </div>
+        </dl>
+        <div
+          class="inline-alert "
+          role="status"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-info icon"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <path
+              d="M12 16v-4"
+            />
+            <path
+              d="M12 8h.01"
+            />
+          </svg>
+          <span>
+            尚未取得完整子单清单；空列表不能证明空仓或责任结束。
+          </span>
+        </div>
+        <p
+          class="field-help"
+        >
+          交易所生成子单仅观察；每次应用生成的外部写操作仍需独立命令、许可和同一执行所有者校验。
+        </p>
+      </section>
+      <section>
+        <h4>
+          能力与准入原因
+        </h4>
+        <dl
+          class="program-fields"
+        >
+          <div>
+            <dt>
+              历史能力快照
+            </dt>
+            <dd>
+              qualification: PAPER_VERIFIED · snapshot_id: frozen-7
+            </dd>
+          </div>
+          <div>
+            <dt>
+              当前资格
+            </dt>
+            <dd>
+              UNKNOWN
+            </dd>
+          </div>
+        </dl>
+        <p
+          class="field-help"
+        >
+          能力 · 
+          HOST_ADMISSION_NOT_REGISTERED
+        </p>
+        <p>
+          RULE
+           · 
+          RULE_REVISION_CHANGED
+        </p>
+      </section>
+      <details
+        class="program-archive"
+      >
+        <summary>
+          资金、保护责任与接入证据
+           · 
+          1
+        </summary>
+        <div>
+          <p>
+            generic-program-admission:intent
+          </p>
+          <pre>
+            {
+  "intent_id": "intent",
+  "attachment": {
+    "command_ids": [
+      "cmd-original"
+    ]
+  }
+}
+          </pre>
+        </div>
+      </details>
+      <details
+        class="program-archive"
+      >
+        <summary>
+          母子关联与完整请求
+           · 
+          0
+        </summary>
+      </details>
+      <details
+        class="program-archive"
+      >
+        <summary>
+          原始计划与内容摘要
+        </summary>
+        <p>
+          JSONB 规范内容 SHA256：
+          <span
+            class="program-id"
+          >
+            original-hash
+          </span>
+        </p>
+        <p
+          class="field-help"
+        >
+          原记录中的 hash 与 ID 保持原值；此摘要不会替代历史 hash。
+        </p>
+        <pre>
+          {
+  "management_policy": "MANAGE_UNTIL_FLAT"
+}
+        </pre>
+      </details>
+    </article>
+  </div>
+</body>
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/order-observation.test.tsx:33:16
+     31| it('keeps original intake evidence visible without manufacturing an ex…
+     32|  render(<OrderProgramDetail detail={{...plan,intakes:[{record_id:'inta…
+     33|  expect(screen.getByText('intake-original-hash')).toBeTruthy();
+       |                ^
+     34|  expect(screen.getByText('原始提案与决策上下文 · 1')).toBeTruthy();
+     35| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  18:21:45
+   Duration  1.62s (transform 85ms, setup 0ms, import 298ms, tests 171ms, environment 960ms)
+

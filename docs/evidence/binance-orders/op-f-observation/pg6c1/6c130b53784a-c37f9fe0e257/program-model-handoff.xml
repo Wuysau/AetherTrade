@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="6" time="7.229" timestamp="2026-10-29T11:04:16.401481+00:00" hostname="00b40a01da27"><testcase classname="tests.integration.test_program_model_handoff_postgres" name="test_local_fake_complete_v3_research_admits_through_actual_same_financial_kernel" time="4.491" /><testcase classname="tests.integration.test_program_model_handoff_postgres" name="test_changed_current_model_facts_replan_without_new_financial_bundle[capability]" time="0.287" /><testcase classname="tests.integration.test_program_model_handoff_postgres" name="test_changed_current_model_facts_replan_without_new_financial_bundle[rule]" time="0.234" /><testcase classname="tests.integration.test_program_model_handoff_postgres" name="test_changed_current_model_facts_replan_without_new_financial_bundle[market]" time="0.321" /><testcase classname="tests.integration.test_program_model_handoff_postgres" name="test_changed_current_model_facts_replan_without_new_financial_bundle[book]" time="0.315"><failure message="trading_system.intents.semantic_validation.ProposalRejected: TARGET_BOOK_OR_COMPILATION_CHANGED">tests/integration/test_program_model_handoff_postgres.py:131: in test_changed_current_model_facts_replan_without_new_financial_bundle
+    admit_program_assessment(assessment,frame,admission_service=service)
+src/trading_system/server/program_model_context.py:237: in admit_program_assessment
+    receipt=guarded.admit(proposal,context,compilation)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_admission.py:143: in admit
+    return self.reservations._transaction(operation) # return only after commit
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_admission.py:118: in operation
+    bundle=self.reservations._reserve_program(tx,key,ids,load_inputs=self.load_inputs,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:333: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:329: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:237: in _reserve_program
+    inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/server/program_model_context.py:224: in guarded_inputs
+    actual=original_load(tx,source,record,book,clock)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:108: in load
+    c.allocation=compile_program_target(c.plan,book,tf)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:145: in compile_program_target
+    return _compile_program_target(plan,book,facts)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:159: in _compile_program_target
+    require(facts.compilation_hash==digest and book.scope==scope
+src/trading_system/intents/semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: TARGET_BOOK_OR_COMPILATION_CHANGED</failure></testcase><testcase classname="tests.integration.test_program_model_handoff_postgres" name="test_unqualified_automatic_context_has_zero_fake_and_paid_provider_calls" time="0.315" /></testsuite></testsuites>

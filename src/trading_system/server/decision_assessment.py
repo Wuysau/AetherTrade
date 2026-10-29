@@ -149,6 +149,13 @@ def validate_assessment(value: dict, snapshot: dict) -> DecisionAssessment:
     return value
 
 
+def combine_review_reports(reports):
+    """Shared factual/preference aggregation for all proposal versions."""
+    return {'issues':[issue for report in reports for issue in report['issues']],
+        'status':next((status for status in ('HARD','UNVERIFIED','SOFT')
+            if any(report['status']==status for report in reports)),'VERIFIED')}
+
+
 def validate_review(value, snapshot):
     if not isinstance(value, dict) or set(value) != {'schema_revision', 'issues'} or value['schema_revision'] != 'review_v1' or not isinstance(value['issues'], list) or len(value['issues']) > 20:
         raise ValueError('Invalid review schema')

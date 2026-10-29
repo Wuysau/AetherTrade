@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="6" time="4.361" timestamp="2026-10-29T15:46:30.425327+00:00" hostname="8b870bf02694"><testcase classname="tests.integration.test_quote_financial_kernel_postgres" name="test_quote_source_uses_the_same_restricted_intake_and_original_replay" time="1.446"><failure message="ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED">tests/integration/test_quote_financial_kernel_postgres.py:87: in test_quote_source_uses_the_same_restricted_intake_and_original_replay
+    c=quote_case(database)
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED</failure></testcase><testcase classname="tests.integration.test_quote_financial_kernel_postgres" name="test_quote_bundle_and_real_hold_share_kernel_sql_transaction_and_attachment_rollback" time="0.371"><failure message="ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED">tests/integration/test_quote_financial_kernel_postgres.py:102: in test_quote_bundle_and_real_hold_share_kernel_sql_transaction_and_attachment_rollback
+    c=quote_case(database)
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED</failure></testcase><testcase classname="tests.integration.test_quote_financial_kernel_postgres" name="test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[missing_bounds]" time="0.376"><failure message="ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED">tests/integration/test_quote_financial_kernel_postgres.py:124: in test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit
+    c=quote_case(database);original=c.qload
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED</failure></testcase><testcase classname="tests.integration.test_quote_financial_kernel_postgres" name="test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[changed_bounds]" time="0.354"><failure message="ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED">tests/integration/test_quote_financial_kernel_postgres.py:124: in test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit
+    c=quote_case(database);original=c.qload
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED</failure></testcase><testcase classname="tests.integration.test_quote_financial_kernel_postgres" name="test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[capacity]" time="0.364"><failure message="ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED">tests/integration/test_quote_financial_kernel_postgres.py:124: in test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit
+    c=quote_case(database);original=c.qload
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED</failure></testcase><testcase classname="tests.integration.test_quote_financial_kernel_postgres" name="test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit[foreign_transaction]" time="0.320"><failure message="ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED">tests/integration/test_quote_financial_kernel_postgres.py:124: in test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_commit
+    c=quote_case(database);original=c.qload
+      ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_financial_kernel_postgres.py:49: in quote_case
+    source,record=ingress.accept(p,context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/generic_program_intake.py:143: in accept
+    require(digest(plan)==digest(facts.compilation),'PROGRAM_INTAKE_COMPILATION_CHANGED')
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_INTAKE_COMPILATION_CHANGED</failure></testcase></testsuite></testsuites>

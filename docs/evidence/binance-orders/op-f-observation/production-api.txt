@@ -1,0 +1,39 @@
+### Result
+{
+  "listStatus": "AVAILABLE",
+  "count": 5,
+  "detailStatus": 200,
+  "ungrantedScopeStatus": 404,
+  "codec": "DECODED",
+  "executed": false,
+  "commandStates": [],
+  "recordCategories": [
+    "states",
+    "bindings",
+    "commands",
+    "funding",
+    "requests",
+    "financial",
+    "reservations",
+    "local_states"
+  ],
+  "currentQualification": "UNKNOWN",
+  "capabilities": 46,
+  "originalLimit": {
+    "kind": "FIXED_LIMIT",
+    "value": "81490.00",
+    "peg_type": null,
+    "price_match": null,
+    "offset_levels": null
+  }
+}
+### Ran Playwright code
+```js
+await page.evaluate('async () => { const p=await (await fetch("/api/order-programs?limit=10")).json(); const n=p.items.find(x=>x.template==="ATOMIC"); const r=await fetch(`/api/order-programs/${encodeURIComponent(n.program_id)}?scope=${encodeURIComponent(n.scope_id)}`); const d=await r.json(); const bad=await fetch(`/api/order-programs/${encodeURIComponent(n.program_id)}?scope=unauthorized`); const cap=await (await fetch("/api/order-capabilities")).json(); return {listStatus:p.observation_status,count:p.items.length,detailStatus:r.status,ungrantedScopeStatus:bad.status,codec:d.codec_status,executed:d.execution_authorized,commandStates:d.records.commands.map(x=>x.payload.state),recordCategories:Object.keys(d.records),currentQualification:d.capability.current_qualification,capabilities:cap.features.length,originalLimit:d.nodes[0]?.order.price}; }');
+```
+### Page
+- Page URL: http://127.0.0.1:8897/#decisions
+- Page Title: AI 决策 · AetherTrade
+- Console: 1 errors, 0 warnings
+### Events
+- New console entries: .playwright-cli\console-2026-10-29T10-14-50-504Z.log#L1

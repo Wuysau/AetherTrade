@@ -1,0 +1,60 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+__ test_detail_reads_existing_schema_valid_opaque_program_ids[archive/plan] ___
+
+client = <starlette.testclient.TestClient object at 0x000001C6852D12B0>
+identifier = 'archive/plan'
+
+    @pytest.mark.parametrize('identifier',['archive/plan','archive/计划:1'])
+    def test_detail_reads_existing_schema_valid_opaque_program_ids(client,identifier):
+        from urllib.parse import quote
+        from trading_system.contracts.order_codec import VersionedOrderCodec
+        from test_order_observation import program
+        payload=program();payload['program_id']=identifier
+        assert VersionedOrderCodec().decode('order-program',payload).program_id==identifier
+        login(client)
+        class Reader:
+            def detail(self,program_id,**params):
+                assert program_id==identifier and params=={'scope':'server-bound-scope'}
+                return {'program_id':program_id,'execution_authorized':False}
+        client.app.state.order_observer=Reader()
+        response=client.get('/api/order-programs/'+quote(identifier,safe=''),params={'scope':'server-bound-scope'})
+>       assert response.status_code==200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\server\test_order_observation_api.py:68: AssertionError
+_ test_detail_reads_existing_schema_valid_opaque_program_ids[archive/\u8ba1\u5212:1] _
+
+client = <starlette.testclient.TestClient object at 0x000001C6854E8E10>
+identifier = 'archive/计划:1'
+
+    @pytest.mark.parametrize('identifier',['archive/plan','archive/计划:1'])
+    def test_detail_reads_existing_schema_valid_opaque_program_ids(client,identifier):
+        from urllib.parse import quote
+        from trading_system.contracts.order_codec import VersionedOrderCodec
+        from test_order_observation import program
+        payload=program();payload['program_id']=identifier
+        assert VersionedOrderCodec().decode('order-program',payload).program_id==identifier
+        login(client)
+        class Reader:
+            def detail(self,program_id,**params):
+                assert program_id==identifier and params=={'scope':'server-bound-scope'}
+                return {'program_id':program_id,'execution_authorized':False}
+        client.app.state.order_observer=Reader()
+        response=client.get('/api/order-programs/'+quote(identifier,safe=''),params={'scope':'server-bound-scope'})
+>       assert response.status_code==200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\server\test_order_observation_api.py:68: AssertionError
+============================== warnings summary ===============================
+..\..\..\AetherTrade\.venv\Lib\site-packages\fastapi\testclient.py:1
+  D:\Projects\Python\AetherTrade\AetherTrade\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/server/test_order_observation_api.py::test_detail_reads_existing_schema_valid_opaque_program_ids[archive/plan]
+FAILED tests/server/test_order_observation_api.py::test_detail_reads_existing_schema_valid_opaque_program_ids[archive/\u8ba1\u5212:1]
+2 failed, 3 deselected, 1 warning in 5.72s

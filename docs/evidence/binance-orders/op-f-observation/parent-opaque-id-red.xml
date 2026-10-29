@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="5.654" timestamp="2026-10-29T23:09:40.677443+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.server.test_order_observation_api" name="test_detail_reads_existing_schema_valid_opaque_program_ids[archive/plan]" time="1.730"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x000001C6852D12B0&gt;
+identifier = 'archive/plan'
+
+    @pytest.mark.parametrize('identifier',['archive/plan','archive/计划:1'])
+    def test_detail_reads_existing_schema_valid_opaque_program_ids(client,identifier):
+        from urllib.parse import quote
+        from trading_system.contracts.order_codec import VersionedOrderCodec
+        from test_order_observation import program
+        payload=program();payload['program_id']=identifier
+        assert VersionedOrderCodec().decode('order-program',payload).program_id==identifier
+        login(client)
+        class Reader:
+            def detail(self,program_id,**params):
+                assert program_id==identifier and params=={'scope':'server-bound-scope'}
+                return {'program_id':program_id,'execution_authorized':False}
+        client.app.state.order_observer=Reader()
+        response=client.get('/api/order-programs/'+quote(identifier,safe=''),params={'scope':'server-bound-scope'})
+&gt;       assert response.status_code==200
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+tests\server\test_order_observation_api.py:68: AssertionError</failure></testcase><testcase classname="tests.server.test_order_observation_api" name="test_detail_reads_existing_schema_valid_opaque_program_ids[archive/\u8ba1\u5212:1]" time="1.363"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x000001C6854E8E10&gt;
+identifier = 'archive/计划:1'
+
+    @pytest.mark.parametrize('identifier',['archive/plan','archive/计划:1'])
+    def test_detail_reads_existing_schema_valid_opaque_program_ids(client,identifier):
+        from urllib.parse import quote
+        from trading_system.contracts.order_codec import VersionedOrderCodec
+        from test_order_observation import program
+        payload=program();payload['program_id']=identifier
+        assert VersionedOrderCodec().decode('order-program',payload).program_id==identifier
+        login(client)
+        class Reader:
+            def detail(self,program_id,**params):
+                assert program_id==identifier and params=={'scope':'server-bound-scope'}
+                return {'program_id':program_id,'execution_authorized':False}
+        client.app.state.order_observer=Reader()
+        response=client.get('/api/order-programs/'+quote(identifier,safe=''),params={'scope':'server-bound-scope'})
+&gt;       assert response.status_code==200
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+tests\server\test_order_observation_api.py:68: AssertionError</failure></testcase></testsuite></testsuites>

@@ -1,6 +1,62 @@
 # Current task
 
-## OP_C_CURRENT_INTEGRATION_CHECKPOINT — 2026-10-29
+## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
+
+SOLE binance-orders writer is integration_next. Parent root owns independent
+same-ledger accounting work; activation_fresh owns OP-D matcher; reports_fresh
+owns controlled native adapter/consumed-current guard. Main/archive untouched.
+Goal ACTIVE: all46 capabilities/56 cases, complete OP-C→D/E/F→G remain required.
+
+The explicit quote source/allocation now uses RiskEvaluator's same bindings,
+ExposureCalculator and policy core, full replay archive and a distinct2026-10-30
+financial intent/basis in the existing registry. Bounded intake and SAME
+ReservationService._reserve_program use original owner/collateral locks, capacity,
+holds and reservation writer. Independent current execution bounds are required.
+No scalar goal, hidden request resizing or second cash total exists.
+
+Fixed0cfc032 actual quote kernel6 PG passed. Corrected stable advancing-clock
+RED04482b1 gave7 pass/1 DID NOT RAISE; fixd6eaed0 gave8 actual PG passes, zero
+failures/errors/skips. Earlierf0/86 callable-replacement fixtures are separately
+retained; the book-change RED was genuine. Actual same-xmin intent/hold/bundle
+writes roll back if request attachment is missing. PUBLIC quote request/outbox/
+permit integration remains blocked and required. Equity wallet location stays
+explicitly unbound. See OP-C-QUOTE-FINANCIAL.md and original evidence maps.
+
+ProgramCommandDispatcher uses actual owner + protected committed MAY + engine
+single consumption. Fixedeb7c8f3 actual5 PG passed, zero failures/errors/skips:
+real partial fill, post-SIM lost ACK/UNKNOWN, SystemExit after committed MAY,
+absent shared revocation guard and foreign lease. Recovery queries original IDs;
+never new IDs/permit/retry. SystemExit is not a real kill/deployment proof.
+See OP-C-PROGRAM-DISPATCH.md. No receipt grants fills/protection/funds release.
+
+Reviewed OP-D9748 was integrated4843bff; that fixed source passed17 actual PG.
+Original report/economics verifier and read corrections were integrated45ea64f,
+with173 committed source artifacts independently SHA-verified. Its20 PG remain
+peer-source evidence until a root combined gate. WRITE precision fix7178 was
+integratedb83d5b7/986c6d0 preserving original test bytes; no0013 hash change.
+
+Reviewed OP-Fb0d5445 read-only scopes/API/CLI/UI and explicit model research are
+being committed from the reviewed paths only. Local server532 passed/56 mandatory
+environment cases deselected; web119 passed, typecheck/build exit0.3 mandatory
+PG suites added to root inventory. Default unqualified flow makes0 provider calls;
+rich-order HTTP/strategy admission is not registered. Old14 PG/browser evidence
+retains its source identity and does not qualify the new combined tree.
+
+Last root components before OP-F:1713 contracts/intents/unit pass. Per-leaf priced
+side binding13bf1e3 fixes genuine same-scope side swaps in both risk adapters;
+aggregate working net alone is insufficient. Fixed5866ddc full checkpoint remains
+35 mandatory PG suites/1020 pass/0fail/error/skip and ordinary3411 pass/574
+environmental skips/96deselected, all artifacts committed. It predates D/F/quote.
+All listed old handles are TERMINAL. New expanded fixed combined gate remains due.
+
+Next: full expanded PG+Python gate; actual public interval durable attachment,
+trusted MARKET enforcement and fee/dust residual persistence. Parent implements
+same-ledger fills/postings/positions/book with explicit unit bridges and mixed
+legacy refresh guards. OP-D continues0014 advanced matching; OP-E consumed guard/
+controlled native and full OP-F host/cross/RULE/HYBRID/HTTP remain active. No
+LIVE/TESTNET/account/paid model calls, publication or qualification promotion.
+
+## OP_C_PRIOR_INTEGRATION_CHECKPOINT — 2026-10-29
 
 Sole binance-orders writer remains integration_next. Parent root coordinates and
 owns the separate OP-F tree; activation_fresh owns OP-D binance-opd-matcher;
