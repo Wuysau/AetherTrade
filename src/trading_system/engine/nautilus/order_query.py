@@ -66,6 +66,7 @@ class QueryOrderRow:
     client_id:str
     symbol:str
     status:str
+    position_side:Literal['BOTH','LONG','SHORT']|None
     payload_json:str
 
 
@@ -117,8 +118,11 @@ def _decode(payload,request,scan_id,raw):
         require(type(row) is dict and type(row.get('symbol')) is str and bool(row['symbol'])
             and type(row.get(status)) is str and bool(row[status]),'QUERY_ROW_CONTEXT_REQUIRED')
         require(type(row.get(client)) is str and bool(row[client]),'QUERY_CLIENT_ID_STRING_REQUIRED')
+        leg=row.get('positionSide')
+        require(leg is None or type(leg) is str and leg in ('BOTH','LONG','SHORT'),
+            'QUERY_POSITION_LEG_INVALID')
         parsed.append(QueryOrderRow(venue_id=_identifier(row.get(venue)),client_id=row[client],
-            symbol=row['symbol'],status=row[status],payload_json=canonical_json(row)))
+            symbol=row['symbol'],status=row[status],position_side=leg,payload_json=canonical_json(row)))
     return ArchivedQueryPage(request=request,scan_id=scan_id,raw=raw,total=total,rows=tuple(parsed))
 
 
@@ -208,6 +212,9 @@ def resolve_original_query(requests,pages,*,scope,scan_id,source,archive,now):
         same_client=row.client_id==first.original_client_id
         same_venue=first.target_venue_id is not None and row.venue_id==first.target_venue_id
         if not(same_client or same_venue):continue
+        if scope.product==t.Product.USD_M_PERP:
+            if row.position_side is None:complete=False
+            elif row.position_side!=scope.venue_leg:conflict=True;continue
         if row.symbol!=first.venue_symbol or not same_client or (
             first.target_venue_id is not None and not same_venue):
             conflict=True;continue
