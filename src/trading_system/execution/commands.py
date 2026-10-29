@@ -155,6 +155,10 @@ Unknown holds are never released here; every operation is conservatively blocked
                     or outcome.receipt.command_id != cid
                     or outcome.receipt.status not in (t.CommandState.VENUE_CONFIRMED, t.CommandState.VENUE_REJECTED)):
                 unresolved.append(cid)
+        from trading_system.storage.application_writes import application_write_obligations
+        # excluding is a legacy command ID. The distinct program namespace must
+        # still block, including when its original ID has the same text.
+        unresolved.extend(write.identity for write in application_write_obligations(self.tx) if write.unresolved)
         return tuple(unresolved)
 
     @atomic_write

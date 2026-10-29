@@ -40,6 +40,9 @@ def history():
         group_id = old_intent.collateral_group_id
 
         def execute(self, query, params=()):
+            if "to_regclass('ledger.order_writes_v2')" in query:
+                # This fixture models a historical ledger before migration0008.
+                return SimpleNamespace(fetchone=lambda: (None,))
             if 'FROM ledger.active_owners' in query:
                 return SimpleNamespace(fetchone=lambda: values.current_owner)
             if 'FROM ledger.fills' in query:

@@ -1,0 +1,153 @@
+FFF.F.FFFFFFFFFFFFFFFF...............                                    [100%]
+=================================== FAILURES ===================================
+_________ test_ready_program_blocks_target_without_inferred_allocation _________
+tests/integration/test_application_write_obligations.py:55: in test_ready_program_blocks_target_without_inferred_allocation
+    with pytest.raises(ProposalRejected,match='PROGRAM_TARGET_ALLOCATION_REQUIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ProposalRejected
+____________ test_legacy_exclusion_cannot_hide_same_text_program_id ____________
+tests/integration/test_application_write_obligations.py:68: in test_legacy_exclusion_cannot_hide_same_text_program_id
+    assert len(unresolved)==1 and unresolved[0].endswith(':'+write.command_id)
+E   assert (0 == 1)
+E    +  where 0 = len(())
+___ test_current_collateral_binding_counts_other_account_product[SPOT-True] ____
+tests/integration/test_application_write_obligations.py:88: in test_current_collateral_binding_counts_other_account_product
+    assert bool(unresolved)==same_group
+E   assert False == True
+E    +  where False = bool(())
+_ test_current_collateral_binding_counts_other_account_product[USD_M_PERP-True] _
+tests/integration/test_application_write_obligations.py:88: in test_current_collateral_binding_counts_other_account_product
+    assert bool(unresolved)==same_group
+E   assert False == True
+E    +  where False = bool(())
+_ test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program[UNKNOWN] _
+tests/integration/test_application_write_obligations.py:110: in test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program
+    assert CommandRepository(tx).unresolved_in_group(s.command.command_id)
+E   AssertionError: assert ()
+E    +  where () = unresolved_in_group('command-4e86c3f7d09e420b91a42e20b96d3e11')
+E    +    where unresolved_in_group = <trading_system.execution.commands.CommandRepository object at 0x7f471b30b5f0>.unresolved_in_group
+E    +      where <trading_system.execution.commands.CommandRepository object at 0x7f471b30b5f0> = CommandRepository(<trading_system.storage.uow.LedgerTx object at 0x7f471b7f6060>)
+E    +    and   'command-4e86c3f7d09e420b91a42e20b96d3e11' = ExecutionCommand(contract_version='2026-10-20', command_id='command-4e86c3f7d09e420b91a42e20b96d3e11', attempt_id='pap...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-20T06:39:02Z').command_id
+E    +      where ExecutionCommand(contract_version='2026-10-20', command_id='command-4e86c3f7d09e420b91a42e20b96d3e11', attempt_id='pap...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-20T06:39:02Z') = <integration.support_ip_03.LedgerScenario object at 0x7f471b34cbc0>.command
+_ test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program[VENUE_CONFIRMED] _
+tests/integration/test_application_write_obligations.py:110: in test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program
+    assert CommandRepository(tx).unresolved_in_group(s.command.command_id)
+E   AssertionError: assert ()
+E    +  where () = unresolved_in_group('command-0978f9f57cbb4f84b080eb87086cef6b')
+E    +    where unresolved_in_group = <trading_system.execution.commands.CommandRepository object at 0x7f471b314530>.unresolved_in_group
+E    +      where <trading_system.execution.commands.CommandRepository object at 0x7f471b314530> = CommandRepository(<trading_system.storage.uow.LedgerTx object at 0x7f471b315790>)
+E    +    and   'command-0978f9f57cbb4f84b080eb87086cef6b' = ExecutionCommand(contract_version='2026-10-20', command_id='command-0978f9f57cbb4f84b080eb87086cef6b', attempt_id='pap...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-20T06:39:02Z').command_id
+E    +      where ExecutionCommand(contract_version='2026-10-20', command_id='command-0978f9f57cbb4f84b080eb87086cef6b', attempt_id='pap...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-20T06:39:02Z') = <integration.support_ip_03.LedgerScenario object at 0x7f471b34fd40>.command
+_ test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program[VENUE_REJECTED] _
+tests/integration/test_application_write_obligations.py:110: in test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program
+    assert CommandRepository(tx).unresolved_in_group(s.command.command_id)
+E   AssertionError: assert ()
+E    +  where () = unresolved_in_group('command-f6a55010656d4ce6b8069db1cf297496')
+E    +    where unresolved_in_group = <trading_system.execution.commands.CommandRepository object at 0x7f471b34f3b0>.unresolved_in_group
+E    +      where <trading_system.execution.commands.CommandRepository object at 0x7f471b34f3b0> = CommandRepository(<trading_system.storage.uow.LedgerTx object at 0x7f471b34ef00>)
+E    +    and   'command-f6a55010656d4ce6b8069db1cf297496' = ExecutionCommand(contract_version='2026-10-20', command_id='command-f6a55010656d4ce6b8069db1cf297496', attempt_id='pap...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-20T06:39:02Z').command_id
+E    +      where ExecutionCommand(contract_version='2026-10-20', command_id='command-f6a55010656d4ce6b8069db1cf297496', attempt_id='pap...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-20T06:39:02Z') = <integration.support_ip_03.LedgerScenario object at 0x7f471b3162a0>.command
+_ test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program[ABORTED_UNSENT] _
+tests/integration/test_application_write_obligations.py:110: in test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program
+    assert CommandRepository(tx).unresolved_in_group(s.command.command_id)
+E   AssertionError: assert ()
+E    +  where () = unresolved_in_group('command-3a118c5bdc934759b9a0908432193de3')
+E    +    where unresolved_in_group = <trading_system.execution.commands.CommandRepository object at 0x7f471b30b7a0>.unresolved_in_group
+E    +      where <trading_system.execution.commands.CommandRepository object at 0x7f471b30b7a0> = CommandRepository(<trading_system.storage.uow.LedgerTx object at 0x7f471b7f49e0>)
+E    +    and   'command-3a118c5bdc934759b9a0908432193de3' = ExecutionCommand(contract_version='2026-10-20', command_id='command-3a118c5bdc934759b9a0908432193de3', attempt_id='pap...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-20T06:39:02Z').command_id
+E    +      where ExecutionCommand(contract_version='2026-10-20', command_id='command-3a118c5bdc934759b9a0908432193de3', attempt_id='pap...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-20T06:39:02Z') = <integration.support_ip_03.LedgerScenario object at 0x7f471b317050>.command
+_ test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join[malformed-latest] _
+tests/integration/test_application_write_obligations.py:132: in test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join[malformed-first] _
+tests/integration/test_application_write_obligations.py:132: in test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join[physical-scope] _
+tests/integration/test_application_write_obligations.py:132: in test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join[missing-binding] _
+tests/integration/test_application_write_obligations.py:132: in test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_________ test_ready_program_is_not_silently_absent_from_legacy_target _________
+tests/unit/test_application_write_reader.py:75: in test_ready_program_is_not_silently_absent_from_legacy_target
+    with pytest.raises(ProposalRejected,match='PROGRAM_TARGET_ALLOCATION_REQUIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ProposalRejected
+______ test_no_raw_state_label_discharges_group_obligation[MAY_HAVE_SENT] ______
+tests/unit/test_application_write_reader.py:82: in test_no_raw_state_label_discharges_group_obligation
+    assert CommandRepository(tx).unresolved_in_group('legacy-other')
+E   AssertionError: assert ()
+E    +  where () = unresolved_in_group('legacy-other')
+E    +    where unresolved_in_group = <trading_system.execution.commands.CommandRepository object at 0x7f471b7f4950>.unresolved_in_group
+E    +      where <trading_system.execution.commands.CommandRepository object at 0x7f471b7f4950> = CommandRepository(<test_application_write_reader.Reads object at 0x7f471b30b530>)
+_________ test_no_raw_state_label_discharges_group_obligation[UNKNOWN] _________
+tests/unit/test_application_write_reader.py:82: in test_no_raw_state_label_discharges_group_obligation
+    assert CommandRepository(tx).unresolved_in_group('legacy-other')
+E   AssertionError: assert ()
+E    +  where () = unresolved_in_group('legacy-other')
+E    +    where unresolved_in_group = <trading_system.execution.commands.CommandRepository object at 0x7f471b3dafc0>.unresolved_in_group
+E    +      where <trading_system.execution.commands.CommandRepository object at 0x7f471b3dafc0> = CommandRepository(<test_application_write_reader.Reads object at 0x7f471e2de180>)
+_____ test_no_raw_state_label_discharges_group_obligation[VENUE_CONFIRMED] _____
+tests/unit/test_application_write_reader.py:82: in test_no_raw_state_label_discharges_group_obligation
+    assert CommandRepository(tx).unresolved_in_group('legacy-other')
+E   AssertionError: assert ()
+E    +  where () = unresolved_in_group('legacy-other')
+E    +    where unresolved_in_group = <trading_system.execution.commands.CommandRepository object at 0x7f471b368200>.unresolved_in_group
+E    +      where <trading_system.execution.commands.CommandRepository object at 0x7f471b368200> = CommandRepository(<test_application_write_reader.Reads object at 0x7f471b36b050>)
+_____ test_no_raw_state_label_discharges_group_obligation[VENUE_REJECTED] ______
+tests/unit/test_application_write_reader.py:82: in test_no_raw_state_label_discharges_group_obligation
+    assert CommandRepository(tx).unresolved_in_group('legacy-other')
+E   AssertionError: assert ()
+E    +  where () = unresolved_in_group('legacy-other')
+E    +    where unresolved_in_group = <trading_system.execution.commands.CommandRepository object at 0x7f471b3da600>.unresolved_in_group
+E    +      where <trading_system.execution.commands.CommandRepository object at 0x7f471b3da600> = CommandRepository(<test_application_write_reader.Reads object at 0x7f471b7cd1f0>)
+_____ test_no_raw_state_label_discharges_group_obligation[ABORTED_UNSENT] ______
+tests/unit/test_application_write_reader.py:82: in test_no_raw_state_label_discharges_group_obligation
+    assert CommandRepository(tx).unresolved_in_group('legacy-other')
+E   AssertionError: assert ()
+E    +  where () = unresolved_in_group('legacy-other')
+E    +    where unresolved_in_group = <trading_system.execution.commands.CommandRepository object at 0x7f471b3db800>.unresolved_in_group
+E    +      where <trading_system.execution.commands.CommandRepository object at 0x7f471b3db800> = CommandRepository(<test_application_write_reader.Reads object at 0x7f471b30a9f0>)
+____________ test_legacy_exclusion_never_hides_program_id_collision ____________
+tests/unit/test_application_write_reader.py:88: in test_legacy_exclusion_never_hides_program_id_collision
+    assert unresolved and write.command_id in unresolved[0] and 'EXECUTION_ALGO' in unresolved[0]
+E   assert (())
+__________ test_program_ready_consumes_queued_reduction_before_proof ___________
+tests/unit/test_application_write_reader.py:104: in test_program_ready_consumes_queued_reduction_before_proof
+    assert verifier.verify(case.tx,case.command,case.intent,locked_now) is None
+E   AssertionError: assert '2026-10-22T12:00:59+00:00' is None
+E    +  where '2026-10-22T12:00:59+00:00' = verify(namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...c0>>, execute=<function test_program_ready_consumes_queued_reduction_before_proof.<locals>.<lambda> at 0x7f471a73fa60>), ExecutionCommand(contract_version='2026-10-20', command_id='paper-command-demo', attempt_id='paper-attempt-demo', inte...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-22T11:59:59Z'), TradeIntent(contract_version='2026-10-20', intent_id='paper-intent-demo', environment='PAPER', owner_strategy_id='demo...ab49c0be195f9ea98854a6a04bba5eae46c3428b74f5900', rationale_summary='虚构 PAPER 接口样例，不可用于实盘。', supersedes_intent_id=None), '2026-10-22T12:00:00Z')
+E    +    where verify = <trading_system.risk.locked_actions.LockedActionVerifier object at 0x7f471b3db260>.verify
+E    +    and   namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...c0>>, execute=<function test_program_ready_consumes_queued_reduction_before_proof.<locals>.<lambda> at 0x7f471a73fa60>) = <unit.test_locked_actions.LockedCase object at 0x7f471b7f7bc0>.tx
+E    +    and   ExecutionCommand(contract_version='2026-10-20', command_id='paper-command-demo', attempt_id='paper-attempt-demo', inte...='DURABLE_READY', outcome_provenance='NONE', durable_record_ref='paper-commit-demo', created_at='2026-10-22T11:59:59Z') = <unit.test_locked_actions.LockedCase object at 0x7f471b7f7bc0>.command
+E    +    and   TradeIntent(contract_version='2026-10-20', intent_id='paper-intent-demo', environment='PAPER', owner_strategy_id='demo...ab49c0be195f9ea98854a6a04bba5eae46c3428b74f5900', rationale_summary='虚构 PAPER 接口样例，不可用于实盘。', supersedes_intent_id=None) = <unit.test_locked_actions.LockedCase object at 0x7f471b7f7bc0>.intent
+=========================== short test summary info ============================
+FAILED tests/integration/test_application_write_obligations.py::test_ready_program_blocks_target_without_inferred_allocation
+FAILED tests/integration/test_application_write_obligations.py::test_legacy_exclusion_cannot_hide_same_text_program_id
+FAILED tests/integration/test_application_write_obligations.py::test_current_collateral_binding_counts_other_account_product[SPOT-True]
+FAILED tests/integration/test_application_write_obligations.py::test_current_collateral_binding_counts_other_account_product[USD_M_PERP-True]
+FAILED tests/integration/test_application_write_obligations.py::test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program[UNKNOWN]
+FAILED tests/integration/test_application_write_obligations.py::test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program[VENUE_CONFIRMED]
+FAILED tests/integration/test_application_write_obligations.py::test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program[VENUE_REJECTED]
+FAILED tests/integration/test_application_write_obligations.py::test_raw_terminal_labels_and_legacy_outcome_audit_cannot_clear_program[ABORTED_UNSENT]
+FAILED tests/integration/test_application_write_obligations.py::test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join[malformed-latest]
+FAILED tests/integration/test_application_write_obligations.py::test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join[malformed-first]
+FAILED tests/integration/test_application_write_obligations.py::test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join[physical-scope]
+FAILED tests/integration/test_application_write_obligations.py::test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join[missing-binding]
+FAILED tests/unit/test_application_write_reader.py::test_ready_program_is_not_silently_absent_from_legacy_target
+FAILED tests/unit/test_application_write_reader.py::test_no_raw_state_label_discharges_group_obligation[MAY_HAVE_SENT]
+FAILED tests/unit/test_application_write_reader.py::test_no_raw_state_label_discharges_group_obligation[UNKNOWN]
+FAILED tests/unit/test_application_write_reader.py::test_no_raw_state_label_discharges_group_obligation[VENUE_CONFIRMED]
+FAILED tests/unit/test_application_write_reader.py::test_no_raw_state_label_discharges_group_obligation[VENUE_REJECTED]
+FAILED tests/unit/test_application_write_reader.py::test_no_raw_state_label_discharges_group_obligation[ABORTED_UNSENT]
+FAILED tests/unit/test_application_write_reader.py::test_legacy_exclusion_never_hides_program_id_collision
+FAILED tests/unit/test_application_write_reader.py::test_program_ready_consumes_queued_reduction_before_proof
+20 failed, 17 passed in 15.19s

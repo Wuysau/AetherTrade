@@ -180,6 +180,10 @@ class TargetReportService:
 
 def target_obligations(tx, intent, book, scope_holds, now):
     """Return verified unsent quantity; any sent uncertainty requires a report."""
+    from trading_system.storage.application_writes import application_write_obligations
+    program_writes = application_write_obligations(tx, scope_only=True)
+    require(not any(write.unresolved for write in program_writes), 'PROGRAM_TARGET_RECONCILIATION_REQUIRED')
+    require(not program_writes, 'PROGRAM_TARGET_ALLOCATION_REQUIRED')
     commands = roots(tx)
     by_id = {c.command_id: c for c in commands}
     for projection in scope_holds:
