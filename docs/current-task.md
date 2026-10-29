@@ -1,5 +1,53 @@
 # Current task
 
+## OP_C_RISK_LIFECYCLE_COHORT_INTEGRATED — 2026-10-29
+
+Root0765f27 nowintegrates actual program risk assessment+normalstop/retainedloss
+fixes (a055→ae3f985,3aa→0bd6932), V3 lifecycle contracts/reducers
+(1443→2160d06,8bec→04569ee), boundedemergency reduction metrics/proof
+(ad0→b86aedf,d92→0765f27). Lifecycle order_codec merge preserved BOTH financial
+kind registrations AND allnewV3lifecycle kinds, oldV2map unchanged.
+Rootcombinedcontracts/intents/unit1400passed. No new native/financial permits,
+transport or automatic source verifiers are registered by these component merges.
+
+Creationreview3realdefects fixedandretained asREDregressions:
+wirequoteAsset mustmatchnode/wallet independently; frozenclientIDs cannot be
+rebound to another durablecommand (d2a7aab); false/0 andtrue/1 dataclass equality
+cannot hide different canonicalpayload/wirebytes (9a9e985 canonicaltypedhash).
+Focusedrequest/lifecycle/registry76passed. Verify fullrequest beforebinding;
+unsignedmaterializerstillisnotfinancialauthority. Nativepeerreadreview pending.
+
+Root fullgate CURRENTLYLIVE, exactsource0bd6932 (BEFORElaterV3/reduction merges):
+exec39647, .runtime/paper-qualification-e307c57518a1/evidence. Lastconfirmedpoll
+setup/deps/markerall exit0, mandatoryPGexecuting. Poll samehandle/logs; do not
+restart on observation timeout. Need finalcurrentcohortfullgate after review.
+All olderroot fullhandles63956/79224/71345 are terminalgreen historicalevidence.
+
+Active agent next actions:
+- exposure_review/binance-opc-program-risk: d92latesttargeted264passed and
+  previousbroad1271pass; fullPGd92 runningfixedsource plusfinalartifactbroad.
+  Rootreviewofboundedproof readsource: exactsource/book/ownedqty/currentknown
+  EXITlocks/report/emergency/slippage/type/price/deadlines, no unknown/recovery,
+  no contingent/pending/newrisk, residualFalseprotection+unknownhardloss explicit.
+  Await actualPGterminal/evidence before claiming integrated qualification.
+- admission_review/binance-opc-financial-records: newcompleteassessmentarchive
+  ownWIP; resumead0+d92 dependencies/subtype restore andgenuineunknownresidual
+  EXIT/forgedproof/erasedobligations negatives viaREALevaluate_program. Oldknown
+  archivefrozen+blocked; no suppliedALLOW/stub; freeze/commitnewkindonlywhenfull
+  actualshape/replay/basis/obligations tests green. Creationreviewdone, no editsroot.
+- pin_native_build/binance-opc-lifecycle-v3: stagecohort complete/clean integrated
+  above, actual50focused+1095related inownedsource; nowread-onlycreationrequest
+  review. No productionverifier/normalizer/nativeDBbinding yet; rootcurrent
+  order_programs existing V3productioncontainment/senddenial remains unchanged.
+
+Nextrootimportantwork: completeassessmentarchive→actualSAME-core generic atomic
+financialintent/riskbasis/reservation/binding/outbox transaction; explicit new
+versionedapplicationwrite/fullrequest/permit/MAY/UNKNOWN andlocalactivation
+(no fictitious native mother). OCO target grouping/nativequote/fee-dust and
+allOP-D/E/F/G remainunfinished,46targets/56cases never shrunk or promoted by
+componentgreen. PAPERonly, no realaccount/Testnet/live/productmodel/configcalls.
+Goal ACTIVE; currentcheckpoint isnotpause/completion.
+
 ## OP_C_REQUEST_MATERIALIZATION_AND_RISK_REVIEW — 2026-10-29
 
 Root f66a584 adds actual unsigned creation-request materialization and original
