@@ -15,6 +15,7 @@ from trading_system.execution.creation_requests import VenueCreationRequest
 from trading_system.execution.program_commands import ProgramRequestBinding
 from trading_system.intents.program_compilation import Namespace
 from trading_system.risk.program_financial_admission import ProgramFinancialBundle,BUNDLE_PREFIX
+from trading_system.risk.program_financial_admission import _bundle_type_valid,decode_program_bundle
 from trading_system.storage.models import decode,scope_id
 from .cases import validate_budget
 
@@ -43,7 +44,7 @@ def _restore_original_creation(writes,binding,bundle,mark):
     require(tuple(w.state for w in writes)==('DURABLE_READY','MAY_HAVE_SENT','UNKNOWN')[:len(writes)]
         and all(digest(replace(w,state='DURABLE_READY'))==digest(initial) for w in writes),
         'ORIGINAL_CREATION_HISTORY_CHANGED')
-    require(type(binding) is ProgramRequestBinding and type(bundle) is ProgramFinancialBundle,
+    require(type(binding) is ProgramRequestBinding and _bundle_type_valid(bundle),
         'ORIGINAL_CREATION_BINDING_REQUIRED')
     request=binding.request;i=bundle.intent;a=bundle.archive
     require(type(request) is VenueCreationRequest and initial.binding_hash==digest(binding)
@@ -95,7 +96,7 @@ def read_original_creation(tx,command_id):
     row=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s '
         'AND record_id=%s AND sequence=1',(key,BUNDLE_PREFIX+writes[0].intent_id)).fetchone()
     require(row is not None,'ORIGINAL_CREATION_BUNDLE_REQUIRED')
-    bundle=decode(ProgramFinancialBundle,row[0])
+    bundle=decode_program_bundle(row[0])
     mark=tx.execute('SELECT write_payload FROM ledger.program_dispatch_marks WHERE scope_id=%s '
         'AND command_id=%s',(key,command_id)).fetchone() if len(writes)>1 else None
     original=_restore_original_creation(writes,binding,bundle,None if mark is None else mark[0])

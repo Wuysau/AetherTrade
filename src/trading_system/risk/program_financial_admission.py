@@ -55,6 +55,23 @@ def _bundle_type_valid(bundle):
     return type(bundle) in (ProgramFinancialBundle,QuoteProgramFinancialBundleV1)
 
 
+def decode_program_bundle(payload):
+    """Exact static kind dispatch; never downgrade an unknown financial source."""
+    from trading_system.storage.models import decode
+    require(type(payload) is dict,'PROGRAM_FINANCIAL_BUNDLE_REQUIRED')
+    if 'record_kind' in payload:
+        from .quote_financial_admission import QuoteProgramFinancialBundleV1
+        require(payload.get('record_kind')=='QUOTE_PROGRAM_FINANCIAL_BUNDLE_V1'
+            and payload.get('contract_version')=='2026-10-30','PROGRAM_FINANCIAL_BUNDLE_VERSION_UNSUPPORTED')
+        return decode(QuoteProgramFinancialBundleV1,payload)
+    return decode(ProgramFinancialBundle,payload)
+
+
+def read_program_bundle(tx,intent_id):
+    payload=tx._latest('audit_events',BUNDLE_PREFIX+intent_id,dict)
+    return None if payload is None else decode_program_bundle(payload)
+
+
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramFinancialInputs:
     archive:ProgramFinancialAssessmentArchive

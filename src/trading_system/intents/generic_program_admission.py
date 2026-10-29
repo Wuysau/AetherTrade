@@ -13,6 +13,8 @@ from trading_system.intents.program_compilation import ProgramCompilation,Operat
 from trading_system.intents.generic_program_intake import read_program_source,current_fence,intake_key
 from trading_system.risk.admission_clock import AdmissionWindow
 from trading_system.risk.program_financial_admission import ProgramFinancialBundle,BUNDLE_PREFIX
+from trading_system.risk.program_financial_admission import _bundle_type_valid,read_program_bundle
+from trading_system.intents.quote_program_compilation import QuoteProgramCompilationV1
 from trading_system.risk.program_financial_admission import (
     ProgramFinancialAttachment,ATTACHMENT_PREFIX,current_program_bundle_witness)
 from trading_system.storage.models import scope_id
@@ -25,7 +27,7 @@ def digest(value):return canonical_hash(domain_payload(value))
 
 def creation_command_ids(intent_id,compilation):
     require(type(intent_id) is str and bool(intent_id),'PROGRAM_FINANCIAL_INTENT_REQUIRED')
-    require(type(compilation) is ProgramCompilation,'PROGRAM_COMPILATION_REQUIRED')
+    require(type(compilation) in (ProgramCompilation,QuoteProgramCompilationV1),'PROGRAM_COMPILATION_REQUIRED')
     local=compilation.original_program.template in ('TWAP','VP') and (
         compilation.original_program.execution_mode!='VENUE_NATIVE')
     if local:
@@ -80,7 +82,7 @@ class GenericProgramAdmissionService:
     attachment or database commit propagates, leaving the restricted intake alone.
     """
     def __init__(self,ingress,reservation_service,*,load_inputs,load_clock=None,
-                 load_qualification=None,load_action_proof=None,load_lease=None,load_wallet=None):
+                 load_qualification=None,load_action_proof=None,load_lease=None,load_wallet=None,load_execution_bounds=None):
         require(ingress.scope==reservation_service.scope
             and ingress.scope.environment==t.Environment.PAPER,'PROGRAM_ADMISSION_SCOPE_REQUIRED')
         require(ingress.uow is not reservation_service.uow,'SEPARATE_INTAKE_UOW_REQUIRED')
@@ -89,6 +91,7 @@ class GenericProgramAdmissionService:
         self.load_inputs,self.load_clock=load_inputs,load_clock
         self.load_qualification,self.load_action_proof=load_qualification,load_action_proof
         self.load_lease,self.load_wallet=load_lease,load_wallet
+        self.load_execution_bounds=load_execution_bounds
 
     def _clock(self,tx):
         clock=self.load_clock(tx) if self.load_clock else None
@@ -98,7 +101,7 @@ class GenericProgramAdmissionService:
         return clock
 
     def admit(self,proposal,context,compilation):
-        require(type(compilation) is ProgramCompilation and compilation.scope==self.scope
+        require(type(compilation) in (ProgramCompilation,QuoteProgramCompilationV1) and compilation.scope==self.scope
             and digest(compilation.original_proposal)==digest(proposal),
             'PROGRAM_ADMISSION_COMPILATION_MISMATCH')
         source,record=self.ingress.accept(proposal,context)
@@ -117,8 +120,8 @@ class GenericProgramAdmissionService:
             book=digest(tx.projections.book(self.scope))
             bundle=self.reservations._reserve_program(tx,key,ids,load_inputs=self.load_inputs,
                 load_qualification=self.load_qualification,load_action_proof=self.load_action_proof,
-                load_clock=self.load_clock)
-            require(type(bundle) is ProgramFinancialBundle and bundle.intent.intent_id==record.intent_id
+                load_clock=self.load_clock,load_execution_bounds=self.load_execution_bounds)
+            require(_bundle_type_valid(bundle) and bundle.intent.intent_id==record.intent_id
                 and digest(bundle.archive.compilation)==digest(compilation),
                 'PROGRAM_ADMISSION_BUNDLE_CHANGED')
             attachment=self._attach_bundle(tx,bundle,ids)
@@ -211,7 +214,7 @@ class GenericProgramAdmissionService:
         require(receipt.intent_id==record.intent_id and receipt.source_hash==digest(source)
             and receipt.context_hash==digest(record.context) and receipt.compilation_hash==digest(compilation)
             and receipt.attachment.command_ids==ids,'PROGRAM_ADMISSION_REPLAY_CONFLICT')
-        bundle=tx._latest('audit_events',BUNDLE_PREFIX+record.intent_id,ProgramFinancialBundle)
+        bundle=read_program_bundle(tx,record.intent_id)
         require(bundle is not None and digest(bundle)==receipt.bundle_hash
             and tx.intents.get(record.intent_id)==bundle.intent,'PROGRAM_ADMISSION_BUNDLE_REQUIRED')
         self._verify_attachments(tx,bundle,receipt.attachment,same_transaction=False)

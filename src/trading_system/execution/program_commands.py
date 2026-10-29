@@ -16,6 +16,7 @@ from trading_system.intents.program_assessment_archive import (financial_intent_
     financial_risk_basis_from_assessment_archive)
 from trading_system.risk.program_financial_admission import (ProgramFinancialBundle,ARCHIVE_PREFIX,BASIS_PREFIX,
     DECISION_PREFIX,BUNDLE_PREFIX,program_bundle_command_ids,claim_program_attachment,current_program_bundle_witness)
+from trading_system.risk.program_financial_admission import _bundle_type_valid,decode_program_bundle,read_program_bundle
 from trading_system.storage.models import scope_id,account_key,decode,encode,atomic_write,MissingEvidence
 from trading_system.storage.order_programs import OrderProgramRepository,FundingLink
 from .creation_requests import VenueCreationRequest,EquityWalletSelection,verify_creation
@@ -40,10 +41,14 @@ class ProgramRequestBinding:
     request:VenueCreationRequest
 
 def _validate_bundle(bundle):
-    require(type(bundle) is ProgramFinancialBundle,'PROGRAM_FINANCIAL_BUNDLE_REQUIRED')
-    intent=financial_intent_from_assessment_archive(bundle.archive)
+    require(_bundle_type_valid(bundle),'PROGRAM_FINANCIAL_BUNDLE_REQUIRED')
+    if type(bundle) is ProgramFinancialBundle:
+        intent=financial_intent_from_assessment_archive(bundle.archive)
+        basis=financial_risk_basis_from_assessment_archive(intent,bundle.archive)
+    else:
+        from trading_system.intents.quote_assessment_archive import quote_financial_intent,quote_financial_basis
+        intent=quote_financial_intent(bundle.archive);basis=quote_financial_basis(intent,bundle.archive)
     require(digest(intent)==digest(bundle.intent),'PROGRAM_INTENT_ARCHIVE_CHANGED')
-    basis=financial_risk_basis_from_assessment_archive(intent,bundle.archive)
     require(digest(basis)==digest(bundle.basis) and digest(bundle.decision)==digest(bundle.archive.assessment),
         'PROGRAM_BASIS_DECISION_ARCHIVE_CHANGED')
 
@@ -90,7 +95,7 @@ def validate_stored_program_binding(tx,original,current):
     row=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
         (key,BUNDLE_PREFIX+original.intent_id)).fetchone()
     require(row is not None,'PROGRAM_FINANCIAL_BUNDLE_REQUIRED')
-    bundle=decode(ProgramFinancialBundle,row[0])
+    bundle=decode_program_bundle(row[0])
     validate_creation_binding(original,binding.request,binding,bundle)
     require(tx.execute('SELECT ledger.program_binding_current(%s,%s,%s::jsonb)',
         (key,original.command_id,encode(original))).fetchone()==(True,),'PROGRAM_STORED_BINDING_CHANGED')
@@ -113,7 +118,7 @@ class ProgramCommandRepository:
         return self.tx._latest('program_request_bindings',command_id,ProgramRequestBinding)
 
     def _bundle(self,intent_id):
-        bundle=self.tx._latest('audit_events',BUNDLE_PREFIX+intent_id,ProgramFinancialBundle)
+        bundle=read_program_bundle(self.tx,intent_id)
         require(bundle is not None,'PROGRAM_FINANCIAL_BUNDLE_REQUIRED')
         _validate_bundle(bundle)
         require(digest(self.tx.intents.get(intent_id))==digest(bundle.intent),'PROGRAM_STORED_INTENT_CHANGED')
