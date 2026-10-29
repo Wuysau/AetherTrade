@@ -137,3 +137,21 @@ def test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_c
     with pytest.raises(ValueError):c.service._transaction(lambda tx:reserve(c,tx))
     with c.owner.transaction(c.scope) as tx:
         assert tx.intents.get(c.qrecord.intent_id) is None and tx.reservations.for_intent(c.qrecord.intent_id)==()
+
+
+@pytest.mark.parametrize('fault',['final_enforcement_expired','final_enforcement_changed_book'])
+def test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier(database,fault):
+    c=quote_case(database);original=c.bounds;calls=[]
+    def bounds(tx,*args):
+        calls.append(1)
+        if len(calls)==2:
+            if fault=='final_enforcement_expired':c.service.clock=lambda:c.q.terms.valid_until
+            else:
+                book=tx.projections.book(c.scope)
+                tx.projections.save_book(replace(book,sequence=book.sequence+1),book.sequence)
+        return original(tx,*args)
+    c.bounds=bounds
+    with pytest.raises(ValueError):c.service._transaction(lambda tx:reserve(c,tx))
+    assert len(calls)==2
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.intents.get(c.qrecord.intent_id) is None and tx.reservations.for_intent(c.qrecord.intent_id)==()
