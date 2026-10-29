@@ -109,6 +109,23 @@ class ProgramTargetAllocation:
     def execution_authorized(self)->Literal[False]:
         return False
 
+    @property
+    def target_residual(self)->t.Quantity:
+        """Exact unallocated remainder; never a target or position rewrite."""
+        return _target_residual(self.delta)
+
+
+def _target_residual(delta):
+    quantities=(delta.target,delta.actual,delta.working,delta.remaining)
+    require(len({q.unit for q in quantities})==1,'TARGET_RESIDUAL_UNIT_MISMATCH')
+    values=[q.value for q in quantities]
+    require(all(isinstance(v,D) and v.is_finite() for v in values),'INVALID_TARGET_RESIDUAL')
+    with localcontext() as arithmetic:
+        arithmetic.prec=max(80,max(v.adjusted() for v in values)
+            - min(v.as_tuple().exponent for v in values)+len(str(len(values)))+8)
+        value=values[0]-values[1]-values[2]-values[3]
+    return t.Quantity(value=value,unit=delta.target.unit)
+
 
 def _digest(record):
     return canonical_hash(domain_payload(record))
@@ -216,6 +233,11 @@ def _compile_program_target(plan,book,facts):
     delta=TargetCompiler(facts.inputs).compile_terms(terms,book)
     blockers=[]
     if delta.cancel_first:blockers.append('TARGET_CANCEL_AND_RECONCILE_REQUIRED')
+    # Preserve the existing exposure core's exact target equation. Explicit
+    # round-down permission is not permission to erase fractional inventory or
+    # call the absolute target satisfied. Cancel-first already blocks allocation.
+    if not delta.cancel_first and _target_residual(delta).value!=0:
+        blockers.append('TARGET_PRECISION_RESIDUAL_UNRESOLVED')
     if facts.unknown_command_ids or any(o.order.identity.scope==scope and o.command_certainty=='UNKNOWN' for o in book.active_orders):
         blockers.append('UNKNOWN_ORDER_RECONCILIATION_REQUIRED')
     if delta.remaining.value==0:blockers.append('TARGET_ALREADY_SATISFIED' if not delta.cancel_first else 'TARGET_ALLOCATION_WAITING')
@@ -236,6 +258,8 @@ def _compile_program_target(plan,book,facts):
                     blockers.append('CONTINGENT_QUANTITY_EXCEEDS_TARGET')
     obligations=('LOCKED_FINANCIAL_ADMISSION_REQUIRED','CURRENT_AUTHORIZATION_AND_OWNER_RECHECK',
                  'CURRENT_COMPILATION_AND_RULES_REVALIDATION','SOURCE_QUANTITIES_NOT_RESIZED','NO_PERMIT_CREATED')
+    if 'TARGET_PRECISION_RESIDUAL_UNRESOLVED' in blockers:
+        obligations+=('EXPLICIT_RESIDUAL_AND_PROTECTION_ACCOUNTING_REQUIRED',)
     nodes=[];requests=[]
     if not blockers:
         side='BUY' if delta.remaining.value>0 else 'SELL'

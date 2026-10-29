@@ -325,3 +325,28 @@ def test_quote_batch_equal_numeric_limits_preserve_different_wire_representation
     book,facts=scenario(different_plan,rules)
     with pytest.raises(ProposalRejected,match='MULTI_PRICE_TARGET_NORMALIZATION_UNSUPPORTED'):
         compile_program_target(different_plan,book,facts)
+
+
+def test_rounded_remaining_dust_does_not_appear_fully_allocatable():
+    plan,rules=plan_for(target='1',quantity='0.999999');book,facts=scenario(plan,rules,actual='0.0000005')
+    facts=replace(facts,inputs=replace(facts.inputs,allow_round_down=True))
+    original=canonical_hash(domain_payload(plan))
+    result=compile_program_target(plan,book,facts)
+    assert result.blockers==('TARGET_PRECISION_RESIDUAL_UNRESOLVED',)
+    assert not result.nodes and not result.requests
+    assert result.delta.target.value==D(1) and result.delta.actual.value==D('0.0000005')
+    assert result.delta.remaining.value==D('0.999999')
+    assert result.target_residual==t.Quantity(value=D('0.0000005'),unit='BASE')
+    assert 'EXPLICIT_RESIDUAL_AND_PROTECTION_ACCOUNTING_REQUIRED' in result.obligations
+    assert canonical_hash(domain_payload(plan))==original and plan.original_proposal.target_value=='1'
+    from trading_system.risk.exposure import ExposureCalculator,ExposureMark
+    from trading_system.risk.valuation import Valuation
+    mark=ExposureMark(scope=plan.scope,price=t.Price(value=D(100),currency='USDT'),multiplier=D(1),unit='BASE',related_group='btc')
+    assert 'DELTA_INCONSISTENT' in ExposureCalculator(Valuation('USDT'),(mark,)).project(book,result.delta).missing
+
+
+def test_exact_grid_remaining_still_allocates_without_residual():
+    plan,rules=plan_for(target='1',quantity='0.999999');book,facts=scenario(plan,rules,actual='0.000001')
+    result=compile_program_target(plan,book,replace(facts,inputs=replace(facts.inputs,allow_round_down=True)))
+    assert not result.blockers and len(result.requests)==1
+    assert result.target_residual==t.Quantity(value=D(0),unit='BASE')
