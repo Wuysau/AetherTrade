@@ -6,6 +6,8 @@ DO $$ BEGIN
   (rolcanlogin OR rolsuper OR rolcreatedb OR rolcreaterole OR rolinherit OR rolreplication OR rolbypassrls)) THEN
   RAISE EXCEPTION 'unsafe matcher owner';
  END IF;
+ IF EXISTS(SELECT FROM pg_auth_members WHERE member=(SELECT oid FROM pg_roles WHERE rolname='paper_matcher_definer')
+  OR roleid=(SELECT oid FROM pg_roles WHERE rolname='paper_matcher_definer')) THEN RAISE EXCEPTION 'matcher role membership denied'; END IF;
 END $$;
 CREATE TABLE public.paper_market_state_v2(
  market_key text PRIMARY KEY,depth_event_id text,

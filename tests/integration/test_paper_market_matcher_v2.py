@@ -79,3 +79,29 @@ def test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_pri
     report=c.engine.query_creation(c.write.command_id)
     assert report.filled_quantity==1 and report.fills[0].price==D('81489')
     assert report.orders[0].runtime.high_water==D('83000')
+
+
+def test_v1_and_v2_competing_accounts_share_one_actual_depth_source(database,venue_v2,tmp_path):
+    from uuid import uuid4
+    from trading_system.engine.paper_market import PaperMatcher,PaperCreationReport
+    market='mixed-market-'+uuid4().hex
+    first=case(database,venue_v2,tmp_path,market=market);submit(first)
+    second=advanced_case(database,venue_v2,tmp_path,market=market,tif='NONE',order_transform=market_order)
+    snapshot=event(first,quantity='1.5')
+    PaperMatcher(first.engine).apply_market_event(snapshot)
+    submit(second)
+    before=first.engine.query_creation(first.write.command_id)
+    after=second.engine.query_creation(second.write.command_id)
+    assert type(before) is PaperCreationReport and before.filled_quantity==1
+    assert after.filled_quantity==D('.5') and after.status=='EXPIRED'
+    proof=second.engine.query_market_evidence(second.write.command_id)
+    assert len(proof.inputs)==1 and sum((r.quantity for r in proof.consumptions),D(0))==D('1.5')
+    assert not PaperMatcher(second.engine).apply_market_event(snapshot).applied
+
+
+def test_runtime_cannot_publish_price_sources_or_change_activation_progress(venue_v2):
+    import psycopg
+    for statement in ('INSERT INTO public.paper_reference_prices_v2 DEFAULT VALUES',
+                      'UPDATE public.paper_order_runtime_v2 SET active=true'):
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            with psycopg.connect(venue_v2.runtime_dsn) as db:db.execute(statement)
