@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="9" time="7.124" timestamp="2026-10-29T18:01:34.236495+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.unit.test_original_creation_recovery" name="test_historical_identity_does_not_run_a_new_risk_assessment" time="0.686"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001A9D47F10F0&gt;
+
+    def test_historical_identity_does_not_run_a_new_risk_assessment(monkeypatch):
+        data=case()
+        def no_new_assessment(*args,**kwargs):raise AssertionError('historical identity must not reassess risk')
+        monkeypatch.setattr('trading_system.risk.evaluator.RiskEvaluator.evaluate_program',no_new_assessment)
+&gt;       result=restore(data)
+               ^^^^^^^^^^^^^
+
+tests\unit\test_original_creation_recovery.py:28: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = ((ApplicationWriteV3(contract_version='2026-10-29', record_kind='PROGRAM_APPLICATION_WRITE', command_id='command-one',...9', 'record_kind': 'PROGRAM_APPLICATION_WRITE', 'command_id': 'command-one', 'intent_id': 'program-risk-fixture', ...})
+
+    def restore(data):
+&gt;       from trading_system.recovery.original_creation import _restore_original_creation
+E       ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+
+tests\unit\test_original_creation_recovery.py:20: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_original_creation_recovery" name="test_immutable_hash_or_protected_history_corruption_is_not_adopted[request]" time="0.709"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">fault = 'request'
+
+    @pytest.mark.parametrize('fault',['request','binding','archive','history','missing_mark','false_mark'])
+    def test_immutable_hash_or_protected_history_corruption_is_not_adopted(fault):
+        writes,binding,bundle,mark=case()
+        if fault=='request':binding=replace(binding,request=replace(binding.request,command_id='other-command'))
+        if fault=='binding':binding=replace(binding,intent_id='other-intent')
+        if fault=='archive':bundle=replace(bundle,archive=replace(bundle.archive,intent_id='other-intent'))
+        if fault=='history':writes=(writes[0],replace(writes[1],state='UNKNOWN'))
+        if fault=='missing_mark':mark=None
+        if fault=='false_mark':mark={**mark,'request_hash':'f'*64}
+&gt;       with pytest.raises(ValueError):restore((writes,binding,bundle,mark))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_original_creation_recovery.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = ((ApplicationWriteV3(contract_version='2026-10-29', record_kind='PROGRAM_APPLICATION_WRITE', command_id='command-one',...9', 'record_kind': 'PROGRAM_APPLICATION_WRITE', 'command_id': 'command-one', 'intent_id': 'program-risk-fixture', ...})
+
+    def restore(data):
+&gt;       from trading_system.recovery.original_creation import _restore_original_creation
+E       ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+
+tests\unit\test_original_creation_recovery.py:20: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_original_creation_recovery" name="test_immutable_hash_or_protected_history_corruption_is_not_adopted[binding]" time="0.680"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">fault = 'binding'
+
+    @pytest.mark.parametrize('fault',['request','binding','archive','history','missing_mark','false_mark'])
+    def test_immutable_hash_or_protected_history_corruption_is_not_adopted(fault):
+        writes,binding,bundle,mark=case()
+        if fault=='request':binding=replace(binding,request=replace(binding.request,command_id='other-command'))
+        if fault=='binding':binding=replace(binding,intent_id='other-intent')
+        if fault=='archive':bundle=replace(bundle,archive=replace(bundle.archive,intent_id='other-intent'))
+        if fault=='history':writes=(writes[0],replace(writes[1],state='UNKNOWN'))
+        if fault=='missing_mark':mark=None
+        if fault=='false_mark':mark={**mark,'request_hash':'f'*64}
+&gt;       with pytest.raises(ValueError):restore((writes,binding,bundle,mark))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_original_creation_recovery.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = ((ApplicationWriteV3(contract_version='2026-10-29', record_kind='PROGRAM_APPLICATION_WRITE', command_id='command-one',...9', 'record_kind': 'PROGRAM_APPLICATION_WRITE', 'command_id': 'command-one', 'intent_id': 'program-risk-fixture', ...})
+
+    def restore(data):
+&gt;       from trading_system.recovery.original_creation import _restore_original_creation
+E       ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+
+tests\unit\test_original_creation_recovery.py:20: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_original_creation_recovery" name="test_immutable_hash_or_protected_history_corruption_is_not_adopted[archive]" time="0.818"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">fault = 'archive'
+
+    @pytest.mark.parametrize('fault',['request','binding','archive','history','missing_mark','false_mark'])
+    def test_immutable_hash_or_protected_history_corruption_is_not_adopted(fault):
+        writes,binding,bundle,mark=case()
+        if fault=='request':binding=replace(binding,request=replace(binding.request,command_id='other-command'))
+        if fault=='binding':binding=replace(binding,intent_id='other-intent')
+        if fault=='archive':bundle=replace(bundle,archive=replace(bundle.archive,intent_id='other-intent'))
+        if fault=='history':writes=(writes[0],replace(writes[1],state='UNKNOWN'))
+        if fault=='missing_mark':mark=None
+        if fault=='false_mark':mark={**mark,'request_hash':'f'*64}
+&gt;       with pytest.raises(ValueError):restore((writes,binding,bundle,mark))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_original_creation_recovery.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = ((ApplicationWriteV3(contract_version='2026-10-29', record_kind='PROGRAM_APPLICATION_WRITE', command_id='command-one',...9', 'record_kind': 'PROGRAM_APPLICATION_WRITE', 'command_id': 'command-one', 'intent_id': 'program-risk-fixture', ...})
+
+    def restore(data):
+&gt;       from trading_system.recovery.original_creation import _restore_original_creation
+E       ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+
+tests\unit\test_original_creation_recovery.py:20: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_original_creation_recovery" name="test_immutable_hash_or_protected_history_corruption_is_not_adopted[history]" time="0.989"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">fault = 'history'
+
+    @pytest.mark.parametrize('fault',['request','binding','archive','history','missing_mark','false_mark'])
+    def test_immutable_hash_or_protected_history_corruption_is_not_adopted(fault):
+        writes,binding,bundle,mark=case()
+        if fault=='request':binding=replace(binding,request=replace(binding.request,command_id='other-command'))
+        if fault=='binding':binding=replace(binding,intent_id='other-intent')
+        if fault=='archive':bundle=replace(bundle,archive=replace(bundle.archive,intent_id='other-intent'))
+        if fault=='history':writes=(writes[0],replace(writes[1],state='UNKNOWN'))
+        if fault=='missing_mark':mark=None
+        if fault=='false_mark':mark={**mark,'request_hash':'f'*64}
+&gt;       with pytest.raises(ValueError):restore((writes,binding,bundle,mark))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_original_creation_recovery.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = ((ApplicationWriteV3(contract_version='2026-10-29', record_kind='PROGRAM_APPLICATION_WRITE', command_id='command-one',...9', 'record_kind': 'PROGRAM_APPLICATION_WRITE', 'command_id': 'command-one', 'intent_id': 'program-risk-fixture', ...})
+
+    def restore(data):
+&gt;       from trading_system.recovery.original_creation import _restore_original_creation
+E       ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+
+tests\unit\test_original_creation_recovery.py:20: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_original_creation_recovery" name="test_immutable_hash_or_protected_history_corruption_is_not_adopted[missing_mark]" time="0.900"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">fault = 'missing_mark'
+
+    @pytest.mark.parametrize('fault',['request','binding','archive','history','missing_mark','false_mark'])
+    def test_immutable_hash_or_protected_history_corruption_is_not_adopted(fault):
+        writes,binding,bundle,mark=case()
+        if fault=='request':binding=replace(binding,request=replace(binding.request,command_id='other-command'))
+        if fault=='binding':binding=replace(binding,intent_id='other-intent')
+        if fault=='archive':bundle=replace(bundle,archive=replace(bundle.archive,intent_id='other-intent'))
+        if fault=='history':writes=(writes[0],replace(writes[1],state='UNKNOWN'))
+        if fault=='missing_mark':mark=None
+        if fault=='false_mark':mark={**mark,'request_hash':'f'*64}
+&gt;       with pytest.raises(ValueError):restore((writes,binding,bundle,mark))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_original_creation_recovery.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = ((ApplicationWriteV3(contract_version='2026-10-29', record_kind='PROGRAM_APPLICATION_WRITE', command_id='command-one',... 'NO_COMMAND_OR_PERMIT_CREATED', 'UNFILLED_ORDERS_RETAIN_PROTECTION_AND_RECONCILIATION_DUTY')), reservations=()), None)
+
+    def restore(data):
+&gt;       from trading_system.recovery.original_creation import _restore_original_creation
+E       ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+
+tests\unit\test_original_creation_recovery.py:20: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_original_creation_recovery" name="test_immutable_hash_or_protected_history_corruption_is_not_adopted[false_mark]" time="0.814"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">fault = 'false_mark'
+
+    @pytest.mark.parametrize('fault',['request','binding','archive','history','missing_mark','false_mark'])
+    def test_immutable_hash_or_protected_history_corruption_is_not_adopted(fault):
+        writes,binding,bundle,mark=case()
+        if fault=='request':binding=replace(binding,request=replace(binding.request,command_id='other-command'))
+        if fault=='binding':binding=replace(binding,intent_id='other-intent')
+        if fault=='archive':bundle=replace(bundle,archive=replace(bundle.archive,intent_id='other-intent'))
+        if fault=='history':writes=(writes[0],replace(writes[1],state='UNKNOWN'))
+        if fault=='missing_mark':mark=None
+        if fault=='false_mark':mark={**mark,'request_hash':'f'*64}
+&gt;       with pytest.raises(ValueError):restore((writes,binding,bundle,mark))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_original_creation_recovery.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = ((ApplicationWriteV3(contract_version='2026-10-29', record_kind='PROGRAM_APPLICATION_WRITE', command_id='command-one',...9', 'record_kind': 'PROGRAM_APPLICATION_WRITE', 'command_id': 'command-one', 'intent_id': 'program-risk-fixture', ...})
+
+    def restore(data):
+&gt;       from trading_system.recovery.original_creation import _restore_original_creation
+E       ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+
+tests\unit\test_original_creation_recovery.py:20: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_original_creation_recovery" name="test_query_targets_and_scheduler_keep_existing_ids_after_submission_expires" time="0.001"><failure message="UnboundLocalError: cannot access local variable 'case' where it is not associated with a value">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001A9D499E060&gt;
+
+    def test_query_targets_and_scheduler_keep_existing_ids_after_submission_expires(monkeypatch):
+&gt;       data=case();result=restore(data)
+             ^^^^
+E       UnboundLocalError: cannot access local variable 'case' where it is not associated with a value
+
+tests\unit\test_original_creation_recovery.py:46: UnboundLocalError</failure></testcase><testcase classname="tests.unit.test_original_creation_recovery" name="test_ready_original_does_not_become_an_unknown_case" time="0.885"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">def test_ready_original_does_not_become_an_unknown_case():
+&gt;       result=restore(case(('DURABLE_READY',)))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_original_creation_recovery.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = ((ApplicationWriteV3(contract_version='2026-10-29', record_kind='PROGRAM_APPLICATION_WRITE', command_id='command-one',... 'NO_COMMAND_OR_PERMIT_CREATED', 'UNFILLED_ORDERS_RETAIN_PROTECTION_AND_RECONCILIATION_DUTY')), reservations=()), None)
+
+    def restore(data):
+&gt;       from trading_system.recovery.original_creation import _restore_original_creation
+E       ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+
+tests\unit\test_original_creation_recovery.py:20: ModuleNotFoundError</failure></testcase></testsuite></testsuites>

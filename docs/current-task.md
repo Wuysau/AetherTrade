@@ -1,5 +1,18 @@
 # Current task
 
+## OP_E_ORIGINAL_RECOVERY_VERIFIED — 2026-10-29
+
+Functional2e30dfc read-only original creation recovery independently reviewed;
+actual isolated PG4/0/0/0 and225 related component passes. Correct3a1509b PG RED4
+and earlier fixture guard failure retained separately in op-e-recovery evidence.
+No new order IDs/risk replay/financial release. All own exec jobs TERMINAL.
+Root integration_next may take reviewed source/evidence but not this checkpoint.
+Next assigned parent module: execution/paper_program_reports.py, independently
+verify actual OPD accepted contexts/protected consumption/all competing market
+allocations, normalize SYNTHETIC fills/projections only; no separate cash ledger.
+OPD timestamp/fill-ID fix APIs pending peer; root retains dispatch/financial writes.
+Goal ACTIVE full46/56 plus C/D/E/F/G; no pause or native qualification claim.
+
 ## OP_E_PARENT_MANAGEMENT_SLICE — 2026-10-29
 
 This independent binance-ope-management worktree is owned by parent/root only.
