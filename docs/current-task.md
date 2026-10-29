@@ -1,5 +1,61 @@
 # Current task
 
+## OP_C_INTEGRATION_LEAD_SOLE_WRITER — 2026-10-29
+
+Root delegated sole write ownership of this binance-orders worktree to
+integration_lead at HEAD830dcca. Parent root reads/coordinates only while this
+cohort is active; do not edit/commit this worktree concurrently. Native peer owns
+binance-opc-program-commands; financial peer owns binance-opc-financial-records.
+V3 command plan approved within ADR: full typed request/private identities,
+same owner/UoW/outbox, current typed proofs/default-deny, commit-before-single-use
+permit, old V2 bytes/recovery retained. No production reader/transport enabled.
+Lead implements actual same-core program financial admission/intake and internal
+local activation, integrates tested archive/command commits, then continues full
+OP-D/E/F/G. All46targets/56cases retained; goal ACTIVE, no new permissions needed.
+Latest full gate remains historical0bd6932; current integration needs a fresh gate.
+
+## OP_C_STRUCTURAL_REQUEST_GUARDS_AND_COMMAND_WORK — 2026-10-29
+
+Rootd4f3cf5 fixes two additional independently reproduced unsignedrequestdefects:
+Spot→Futures namespace/endpoint substitution andnativeOCOchild rewrittenasordinary
+standalonesubmit. _selected nowrequiresproduct/servicecompatibility andcomplete
+nativeparent/list/algorithm request+originalnodes/origins. RED2→GREEN31request/
+quotecases, no nativechildrenlocalsends. Rootcleanthrough0fcc446 (artifacts).
+
+Fullroot0bd6932 run39647 isTERMINALexit0, notlive:915PG/28suites0fail/error/skip;
+ordinary3097pass/469envskip/96deselected, oneexistingdeprecationwarning. Evidence
+.runtime/paper-qualification-e307c57518a1/evidence (BEFOREsubsequentV3/reduction/
+requestguardmerges). Latestcombinedroot1400contract/intents/unitpassed; latest
+requeststructuralfollowup31passed. Neednewfullcurrentcohortgate afterpending
+assessmentarchive/commandintegration, neverreuseoldsourceascurrentproof.
+Peerfinalriskd92 actual905PG/27suites0skip plus264focused/1273unit; artifacts
+05ce45e→7b7ded3,cc4fe89→0fcc446 integrated. These are riskmath/storageproof,
+notnativequalification, financialapproval or permits.
+
+Active work:
+- pin_native_build NEWsole-owned binance-opc-program-commands branchsameprefix,
+  basedd4f3cf5. Task: sendrootactualV3applicationwrite/requestbinding/0012migration/
+  role/idempotency/oldV2compat plan BEFOREedits, thenrealcode/TDD/PG. Reuse
+  ledger.order_writes_v2/owner/UoW/outbox; completeFinancialIntent/Basis/Decision+
+  actualtypedVenueCreationRequest bound; no fakelegacycommand orsecondcore.
+  OldV2markdeny/UNKNOWNoriginalIDs retained. NewMAY requirescurrentowner/lease/
+  source/actualrisk/qualification, commitbeforesingle-usepermit, defaultsdeny.
+  Localalgoactivationisinternal(nofakevenuemother/noownercontrol_commandsgrant),
+  venuechildrenobserveonly. No productionreader/transport/LIVE/TESTNETopening.
+- admission_review/binance-opc-financial-records: actualnewassessmentarchiveWIP,
+  integratead0+d92 subtype+residualproof andgenuineALLO/DENY/replay/forgedproof/
+  erasedEXIT_ONLYobligation tests. Oldkind/hash/blockedconverterunchanged. Actual
+  currentLockedActionVerifier/lockwrites/intake/sourceapprovalremainouterbundle.
+- exposure_review/binance-opc-program-risk: codingcohortdone/cleanatd92+artifacts;
+  nowREAD-ONLY independent review rootV3lifecycle authority/reducers/funding/
+  SUM-exclusive/dualfills/receiptfees/watermark/sourceproof. No rootedits or
+  Nativewriteredits. Thenremaininggroup-target/quote/dustcontracts stillneeded.
+
+Nextrootsmallstep: reviewcommandplan, finishassessmentarchive→SAME-core generic
+atomic financialbundle andrequest/outbox/permit/recovery wiring. Preserve46/56
+fullgoal plusOP-D/E/F/G. Allold rootjobs39647/63956/79224/71345terminal; no restart.
+PAPERonly, no account/Testnet/live/productmodel/configactions. GoalACTIVE.
+
 ## OP_C_RISK_LIFECYCLE_COHORT_INTEGRATED — 2026-10-29
 
 Root0765f27 nowintegrates actual program risk assessment+normalstop/retainedloss
