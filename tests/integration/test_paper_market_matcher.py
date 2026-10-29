@@ -325,3 +325,32 @@ def test_consumed_permit_cannot_start_a_side_effect_after_actual_sim_lock_wait(d
     with c.service.uow.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',
             (c.write.command_id,)).fetchone()==(1,)
+
+
+def test_disabled_actual_source_fence_after_consume_blocks_sim_side_effect(database,venue,tmp_path):
+    import psycopg,time
+    from concurrent.futures import ThreadPoolExecutor
+    from psycopg.conninfo import conninfo_to_dict
+    from trading_system.engine.paper_market import market_key
+    from trading_system.intents.ingress import revision_key,IngressRevision
+    c=case(database,venue,tmp_path);dbname=conninfo_to_dict(venue.runtime_dsn)['dbname']
+    with psycopg.connect(venue.event_dsn) as blocker:
+        blocker.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',
+            (market_key(c.scope.product,c.scope.instrument_uid),))
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending=pool.submit(submit,c);deadline=time.monotonic()+30
+            with psycopg.connect(database) as observer:
+                while time.monotonic()<deadline:
+                    if observer.execute('SELECT EXISTS(SELECT FROM pg_locks l JOIN pg_database d ON d.oid=l.database '
+                            "WHERE d.datname=%s AND l.locktype='advisory' AND NOT l.granted)",(dbname,)).fetchone()[0]:break
+                    if pending.done():pending.result()
+                    time.sleep(.02)
+                else:raise AssertionError('actual SIM advisory wait not observed')
+            with c.service.uow.transaction(c.scope) as tx:
+                key=revision_key(c.bundle.archive.source.context)
+                previous=tx._latest('audit_events',key,IngressRevision)
+                tx._append('audit_events',key,replace(previous,sequence=previous.sequence+1,enabled=False),previous.sequence)
+            blocker.commit()
+            with pytest.raises(ValueError,match='STALE_REVISION|PAPER_CURRENT_FENCE_CHANGED'):
+                pending.result(timeout=30)
+    assert c.engine.query_creation(c.write.command_id) is None
