@@ -118,6 +118,8 @@ def _selected(plan,index):
     nodes={n.original.node_id:n for n in plan.nodes}
     require(set(request.node_ids)<=set(nodes),'CREATION_NODE_MISSING')
     program=plan.original_program
+    require(not (program.template in ('TWAP','VP') and program.execution_mode!='VENUE_NATIVE'),
+        'LOCAL_ALGORITHM_ACTIVATION_IS_NOT_EXTERNAL_WRITE')
     native_templates=('OCO','OTO','OTOCO','OPO','OPOCO','TWAP','VP')
     if (program.execution_mode=='VENUE_NATIVE' and program.template in native_templates
             or any(nodes[n].trusted_origin=='VENUE_GENERATED_CHILD' for n in request.node_ids)):
@@ -128,6 +130,9 @@ def _selected(plan,index):
             and request.node_ids==tuple(n.node_id for n in program.nodes)
             and request.native_mother is True and request.generated_child_origin=='VENUE_GENERATED_CHILD',
             'VENUE_CHILD_REQUIRES_ORIGINAL_NATIVE_PARENT')
+    else:
+        require(all(nodes[n].namespace==request.namespace for n in request.node_ids),
+            'CREATION_NODE_SERVICE_MISMATCH')
     return request,tuple(nodes[n] for n in request.node_ids)
 
 
