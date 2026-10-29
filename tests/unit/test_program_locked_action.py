@@ -47,3 +47,25 @@ def test_new_current_lock_cannot_be_erased_by_a_captured_allow_or_reduction_proo
         archive_hash=digest(a),book_hash=digest(a.book),reduction=p,valid_until=p.valid_until)
     assert LockedActionVerifier().verify_program(tx,i,a,a.risk_facts.inputs.clock.utc_now,book=a.book,
         read_proof=lambda *args:proof) is None
+
+
+def test_report_age_bounds_current_program_proof_even_when_evidence_was_just_visible():
+    from unit.test_assessment_archive import archive_from_case
+    from trading_system.risk.locked_actions import ProgramActionProof
+    bounded_archive()  # fixed sibling fixture paths
+    from test_program_reduction_risk import bounded_case
+    c=bounded_case(missing_stop=True);old=c.facts.reduction_proof
+    report=replace(old.report,as_of='2026-10-28T09:59:01Z')
+    ref=replace(old.archive_ref,hash=digest(report))
+    reduction=replace(old,report=report,archive_ref=ref)
+    c.facts=replace(c.facts,reduction_proof=reduction,
+        evidence=tuple(ref if e==old.archive_ref else e for e in c.facts.evidence))
+    a=archive_from_case(c);assert a.assessment.verdict=='ALLOW',a.assessment.rejection_codes
+    i=financial_intent_from_assessment_archive(a);tx=tx_for(a,reduction.locks)
+    proof=ProgramActionProof(transaction_id=tx.transaction_id,intent_hash=digest(i),archive_hash=digest(a),
+        book_hash=digest(a.book),reduction=reduction,valid_until=reduction.valid_until)
+    verifier=LockedActionVerifier()
+    assert verifier.verify_program(tx,i,a,'2026-10-28T10:00:00Z',book=a.book,
+        read_proof=lambda *args:proof)<='2026-10-28T10:00:01+00:00'
+    assert verifier.verify_program(tx,i,a,'2026-10-28T10:00:02Z',book=a.book,
+        read_proof=lambda *args:proof) is None

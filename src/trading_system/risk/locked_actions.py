@@ -116,11 +116,13 @@ class LockedActionVerifier:
                     or proof.archive_hash!=digest(archive) or proof.book_hash!=digest(book)
                     or digest(proof.reduction)!=digest(archive.risk_facts.reduction_proof)
                     or {digest(l) for l in proof.reduction.locks}!={digest(l) for l in locks}
+                    or report_errors(proof.reduction.report,tx.scope,now,self.maximum_age_seconds)
                     or utc_timestamp(now)>=utc_timestamp(proof.valid_until)):
                 return None
             validate_bounded_reduction(proof.reduction,archive.risk_facts.inputs,archive.risk_terms,
                 archive.compilation,archive.allocation,book,archive.risk_facts)
             validity=min(validity,utc_timestamp(proof.valid_until),utc_timestamp(proof.reduction.valid_until),
+                utc_timestamp(proof.reduction.report.as_of)+timedelta(seconds=self.maximum_age_seconds),
                 *(utc_timestamp(e.visible_at)+timedelta(seconds=self.maximum_age_seconds)
                     for e in proof.reduction.report.evidence))
             return validity.isoformat() if utc_timestamp(now)<validity else None
