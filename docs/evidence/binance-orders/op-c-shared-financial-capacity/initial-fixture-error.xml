@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.120" timestamp="2026-10-29T04:20:13.004329+00:00" hostname="c4e4530570ee"><testcase classname="tests.integration.test_capacity_precision" name="test_small_cross_account_debit_cannot_disappear_in_large_pool" time="0.716"><failure message="trading_system.storage.models.ScopeMismatch: reservation binding mismatch">tests/integration/test_capacity_precision.py:21: in test_small_cross_account_debit_cannot_disappear_in_large_pool
+    tx.reservations.append(reservation,0)
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/uow.py:259: in append
+    raise ScopeMismatch('reservation binding mismatch')
+E   trading_system.storage.models.ScopeMismatch: reservation binding mismatch</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,75 @@
+{
+  "scope": "ISOLATED_SYNTHETIC_PAPER_POSTGRES_FINANCIAL_ENGINEERING_NOT_VENUE_QUALIFICATION",
+  "source_base_commit": "9b288996d201e4e597926b30208a1bd5fa34d5c0",
+  "commands": [
+    "python -m pytest -p no:cacheprovider tests/integration/test_capacity_precision.py -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/integration/test_reservations.py -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/integration/test_paper_duplicate_target.py -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/integration/test_order_program_admission.py -q --tb=short",
+    "python -m pytest tests/contracts tests/intents tests/unit -q --tb=short"
+  ],
+  "runs": {
+    "initial-fixture-error": {
+      "exit_code": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "precision-red": {
+      "exit_code": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "precision-green": {
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "reservations": {
+      "exit_code": 0,
+      "tests": 67,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "duplicate-target": {
+      "exit_code": 0,
+      "tests": 29,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "admission": {
+      "exit_code": 0,
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "unit-regression": {
+      "exit_code": 0,
+      "tests": 1021,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "new_capacity_cases": 26,
+      "python": "3.14.2",
+      "platform": "Windows-11-10.0.26300-SP0"
+    }
+  },
+  "source_sha256": {
+    "src/trading_system/risk/asset_capacity.py": "8db5534f818314415fc56cd03912a9def532fac67a4880636cbb5e3afa8ce68a",
+    "src/trading_system/risk/reservations.py": "296c0f7a6da1d84552d67cb824c12364b735f3907e38f23b20d803ac999d8961",
+    "tests/unit/test_asset_capacity.py": "0c6d7d958c5c183eaa30562e603237b2a529934644aabde9e6365e1a797c6a57",
+    "tests/integration/test_capacity_precision.py": "09c76a974bf9d15fcb8b7fc03fd5bb49d2f8c22be0ca538a217c926fe3b12b55"
+  },
+  "images": {
+    "python": "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f",
+    "postgres": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+  }
+}
