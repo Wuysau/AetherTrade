@@ -50,3 +50,21 @@ def test_injected_trusted_reader_receives_only_scope_key_and_pagination(client):
     assert client.get('/api/order-programs?scope=server-bound-scope&limit=20&cursor=cursor').status_code == 200
     assert client.get('/api/order-programs/original-program?scope=server-bound-scope').json()['execution_authorized'] is False
 
+
+@pytest.mark.parametrize('identifier',['archive/plan','archive/计划:1'])
+def test_detail_reads_existing_schema_valid_opaque_program_ids(client,identifier):
+    from urllib.parse import quote
+    from trading_system.contracts.order_codec import VersionedOrderCodec
+    from test_order_observation import program
+    payload=program();payload['program_id']=identifier
+    assert VersionedOrderCodec().decode('order-program',payload).program_id==identifier
+    login(client)
+    class Reader:
+        def detail(self,program_id,**params):
+            assert program_id==identifier and params=={'scope':'server-bound-scope'}
+            return {'program_id':program_id,'execution_authorized':False}
+    client.app.state.order_observer=Reader()
+    response=client.get('/api/order-programs/'+quote(identifier,safe=''),params={'scope':'server-bound-scope'})
+    assert response.status_code==200
+    assert response.json()['program_id']==identifier and response.json()['execution_authorized'] is False
+

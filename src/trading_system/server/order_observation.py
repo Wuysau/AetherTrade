@@ -271,7 +271,7 @@ def install_order_observation_routes(app, *, authenticated, observer):
             return dict(items=[], scopes=[], next_cursor=None, read_only=True, observation_status='UNCONFIGURED')
         return service.list(scope=scope, limit=limit, cursor=cursor)
 
-    @app.get('/api/order-programs/{program_id}')
+    @app.get('/api/order-programs/{program_id:path}')
     def program(program_id: str, scope: str = Query(..., max_length=256), _=Depends(authenticated)):
         service = observer()
         if service is None:
