@@ -56,6 +56,15 @@ observedREDthenGREEN: afterattachment finalwindowmustinclude livefinancial
 witness.expires_at (qualification/actionproof mayexpirebeforeintent).13public
 unitcases +2attachment +9math passed24. PositiveSQLattachments stillpendingpeers.
 
+Actualcommandpeer c3bcf28+9e36c8f nowintegrated b45fbfb+3b61240: SAME financial
+request/binding/identity/outbox append, additive0012 private verifier boundary,
+currenttyped rechecks/MAY/oneuseconsume/originalIDs. Rootfocused62checks passed.
+NewpublicactualSQL5cases registered (generic-program-admission), including real
+append/outbox/replay andafterappend/commit/book/proof failure rollback. Shared
+attachment3-case module nowalso registeredinrequired gate. TheirfreshrootPG
+positive diagnostic remains NOT_RUN untilitsfixedsourcejob completes.
+Native/localactivation stillpendingfreshactivationpeer, fullcombinedgate due.
+
 ## OP_C_IMPLEMENTATION_COHORT_HANDOFF_TO_PARENT — 2026-10-29
 
 integration_lead completed its concrete root implementation cohort and now

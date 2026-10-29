@@ -28,6 +28,8 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('generic-program-admission', '03', 'tests/integration/test_generic_program_admission_postgres.py'),
+    ('program-attachment', '03', 'tests/integration/test_program_attachment_postgres.py'),
     ('program-commands', '03', 'tests/integration/test_program_commands_postgres.py'),
     ('program-financial-admission', '03', 'tests/integration/test_program_financial_admission.py'),
     ('assessment-archive', '03', 'tests/integration/test_assessment_archive_ledger.py'),
