@@ -28,6 +28,7 @@ from .valuation import Valuation,nonnegative
 from .asset_capacity import amounts
 from .exposure import ExposureCalculator,ExposureMark,PendingExposure,ProposedExposure,WorkingExposure
 from trading_system.intents.semantic_validation import on_grid
+from .reduction import BoundedReductionProof,ReductionRiskMetrics,validate_bounded_reduction
 
 D=Decimal
 
@@ -128,6 +129,7 @@ class ProgramRiskFacts:
     evidence:tuple[t.EvidenceRef,...]
     as_of:str
     valid_until:str
+    reduction_proof:BoundedReductionProof|None=None
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -143,7 +145,7 @@ class ProgramRiskDecision:
     evaluated_at:str
     expires_at:str
     verdict:Literal['ALLOW','DENY','REPLAN_REQUIRED']
-    metrics:RiskMetrics|None
+    metrics:RiskMetrics|ReductionRiskMetrics|None
     rejection_codes:tuple[str,...]
     obligations:tuple[str,...]
 
@@ -167,6 +169,8 @@ def evaluate_program(inputs,terms,plan,allocation,exposure,book,policy,facts):
     obligations=('MATHEMATICAL_RISK_ONLY','AUTHENTIC_CURRENT_FACT_READERS_REQUIRED',
         'LOCKED_FINANCIAL_BUNDLE_AND_CURRENT_OWNER_REQUIRED','NO_COMMAND_OR_PERMIT_CREATED',
         'UNFILLED_ORDERS_RETAIN_PROTECTION_AND_RECONCILIATION_DUTY')
+    if type(metrics) is ReductionRiskMetrics:
+        obligations+=('PERSIST_RESIDUAL_RISK_LOCK','RETAIN_MANAGE_UNTIL_FLAT','CURRENT_LOCKED_ACTION_VERIFIER_REQUIRED')
     values=dict(source=terms.source,terms_hash=digest(terms),compilation_hash=digest(plan),allocation_hash=digest(allocation),
         exposure_hash=digest(exposure),facts_hash=digest(facts),policy_hash=digest(policy),evaluated_at=inputs.clock.utc_now,
         expires_at=min((terms.valid_until,facts.valid_until,inputs.expires_at),key=utc_timestamp),verdict=verdict,
@@ -470,15 +474,28 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
         capital_assets[asset]=capital_assets.get(asset,D(0))-fee
         require(capital_assets[asset]>=0,'PROGRAM_RISK_FEE_RESERVATION_UNBOUND')
     capital=value(capital_assets)
-    _stop_validity(inputs,terms,plan,a,facts)
+    residual=None
+    if facts.reduction_proof is not None:
+        try:residual=validate_bounded_reduction(facts.reduction_proof,inputs,terms,plan,a,book,facts)
+        except ValueError as error:raise _RiskDataError(str(error)) from error
+    _stop_validity(inputs,terms,plan,a,facts,allow_missing=residual is not None)
     report,initial=_portfolio(inputs,terms,plan,a,e,book,facts,bounds,valuation)
-    protection_orders=_protection(inputs,terms,plan,a,book,facts)
+    if residual is not None and not facts.protection:
+        protection_orders=0
+    else:
+        try:protection_orders=_protection(inputs,terms,plan,a,book,facts)
+        except _RiskDataError as error:
+            if str(error)!='PROGRAM_RISK_PARTIAL_OR_RETAINED_PROTECTION_MISSING':raise
+            require(residual is not None,'PROGRAM_RISK_PARTIAL_OR_RETAINED_PROTECTION_MISSING')
+            protection_orders=0
+        else:residual=None
     require(facts.maximum_live_orders>=len(plan.nodes)+sum(b.maximum_live_children for b in bounds.values())+protection_orders,
         'PROGRAM_RISK_ORDER_COUNT_UNDERBOUND')
     quote=inputs.instrument.quote_currency;mult=inputs.multiplier
     per_order=[];loss_quote=D(0)
     current_mark=next(m for m in inputs.marks if m.scope==terms.scope)
-    if terms.target.value and reducing:
+    loss_unknown=terms.target.value and reducing and terms.stop_price is None
+    if terms.target.value and reducing and not loss_unknown:
         # A reduction leaves physical inventory at risk. Fees-only applies to a
         # genuinely flat target, never to a still-open long/short residual.
         adverse=current_mark.price.value-terms.stop_price if a.delta.target.value>0 else terms.stop_price-current_mark.price.value
@@ -502,7 +519,7 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
             loss_quote+=quantity*mult*(adverse+entry*facts.entry_slippage_bps/10000)
     # Existing working/pending loss is separately supplied as a complete bound
     # for prior obligations; it is not manufactured from reservation currency.
-    loss=valuation.convert(t.Money(amount=loss_quote,currency=quote),liability=True).amount+fees+funding
+    loss=None if loss_unknown else valuation.convert(t.Money(amount=loss_quote,currency=quote),liability=True).amount+fees+funding
     notional=valuation.convert(t.Money(amount=max(per_order,default=D(0)),currency=quote),liability=True).amount
     if not reducing:
         codes.extend(protection_policy_codes(product=terms.scope.product,protection_policy=terms.protection_policy,policy=policy))
@@ -515,23 +532,31 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
         if capital_limit_exceeded(capital=capital,fees=fees,funding=funding,
             capital_in_use=valuation.convert(inputs.capital_in_use,liability=True).amount,policy=policy):codes.append('REPLAN:CAPITAL')
     codes.extend(spendable_codes(required_assets=required,spendable=inputs.spendable,book=book))
-    metrics=RiskMetrics(source=terms.source,allocation_hash=digest(a),facts_hash=digest(facts),book_hash=digest(book),
+    metric_type=ReductionRiskMetrics if residual is not None else RiskMetrics
+    extra={}
+    if residual is not None:
+        residual=replace(residual,intended_stop_loss=None if loss is None else t.Money(amount=loss,currency=valuation.currency))
+        extra=dict(contract_version='2026-10-29',metric_kind='BOUNDED_REDUCTION_METRICS',
+            reduction_proof_hash=digest(facts.reduction_proof),residual=residual)
+    metrics=metric_type(source=terms.source,allocation_hash=digest(a),facts_hash=digest(facts),book_hash=digest(book),
         book_sequence=book.sequence,basis_fingerprint=book.basis_fingerprint,snapshot_ref=facts.market.ref,
         evaluated_at=inputs.clock.utc_now,valid_until=min((terms.valid_until,facts.valid_until),key=utc_timestamp),
-        maximum_order_notional=t.Money(amount=notional,currency=valuation.currency),planned_loss=t.Money(amount=loss,currency=valuation.currency),
+        maximum_order_notional=t.Money(amount=notional,currency=valuation.currency),
+        planned_loss=None if loss is None else t.Money(amount=loss,currency=valuation.currency),
         fees=t.Money(amount=fees,currency=valuation.currency),funding=t.Money(amount=funding,currency=valuation.currency),
         capital=t.Money(amount=capital,currency=valuation.currency),required_assets=_money(required),exposure=report,related_groups=report.groups,
-        protection_complete=True,holding_horizon_seconds=facts.holding_horizon_seconds,
+        protection_complete=residual is None,holding_horizon_seconds=facts.holding_horizon_seconds,
         open_position_count=sum(p.actual_quantity.value!=0 for p in book.positions)+int(a.delta.actual.value==0 and terms.target.value!=0),
         active_order_count=len(book.active_orders)+len(facts.target_facts.inputs.pending)+facts.maximum_live_orders,
-        financial_coverage=book.coverage,evidence=book.evidence)
+        financial_coverage=book.coverage,evidence=book.evidence,**extra)
     codes.extend(metric_binding_codes(terms,metrics,book,facts.market.ref,inputs.clock))
     return metrics
 
 
-def _stop_validity(inputs,terms,plan,a,facts):
+def _stop_validity(inputs,terms,plan,a,facts,*,allow_missing=False):
     if terms.target.value==0:return
     stop=terms.stop_price;spec=inputs.instrument
+    if stop is None and allow_missing:return
     require(isinstance(stop,D) and stop.is_finite() and stop>0 and on_grid(stop,spec.tick_size.value)
         and facts.profile.price.contains(stop),'INVALID_STOP')
     require(terms.stop_trigger in facts.allowed_stop_triggers,'STOP_TRIGGER_UNVERIFIED')
