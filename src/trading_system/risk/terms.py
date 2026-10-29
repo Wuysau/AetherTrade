@@ -4,7 +4,7 @@ Source hashes bind content, not authenticity. Host readers must authenticate the
 source and derive complete metrics under the existing collateral/owner lock.
 """
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal,localcontext,Inexact,Rounded,DecimalException
 from typing import Literal
 
 from trading_system.contracts import types as t
@@ -126,17 +126,19 @@ def metrics_completeness(metrics)->tuple[str,...]:
     try:validity=utc_timestamp(metrics.evaluated_at)<utc_timestamp(metrics.valid_until)
     except (TypeError,ValueError):validity=False
     need(validity,'VALIDITY')
+    report=metrics.exposure
+    currency=report.gross.currency if type(report) is t.ExposureReport and _valid_money(report.gross) else None
     for name,field in (('ORDER_NOTIONAL','maximum_order_notional'),('PLANNED_LOSS','planned_loss'),
         ('FEES','fees'),('FUNDING','funding'),('CAPITAL','capital')):
-        value=getattr(metrics,field);need(type(value) is t.Money and value.amount>=0,name)
-    need(type(metrics.required_assets) is tuple and all(type(v) is t.Money and v.amount>=0 for v in metrics.required_assets)
+        value=getattr(metrics,field);need(_valid_money(value) and (currency is None or value.currency==currency),name)
+    need(type(metrics.required_assets) is tuple and all(_valid_money(v) for v in metrics.required_assets)
         and len({v.currency for v in metrics.required_assets})==len(metrics.required_assets),'REQUIRED_ASSETS')
-    report=metrics.exposure
-    need(type(report) is t.ExposureReport and type(report.gross) is t.Money and report.gross.amount>=0
+    need(type(report) is t.ExposureReport and _valid_money(report.gross)
         and not report.missing,'GROSS_EXPOSURE')
-    need(type(report) is t.ExposureReport and type(report.net) is t.Money,'NET_EXPOSURE')
-    need(type(metrics.related_groups) is tuple and type(report) is t.ExposureReport
-        and metrics.related_groups==report.groups and all(type(g) is t.ExposureGroup for g in metrics.related_groups),'RELATED_GROUPS')
+    need(type(report) is t.ExposureReport and _valid_money(report.net,signed=True)
+        and currency is not None and report.net.currency==currency
+        and report.net.amount.copy_abs()<=report.gross.amount,'NET_EXPOSURE')
+    need(_valid_groups(metrics.related_groups,report),'RELATED_GROUPS')
     need(metrics.protection_complete is True,'PROTECTION')
     need(type(metrics.holding_horizon_seconds) is int and metrics.holding_horizon_seconds>0,'HOLDING_HORIZON')
     need(type(metrics.open_position_count) is int and metrics.open_position_count>=0
@@ -147,6 +149,31 @@ def metrics_completeness(metrics)->tuple[str,...]:
         and type(metrics.evidence) is tuple and bool(metrics.evidence)
         and all(type(e) is t.EvidenceRef for e in metrics.evidence),'FINANCIAL_COVERAGE')
     return tuple(missing)
+
+
+def _valid_money(value,*,signed=False):
+    return (type(value) is t.Money and isinstance(value.amount,Decimal) and value.amount.is_finite()
+        and (signed or value.amount>=0) and type(value.currency) is str and bool(value.currency.strip())
+        and value.currency==value.currency.strip())
+
+
+def _valid_groups(groups,report):
+    if (type(groups) is not tuple or type(report) is not t.ExposureReport or groups!=report.groups
+        or not _valid_money(report.gross) or not _valid_money(report.net,signed=True)):return False
+    currency=report.gross.currency
+    if any(type(g) is not t.ExposureGroup or type(g.group_id) is not str or not g.group_id
+        or not _valid_money(g.gross) or not _valid_money(g.net,signed=True)
+        or g.gross.currency!=currency or g.net.currency!=currency
+        or g.net.amount.copy_abs()>g.gross.amount for g in groups):return False
+    if len({g.group_id for g in groups})!=len(groups):return False
+    # ExposureReport's existing groups partition the portfolio. A different
+    # overlapping-correlation model requires an explicit future contract.
+    try:
+        with localcontext() as ctx:
+            ctx.prec=256;ctx.traps[Inexact]=ctx.traps[Rounded]=True
+            return (sum((g.gross.amount for g in groups),Decimal(0))==report.gross.amount
+                and sum((g.net.amount for g in groups),Decimal(0))==report.net.amount)
+    except DecimalException:return False
 
 
 def metric_binding_codes(terms,metrics,book,snapshot,clock)->tuple[str,...]:
@@ -176,7 +203,7 @@ require reviewed scenario, protection and funding derivation before its use.
         if metrics.holding_horizon_seconds<terms.maximum_holding_seconds:codes.append('RISK_HOLDING_HORIZON_UNDERBOUND')
     except (TypeError,ValueError):codes.append('RISK_FACTS_EXPIRED_OR_UNBOUND')
     currency=metrics.exposure.gross.currency
-    if (metrics.exposure.net.currency!=currency or abs(metrics.exposure.net.amount)>metrics.exposure.gross.amount
+    if (metrics.exposure.net.currency!=currency or metrics.exposure.net.amount.copy_abs()>metrics.exposure.gross.amount
         or any(getattr(metrics,name).currency!=currency for name in ('maximum_order_notional','planned_loss','fees','funding','capital'))):
         codes.append('RISK_METRIC_CURRENCY_OR_EXPOSURE_INVALID')
     return tuple(codes)

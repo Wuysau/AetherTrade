@@ -92,4 +92,38 @@ def test_metric_bindings_reject_stale_or_cross_source_facts(mutation):
     assert metric_binding_codes(terms,metrics,c.book,c.market.ref,c.inputs.clock)
 
 
+@pytest.mark.parametrize('field',['planned_loss','fees','funding','capital','maximum_order_notional',
+    'gross','net','group_gross','group_net','asset'])
+@pytest.mark.parametrize('invalid',['NaN','Infinity','wrong_type','currency'])
+def test_malformed_metric_money_is_never_complete_or_an_exception(field,invalid):
+    from trading_system.risk.terms import metrics_completeness,metric_binding_codes
+    c,terms,metrics=complete_metrics()
+    value=money('1')
+    # Deliberately malformed deserialization sentinel: completeness must not
+    # rely on a previously executed dataclass constructor as evidence.
+    if invalid=='currency':object.__setattr__(value,'currency','')
+    else:object.__setattr__(value,'amount','1' if invalid=='wrong_type' else D(invalid))
+    if field in ('gross','net'):metrics=replace(metrics,exposure=replace(metrics.exposure,**{field:value}))
+    elif field in ('group_gross','group_net'):
+        group=replace(metrics.related_groups[0],**{field[6:]:value})
+        metrics=replace(metrics,related_groups=(group,),exposure=replace(metrics.exposure,groups=(group,)))
+    elif field=='asset':metrics=replace(metrics,required_assets=(value,))
+    else:metrics=replace(metrics,**{field:value})
+    assert metrics_completeness(metrics)
+    assert metric_binding_codes(terms,metrics,c.book,c.market.ref,c.inputs.clock)
+
+
+@pytest.mark.parametrize('mutation',['currency','negative','net_exceeds_gross','duplicate','sum'])
+def test_related_group_metrics_must_be_valid_portfolio_bounds(mutation):
+    from trading_system.risk.terms import metrics_completeness
+    _,_,metrics=complete_metrics();group=metrics.related_groups[0]
+    if mutation=='currency':group=replace(group,gross=money('200','USD'))
+    if mutation=='negative':group=replace(group,gross=money('-1'))
+    if mutation=='net_exceeds_gross':group=replace(group,net=money('201'))
+    if mutation=='sum':group=replace(group,gross=money('201'))
+    groups=(group,group) if mutation=='duplicate' else (group,)
+    metrics=replace(metrics,related_groups=groups,exposure=replace(metrics.exposure,groups=groups))
+    assert metrics_completeness(metrics)
+
+
 
