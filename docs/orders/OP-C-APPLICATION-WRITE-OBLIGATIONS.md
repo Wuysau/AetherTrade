@@ -85,3 +85,22 @@ PostgreSQL rows injected only by the disposable test administrator, then roll
 back. Initial combined collection exposed a duplicate pytest module basename;
 the unit file was renamed with all assertions retained and that error is saved.
 No engine, venue account, outbound order, paid model or fabricated fill was used.
+
+## Corrupted/imported state regression defense
+
+Review found that READY→MAY_HAVE_SENT/UNKNOWN→READY could otherwise hide an
+uncertain write by changing only its latest state. Migration0008 already rejects
+that ordinary SQL transition; this additional reader defense handles corrupted
+or imported histories. Once a non-READY state appears, a later READY raises
+`PROGRAM_WRITE_STATE_REGRESSION`, regardless of a changed durable_record_ref.
+The original READY positive case remains valid, while changing a reference to
+`claimed-not-sent` never resolves UNKNOWN. No new schema or resolution authority
+is introduced.
+
+Real PostgreSQL fault injections retain every original client ID and roll back
+after ordinary-owner reads. The new regression reproduced8 failures/2 passes;
+focused correction10 passed. The complete obligation integration/unit suite then
+passed47 cases (18 integration and29 unit), zero failures/skips; related existing
+unit safety regressions also passed156. Logs, JUnit XML, source hashes and image
+IDs are retained in
+`docs/evidence/binance-orders/op-c-application-write-state-regression/`.

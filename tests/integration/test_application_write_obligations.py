@@ -132,3 +132,30 @@ def test_corrupt_or_unbound_unknown_is_not_discarded_by_group_join(scenario,faul
         with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_'):
             CommandRepository(tx).unresolved_in_group(s.command.command_id)
         c.rollback()
+
+
+@pytest.mark.parametrize('state',['MAY_HAVE_SENT','UNKNOWN'])
+@pytest.mark.parametrize('reference',['pending','original-boundary'])
+def test_ready_reversion_retains_original_uncertain_identity(scenario,state,reference):
+    s=scenario;write=add_write(s,uncertain=True)
+    with s.connect_admin() as c:
+        # Reader defense for corrupted/imported history; ordinary0008 writers
+        # already cannot make these transitions. No send or permit is issued.
+        c.execute('ALTER TABLE ledger.order_writes_v2 DISABLE TRIGGER order_write_guard')
+        sequence=3
+        if state=='UNKNOWN':
+            c.execute('INSERT INTO ledger.order_writes_v2(scope_id,record_id,sequence,payload,transaction_id) '
+                'VALUES(%s,%s,%s,%s::jsonb,%s)',(scope_id(s.scope),write.command_id,sequence,
+                encode(replace(write,state='UNKNOWN',durable_record_ref='original-boundary')),'injected-unknown'))
+            sequence+=1
+        c.execute('INSERT INTO ledger.order_writes_v2(scope_id,record_id,sequence,payload,transaction_id) '
+            'VALUES(%s,%s,%s,%s::jsonb,%s)',(scope_id(s.scope),write.command_id,sequence,
+            encode(replace(write,durable_record_ref=reference)),'injected-ready-reversion'))
+        c.execute('SET ROLE ledger_owner')
+        tx=LedgerTx(c,s.scope,s.group)
+        with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+            CommandRepository(tx).unresolved_in_group(write.command_id)
+        assert c.execute('SELECT payload->>\'venue_client_id\' FROM ledger.order_writes_v2 '
+            'WHERE scope_id=%s AND record_id=%s ORDER BY sequence',
+            (scope_id(s.scope),write.command_id)).fetchall()==[(write.venue_client_id,)]*sequence
+        c.rollback()

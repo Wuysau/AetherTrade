@@ -153,3 +153,24 @@ def test_group_binding_keeps_other_account_product_and_skips_other_group():
     assert len(application_write_obligations(tx))==2
     tx.bindings[(str(other_scope.environment),other_scope.venue_account_id,str(other_scope.product))]='other-group'
     assert len(application_write_obligations(tx))==1
+
+
+@pytest.mark.parametrize('state',['MAY_HAVE_SENT','UNKNOWN'])
+@pytest.mark.parametrize('reference',['pending','original-send-boundary'])
+def test_ready_reversion_cannot_erase_uncertain_history(state,reference):
+    tx,write,program=populated(state)
+    tx.add(replace(write,durable_record_ref=reference),program,3)
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+        CommandRepository(tx).unresolved_in_group(write.command_id)
+
+
+def test_reference_change_cannot_discharge_uncertain_write():
+    tx,write,program=populated('UNKNOWN')
+    tx.add(replace(write,state='UNKNOWN',durable_record_ref='claimed-not-sent'),program,3)
+    unresolved=CommandRepository(tx).unresolved_in_group(write.command_id)
+    assert unresolved and unresolved[0].endswith(':'+write.command_id)
+
+
+def test_initial_ready_write_is_not_sent_uncertainty():
+    tx,_,_=populated()
+    assert CommandRepository(tx).unresolved_in_group('legacy-other')==()
