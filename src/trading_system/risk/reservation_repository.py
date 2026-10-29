@@ -5,7 +5,7 @@ Transitions live in namespaced audit_events; consumers must use this projection,
 not treat the creation index as a current balance. No schema changes are needed.
 """
 from dataclasses import replace
-from decimal import Decimal
+from decimal import Decimal, localcontext, Inexact, Rounded
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, domain_payload
@@ -110,13 +110,18 @@ def increases_program_financial_credit(before, after):
     A zero-held projection can regain credit merely by replacing its watermark.
     Neither transition is authenticated by knowing a public book/evidence hash.
     """
-    before_debit = max(before.held - before.reflected, before.release_pending)
-    after_debit = max(after.held - after.reflected, after.release_pending)
-    return (after.held < before.held or after_debit < before_debit
-        or after.reflected > before.reflected
-        or after.reservation.reflected_amount > before.reservation.reflected_amount
-        or (after.reservation.evidence_watermark != before.reservation.evidence_watermark
-            and (after.held < after.reservation.amount or after.reflected > 0)))
+    # Match the existing parent-funding precision and reject arithmetic that
+    # cannot be represented exactly; a caller's context cannot hide a credit.
+    with localcontext() as arithmetic:
+        arithmetic.prec = 256
+        arithmetic.traps[Inexact] = arithmetic.traps[Rounded] = True
+        before_debit = max(before.held - before.reflected, before.release_pending)
+        after_debit = max(after.held - after.reflected, after.release_pending)
+        return (after.held < before.held or after_debit < before_debit
+            or after.reflected > before.reflected
+            or after.reservation.reflected_amount > before.reservation.reflected_amount
+            or (after.reservation.evidence_watermark != before.reservation.evidence_watermark
+                and (after.held < after.reservation.amount or after.reflected > 0)))
 
 
 def balance_watermark(book, evidence):

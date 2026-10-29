@@ -1,0 +1,16 @@
+FF.                                                                      [100%]
+================================== FAILURES ===================================
+__________ test_exact_credit_comparison_ignores_caller_precision[6] ___________
+tests\unit\test_program_financial_credit_precision.py:35: in test_exact_credit_comparison_ignores_caller_precision
+    assert increases_program_financial_credit(before, after)
+E   AssertionError: assert False
+E    +  where False = increases_program_financial_credit(Projection(held=Decimal('1000000000000000000000000000000000000000000000000'), reflected=Decimal('1'), release_pending=...l('1000000000000000000000000000000000000000000000000'), reflected_amount=Decimal('1'), evidence_watermark='unchanged')), Projection(held=Decimal('1000000000000000000000000000000000000000000000000'), reflected=Decimal('1'), release_pending=...l('1000000000000000000000000000000000000000000000000'), reflected_amount=Decimal('1'), evidence_watermark='unchanged')))
+__________ test_exact_credit_comparison_ignores_caller_precision[28] __________
+tests\unit\test_program_financial_credit_precision.py:35: in test_exact_credit_comparison_ignores_caller_precision
+    assert increases_program_financial_credit(before, after)
+E   AssertionError: assert False
+E    +  where False = increases_program_financial_credit(Projection(held=Decimal('1000000000000000000000000000000000000000000000000'), reflected=Decimal('1'), release_pending=...l('1000000000000000000000000000000000000000000000000'), reflected_amount=Decimal('1'), evidence_watermark='unchanged')), Projection(held=Decimal('1000000000000000000000000000000000000000000000000'), reflected=Decimal('1'), release_pending=...l('1000000000000000000000000000000000000000000000000'), reflected_amount=Decimal('1'), evidence_watermark='unchanged')))
+=========================== short test summary info ===========================
+FAILED tests/unit/test_program_financial_credit_precision.py::test_exact_credit_comparison_ignores_caller_precision[6]
+FAILED tests/unit/test_program_financial_credit_precision.py::test_exact_credit_comparison_ignores_caller_precision[28]
+2 failed, 1 passed in 0.16s

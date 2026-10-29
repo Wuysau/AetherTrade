@@ -24,6 +24,7 @@ def closure_db(order_db):
     import psycopg
     with psycopg.connect(order_db) as c:
         c.execute((ROOT/'migrations/0009_order_program_closure.sql').read_text(encoding='utf-8'))
+        c.execute((ROOT/'migrations/0011_order_program_financial_credit_guard.sql').read_text(encoding='utf-8'))
         # Independent synthetic archive. The ordinary owner cannot publish or
         # overwrite review material. This is test evidence, not venue evidence.
         c.execute('CREATE TABLE ledger.test_closure_reviews (context_hash text PRIMARY KEY,payload jsonb NOT NULL)')
