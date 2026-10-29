@@ -297,7 +297,7 @@ def main(argv=None):
                     command = [sys.executable, '-m', 'pytest', '-q', '--tb=short', f'--rootdir={ROOT}', f'--junitxml={xml}', absolute_test]
                     if name == 'console-contract':
                         command.extend(['-m', 'paper_runtime'])
-                    suite_timeout = 600 if name == 'console-contract' else 300
+                    suite_timeout = 600 if name in ('console-contract','program-commands') else 300
                     with log.open('wb') as output:
                         try:
                             outcome = subprocess.run(command, cwd=cwd, env=env, stdout=output,
