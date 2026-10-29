@@ -5,20 +5,24 @@ record is metadata. Only the separately held verifier role can cross MAY and
 consume its single use permit after independently reloading current facts.
 """
 from dataclasses import dataclass,replace
+from datetime import timedelta
+import secrets
 from typing import Literal
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import canonical_hash,domain_payload,utc_timestamp
+from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload,utc_timestamp
 from trading_system.contracts.application_write_v3 import ApplicationWriteV3
 from trading_system.contracts.order_codec import VersionedOrderCodec
 from trading_system.intents.program_assessment_archive import (financial_intent_from_assessment_archive,
     financial_risk_basis_from_assessment_archive)
 from trading_system.risk.program_financial_admission import (ProgramFinancialBundle,ARCHIVE_PREFIX,BASIS_PREFIX,
-    DECISION_PREFIX,BUNDLE_PREFIX,program_bundle_command_ids,claim_program_attachment)
+    DECISION_PREFIX,BUNDLE_PREFIX,program_bundle_command_ids,claim_program_attachment,current_program_bundle_witness)
 from trading_system.storage.models import scope_id,account_key,decode,encode,atomic_write,MissingEvidence
 from trading_system.storage.order_programs import OrderProgramRepository
 from .creation_requests import VenueCreationRequest,verify_creation
+from trading_system.intents.program_compilation import Timing
 
-def digest(value):return canonical_hash(domain_payload(value))
+def digest(value):
+    return canonical_hash({'items':[domain_payload(v) for v in value]}) if type(value) is tuple else canonical_hash(domain_payload(value))
 def require(condition,reason):
     if not condition:raise ValueError(reason)
 
@@ -49,6 +53,7 @@ def build_creation_write(request,bundle,*,execution_epoch):
     a=bundle.archive;i=bundle.intent
     verify_creation(request,a.compilation,a.profile,request.assigned_ids,
         wallet_selection=request.wallet_selection,now=i.created_at)
+    require(a.compilation.requests[request.request_index].timing==Timing.INITIAL,'PROGRAM_STAGED_REQUEST_NOT_ADMITTED')
     binding=ProgramRequestBinding(contract_version='2026-10-29',record_kind='PROGRAM_REQUEST_BINDING',
         command_id=request.command_id,intent_id=i.intent_id,scope=i.scope,execution_epoch=execution_epoch,
         request_hash=digest(request),bundle_hash=digest(bundle),source_hash=digest(i.source),request=request)
@@ -74,6 +79,27 @@ def validate_creation_binding(write,request,binding,bundle):
     require(type(write) is ApplicationWriteV3 and digest(replace(write,state='DURABLE_READY'))==digest(expected),
         'PROGRAM_WRITE_BINDING_CHANGED')
     return actual
+
+def validate_stored_program_binding(tx,original,current):
+    """Cross-scope obligation check: exclusion never uses a bare text ID."""
+    key=scope_id(original.scope)
+    row=tx.execute('SELECT payload FROM ledger.program_request_bindings WHERE scope_id=%s AND record_id=%s',
+        (key,original.command_id)).fetchone()
+    require(row is not None,'PROGRAM_REQUEST_BINDING_REQUIRED')
+    binding=decode(ProgramRequestBinding,row[0])
+    row=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+        (key,BUNDLE_PREFIX+original.intent_id)).fetchone()
+    require(row is not None,'PROGRAM_FINANCIAL_BUNDLE_REQUIRED')
+    bundle=decode(ProgramFinancialBundle,row[0])
+    validate_creation_binding(original,binding.request,binding,bundle)
+    require(tx.execute('SELECT ledger.program_binding_current(%s,%s,%s::jsonb)',
+        (key,original.command_id,encode(original))).fetchone()==(True,),'PROGRAM_STORED_BINDING_CHANGED')
+    if current.state!='DURABLE_READY':
+        row=tx.execute('SELECT write_payload FROM ledger.program_dispatch_marks WHERE scope_id=%s AND command_id=%s',
+            (key,original.command_id)).fetchone()
+        require(row is not None and row[0]==domain_payload(replace(original,state='MAY_HAVE_SENT')),
+            'PROGRAM_MARK_PROOF_REQUIRED')
+    return binding,bundle
 
 class ProgramCommandRepository:
     def __init__(self,tx,*,load_clock=None,load_lease=None,load_current_facts=None,
@@ -111,6 +137,7 @@ class ProgramCommandRepository:
             require(digest(replace(current,state='DURABLE_READY'))==digest(writes[0]) and
                 ((index==1 and current.state=='MAY_HAVE_SENT') or (index==2 and current.state=='UNKNOWN')),
                 'PROGRAM_WRITE_HISTORY_INVALID')
+        validate_stored_program_binding(self.tx,writes[0],writes[-1])
         if len(rows)>1:
             marked=self.tx.execute('SELECT write_payload FROM ledger.program_dispatch_marks WHERE scope_id=%s '
                 'AND command_id=%s',(scope_id(self.tx.scope),command_id)).fetchone()
@@ -147,7 +174,9 @@ class ProgramCommandRepository:
     def append_creation(self,write,request,*,bundle):
         self.tx.require_scope(write.scope)
         require(self.tx.active and write.state=='DURABLE_READY','PROGRAM_FINANCIAL_TRANSACTION_REQUIRED')
-        self._clock_lease(write)
+        initial_clock,_=self._clock_lease(write)
+        witness=current_program_bundle_witness(self.tx,bundle)
+        require(utc_timestamp(initial_clock.utc_now)<utc_timestamp(witness.expires_at),'PROGRAM_BUNDLE_WITNESS_EXPIRED')
         whole=program_bundle_command_ids(self.tx,bundle)
         require(write.command_id in whole,'PROGRAM_UNASSIGNED_COMMAND')
         claim_program_attachment(self.tx,bundle,mode='EXTERNAL_REQUESTS',command_ids=whole)
@@ -168,4 +197,172 @@ class ProgramCommandRepository:
         self.tx.execute('INSERT INTO ledger.outbox(message_id,scope_id,aggregate_id,sequence,kind,transaction_id) '
             'VALUES(%s,%s,%s,1,%s,%s)',('program-ready:'+write.command_id,scope_id(write.scope),write.command_id,
                 'PROGRAM_COMMAND_READY',self.tx.transaction_id))
+        final_clock,_=self._clock_lease(write)
+        require(utc_timestamp(final_clock.utc_now)<utc_timestamp(witness.expires_at),'PROGRAM_BUNDLE_WITNESS_EXPIRED')
         return expected
+
+    def _current(self,write,expected_lease):
+        """Reload and replay actual compiler/target/exposure/RiskEvaluator facts.
+
+        This initial boundary requires the intake book to remain current. New
+        source/book/rule compilations require fresh admission, never an update
+        to this immutable command. The trusted reader is a LOCAL server port.
+        """
+        from trading_system.intents.generic_program_intake import read_program_source,current_fence
+        from trading_system.risk.program_financial_admission import validate_current_inputs,ProgramFinancialQualification
+        from trading_system.accounts.authorization import valid_evidence
+        from trading_system.risk.reservation_repository import ReservationRepository,merge_holds
+        from trading_system.risk.target_guard import target_obligations
+        from trading_system.risk.locked_actions import LockedActionVerifier
+        from trading_system.risk.asset_capacity import CapacityInputs,check_capacity,amounts
+        from trading_system.execution.commands import CommandRepository
+        from trading_system.storage.application_writes import application_write_obligations
+        clock,lease=self._clock_lease(write);now=utc_timestamp(clock.utc_now)
+        require(type(expected_lease) is t.OwnerLease and digest(lease)==digest(expected_lease),'PROGRAM_LEASE_CHANGED')
+        bundle=self._bundle(write.intent_id);source,intake=read_program_source(self.tx,bundle.intent.source.intake_record_id)
+        require(digest(source)==digest(bundle.intent.source),'PROGRAM_SOURCE_CHANGED')
+        fence=current_fence(self.tx,source.context)
+        book=self.tx.projections.book(self.tx.scope)
+        before=digest(book)
+        inputs=self.load_current_facts(self.tx,source,intake,book,clock) if self.load_current_facts else None
+        intent,basis=validate_current_inputs(self.tx,source,intake,book,inputs,clock)
+        a=inputs.archive
+        require(digest(a.compilation)==write.compilation_hash and digest(a.source)==digest(bundle.archive.source)
+            and intent.hashes.program==write.canonical_program_hash,'PROGRAM_CURRENT_ECONOMICS_CHANGED')
+        require((intent.owner_strategy_id,intent.ownership_epoch,intent.risk_policy_revision)==(
+            fence.owner_strategy_id,fence.ownership_epoch,fence.risk_policy_revision),'PROGRAM_STALE_OWNER')
+        qualification=self.load_qualification(self.tx,a,clock) if self.load_qualification else None
+        require(a.capabilities.transport=='PAPER' and a.capabilities.qualification=='PAPER_VERIFIED'
+            and type(qualification) is ProgramFinancialQualification and qualification.scope==self.tx.scope
+            and qualification.compilation_hash==intent.hashes.compilation
+            and qualification.capabilities_hash==intent.hashes.capabilities and qualification.rules_hash==intent.hashes.rules
+            and qualification.profile_hash==intent.hashes.profile and qualification.adapter_build_digest==a.compilation.adapter_build_digest
+            and qualification.execution_mode==a.compilation.original_program.execution_mode
+            and qualification.evidence and digest(qualification.evidence)==digest(a.capabilities.evidence)
+            and all(valid_evidence(e,self.tx.scope.environment,now) for e in qualification.evidence)
+            and now<utc_timestamp(qualification.valid_until),'PROGRAM_QUALIFICATION_REQUIRED')
+        reservations=ReservationRepository(self.tx)
+        # Own exact financial attachment is excluded once; every unrelated
+        # family/scope remains in capacity and unresolved obligation readers.
+        own_ids={p.reservation.reservation_id for p in bundle.reservations}
+        actual_own=tuple(reservations.get(p.reservation.reservation_id) for p in bundle.reservations)
+        require(digest(actual_own)==digest(bundle.reservations),'PROGRAM_RESERVATION_CHANGED')
+        holds=merge_holds(reservations.group(),book)
+        others=tuple(p for p in holds if p.reservation.reservation_id not in own_ids)
+        require(digest(others)==digest(a.budget_facts.reservations),'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
+        obligations=application_write_obligations(self.tx)
+        exclusions=tuple(o.original for o in obligations if type(o.original) is ApplicationWriteV3
+            and o.original.scope==write.scope and o.original.intent_id==write.intent_id
+            and o.original.compilation_hash==write.compilation_hash)
+        require(any(w.command_id==write.command_id for w in exclusions),'PROGRAM_ATTACHMENT_REQUIRED')
+        require(not any(o.unresolved and not(o.original.scope==write.scope and o.original.command_id==write.command_id)
+            for o in obligations),'PROGRAM_OTHER_COMMAND_UNRESOLVED')
+        require(not CommandRepository(self.tx).unresolved_in_group('',program_exclusion=(replace(write,state='DURABLE_READY'),)),
+            'PROGRAM_LEGACY_COMMAND_UNRESOLVED')
+        local_ids={row[0] for row in self.tx.execute('SELECT record_id FROM ledger.reservations WHERE scope_id=%s',
+            (scope_id(self.tx.scope),)).fetchall()}
+        external_ids={p.reservation.reservation_id for p in book.reservations}-{p.reservation.reservation_id for p in reservations.group()}
+        pending=target_obligations(self.tx,intent,book,tuple(p for p in others
+            if p.reservation.reservation_id in local_ids|external_ids),clock.utc_now,program_exclusion=exclusions)
+        require(digest(pending)==digest(a.target_facts.inputs.pending),'PROGRAM_CURRENT_QUANTITY_OBLIGATIONS_CHANGED')
+        held=amounts(bundle.basis.incremental_requirements)
+        require(all(m.amount<=held.get(m.currency,-1) for m in basis.incremental_requirements),'PROGRAM_RESERVED_BUDGET_EXCEEDED')
+        capacity=check_capacity(CapacityInputs(incremental_requirements=basis.incremental_requirements,
+            venue_free_balances=book.balances,remaining_group_capacity=inputs.group_capacity,
+            remaining_strategy_capacity=inputs.strategy_capacity,buffers=inputs.buffer,reconciled_group_holds=others,
+            owner_strategy_id=intent.owner_strategy_id))
+        require(capacity.sufficient,'PROGRAM_CURRENT_CAPACITY_DENIED')
+        duty=LockedActionVerifier().verify_program(self.tx,intent,a,clock.utc_now,book=book,read_proof=self.load_action_proof)
+        require(duty is not None,'PROGRAM_ACTIVE_RISK_LOCK')
+        request=self.request(write.command_id)
+        verify_creation(request,a.compilation,a.profile,request.assigned_ids,
+            wallet_selection=request.wallet_selection,now=clock.utc_now)
+        require(before==digest(self.tx.projections.book(self.tx.scope)) and
+            digest(current_fence(self.tx,source.context))==digest(fence),'PROGRAM_CURRENT_STATE_CHANGED')
+        end_clock,end_lease=self._clock_lease(write)
+        require(digest(end_lease)==digest(lease) and end_clock.monotonic_ns>=clock.monotonic_ns
+            and utc_timestamp(end_clock.utc_now)>=now,'PROGRAM_CURRENT_CLOCK_CHANGED')
+        expires=min(map(utc_timestamp,(write.valid_until,intent.valid_until,a.assessment.expires_at,
+            a.risk_terms.submission_deadline,qualification.valid_until,inputs.authorization.authorization.expires_at,
+            duty,lease.expires_at)))
+        require(utc_timestamp(end_clock.utc_now)<expires,'PROGRAM_CURRENT_FACTS_EXPIRED')
+        from trading_system.intents.ingress import revision_key
+        context={'write':domain_payload(write),'request_hash':write.request_hash,'source_hash':digest(source),
+            'assessment_hash':digest(a),'basis_hash':digest(basis),'qualification_hash':digest(qualification),
+            'lease':domain_payload(lease),'clock':domain_payload(end_clock),'fence':domain_payload(fence),
+            'fence_record_id':revision_key(source.context),'assessment':domain_payload(a),
+            'qualification':domain_payload(qualification),'valid_until':expires.isoformat()}
+        return context,end_clock,lease,expires
+
+    @atomic_write
+    def mark_may_have_sent(self,command_id,lease,*,token_hash):
+        w=self.write(command_id)
+        require(w is not None and w.state=='DURABLE_READY','PROGRAM_QUERY_ORIGINAL_IDS_NO_RETRY')
+        context,clock,current,expires=self._current(w,lease)
+        ttl=min(self.tx.permit_ttl_ms,int((expires-utc_timestamp(clock.utc_now)).total_seconds()*1000),
+            (current.deadline_monotonic_ns-clock.monotonic_ns)//1_000_000)
+        require(ttl>=1,'PROGRAM_PERMIT_WINDOW_EXPIRED')
+        self.tx.execute('SELECT ledger.mark_program_may(%s,%s,%s::jsonb,%s,%s,%s)',
+            (scope_id(w.scope),command_id,canonical_json(context),token_hash,ttl,self.tx.transaction_id))
+        # This uncommitted candidate never escapes ProgramCommandBoundary.
+        return w,clock,ttl
+
+    @atomic_write
+    def consume(self,permit,lease):
+        require(type(permit) is ProgramWritePermit,'PROGRAM_PERMIT_REQUIRED')
+        w=self.write(permit.command_id)
+        require(w is not None and w.state=='MAY_HAVE_SENT' and w.scope==permit.scope
+            and w.request_hash==permit.request_hash and w.binding_hash==permit.binding_hash,
+            'PROGRAM_PERMIT_BINDING_CHANGED')
+        context,clock,_,_=self._current(w,lease)
+        require(utc_timestamp(clock.utc_now)<utc_timestamp(permit.expires_at)
+            and clock.monotonic_ns<permit.deadline_monotonic_ns,'PROGRAM_PERMIT_EXPIRED')
+        self.tx.execute('SELECT ledger.consume_program_permit(%s,%s,%s,%s::jsonb,%s)',
+            (scope_id(w.scope),w.command_id,_token_hash(permit.token),canonical_json(context),self.tx.transaction_id))
+        return self.request(w.command_id)
+
+    @atomic_write
+    def record_unknown(self,command_id):
+        w=self.write(command_id)
+        require(w is not None and w.state in ('MAY_HAVE_SENT','UNKNOWN'),'PROGRAM_DURABLE_MAY_REQUIRED')
+        if w.state=='MAY_HAVE_SENT':self.tx._append('order_writes_v2',command_id,replace(w,state='UNKNOWN'),2)
+        return self.request(command_id)
+
+def _token_hash(token):return canonical_hash({'program_permit_token':token})
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class ProgramWritePermit:
+    command_id:str
+    scope:t.ScopeKey
+    request_hash:str
+    binding_hash:str
+    token:str
+    expires_at:str
+    deadline_monotonic_ns:int
+
+class ProgramCommandBoundary:
+    """Server-only verifier UoW; no runtime role creation or transport.
+
+    A verifier connection must be explicitly provided by trusted composition.
+    Both methods return only after synchronous commit; uncertain commits return
+    nothing. No UNKNOWN replay mints or renews a permit.
+    """
+    def __init__(self,uow,scope,*,load_clock=None,load_lease=None,load_current_facts=None,
+                 load_qualification=None,load_action_proof=None):
+        self.uow,self.scope=uow,scope
+        self.readers=dict(load_clock=load_clock,load_lease=load_lease,load_current_facts=load_current_facts,
+            load_qualification=load_qualification,load_action_proof=load_action_proof)
+
+    def mark_may_have_sent(self,command_id,lease):
+        token=secrets.token_urlsafe(32)
+        with self.uow.transaction(self.scope) as tx:
+            w,clock,ttl=ProgramCommandRepository(tx,**self.readers).mark_may_have_sent(command_id,lease,
+                token_hash=_token_hash(token))
+        return ProgramWritePermit(command_id=command_id,scope=w.scope,request_hash=w.request_hash,binding_hash=w.binding_hash,
+            token=token,expires_at=(utc_timestamp(clock.utc_now)+timedelta(milliseconds=ttl)).isoformat(),
+            deadline_monotonic_ns=clock.monotonic_ns+ttl*1_000_000)
+
+    def consume(self,permit,lease):
+        with self.uow.transaction(self.scope) as tx:
+            request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+        return request

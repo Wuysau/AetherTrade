@@ -8,6 +8,8 @@ from trading_system.contracts import types as t
 from trading_system.contracts.canonical import domain_payload
 from trading_system.execution.creation_requests import assign_client_ids,materialize_creation
 from trading_system.execution.program_commands import ProgramCommandRepository,build_creation_write
+from trading_system.execution.program_commands import ProgramCommandBoundary
+from trading_system.storage.uow import UnitOfWork
 from trading_system.storage.models import scope_id,encode
 from trading_system.storage.application_writes import application_write_obligations
 
@@ -80,7 +82,7 @@ def test_owner_cannot_raw_cross_may_or_execute_verifier_function(database):
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with c.owner.transaction(c.scope) as tx:
             tx.execute('SELECT ledger.mark_program_may(%s,%s,%s::jsonb,%s,1000,%s)',
-                (scope_id(c.scope),w.command_id,encode({}), 'c'*64,tx.transaction_id))
+                (scope_id(c.scope),w.command_id,'{}', 'c'*64,tx.transaction_id))
 
 def test_v2_function_remains_old_version_and_no_verifier_memberships(database):
     import psycopg
@@ -88,3 +90,95 @@ def test_v2_function_remains_old_version_and_no_verifier_memberships(database):
         body=db.execute("SELECT prosrc FROM pg_proc WHERE oid='ledger.check_order_write_v2()'::regprocedure").fetchone()[0]
         assert '2026-10-28' in body and '2026-10-29' not in body
         assert db.execute("SELECT count(*) FROM pg_auth_members WHERE roleid=(SELECT oid FROM pg_roles WHERE rolname='ledger_program_dispatch_verifier') OR member=(SELECT oid FROM pg_roles WHERE rolname='ledger_program_dispatch_verifier')").fetchone()==(0,)
+
+def boundary(c):
+    import psycopg
+    def connect():
+        db=psycopg.connect(c.dsn);db.execute('SET ROLE ledger_program_dispatch_verifier');db.commit();return db
+    uow=UnitOfWork(connect,permit_ttl_ms=5000)
+    return ProgramCommandBoundary(uow,c.scope,load_clock=lambda _:c.c.facts.inputs.clock,
+        load_lease=lambda _:lease(c),load_current_facts=c.load,load_qualification=c.qualify)
+
+def test_actual_may_commits_before_short_permit_consumes_once(database):
+    import psycopg
+    c=real_case(database);w,r,b=c.service._transaction(lambda tx:attach(c,tx))
+    gate=boundary(c);permit=gate.mark_may_have_sent(w.command_id,lease(c))
+    with c.owner.transaction(c.scope) as tx:
+        assert repo(tx,c).write(w.command_id).state=='MAY_HAVE_SENT'
+        assert application_write_obligations(tx)[0].unresolved
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchone()==(0,)
+    assert gate.consume(permit,lease(c))==r
+    with pytest.raises((ValueError,psycopg.Error)):gate.consume(permit,lease(c))
+    with pytest.raises(ValueError,match='NO_RETRY'):gate.mark_may_have_sent(w.command_id,lease(c))
+
+@pytest.mark.parametrize('phase',['mark','consume'])
+@pytest.mark.parametrize('fault',['missing_clock','bad_clock','missing_lease','lease_epoch','missing_facts',
+    'missing_qualification','qual_artifact','capacity','revocation','risk_duty','request_hash','owner'])
+def test_current_fact_failure_never_creates_or_consumes_a_permit(database,phase,fault):
+    import psycopg
+    c=real_case(database);w,r,b=c.service._transaction(lambda tx:attach(c,tx));gate=boundary(c)
+    permit=gate.mark_may_have_sent(w.command_id,lease(c)) if phase=='consume' else None
+    if fault=='missing_clock':gate.readers['load_clock']=None
+    if fault=='bad_clock':gate.readers['load_clock']=lambda _:replace(c.c.facts.inputs.clock,clock_health='UNHEALTHY')
+    if fault=='missing_lease':gate.readers['load_lease']=None
+    if fault=='lease_epoch':gate.readers['load_lease']=lambda _:replace(lease(c),shard=replace(lease(c).shard,execution_epoch=2))
+    if fault=='missing_facts':gate.readers['load_current_facts']=None
+    if fault=='missing_qualification':gate.readers['load_qualification']=None
+    if fault=='qual_artifact':gate.readers['load_qualification']=lambda *args:replace(c.qualify(*args),adapter_build_digest='f'*64)
+    if fault=='capacity':
+        def load(*args):return replace(c.load(*args),group_capacity=(t.Money(currency='USDT',amount=0),))
+        gate.readers['load_current_facts']=load
+    if fault=='revocation':
+        from trading_system.intents.ingress import revision_key,IngressRevision
+        with c.owner.transaction(c.scope) as tx:
+            current=tx._latest('audit_events',revision_key(c.source.context),IngressRevision)
+            tx._append('audit_events',revision_key(c.source.context),replace(current,sequence=current.sequence+1,enabled=False),current.sequence)
+    if fault=='risk_duty':
+        with c.owner.transaction(c.scope) as tx:tx.risk_locks.append(t.RiskLock(lock_id='isolated-current-lock',scope=c.scope,
+            cause='ORDER_OUTCOME_UNKNOWN',state='ACTIVE',permission=t.RiskPermission.RECOVERY_REQUIRED,
+            required_evidence=('ORIGINAL_IDS',),raised_at=c.c.facts.inputs.clock.utc_now),0)
+    if fault=='request_hash':
+        def load(*args):
+            value=c.load(*args)
+            return replace(value,archive=replace(value.archive,source=replace(value.archive.source,source_hash='d'*64)))
+        gate.readers['load_current_facts']=load
+    if fault=='owner':
+        # Isolated migration administrator mutates test owner only; operational
+        # roles remain denied by the original immutable owner trigger.
+        with psycopg.connect(database) as db:
+            db.execute('ALTER TABLE ledger.active_owners DISABLE TRIGGER owner_immutable')
+            db.execute('UPDATE ledger.active_owners SET policy_revision=policy_revision+1 WHERE account_id=%s',(c.scope.venue_account_id,))
+            db.execute('ALTER TABLE ledger.active_owners ENABLE TRIGGER owner_immutable')
+    with pytest.raises((ValueError,LookupError,psycopg.Error)):
+        gate.consume(permit,lease(c)) if phase=='consume' else gate.mark_may_have_sent(w.command_id,lease(c))
+    with c.owner.transaction(c.scope) as tx:
+        assert repo(tx,c).write(w.command_id).state==('MAY_HAVE_SENT' if phase=='consume' else 'DURABLE_READY')
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchone()==(0,)
+
+def test_unknown_keeps_original_request_ids_and_cannot_issue_or_consume(database):
+    c=real_case(database);w,r,b=c.service._transaction(lambda tx:attach(c,tx));gate=boundary(c)
+    permit=gate.mark_may_have_sent(w.command_id,lease(c))
+    with c.owner.transaction(c.scope) as tx:assert repo(tx,c).record_unknown(w.command_id)==r
+    with pytest.raises(ValueError):gate.mark_may_have_sent(w.command_id,lease(c))
+    with pytest.raises(ValueError):gate.consume(permit,lease(c))
+    with c.owner.transaction(c.scope) as tx:
+        assert repo(tx,c).request(w.command_id)==r
+        assert application_write_obligations(tx)[0].current.state=='UNKNOWN'
+
+@pytest.mark.parametrize('after_commit',[False,True])
+def test_uncertain_may_commit_returns_no_permit_and_never_retries(database,after_commit):
+    c=real_case(database);w,r,b=c.service._transaction(lambda tx:attach(c,tx));gate=boundary(c)
+    original=gate.uow.connection_factory
+    class BrokenCommit:
+        def __init__(self,db):self.db=db
+        def __getattr__(self,name):return getattr(self.db,name)
+        def commit(self):
+            if after_commit:self.db.commit()
+            raise OSError('injected uncertain MAY commit')
+    gate.uow=UnitOfWork(lambda:BrokenCommit(original()),permit_ttl_ms=5000)
+    with pytest.raises(OSError):gate.mark_may_have_sent(w.command_id,lease(c))
+    with c.owner.transaction(c.scope) as tx:
+        assert repo(tx,c).write(w.command_id).state==('MAY_HAVE_SENT' if after_commit else 'DURABLE_READY')
+        assert repo(tx,c).request(w.command_id)==r

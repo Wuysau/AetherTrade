@@ -9,13 +9,14 @@ from dataclasses import dataclass, replace
 
 from trading_system.contracts.order_codec import VersionedOrderCodec
 from trading_system.contracts.order_lifecycle import ApplicationWrite
+from trading_system.contracts.application_write_v3 import ApplicationWriteV3
 from .models import MissingEvidence, account_key, scope_id
 
 
 @dataclass(frozen=True, kw_only=True)
 class ApplicationWriteObligation:
-    original: ApplicationWrite
-    current: ApplicationWrite
+    original: ApplicationWrite|ApplicationWriteV3
+    current: ApplicationWrite|ApplicationWriteV3
     collateral_group_id: str
 
     @property
@@ -101,6 +102,9 @@ def application_write_obligations(tx, *, scope_only=False):
         program = programs[program_key]
         _require(program.program_id == original.program_id and codec.hash('order-program', program)
             == original.canonical_program_hash, 'PROGRAM_HASH_MISMATCH')
+        if type(original) is ApplicationWriteV3:
+            from trading_system.execution.program_commands import validate_stored_program_binding
+            validate_stored_program_binding(tx, original, current)
         selected[(physical_scope, identifier)] = ApplicationWriteObligation(original=original,
             current=current, collateral_group_id=bindings[key])
     # Application children remain independent local writes. Native children
