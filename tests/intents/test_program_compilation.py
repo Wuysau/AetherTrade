@@ -122,6 +122,8 @@ def test_real_equity_market_asymmetry(side,quantity_kind,field):
     result=compile_order_program(p,r,c,**k); f=fields(result.nodes[0])
     assert field in f and f[FieldName.TOKENIZE] is False
     assert FieldName.PRICE not in f and FieldName.TRADING_SESSION not in f
+    assert {param.wire_name:param.value for param in result.requests[0].parameters}['orderType']=='MARKET'
+    assert 'type' not in {param.wire_name for param in result.requests[0].parameters}
 
 
 @pytest.mark.parametrize('mutation,code', [

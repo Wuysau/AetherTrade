@@ -76,6 +76,7 @@ class FieldName(StrEnum):
     SYMBOL = 'symbol'
     SIDE = 'side'
     TYPE = 'type'
+    ORDER_TYPE = 'orderType'
     QUANTITY = 'quantity'
     QUOTE_ORDER_QTY = 'quoteOrderQty'
     NOTIONAL = 'notional'
@@ -334,7 +335,8 @@ def _compile_node(node, program, rules, profile, allow_round_down, now):
     order_type = _order_type(node, product)
     require(order_type in profile.allowed_order_types, 'SYMBOL_ORDER_TYPE_UNSUPPORTED')
     quantity, quantity_fields = _quantity(node, rules, profile, allow_round_down)
-    parameters = [_p(FieldName.SIDE, o.side), _p(FieldName.TYPE, order_type), *quantity_fields]
+    parameters = [_p(FieldName.SIDE, o.side),
+        _p(FieldName.ORDER_TYPE if product == t.Product.US_EQUITY else FieldName.TYPE, order_type), *quantity_fields]
     for value in (o.price.value, o.trigger.price, o.trigger.activation_price):
         _validate_price(value, rules, profile)
     if o.price.kind == 'FIXED_LIMIT':
