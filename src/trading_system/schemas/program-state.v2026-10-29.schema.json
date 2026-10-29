@@ -7,6 +7,24 @@
         "2026-10-29"
       ]
     },
+    "unattributed_effects": {
+      "type": "boolean"
+    },
+    "accepted_parent_status": {
+      "anyOf": [
+        {
+          "enum": [
+            "ACTIVE",
+            "CANCEL_PENDING",
+            "STOPPED",
+            "COMPLETED"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "program_id": {
       "type": "string",
       "minLength": 1,
@@ -440,6 +458,13 @@
                   "APPLICATION_GENERATED_CHILD"
                 ]
               },
+              "mapping_basis": {
+                "enum": [
+                  "OUTBOUND_CLIENT_ID",
+                  "NATIVE_PARENT_CHILD_QUERY",
+                  "APPLICATION_COMMAND_ID"
+                ]
+              },
               "command_id": {
                 "anyOf": [
                   {
@@ -532,6 +557,7 @@
               "child_order_id",
               "child_client_id",
               "origin",
+              "mapping_basis",
               "command_id",
               "command_hash",
               "durable_record_ref",
@@ -1090,9 +1116,16 @@
             "maxLength": 256
           },
           "unallocated_quantity": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2019,6 +2052,8 @@
   },
   "required": [
     "contract_version",
+    "unattributed_effects",
+    "accepted_parent_status",
     "program_id",
     "authority_hash",
     "authority_proof_ref",

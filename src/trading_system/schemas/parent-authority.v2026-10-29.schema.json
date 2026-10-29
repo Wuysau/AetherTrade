@@ -7,6 +7,24 @@
         "2026-10-29"
       ]
     },
+    "funding_basis": {
+      "enum": [
+        "ASSET_RESERVATIONS",
+        "OWNED_POSITION_REDUCTION"
+      ]
+    },
+    "position_allocation_hash": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "authority_id": {
       "type": "string",
       "minLength": 1,
@@ -306,6 +324,18 @@
       "items": {
         "type": "object",
         "properties": {
+          "expected_client_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "node_id": {
             "type": "string",
             "minLength": 1,
@@ -371,6 +401,7 @@
           }
         },
         "required": [
+          "expected_client_id",
           "node_id",
           "group_id",
           "side",
@@ -441,27 +472,34 @@
       "maxLength": 256
     },
     "fee_budgets": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "asset": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256
-          },
-          "amount": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "asset": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "amount": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "asset",
+              "amount"
+            ],
+            "additionalProperties": false
           }
         },
-        "required": [
-          "asset",
-          "amount"
-        ],
-        "additionalProperties": false
-      }
+        {
+          "type": "null"
+        }
+      ]
     },
     "submission_valid_until": {
       "type": "string",
@@ -484,6 +522,8 @@
   },
   "required": [
     "contract_version",
+    "funding_basis",
+    "position_allocation_hash",
     "authority_id",
     "program_id",
     "program_hash",
