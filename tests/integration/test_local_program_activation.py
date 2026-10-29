@@ -64,3 +64,71 @@ def test_historical_bundle_cannot_be_attached_after_commit(database):
     with c.owner.transaction(c.scope) as tx:
         with pytest.raises(ValueError,match='PROGRAM_FINANCIAL_WITNESS_REQUIRED'):
             activate_local_program(tx,bundle,load_clock=lambda tx:c.c.facts.inputs.clock)
+
+
+def test_zero_asset_owned_derivative_reduction_retains_quantity_and_protection_duty(database):
+    from trading_system.execution.local_program_activation import read_local_activation
+    from trading_system.storage.local_programs import local_program_obligations
+    c=real_case(database,template='TWAP',mode='LOCAL_SYNTHETIC',product=t.Product.USD_M_PERP,
+        actual='1',target='0',quantity='1',side='SELL',reduce_only=True)
+    receipt,bundle=admit(c)
+    assert bundle.reservations==()
+    with c.owner.transaction(c.scope) as tx:
+        record=read_local_activation(tx,receipt.activation_id)
+        assert record.authority.funding_basis=='OWNED_POSITION_REDUCTION'
+        assert record.authority.position_allocation_hash==digest(bundle.archive.book.positions[0])
+        assert record.authority.reservation_ids==record.authority.funding_requirements==()
+        assert record.authority.nodes[0].side=='SELL' and record.state.pools[0].unallocated_quantity=='1'
+        assert record.authority.protection_required and record.state.required_protection_quantity=='1'
+        assert len(local_program_obligations(tx,scope_only=True))==1
+
+
+@pytest.mark.parametrize('fault',['proof_role','proof_source','authority','state'])
+def test_owner_authored_audit_objects_do_not_authenticate_source(database,fault):
+    from trading_system.execution.local_program_activation import read_local_activation
+    from trading_system.storage.local_programs import PROOF_PREFIX,STATE_PREFIX,local_program_obligations
+    c=real_case(database,template='TWAP',mode='LOCAL_SYNTHETIC');receipt,bundle=admit(c)
+    with c.owner.transaction(c.scope) as tx:
+        record=read_local_activation(tx,receipt.activation_id)
+        if fault in ('proof_role','proof_source'):
+            proof=record.proofs[0]
+            forged=replace(proof,role='PARENT_BINDING') if fault=='proof_role' else replace(proof,
+                source_refs=(replace(proof.source_refs[0],hash='0'*64),))
+            tx._append('audit_events',PROOF_PREFIX+proof.proof_id,forged,1)
+            with pytest.raises(ValueError,match='LOCAL_PROOF_ARCHIVE_MISMATCH'):
+                read_local_activation(tx,receipt.activation_id)
+        elif fault=='authority':
+            from trading_system.contracts.order_lifecycle_v3_reducer import prepare
+            assert 'AUTHORITY_PROOF_UNVERIFIED' in prepare(record.authority,record.state.authority_proof_ref,
+                now=record.activated_at).restrictions
+        else:
+            # Even an apparent terminal projection cannot remove its remaining pool.
+            tx._append('audit_events',STATE_PREFIX+receipt.activation_id,replace(record.state,
+                sequence=4,status='COMPLETED',pools=()),3)
+            assert local_program_obligations(tx,scope_only=True)[0].unresolved
+
+
+def test_unknown_local_pool_blocks_entire_collateral_group_and_preserves_original_owner(database):
+    import psycopg
+    from trading_system.execution.local_program_activation import read_local_activation
+    from trading_system.storage.local_programs import STATE_PREFIX,local_program_obligations
+    from trading_system.execution.commands import CommandRepository
+    c=real_case(database,template='VP',mode='LOCAL_SYNTHETIC');receipt,bundle=admit(c)
+    with c.owner.transaction(c.scope) as tx:
+        record=read_local_activation(tx,receipt.activation_id)
+        tx._append('audit_events',STATE_PREFIX+receipt.activation_id,replace(record.state,
+            sequence=4,status='SUBMIT_UNKNOWN'),3)
+    other=replace(c.scope,venue_account_id=c.scope.venue_account_id+'-other',product=t.Product.USD_M_PERP)
+    with psycopg.connect(database) as db:
+        db.execute('INSERT INTO ledger.account_bindings VALUES(%s,%s,%s,%s,NULL)',
+            (str(other.environment),other.venue_account_id,str(other.product),bundle.intent.collateral_group_id))
+        db.execute('UPDATE ledger.active_owners SET ownership_epoch=2 WHERE account_id=%s',(c.scope.venue_account_id,))
+    with c.owner.transaction(other) as tx:
+        obligation=local_program_obligations(tx)[0]
+        assert obligation.original.authority.ownership_epoch==1 and obligation.original.authority.owner_strategy_id==bundle.intent.owner_strategy_id
+        assert obligation.identity in CommandRepository(tx).unresolved_in_group('')
+        assert local_program_obligations(tx,scope_only=True)==()
+    # No current-clock parameter: historical read restores the original bounded
+    # authority; expiry and owner transfer cannot renew or discard its duty.
+    with c.owner.transaction(c.scope) as tx:
+        assert read_local_activation(tx,receipt.activation_id)==record
