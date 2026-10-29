@@ -95,6 +95,10 @@ $$;
 
 CREATE FUNCTION ledger.guard_program_client_identity() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
 SET search_path=pg_catalog,ledger AS $$ BEGIN
+ -- One transaction-scoped registry lock covers BOTH tables before either
+ -- cross-table lookup. A single lock avoids multi-member command lock-order
+ -- cycles; uniqueness keys below still retain account/product/service scope.
+ PERFORM pg_advisory_xact_lock(783764904031224119::bigint);
  IF TG_TABLE_NAME='program_client_identities' THEN
   IF EXISTS(SELECT 1 FROM ledger.command_identities l WHERE l.command_id=NEW.command_id OR
    (l.environment=NEW.environment AND l.account_id=NEW.account_id AND l.product=NEW.product
