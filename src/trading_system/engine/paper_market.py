@@ -122,7 +122,9 @@ class PaperMarketFill:
     node_id:str
     namespace:str
     quantity:Decimal
+    quantity_unit:str
     price:Decimal
+    price_asset:str
     gross_notional:Decimal
     fees:tuple[FeeV3,...]
     market_event_id:str
@@ -267,7 +269,8 @@ def query_creation(engine,command_id):
                     'ORDER BY occurred_at,event_id',(engine._scope_key,row['client_id'])).fetchall():
                 payload=event['payload'];require(payload.get('record_kind')=='PAPER_MARKET_FILL','PAPER_MARKET_SOURCE_REQUIRED')
                 fills.append(PaperMarketFill(fill_id=event['event_id'],client_id=row['client_id'],node_id=terms['node_id'],
-                    namespace=terms['namespace'],quantity=event['fill_delta'],price=event['price'],gross_notional=Decimal(payload['gross_notional']),
+                    namespace=terms['namespace'],quantity=event['fill_delta'],quantity_unit=row['quantity_unit'],
+                    price=event['price'],price_asset=row['price_currency'],gross_notional=Decimal(payload['gross_notional']),
                     fees=tuple(decode(FeeV3,f) for f in payload['fees']),market_event_id=payload['market_event_id'],market_hash=payload['market_hash'],
                     occurred_at=event['occurred_at'].isoformat(),evidence=_evidence(event['event_id'],payload,event['occurred_at'].isoformat())))
         payload={'request':domain_payload(request),'orders':[domain_payload(o) for o in orders],'fills':[domain_payload(f) for f in fills]}
@@ -318,6 +321,9 @@ class PaperMatcher:
                 if event.kind=='DEPTH_SNAPSHOT':
                     db.execute('UPDATE public.paper_market_levels SET reported=0,available=0 WHERE market_key=%s AND side=%s '
                         'AND NOT(price=ANY(%s))',(event.market_key,side,present))
+            bounds=db.execute("SELECT max(price) FILTER(WHERE side='BID') AS bid,min(price) FILTER(WHERE side='ASK') AS ask "
+                'FROM public.paper_market_levels WHERE market_key=%s AND reported>0',(event.market_key,)).fetchone()
+            require(bounds['bid'] is None or bounds['ask'] is None or bounds['bid']<bounds['ask'],'PAPER_CROSSED_SOURCE_BOOK')
             first=db.execute('SELECT scope_key,client_id FROM public.paper_order_terms WHERE market_key=%s ORDER BY arrival_sequence LIMIT 1',
                 (event.market_key,)).fetchone()
             if first:db.execute('SELECT public.paper_match_order(%s,%s)',(first['scope_key'],first['client_id']))

@@ -201,7 +201,9 @@ def test_matcher_definer_and_runtime_keep_actual_sql_role_boundaries(venue):
         row=db.execute("SELECT p.prosecdef,p.proconfig,r.rolcanlogin,r.rolsuper,r.rolinherit FROM pg_proc p "
             "JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.paper_match_order(text,text)'::regprocedure").fetchone()
         assert row==(True,['search_path=pg_catalog'],False,False,False)
-        assert not db.execute("SELECT has_function_privilege('public','public.paper_match_order(text,text)','EXECUTE')").fetchone()[0]
+        assert not db.execute("SELECT coalesce(bool_or(a.grantee=0 AND a.privilege_type='EXECUTE'),false) FROM pg_proc p, "
+            "LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a "
+            "WHERE p.oid='public.paper_match_order(text,text)'::regprocedure").fetchone()[0]
     for statement in ('UPDATE public.paper_engine_orders SET filled=0',
                       "UPDATE public.paper_order_terms SET terms='{}'::jsonb",
                       'UPDATE public.paper_market_levels SET available=100'):
