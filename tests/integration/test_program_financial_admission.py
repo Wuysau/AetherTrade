@@ -180,3 +180,24 @@ def test_execution_owner_cannot_forge_a_bounded_generic_intake(database):
     c=real_case(database)
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with c.owner.transaction(c.scope) as tx:tx._append('order_program_intakes','forged',c.record,0)
+
+
+@pytest.mark.parametrize('fault',['missing_clock','unhealthy_clock','missing_lease','lease_reader_failure'])
+def test_public_unconfigured_readers_do_not_commit_private_financial_bundle(database,fault):
+    """Negative public composition in actual PG; positive attachments follow separately."""
+    from trading_system.intents.generic_program_admission import GenericProgramAdmissionService,ADMISSION_PREFIX
+    c=real_case(database)
+    def clock(tx):
+        return replace(c.c.facts.inputs.clock,clock_health='UNHEALTHY' if fault=='unhealthy_clock' else 'HEALTHY')
+    def failing_lease(tx):raise OSError('injected local lease reader failure after financial reservation')
+    service=GenericProgramAdmissionService(c.ingress,c.service,load_inputs=c.load,load_qualification=c.qualify,
+        load_clock=None if fault=='missing_clock' else clock,
+        load_lease=failing_lease if fault=='lease_reader_failure' else None)
+    with pytest.raises((ValueError,OSError)):
+        service.admit(c.record.proposal,c.record.context,c.c.plan)
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.intents.get(c.record.intent_id) is None
+        assert tx.reservations.for_intent(c.record.intent_id)==()
+        assert tx._latest('audit_events',ADMISSION_PREFIX+c.record.intent_id,dict) is None
+        assert tx._latest('audit_events',BUNDLE_PREFIX+c.record.intent_id,ProgramFinancialBundle) is None
+        assert tx._latest('order_program_intakes',c.key,type(c.record))==c.record

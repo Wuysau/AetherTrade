@@ -18,6 +18,17 @@ No LIVE/TESTNET/account/model calls, public merge/push, or main/archive edits.
 Root gate81820/86745/80618 are TERMINAL, never restart them. Prior evidence is
 source-specific; a fresh complete combined gate remains due after integrations.
 
+Root integrated command DTO93aecdc as2dfd952 (full versioned request/financial
+hash fields, old version map retained). Public generic admission composition now
+uses exact controlled intake + existing financial transaction, deterministic
+original-index IDs, real attachment APIs and after-attachment clock/fence/book
+checks, returning a durable nonpermit receipt only after commit.11 new unit probes
+and combined76 checks pass; four actual PG negative cases added, NOT_RUN yet.
+Actual command repository/0012 and local activation are still peer WIP; positive
+public attachment/replay/dispatch remain NOT_RUN. Current composition references
+their agreed APIs and does not fabricate successful attachment implementations.
+Staged local lists remain an explicit active integration gap; scope is retained.
+
 ## OP_C_IMPLEMENTATION_COHORT_HANDOFF_TO_PARENT — 2026-10-29
 
 integration_lead completed its concrete root implementation cohort and now
