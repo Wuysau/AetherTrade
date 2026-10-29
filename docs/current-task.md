@@ -1,5 +1,36 @@
 # Current task
 
+## OP_C_IMPLEMENTATION_COHORT_HANDOFF_TO_PARENT — 2026-10-29
+
+integration_lead completed its concrete root implementation cohort and now
+relinquishes sole write ownership BACK TO parent root after this handoff commit.
+Lead performs no further root writes unless re-delegated. Parent may resume
+sole writing/integration; command and activation peers retain their OWN trees.
+Goal remains ACTIVE, not paused, blocked or complete; full46/56 and OP-D/E/F/G
+remain mandatory. This handoff frees an agent slot for the next actual work.
+
+Root code throughbdbd9b0, evidence/docs through9ad7cbe; clean verified before
+this handoff. Implemented full typed intake, SAME-kernel current financial
+bundle, independent current bounded-exit verification/persisted residual duties,
+native OCO target allocation and no-fill/alternative risk scenarios, structural
+request route/local-algorithm guards. Public generic success/commands/permits
+remain pending actual command/internal-activation integration.
+
+All root tests are terminal: fixedb6b2dbb924PG/30suites0skip/fail/error plus ordinary
+3231pass/478environmental skips/96deselected; newer sourcebdbd9b0 PG12 diagnostic
+0skip/fail/error. Current contracts/intents/unit1468 passed, latest input/proof21
+passed; final full combined gate remains due after pending integrations. Original
+299 qualification-fixture RED retained and corrected without guard relaxation.
+All117 copied artifact files verified against COMMITTED Git blob bytes and source
+SHA256 maps in docs/evidence/binance-orders/op-c-fin-kernel. No live root jobs.
+
+Immediate next implementation: receive/review command peer V3/0012 actual typed
+request/outbox/MAY/commit-before-single-use-permit; receive activation peer actual
+SAME-bundle local TWAP/VP/SUM activation with no fake native mother, persistent
+pool/quantity/UNKNOWN duties. Plans approved; no routine user permission needed.
+Then wire public generic admission and continue actual native quote interval,
+fee/dust contracts plus market-driven matcher/native extension/API/UI/full OPG.
+
 ## OP_C_CURRENT_DIAGNOSTIC_GREEN — 2026-10-29
 
 Current sourcebdbd9b0 fixed diagnostic80618 TERMINAL exit0:12 actual isolated PG
