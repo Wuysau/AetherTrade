@@ -141,11 +141,12 @@ def test_quote_current_enforcement_and_financial_inputs_fail_closed_before_any_c
 
 @pytest.mark.parametrize('fault',['final_enforcement_expired','final_enforcement_changed_book'])
 def test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier(database,fault):
-    c=quote_case(database);original=c.bounds;calls=[]
+    c=quote_case(database);original=c.bounds;calls=[];wall=[c.c.facts.inputs.clock.utc_now]
+    c.service.clock=lambda:wall[0]
     def bounds(tx,*args):
         calls.append(1)
         if len(calls)==2:
-            if fault=='final_enforcement_expired':c.service.clock=lambda:c.q.terms.valid_until
+            if fault=='final_enforcement_expired':wall[0]=c.q.terms.valid_until
             else:
                 book=tx.projections.book(c.scope)
                 tx.projections.save_book(replace(book,sequence=book.sequence+1),book.sequence)
