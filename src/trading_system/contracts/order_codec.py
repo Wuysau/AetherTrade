@@ -1,5 +1,6 @@
 """Explicit new-version dispatch; legacy records are decoded, never upgraded."""
 from jsonschema import Draft202012Validator,FormatChecker
+from functools import lru_cache
 import json
 from .canonical import canonical_json,canonical_hash,domain_payload
 from .resources import contract_path
@@ -29,6 +30,13 @@ KINDS_BY_VERSION['2026-10-30']={'order-proposal':QuotePositionProposalV1}
 
 LEGACY={'decision-proposal','trade-intent','execution-command','risk-policy'}
 
+
+@lru_cache(maxsize=64)
+def _packaged_validator(kind,version):
+    """Code-owned packaged schema only; each payload is validated anew."""
+    schema=json.loads(contract_path(kind+'.v'+version+'.schema.json').read_text(encoding='utf-8'))
+    return Draft202012Validator(schema,format_checker=FormatChecker())
+
 class VersionedOrderCodec:
     def decode(self,kind,payload,*,version=None):
         from trading_system.storage.models import decode
@@ -38,8 +46,7 @@ class VersionedOrderCodec:
         if kind not in kinds:raise ValueError('Unknown contract version/kind; never recompile historical orders')
         text=canonical_json(payload)
         if len(text.encode())>1048576:raise ValueError('Order record too large')
-        schema=json.loads(contract_path(kind+'.v'+version+'.schema.json').read_text(encoding='utf-8'))
-        Draft202012Validator(schema,format_checker=FormatChecker()).validate(payload)
+        _packaged_validator(kind,version).validate(payload)
         return decode(kinds[kind],payload)
     def encode(self,kind,record):
         if kind in LEGACY:return ContractCodec().encode(record)
