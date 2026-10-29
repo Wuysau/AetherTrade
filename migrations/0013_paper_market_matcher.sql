@@ -179,6 +179,7 @@ END $$;
 REVOKE ALL ON FUNCTION public.paper_match_order(text,text) FROM PUBLIC;
 GRANT USAGE,CREATE ON SCHEMA public TO paper_matcher_definer;
 ALTER FUNCTION public.paper_match_order(text,text) OWNER TO paper_matcher_definer;
+ALTER FUNCTION public.paper_market_immutable() OWNER TO paper_matcher_definer;
 REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
 GRANT SELECT,UPDATE ON public.paper_engine_orders,public.paper_market_levels TO paper_matcher_definer;
 GRANT SELECT ON public.paper_order_terms,public.paper_market_books,public.paper_market_inputs TO paper_matcher_definer;
