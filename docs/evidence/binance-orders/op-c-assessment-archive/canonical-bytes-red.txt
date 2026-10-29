@@ -1,0 +1,16 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+__ test_semantically_equal_decimal_cannot_change_recomputed_assessment_bytes __
+tests\unit\test_assessment_archive.py:337: in test_semantically_equal_decimal_cannot_change_recomputed_assessment_bytes
+    with pytest.raises(ValueError,match='ASSESSMENT_ARCHIVE_'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_______ test_false_and_zero_cannot_change_compiled_parameter_wire_bytes _______
+tests\unit\test_assessment_archive.py:351: in test_false_and_zero_cannot_change_compiled_parameter_wire_bytes
+    with pytest.raises(ValueError,match='ASSESSMENT_ARCHIVE_COMPILATION_REPLAY_MISMATCH'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_assessment_archive.py::test_semantically_equal_decimal_cannot_change_recomputed_assessment_bytes
+FAILED tests/unit/test_assessment_archive.py::test_false_and_zero_cannot_change_compiled_parameter_wire_bytes
+2 failed, 34 deselected in 0.95s

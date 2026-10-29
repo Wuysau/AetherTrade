@@ -1,0 +1,84 @@
+{
+  "scope": "PURE_CAPTURED_ASSESSMENT_AND_METADATA_STORAGE_NOT_FINANCIAL_OR_VENUE_QUALIFICATION",
+  "source_base_commit": "d13a9f2",
+  "actual_dependencies": [
+    "88d3c90",
+    "79eae93",
+    "c71a540",
+    "8972f4e",
+    "6791518",
+    "a055f2c",
+    "3aa2ad9",
+    "ad0b9c2",
+    "d92dfda"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_assessment_archive.py tests/intents/test_program_reduction_risk.py tests/intents/test_program_risk_assessment.py -q --tb=short",
+    "python -m pytest tests/contracts tests/intents tests/unit -q --tb=short",
+    "python -m pytest tests/integration/test_assessment_archive_ledger.py -q --tb=short",
+    "python -m pytest tests/integration/test_program_financial_ledger.py -q --tb=short"
+  ],
+  "runs": {
+    "retained-risk-red": {
+      "tests": 2,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 1
+    },
+    "subtype-red": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 1
+    },
+    "canonical-bytes-red": {
+      "tests": 2,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 1
+    },
+    "unit-green": {
+      "tests": 1349,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0
+    },
+    "postgres-archive-green": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0
+    },
+    "postgres-record-regression": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0
+    }
+  },
+  "old_archive_module_unchanged": true,
+  "all_prior_public_packaged_files_unchanged": 42,
+  "historical_known_archive_hashes": {
+    "ATOMIC": "af609a2fbb961ea54368134289e1e6e20c30f2f6fb6aff0b05a020f8c932af60",
+    "VP": "78a99901e5ee98750167f394903cd8ef007e5056107fbd6ad03a73bd9fddd8a5"
+  },
+  "source_sha256": {
+    "src/trading_system/intents/program_assessment_archive.py": "c73371c5a72a031ee344c2cea6fa956598191f9afc4370b85b5be52f16dcf174",
+    "src/trading_system/intents/program_financial_records.py": "7cbddc76e724eaf79b69fdd1914d1f39a83586c01eeb94acce23e09c66590521",
+    "src/trading_system/risk/program_assessment.py": "286bd425306f2e2240ca368457cd7ff4ecaaf8f5fc858ccf4c2c5617ecdd836b",
+    "src/trading_system/risk/reduction.py": "b148a2593b770ee1e4fe23ce9049ef5282160bd3b22cc7809fa397f0c85ed8ea",
+    "src/trading_system/risk/terms.py": "b7849ff5b65d9e50ab876f54386642c358c9051bcd305eb3e93d205f94f7d01e",
+    "tests/unit/test_assessment_archive.py": "4bb7b2e6d0abaf28a15c8dc0990d84c43074628757c27c7d35f48c96d2e467ee",
+    "tests/integration/test_assessment_archive_ledger.py": "cc6d86e050102e03ed950fe01e5d245a6e1c48aa57c211b6b293adc025b79f27"
+  },
+  "images": {
+    "python": "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f",
+    "postgres": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+  }
+}
