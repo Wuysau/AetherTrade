@@ -131,11 +131,41 @@ ALTER TABLE ledger.outbox ADD CONSTRAINT outbox_kind_check CHECK(kind IN ('COMMA
 
 -- Only the server verifier identity executes these; ordinary owner SQL cannot
 -- create protected mark/consume rows, and no role membership is granted.
+CREATE FUNCTION ledger.program_dispatch_context_current(p_scope text,c jsonb,w jsonb) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
+ SELECT COALESCE(c->'write'=w AND c->>'request_hash'=w->>'request_hash'
+ AND c#>>'{clock,clock_health}'='HEALTHY'
+ AND (c#>>'{clock,monotonic_ns}')::bigint>=0
+ AND (c#>>'{clock,monotonic_ns}')::bigint<(c#>>'{lease,deadline_monotonic_ns}')::bigint
+ AND (c#>>'{clock,utc_now}')::timestamptz>=(w->>'created_at')::timestamptz
+ AND (c#>>'{clock,utc_now}')::timestamptz<(w->>'valid_until')::timestamptz
+ AND (c#>>'{clock,utc_now}')::timestamptz<(c->>'valid_until')::timestamptz
+ AND (c#>>'{clock,utc_now}')::timestamptz<(c#>>'{lease,expires_at}')::timestamptz
+ AND c#>>'{lease,instance_id}'<>'' AND c#>>'{lease,shard,node_id}'<>''
+ AND c#>>'{lease,shard,environment}'=w#>>'{scope,environment}'
+ AND c#>>'{lease,shard,venue_account_id}'=w#>>'{scope,venue_account_id}'
+ AND c#>>'{lease,shard,product}'=w#>>'{scope,product}'
+ AND c#>>'{lease,shard,execution_epoch}'=w->>'execution_epoch'
+ AND ledger.program_digest(c->'assessment')=c->>'assessment_hash'
+ AND ledger.program_digest(c->'qualification')=c->>'qualification_hash'
+ AND c#>>'{assessment,assessment,verdict}'='ALLOW'
+ AND c#>>'{assessment,record_kind}'='PROGRAM_FINANCIAL_ASSESSMENT_ARCHIVE'
+ AND c#>>'{assessment,capabilities,transport}'='PAPER'
+ AND c#>>'{assessment,capabilities,qualification}'='PAPER_VERIFIED'
+ AND ledger.program_digest(c#>'{assessment,compilation}')=w->>'compilation_hash'
+ AND c#>>'{assessment,intent_id}'=w->>'intent_id'
+ AND (c#>>'{clock,utc_now}')::timestamptz<(c#>>'{qualification,valid_until}')::timestamptz
+ AND EXISTS(SELECT 1 FROM ledger.active_owners o WHERE o.environment=w#>>'{scope,environment}' AND o.account_id=w#>>'{scope,venue_account_id}'
+  AND o.product=w#>>'{scope,product}' AND o.instrument_uid=w#>>'{scope,instrument_uid}' AND o.venue_leg=w#>>'{scope,venue_leg}'
+  AND o.owner_strategy_id=w->>'owner_strategy_id' AND o.ownership_epoch=(w->>'ownership_epoch')::bigint AND o.policy_revision=(w->>'policy_revision')::bigint)
+ AND c->'fence'=(SELECT payload FROM ledger.audit_events a WHERE a.scope_id=p_scope AND a.record_id=c->>'fence_record_id' ORDER BY sequence DESC LIMIT 1)
+ AND c#>>'{fence,enabled}'='true',false)
+$$;
 CREATE FUNCTION ledger.mark_program_may(p_scope text,p_id text,p_context jsonb,p_token_hash text,p_ttl integer,p_transaction text) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$ DECLARE w jsonb; BEGIN
  SELECT payload INTO w FROM ledger.order_writes_v2 WHERE scope_id=p_scope AND record_id=p_id ORDER BY sequence DESC LIMIT 1;
  IF p_ttl NOT BETWEEN 1 AND 5000 OR length(p_token_hash)<>64 OR w->>'state' IS DISTINCT FROM 'DURABLE_READY'
-  OR NOT ledger.program_binding_current(p_scope,p_id,w) OR p_context->'write' IS DISTINCT FROM w
+  OR NOT ledger.program_binding_current(p_scope,p_id,w) OR NOT ledger.program_dispatch_context_current(p_scope,p_context,w)
   OR p_context->>'request_hash' IS DISTINCT FROM w->>'request_hash'
   OR NOT EXISTS(SELECT 1 FROM ledger.active_owners o WHERE o.environment=w#>>'{scope,environment}' AND o.account_id=w#>>'{scope,venue_account_id}'
    AND o.product=w#>>'{scope,product}' AND o.instrument_uid=w#>>'{scope,instrument_uid}' AND o.venue_leg=w#>>'{scope,venue_leg}'
@@ -152,12 +182,14 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$ DECLAR
  SELECT payload INTO w FROM ledger.order_writes_v2 WHERE scope_id=p_scope AND record_id=p_id ORDER BY sequence DESC LIMIT 1;
  IF m.command_id IS NULL OR m.database_transaction=pg_current_xact_id() OR m.expires_at<=clock_timestamp()
   OR m.token_hash IS DISTINCT FROM p_token_hash OR w IS DISTINCT FROM m.write_payload
-  OR p_context->'write' IS DISTINCT FROM w OR NOT ledger.program_binding_current(p_scope,p_id,w) THEN
+  OR p_context->'lease' IS DISTINCT FROM m.context->'lease'
+  OR NOT ledger.program_dispatch_context_current(p_scope,p_context,w) OR NOT ledger.program_binding_current(p_scope,p_id,w) THEN
   RAISE EXCEPTION 'committed unused current permit required' USING ERRCODE='23514'; END IF;
  INSERT INTO ledger.program_permit_consumptions VALUES(p_scope,p_id,p_token_hash,p_context,p_transaction,pg_current_xact_id());
 END $$;
 REVOKE ALL ON FUNCTION ledger.mark_program_may(text,text,jsonb,text,integer,text),ledger.consume_program_permit(text,text,text,jsonb,text) FROM PUBLIC,ledger_owner,ledger_control,ledger_decision;
 GRANT EXECUTE ON FUNCTION ledger.mark_program_may(text,text,jsonb,text,integer,text),ledger.consume_program_permit(text,text,text,jsonb,text) TO ledger_program_dispatch_verifier;
 REVOKE ALL ON FUNCTION ledger.check_order_write_v3(),ledger.guard_program_client_identity(),ledger.program_binding_current(text,text,jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION ledger.program_dispatch_context_current(text,jsonb,jsonb) FROM PUBLIC,ledger_owner,ledger_control,ledger_decision;
 GRANT EXECUTE ON FUNCTION ledger.program_binding_current(text,text,jsonb) TO ledger_owner,ledger_program_dispatch_verifier;
 COMMIT;
