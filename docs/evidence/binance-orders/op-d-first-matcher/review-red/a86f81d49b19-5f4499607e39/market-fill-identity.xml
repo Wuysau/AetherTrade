@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="11.600" timestamp="2026-10-29T10:11:45.474502+00:00" hostname="2a1fe728e4c5"><testcase classname="tests.integration.test_paper_market_matcher" name="test_structured_fill_identity_handles_valid_multi_level_sell_collisions" time="11.265"><failure message="psycopg.errors.UniqueViolation: duplicate key value violates unique constraint &quot;paper_market_consumptions_pkey&quot;&#10;CONTEXT:  SQL statement &quot;INSERT INTO public.paper_market_consumptions VALUES(market_id,book.event_id,ord.scope_key,ord.client_id,&#10;     fill_identifier,opposite_side,level.price,take_quantity)&quot;&#10;PL/pgSQL function public.paper_match_order(text,text) line 61 at SQL statement">tests/integration/test_paper_market_matcher.py:270: in test_structured_fill_identity_handles_valid_multi_level_sell_collisions
+    PaperMatcher(c.engine).apply_market_event(raw)
+src/trading_system/engine/paper_market.py:462: in apply_market_event
+    if first:db.execute('SELECT public.paper_match_order(%s,%s)',(first['scope_key'],first['client_id']))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UniqueViolation: duplicate key value violates unique constraint "paper_market_consumptions_pkey"
+E   CONTEXT:  SQL statement "INSERT INTO public.paper_market_consumptions VALUES(market_id,book.event_id,ord.scope_key,ord.client_id,
+E        fill_identifier,opposite_side,level.price,take_quantity)"
+E   PL/pgSQL function public.paper_match_order(text,text) line 61 at SQL statement</failure></testcase></testsuite></testsuites>

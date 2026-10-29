@@ -1,0 +1,67 @@
+{
+  "commit": "5b6e162d97efa0af408274d084f19c726a482c33",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-97fc01bf8fd6\\source-5b6e162.bundle",
+        "HEAD",
+        "5b6e162d97efa0af408274d084f19c726a482c33"
+      ],
+      "exit_code": 0,
+      "log": "5b6e162-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-5b6e162.bundle",
+        "5b6e162d97efa0af408274d084f19c726a482c33"
+      ],
+      "exit_code": 0,
+      "log": "5b6e162-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "5b6e162d97efa0af408274d084f19c726a482c33"
+      ],
+      "exit_code": 0,
+      "log": "5b6e162-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=5b6e162d97efa0af408274d084f19c726a482c33",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c; c.SUITES=(('market-consumed-deadline','03','tests/integration/test_paper_market_matcher.py::test_consumed_permit_cannot_start_a_side_effect_after_actual_sim_lock_wait'),); raise SystemExit(c.main())",
+        "--suite",
+        "market-consumed-deadline",
+        "--evidence-dir",
+        "/handoff/evidence/deadline-red"
+      ],
+      "exit_code": 1,
+      "log": "5b6e162-market-consumed-deadline.txt"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+EEEEEE                                                                   [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_actual_v3_acceptance_shared_depth_partial_limit_restart_and_replay _
+tests/integration/test_paper_market_matcher.py:21: in venue
+    from trading_system.engine.paper_market import provision_paper_market
+E   ModuleNotFoundError: No module named 'trading_system.engine.paper_market'
+_ ERROR at setup of test_immediate_tif_uses_current_depth_without_fok_partial_consumption[IOC-.4-EXPIRED] _
+tests/integration/test_paper_market_matcher.py:21: in venue
+    from trading_system.engine.paper_market import provision_paper_market
+E   ModuleNotFoundError: No module named 'trading_system.engine.paper_market'
+_ ERROR at setup of test_immediate_tif_uses_current_depth_without_fok_partial_consumption[FOK-0-EXPIRED] _
+tests/integration/test_paper_market_matcher.py:21: in venue
+    from trading_system.engine.paper_market import provision_paper_market
+E   ModuleNotFoundError: No module named 'trading_system.engine.paper_market'
+__ ERROR at setup of test_post_only_rejects_crossing_without_fabricated_fill ___
+tests/integration/test_paper_market_matcher.py:21: in venue
+    from trading_system.engine.paper_market import provision_paper_market
+E   ModuleNotFoundError: No module named 'trading_system.engine.paper_market'
+_ ERROR at setup of test_fake_or_reused_permit_and_runtime_market_mutation_are_denied _
+tests/integration/test_paper_market_matcher.py:21: in venue
+    from trading_system.engine.paper_market import provision_paper_market
+E   ModuleNotFoundError: No module named 'trading_system.engine.paper_market'
+_ ERROR at setup of test_conflicting_market_event_is_rejected_with_original_fills_retained _
+tests/integration/test_paper_market_matcher.py:21: in venue
+    from trading_system.engine.paper_market import provision_paper_market
+E   ModuleNotFoundError: No module named 'trading_system.engine.paper_market'
+=========================== short test summary info ============================
+ERROR tests/integration/test_paper_market_matcher.py::test_actual_v3_acceptance_shared_depth_partial_limit_restart_and_replay
+ERROR tests/integration/test_paper_market_matcher.py::test_immediate_tif_uses_current_depth_without_fok_partial_consumption[IOC-.4-EXPIRED]
+ERROR tests/integration/test_paper_market_matcher.py::test_immediate_tif_uses_current_depth_without_fok_partial_consumption[FOK-0-EXPIRED]
+ERROR tests/integration/test_paper_market_matcher.py::test_post_only_rejects_crossing_without_fabricated_fill
+ERROR tests/integration/test_paper_market_matcher.py::test_fake_or_reused_permit_and_runtime_market_mutation_are_denied
+ERROR tests/integration/test_paper_market_matcher.py::test_conflicting_market_event_is_rejected_with_original_fills_retained
+6 errors in 0.73s

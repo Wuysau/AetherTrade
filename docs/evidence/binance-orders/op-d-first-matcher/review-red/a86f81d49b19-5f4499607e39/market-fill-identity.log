@@ -1,0 +1,17 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_structured_fill_identity_handles_valid_multi_level_sell_collisions ____
+tests/integration/test_paper_market_matcher.py:270: in test_structured_fill_identity_handles_valid_multi_level_sell_collisions
+    PaperMatcher(c.engine).apply_market_event(raw)
+src/trading_system/engine/paper_market.py:462: in apply_market_event
+    if first:db.execute('SELECT public.paper_match_order(%s,%s)',(first['scope_key'],first['client_id']))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UniqueViolation: duplicate key value violates unique constraint "paper_market_consumptions_pkey"
+E   CONTEXT:  SQL statement "INSERT INTO public.paper_market_consumptions VALUES(market_id,book.event_id,ord.scope_key,ord.client_id,
+E        fill_identifier,opposite_side,level.price,take_quantity)"
+E   PL/pgSQL function public.paper_match_order(text,text) line 61 at SQL statement
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher.py::test_structured_fill_identity_handles_valid_multi_level_sell_collisions
+1 failed in 11.60s

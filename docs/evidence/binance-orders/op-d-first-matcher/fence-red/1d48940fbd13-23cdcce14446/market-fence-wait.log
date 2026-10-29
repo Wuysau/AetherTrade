@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_disabled_actual_source_fence_after_consume_blocks_sim_side_effect ____
+tests/integration/test_paper_market_matcher.py:354: in test_disabled_actual_source_fence_after_consume_blocks_sim_side_effect
+    with pytest.raises(ValueError,match='STALE_REVISION|PAPER_CURRENT_FENCE_CHANGED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher.py::test_disabled_actual_source_fence_after_consume_blocks_sim_side_effect
+1 failed in 5.09s

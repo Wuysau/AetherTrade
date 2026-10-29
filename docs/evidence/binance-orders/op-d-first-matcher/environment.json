@@ -1,0 +1,139 @@
+{
+  "functional_commit": "9748f46",
+  "base": "aff4aa8",
+  "scope": "ACTUAL_LIMIT_MARKET_DEPTH_FIRST_SLICE_PAPER_ENGINEERING_ONLY",
+  "actual": "actual financial admission + protected MAY/single consumption + same-PG venue matching, replay, source evidence, owner/fence/deadline checks",
+  "not_complete": [
+    "OP-D full advanced scope and all46/56 qualification",
+    "native/TESTNET/LIVE qualification",
+    "report-reader corrections owned by reports_fresh pending",
+    "Equity/session interim guard pending before first-v1 registration"
+  ],
+  "isolation": "Fresh dedicated local Docker PostgreSQL and new database per suite; no operational credentials/accounts. Later host Docker restart removed the containers; all original evidence remains. No TLS or permit TTL widening.",
+  "counts": {
+    "python-role-freeze.xml": {
+      "tests": 1525,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "review-red/a86f81d49b19-5f4499607e39/market-fill-identity.xml": {
+      "tests": 1,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "review-red/a86f81d49b19-8f78ccbc1119/market-fill-time.xml": {
+      "tests": 1,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "review-red/a86f81d49b19-9613489c281c/market-original-limit.xml": {
+      "tests": 1,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "initial-red/080b8486a23d-ff7b9ac881f7/paper-market-matcher.xml": {
+      "tests": 6,
+      "failed": 0,
+      "errors": 6,
+      "skipped": 0
+    },
+    "green/9748f46f916c-4a829f6fdb72/paper-market-matcher.xml": {
+      "tests": 17,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "green/9748f46f916c-632168aa26cb/paper-engine.xml": {
+      "tests": 59,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "green/9748f46f916c-6ba75099a40d/program-financial-admission.xml": {
+      "tests": 16,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "green/9748f46f916c-8f64ae5446e0/program-commands.xml": {
+      "tests": 52,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "green/9748f46f916c-e603c6aaf1d2/local-program-activation.xml": {
+      "tests": 15,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "fence-red/1d48940fbd13-23cdcce14446/market-fence-wait.xml": {
+      "tests": 1,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "deadline-red/5b6e162d97ef-db4379046586/market-consumed-deadline.xml": {
+      "tests": 1,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "source_sha256": {
+    "src/trading_system/engine/paper.py": "f66c1c296a849cedad2f339251eca2df38eb6874a9480b913b66f35e7facbb6b",
+    "src/trading_system/engine/paper_market.py": "982940744905cd4133fb8f9cd9585a44d5d1cbd8c49f65991d6ce587a9e9be98",
+    "migrations/0013_paper_market_matcher.sql": "efd0a3a2edc1cca12de47baa60be5e7ec90abae155f7a014404a3aadc14f80d2",
+    "tests/integration/test_paper_market_matcher.py": "fba6d9f2c6d69ef8d3aea2d5324234666dd448034b31d285b7de1b3dcced844e",
+    "tests/integration/test_program_financial_admission.py": "2d9f97dd1c0bc694acbea29f76142c613946db573946ad6e0d897074f016b9b1",
+    "tools/ci_paper_postgres.py": "96629234b0f831e526159f1ddd7feae41db81210c3b2b4eef8308ab8dcc0fbf7"
+  },
+  "evidence_sha256": {
+    "1d48940-manifest.json": "6b5182e0b85b41cf124be0c96149827f78876669f51212b073155c08cca0b63c",
+    "5b6e162-manifest.json": "10a7bce4eed8943f48ab4870bc5cac8d87c867a331e3ccb06f2dcb43b663be0b",
+    "9748f46-manifest.json": "8e42a35499ab96eff9755b869c8ec52bc93fcc2e3e121a844dcda7a3e7344512",
+    "9748f46-python-role-freeze.txt": "a3c768cb2122deaccb88dc67c45074d9cf98b539a8ded41b5123d0653fa54638",
+    "a86f81d-manifest.json": "fa09512fb54ab63ec92d340976742607fe30e4b5bee5f513a62d809dbbf7fbea",
+    "container-images.txt": "ef6ccce9418a1c9a5c8f651a5e52d60acd1b6314828177017c99f335a01115ff",
+    "launcher-manifest.json": "e4d4f1804a97dc06c581b3da613dd316d0219b2104490d7fc07b0d2ee6b0a595",
+    "python-role-freeze.xml": "2f8b76491849a10b5dfb04dd7e59e7335450c73efe5e8b4266a1bf9e268552f8",
+    "resolved-dependencies.txt": "fbcc968aeabea5947da7efa137103848acb8679f70f71581812d677f90c51859",
+    "review-red/a86f81d49b19-5f4499607e39/market-fill-identity.log": "5a2348e8465448034be96a20042dc34d1e857abe847097e800c3c1af9c6a5a5b",
+    "review-red/a86f81d49b19-5f4499607e39/market-fill-identity.xml": "c614a0eb9c03a54f51eea7ea939138963beff229b2d06ea44af06c37a7561019",
+    "review-red/a86f81d49b19-5f4499607e39/summary.json": "d0d498cdd9a2ece20931da8b646dd54e6b1681fbca61c83bc7ccc32beb224a3d",
+    "review-red/a86f81d49b19-8f78ccbc1119/market-fill-time.log": "f14eb2a628f173ab053f3bfebd84ea7b2c120f0648a92ba0cffdf6540b8c6cb6",
+    "review-red/a86f81d49b19-8f78ccbc1119/market-fill-time.xml": "80e7a077329d4a3549cab4a852a39f9bbc6dc7b70615cd979b3a065717b1e680",
+    "review-red/a86f81d49b19-8f78ccbc1119/summary.json": "6fe8d4a340c77cf39c74098a16f183b9e7f5389d47d423941a3b5c00e5d0f852",
+    "review-red/a86f81d49b19-9613489c281c/market-original-limit.log": "6d1ff69a139ee377f04a8d18738be11e637dbe6223a626d12ae38b7ff1c5e1de",
+    "review-red/a86f81d49b19-9613489c281c/market-original-limit.xml": "d538710a4d5adad63c57a8a3c394c70b7d7e5d886e5da2e7a94b201f70362a7f",
+    "review-red/a86f81d49b19-9613489c281c/summary.json": "9c28dda600470654dbb0d339172a7096b397464d5b10e3f2e5cf65db2862af57",
+    "initial-red/080b8486a23d-ff7b9ac881f7/paper-market-matcher.log": "ed1b7beb258e6dcd9dca7439882724a8c51c3d2707dabdcce48678e905c840f2",
+    "initial-red/080b8486a23d-ff7b9ac881f7/paper-market-matcher.xml": "bc73fb10380e860c9df18210577c7440b4d0b7615bcd4797fde8cff9332065e3",
+    "initial-red/080b8486a23d-ff7b9ac881f7/summary.json": "54c03259d12856da31c432c221b817d760315bcef48302e83e14218a37d4f214",
+    "green/9748f46f916c-4a829f6fdb72/paper-market-matcher.log": "efc29259cc37a44a9010444b86433f8a8e2d16bb11b4291ae8cb5ca91c49f15f",
+    "green/9748f46f916c-4a829f6fdb72/paper-market-matcher.xml": "b1bc0bcd47317a17a2b10fb7635913eda159045f44b6eadf0234b9134ce434cb",
+    "green/9748f46f916c-4a829f6fdb72/summary.json": "8a6bae01f19f22f30ec36a6572b86abac32cf916e62891d444ab0dc87e2f5b1e",
+    "green/9748f46f916c-632168aa26cb/paper-engine.log": "c0845e6edd4b7899af5b99018520ae02aa449b58d9e5b0efb0c0a079037eeb9a",
+    "green/9748f46f916c-632168aa26cb/paper-engine.xml": "d97aa7e95e09c5b355d11315fcfe4c59141966b85b69cd59ca105f13e2d8686e",
+    "green/9748f46f916c-632168aa26cb/summary.json": "f8d7012523c60f42db88669b3933966f909a18a5d232eb307d9cf881a35468ce",
+    "green/9748f46f916c-6ba75099a40d/program-financial-admission.log": "b17aefef777e9d14502cf3e14d99fae7973c5f0e806e2fca298c1b9d657ea651",
+    "green/9748f46f916c-6ba75099a40d/program-financial-admission.xml": "be22c716aeb5c2aecdd85c2153685e9c72184d2c9dcdea93d8081102b899a444",
+    "green/9748f46f916c-6ba75099a40d/summary.json": "42d3b6ffe66bf8a785467b9bb799fa88927906b70f87e5477c451bebc45ceba6",
+    "green/9748f46f916c-8f64ae5446e0/program-commands.log": "7bf2dd061e05170cdd2e79207682f50a540b53ee6415bcb30312968283b270a0",
+    "green/9748f46f916c-8f64ae5446e0/program-commands.xml": "0df605244e4d8821ff86cc971652ff3c7900df822818c025a5bfee35c488be0c",
+    "green/9748f46f916c-8f64ae5446e0/summary.json": "efad361bb780e7ea02105f7355b83a15b787d4ec50b6d92a1a8e2fd0f271f10d",
+    "green/9748f46f916c-e603c6aaf1d2/local-program-activation.log": "09b1f57a46b4bbc2f52be5d8892464e492c0c68340f85eb12a1a2838130a13e9",
+    "green/9748f46f916c-e603c6aaf1d2/local-program-activation.xml": "039c3b7d4d0403c98c9d74a893fc65dc119f5d5067f73ad818d7dec185800c4a",
+    "green/9748f46f916c-e603c6aaf1d2/summary.json": "a27c2c3fe23595e569440240d59fa58155771bf4328991003a27641f636a7dfb",
+    "fence-red/1d48940fbd13-23cdcce14446/market-fence-wait.log": "59de90d3d0ea9f65620866e977f69a827c375c5929c7b970b73cfb9ac2423dc8",
+    "fence-red/1d48940fbd13-23cdcce14446/market-fence-wait.xml": "a9b1ded47d1535ab2a73e5f2fd7c0c0d2a0201be05be99ceff72a656380e9c55",
+    "fence-red/1d48940fbd13-23cdcce14446/summary.json": "193ed3c9830d0c270eef1c745561b4cb584f42e20e35bb1b3bdfd0810a52bbd8",
+    "deadline-red/5b6e162d97ef-db4379046586/market-consumed-deadline.log": "126ed9d47c91d9c7ef4a66637f9b0237a259061564711df7543fc734ea1ad10b",
+    "deadline-red/5b6e162d97ef-db4379046586/market-consumed-deadline.xml": "dd52c76e8007746c9b607c4724b2d02d75b0eee178cc0673a4abf0453f6c5985",
+    "deadline-red/5b6e162d97ef-db4379046586/summary.json": "3d3d99599ccf50c9af950d6e652ca264b485635e0984e333a44b248892f6fac1"
+  }
+}

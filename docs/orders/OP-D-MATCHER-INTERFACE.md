@@ -3,9 +3,10 @@
 This is an actual first execution slice, not completion of OP-D or qualification
 of all46 capabilities/56 scenarios. Full scope remains in
 `docs/superpowers/plans/2026-10-29-paper-market-matcher.md`. The functional API
-checkpoint is11ff5df; its final fixed-commit verification is running. Prior
-whole17-case matcher and legacy/Python cohorts passed at4d84ece, before the
-nonfill disposition export was added. No native, TESTNET or LIVE reader/transport
+checkpoint is9748f46. Its whole17-case matcher,59 legacy PAPER,52 program command,
+16 financial and15 activation PostgreSQL cases passed with zero skips;1525
+Python unit/contracts/intents cases also passed. Raw source/image-bound evidence
+is in `docs/evidence/binance-orders/op-d-first-matcher/`. No native, TESTNET or LIVE reader/transport
 is registered by this branch.
 
 ## Actual composition and boundaries
@@ -113,3 +114,11 @@ execution/session/RPI rules, STP, lists/net receipts/native versus local races,
 amend/cancel variants, native algorithm models and independently authorized
 local scheduling. Host end-to-end ledger/protection integration is a separate
 actual gate. Each remains tracked; no first cohort substitutes for the full goal.
+
+The next SIM revision is reserved as0014_paper_market_matcher_v2.sql. It must
+preserve0013 and existing source hashes. The report-verifier owner separately
+implements producer READ corrections: actual lifecycle revision, exact Decimal
+arithmetic and independent stored SQL-text hash verification/fractional NUMERIC
+handling. They are not claimed by the9748 qualification above. Interim equity
+and session rejection is being added until actual V2 calendar/session execution
+is implemented; the46-capability target is unchanged.

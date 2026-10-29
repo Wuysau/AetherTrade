@@ -1,0 +1,108 @@
+{
+  "commit": "a86f81d49b19faed9a085daeba5f823a8371b019",
+  "scope": "ISOLATED_FRESH_DATABASE_PER_FOCUSED_CASE",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-97fc01bf8fd6\\source-a86f81d.bundle",
+        "HEAD",
+        "a86f81d49b19faed9a085daeba5f823a8371b019"
+      ],
+      "exit_code": 0,
+      "log": "a86f81d-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-a86f81d.bundle",
+        "a86f81d49b19faed9a085daeba5f823a8371b019"
+      ],
+      "exit_code": 0,
+      "log": "a86f81d-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "a86f81d49b19faed9a085daeba5f823a8371b019"
+      ],
+      "exit_code": 0,
+      "log": "a86f81d-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=a86f81d49b19faed9a085daeba5f823a8371b019",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c; c.SUITES=(('market-fill-time','03','tests/integration/test_paper_market_matcher.py::test_existing_book_fill_cannot_precede_actual_order_acceptance'),); raise SystemExit(c.main())",
+        "--suite",
+        "market-fill-time",
+        "--evidence-dir",
+        "/handoff/evidence/review-red"
+      ],
+      "exit_code": 1,
+      "log": "a86f81d-market-fill-time.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=a86f81d49b19faed9a085daeba5f823a8371b019",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c; c.SUITES=(('market-fill-identity','03','tests/integration/test_paper_market_matcher.py::test_structured_fill_identity_handles_valid_multi_level_sell_collisions'),); raise SystemExit(c.main())",
+        "--suite",
+        "market-fill-identity",
+        "--evidence-dir",
+        "/handoff/evidence/review-red"
+      ],
+      "exit_code": 1,
+      "log": "a86f81d-market-fill-identity.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=a86f81d49b19faed9a085daeba5f823a8371b019",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c; c.SUITES=(('market-original-limit','03','tests/integration/test_paper_market_matcher.py::test_original_4000_quote_limit_uses_compiled_native_quantity_without_rewriting_source'),); raise SystemExit(c.main())",
+        "--suite",
+        "market-original-limit",
+        "--evidence-dir",
+        "/handoff/evidence/review-red"
+      ],
+      "exit_code": 1,
+      "log": "a86f81d-market-original-limit.txt"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_original_4000_quote_limit_uses_compiled_native_quantity_without_rewriting_source _
+tests/integration/test_paper_market_matcher.py:283: in test_original_4000_quote_limit_uses_compiled_native_quantity_without_rewriting_source
+    submit(c);matcher=PaperMatcher(c.engine)
+    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:67: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:300: in submit_creation
+    require(order.quantity.kind=='BASE_QUANTITY','PAPER_NATIVE_QUANTITY_REQUIRED')
+src/trading_system/engine/paper_market.py:28: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_NATIVE_QUANTITY_REQUIRED
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher.py::test_original_4000_quote_limit_uses_compiled_native_quantity_without_rewriting_source
+1 failed in 12.30s
