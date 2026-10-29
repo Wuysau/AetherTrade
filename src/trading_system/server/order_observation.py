@@ -60,7 +60,7 @@ def project_program(payload, *, source):
 
 # Names are fixed implementation constants, never request parameters.
 TABLES = ('order_programs', 'order_program_intakes', 'order_program_states', 'order_program_bindings',
-          'order_writes_v2', 'order_funding_links', 'audit_events', 'program_request_bindings')
+          'order_writes_v2', 'order_funding_links', 'audit_events', 'program_request_bindings', 'reservations')
 
 
 class OrderObservationService:
@@ -167,16 +167,20 @@ class OrderObservationService:
                 "record_id=ANY(%s) OR payload->>'program_id'=%s OR payload->'authority'->>'program_id'=%s", ([prefix+i for i in intents for prefix in (
                     'generic-program-admission:', 'program-financial-bundle:', 'program-financial-decision:',
                     'program-residual-duty:')], program_id, program_id))
+            records['reservations'], truncated['reservations'] = self._records(conn, available, 'reservations', scope,
+                "payload->>'intent_id'=ANY(%s)", (intents,))
             activations = [r for r in records['financial'] if r['payload'].get('record_kind')=='LOCAL_PROGRAM_ACTIVATION']
             records['local_states'], truncated['local_states'] = self._records(conn, available, 'audit_events', scope,
                 'record_id=ANY(%s)', (['local-program-state:'+r['payload']['activation_id'] for r in activations],))
             state = records['states'][0]['payload'] if records['states'] else None
             if not state and len(records['local_states'])==1:
                 state = records['local_states'][0]['payload']
+            view['state_observation'] = None
             if state:
                 try:
                     VersionedOrderCodec().decode('program-state', state)
                     view.update(execution_state=state['status'],
+                        state_observation=state,
                         protection_status=state.get('protection_status', 'UNVERIFIED_DUTY'),
                         children_complete=(state.get('parent_observation') or {}).get('child_inventory'))
                 except (ValueError, TypeError, KeyError, ValidationError):
@@ -224,6 +228,8 @@ def install_order_observation_routes(app, *, authenticated, observer):
     @app.get('/api/order-programs')
     def programs(scope: str | None = Query(None, max_length=256), limit: int = Query(10),
                  cursor: str | None = Query(None, max_length=4096), _=Depends(authenticated)):
+        if limit not in (10, 20, 50):
+            raise ApiError('INVALID_REQUEST', '每页记录数只支持 10、20 或 50。', 422)
         service = observer()
         if service is None:
             return dict(items=[], scopes=[], next_cursor=None, read_only=True, observation_status='UNCONFIGURED')

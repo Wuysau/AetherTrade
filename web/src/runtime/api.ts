@@ -1,4 +1,5 @@
 import type { CandleHistory, CandleInterval, MarketConfig, MarketInput, AnalysisInput, ModelProfile, ModelProfileInput, TokenUsage, Notifications, ModelConfig, ModelInput, Decision, Instrument, SymbolName, ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput } from './types';
+import type {ProgramPage,ProgramView,CapabilityView} from './orderobservationtypes';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) { super(message); this.name = 'ApiError'; }
@@ -43,6 +44,14 @@ export class RuntimeApi {
     return close;
   }
   notifications() { return this.request<Notifications>('/notifications'); }
+  orderCapabilities() { return this.request<CapabilityView>('/order-capabilities'); }
+  orderPrograms(values:{scope?:string;limit:number;cursor?:string}) {
+    const query=new URLSearchParams({limit:String(values.limit)});
+    if(values.scope)query.set('scope',values.scope);
+    if(values.cursor)query.set('cursor',values.cursor);
+    return this.request<ProgramPage>(`/order-programs?${query}`);
+  }
+  orderProgramDetail(id:string,scope:string) { return this.request<ProgramView>(`/order-programs/${encodeURIComponent(id)}?${new URLSearchParams({scope})}`); }
   markNotificationsRead(values: { ids: string[] } | { all: true }) { return this.request<Notifications>('/notifications/read', { method: 'POST', body: JSON.stringify(values) }); }
   instruments() { return this.request<{ instruments: Instrument[] }>('/instruments'); }
   modelConfig() { return this.request<ModelConfig>('/model-config'); }

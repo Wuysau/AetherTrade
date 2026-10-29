@@ -28,6 +28,7 @@ def test_unconfigured_ledger_is_explicit_and_all46_targets_remain(client):
     assert response.status_code == 200
     assert response.json()['observation_status'] == 'UNCONFIGURED'
     assert response.json()['items'] == []
+    assert client.get('/api/order-programs?limit=100000').status_code == 422
     catalog = client.get('/api/order-capabilities').json()
     assert len(catalog['features']) == 46
     assert all(f['target_required'] and f['venue_qualification']=='NOT_RUN' for f in catalog['features'])
