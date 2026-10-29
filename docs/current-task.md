@@ -1,5 +1,34 @@
 # Current task
 
+## OP_C_SHARED_CAPACITY_INTEGRATED_GATE_RUNNING — 2026-10-29
+
+Root source58327f6 includes shared exact per-asset capacity (556ec29), preserving
+old amounts alias/formula/call ordering. Actual agent PG107 and unit1021 passed;
+genuine old precision failure retained, no risk stub/fills. Mandatory IP07
+capacity-precision now registered (27total PG suites). New full fixed-source
+gate is LIVE: exec session71345, ignored
+.runtime/paper-qualification-e618764c8527/evidence, source58327f6. Last poll
+confirmed dependency/marker steps exit0, postgres suites running. Poll same
+handle/logs; never restart solely because observation times out. Earlier root
+full46441 is terminal exit0 at4b6b941; do not confuse it with current run.
+
+exposure_review remains sole writer in binance-opc-risk-core: neutral shared
+risk first slice, legacy parity and actual80digit spendable precision RED. Its
+exact math may correctly deny capacity stress earlier as INSUFFICIENT_SPENDABLE;
+retain actual no-financial-bundle assertion and direct capacity tests rather
+than forcing later-stage reason with stubs. Await reviewed commits/PG evidence.
+
+pin_native_build lifecycle-v3 plan was reviewed and APPROVED by root within ADR:
+pre-ACK authority/funding vs later exact venue binding; explicit authenticated
+membership; native exclusive proof vs local SUM; unit/multiplier/SELL ceilings;
+separate receipt-net vs position/external fee debits; raw evidence/reconciliation
+on unknown/overfill; no writes/permits/releases. It now implements additive
+contracts/codecs/reducers in binance-opc-lifecycle-v3. Keep existing V2 bytes and
+V3 production containment until qualified financial/native binding exists.
+
+All agents' former worktrees/commits are retained. Goal remains active, not
+paused or complete. No production/account/config/model operation was performed.
+
 ## OP_C_COMMON_FINANCIAL_CORE_ACTIVE — 2026-10-29
 
 Root HEADbe72cab: generic target allocation, exact numeric LIMIT equivalence,
