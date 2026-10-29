@@ -18,7 +18,8 @@ from trading_system.storage.application_writes import application_write_obligati
 def database(isolated_postgres):
     import psycopg
     with psycopg.connect(isolated_postgres) as db:
-        for name in ('0006_proposal_intake_role.sql','0008_order_program_records.sql','0010_order_program_intake.sql',
+        for name in ('0006_proposal_intake_role.sql','0008_order_program_records.sql','0009_order_program_closure.sql',
+            '0010_order_program_intake.sql','0011_order_program_financial_credit_guard.sql',
             '0012_program_command_boundary.sql'):
             db.execute((ROOT/'migrations'/name).read_text(encoding='utf-8'))
     return isolated_postgres
@@ -303,3 +304,67 @@ def test_v3_unknown_cannot_regress_to_ready_or_local_terminal(database):
                 'VALUES(%s,%s,4,%s::jsonb,%s)',(scope_id(c.scope),w.command_id,canonical_json(false_terminal),tx.transaction_id))
     with c.owner.transaction(c.scope) as tx:
         assert application_write_obligations(tx)[0].current.state=='UNKNOWN'
+
+def test_migration_preserves_actual_v2_history_hash_and_legacy_unknown(database):
+    from integration.support_ip_03 import LedgerScenario
+    from unit.test_application_write_reader import write_case
+    from trading_system.storage.order_programs import OrderProgramRepository
+    from trading_system.contracts.order_codec import VersionedOrderCodec
+    from trading_system.storage.models import MissingEvidence
+    s=LedgerScenario(database)
+    with s.uow.transaction(s.scope) as tx:
+        s.write_bundle(tx)
+        tx.commands.mark_may_have_sent(tx,s.command.command_id,'DURABLE_READY')
+    w,p=write_case(s.scope,'legacy-v2-'+uuid4().hex)
+    w=replace(w,owner_strategy_id=s.intent.owner_strategy_id)
+    original_hash=VersionedOrderCodec().hash('application-write',w)
+    with s.uow.transaction(s.scope) as tx:
+        old=OrderProgramRepository(tx);old.save_program(p);old.create_write(w)
+    old_lease=t.OwnerLease(shard=t.ExecutionShard(environment=s.scope.environment,venue_account_id=s.scope.venue_account_id,
+        product=s.scope.product,node_id='isolated-old-owner',execution_epoch=1),instance_id='old-instance',
+        expires_at='2099-01-01T00:00:00Z',deadline_monotonic_ns=10**18)
+    with pytest.raises(MissingEvidence,match='ORDER_COMPILER_RISK_ADMISSION_NOT_IMPLEMENTED'):
+        with s.uow.transaction(s.scope) as tx:OrderProgramRepository(tx).mark_may_have_sent(w.command_id,old_lease)
+    with s.uow.transaction(s.scope) as tx:
+        tx._append('order_writes_v2',w.command_id,replace(w,state='MAY_HAVE_SENT',durable_record_ref='original-v2-boundary'),1)
+    with s.uow.transaction(s.scope) as tx:
+        legacy=tx.commands.get(s.command.command_id)
+        assert legacy.state=='MAY_HAVE_SENT' and legacy.payload_hash==s.command.payload_hash
+        assert legacy.venue_client_order_id==s.command.venue_client_order_id
+        obligation,=application_write_obligations(tx)
+        assert obligation.unresolved and obligation.original==w
+        assert VersionedOrderCodec().hash('application-write',obligation.original)==original_hash
+
+def test_one_financial_plan_request_cannot_be_appended_twice_under_distinct_command_ids(database):
+    import psycopg
+    c=real_case(database);ids=('duplicate-first-'+uuid4().hex,'duplicate-second-'+uuid4().hex)
+    def operation(tx):
+        b=c.service._reserve_program(tx,c.key,ids,load_inputs=c.load,load_qualification=c.qualify,
+            load_clock=lambda _:c.c.facts.inputs.clock)
+        for cid in ids:
+            r=materialize_creation(b.archive.compilation,0,b.archive.profile,assign_client_ids(b.archive.compilation,0,cid))
+            w,_=build_creation_write(r,b,execution_epoch=1)
+            repo(tx,c).append_creation(w,r,bundle=b)
+    with pytest.raises(psycopg.errors.UniqueViolation):c.service._transaction(operation)
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.intents.get(c.record.intent_id) is None
+        assert tx.reservations.for_intent(c.record.intent_id)==()
+
+@pytest.mark.parametrize('path',['repository','raw_sql'])
+def test_external_program_hold_cannot_gain_unauthorized_reflection_credit(database,path):
+    import psycopg
+    from trading_system.risk.reservation_repository import ReservationRepository,balance_watermark
+    from trading_system.storage.models import MissingEvidence
+    c=real_case(database);w,r,b=c.service._transaction(lambda tx:attach(c,tx))
+    expected=MissingEvidence if path=='repository' else psycopg.errors.CheckViolation
+    with pytest.raises(expected):
+        with c.owner.transaction(c.scope) as tx:
+            previous=ReservationRepository(tx).get(b.reservations[0].reservation.reservation_id)
+            book=tx.projections.book(c.scope)
+            changed=replace(previous,sequence=1,reflected=previous.held,reservation=replace(previous.reservation,
+                state=t.ReservationState.VENUE_REFLECTED,reflected_amount=previous.held,
+                evidence_watermark=balance_watermark(book,book.evidence[0])))
+            if path=='repository':ReservationRepository(tx).save(changed)
+            else:tx._append('audit_events','ip07:reservation:'+previous.reservation.reservation_id,changed,0)
+    with c.owner.transaction(c.scope) as tx:
+        assert ReservationRepository(tx).get(b.reservations[0].reservation.reservation_id)==b.reservations[0]
