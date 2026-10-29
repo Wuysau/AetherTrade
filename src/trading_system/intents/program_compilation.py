@@ -164,6 +164,9 @@ class CompiledNode:
     trusted_origin: Literal['APPLICATION_GENERATED_CHILD', 'VENUE_GENERATED_CHILD']
     worst_case_quote_notional: str | None
     sizing_price_bound: str | None
+    quantity_unit: str
+    quantity_multiplier: str
+    notional_asset: str
     leg: Leg = Leg.NONE
     activation_requires_full_fill: bool = False
 
@@ -295,6 +298,7 @@ def _validate_bindings(proposal, rules, capabilities, profile, scope, now,
 def _quantity(node, rules, profile, allow_round_down):
     o = node.order
     q = o.quantity
+    _, multiplier = _quantity_terms(profile, rules)
     if q.kind in ('CLOSE_ALL', 'DERIVED_RECEIPT'):
         return q, ()
     value = Decimal(q.value)
@@ -313,7 +317,10 @@ def _quantity(node, rules, profile, allow_round_down):
     step = Decimal(profile.market_quantity_step if is_market else rules.quantity_step)
     if q.kind == 'QUOTE_NOTIONAL':
         require(o.price.kind == 'FIXED_LIMIT', 'QUOTE_SIZING_REQUIRES_FIXED_LIMIT')
-        value = quantity_from_notional(value, Decimal(o.price.value), step, allow_round_down)
+        with localcontext() as ctx:
+            ctx.prec = 256
+            unit_notional = Decimal(o.price.value) * Decimal(multiplier)
+        value = quantity_from_notional(value, unit_notional, step, allow_round_down)
     else:
         value = quantity_on_grid(value, step, allow_round_down)
     bounds = profile.market_quantity if is_market else profile.quantity
@@ -321,9 +328,19 @@ def _quantity(node, rules, profile, allow_round_down):
     if o.price.kind == 'FIXED_LIMIT':
         with localcontext() as ctx:
             ctx.prec = 256
-            notional = value * Decimal(o.price.value)
+            notional = value * Decimal(o.price.value) * Decimal(multiplier)
         require(profile.notional.contains(notional) and notional >= Decimal(rules.minimum_notional), 'NOTIONAL_OUT_OF_RANGE')
     return QuantitySpec(kind='BASE_QUANTITY', value=format(value, 'f'), source_node=None), (_p(FieldName.QUANTITY, format(value, 'f')),)
+
+
+def _quantity_terms(profile, rules) -> tuple[str, str]:
+    if profile.scope.product == t.Product.USD_M_PERP:
+        require(profile.usd_m.quantity_unit is not None and profile.usd_m.contract_multiplier is not None,
+            'CONTRACT_MULTIPLIER_REQUIRED')
+        return profile.usd_m.quantity_unit, profile.usd_m.contract_multiplier
+    # Cash and real shares have unit multiplier by product definition. The
+    # quote asset remains the snapshot asset; this performs no USD/USDT FX.
+    return ('SHARE' if profile.scope.product == t.Product.US_EQUITY else rules.base_asset), '1'
 
 
 def _validate_price(value, rules, profile):
@@ -335,6 +352,7 @@ def _validate_price(value, rules, profile):
 def _compile_node(node, program, rules, profile, allow_round_down, now):
     o = node.order
     product = profile.scope.product
+    quantity_unit, multiplier = _quantity_terms(profile, rules)
     order_type = _order_type(node, product)
     require(order_type in profile.allowed_order_types, 'SYMBOL_ORDER_TYPE_UNSUPPORTED')
     quantity, quantity_fields = _quantity(node, rules, profile, allow_round_down)
@@ -363,7 +381,7 @@ def _compile_node(node, program, rules, profile, allow_round_down, now):
         sizing_bound = bound
         with localcontext() as ctx:
             ctx.prec = 256
-            exposure = Decimal(quantity.value) * Decimal(bound)
+            exposure = Decimal(quantity.value) * Decimal(bound) * Decimal(multiplier)
         require(profile.notional.contains(exposure), 'WORST_CASE_NOTIONAL_OUT_OF_RANGE')
         worst_notional = format(exposure, 'f')
     elif quantity.kind == 'QUOTE_NOTIONAL':
@@ -380,6 +398,7 @@ def _compile_node(node, program, rules, profile, allow_round_down, now):
         parameters=tuple(parameters), namespace=_namespace(product, o.trigger.kind != 'NONE'),
         trusted_origin='VENUE_GENERATED_CHILD' if native_child else 'APPLICATION_GENERATED_CHILD',
         worst_case_quote_notional=worst_notional, sizing_price_bound=sizing_bound,
+        quantity_unit=quantity_unit, quantity_multiplier=multiplier, notional_asset=rules.quote_asset,
         activation_requires_full_fill=any(link.target == node.node_id for link in program.links))
 
 
@@ -582,7 +601,7 @@ def _algorithm_requests(program, nodes, profile):
         parameters.append(_p(FieldName.LIMIT_PRICE, o.price.value))
         with localcontext() as ctx:
             ctx.prec = 256
-            notional = Decimal(nodes[0].quantity.value) * Decimal(o.price.value)
+            notional = Decimal(nodes[0].quantity.value) * Decimal(o.price.value) * Decimal(nodes[0].quantity_multiplier)
         require(rules.notional.contains(notional), 'ALGORITHM_NOTIONAL_OUT_OF_RANGE')
     return (RequestPlan(namespace=Namespace.SPOT_EXECUTION if spot else Namespace.USD_M_EXECUTION,
         operation=Operation.TWAP if program.template == 'TWAP' else Operation.VP,

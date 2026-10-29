@@ -15,7 +15,7 @@ from trading_system.contracts.order_lifecycle import ApplicationWrite
 from trading_system.contracts.order_program import AtomicOrderSpec, amount, identifier, variant
 from trading_system.contracts.order_snapshots import OrderCapabilitySnapshot, OrderRuleSnapshot
 from .product_rules import TrustedProductRules
-from .program_compilation import FieldName, Namespace, ProgramCompilation
+from .program_compilation import FieldName, Namespace, ProgramCompilation, _quantity_terms
 from .semantic_validation import quantity_on_grid, require
 
 
@@ -285,10 +285,11 @@ def compile_order_management(instruction: ManagementInstruction, target: OwnedTa
                     and target.order.price.kind == 'FIXED_LIMIT' and target.order.trigger.kind == 'NONE', 'MODIFY_ORDINARY_LIMIT_REQUIRED')
                 quantity = quantity_on_grid(Decimal(instruction.new_quantity), Decimal(rules.quantity_step), False)
                 price = quantity_on_grid(Decimal(instruction.new_price), Decimal(rules.tick_size), False)
+                _, multiplier = _quantity_terms(profile, rules)
                 require(profile.quantity.contains(quantity) and profile.price.contains(price), 'MODIFY_RULE_OUT_OF_RANGE')
                 with localcontext() as ctx:
                     ctx.prec = 256
-                    notional = quantity * price
+                    notional = quantity * price * Decimal(multiplier)
                 require(profile.notional.contains(notional), 'MODIFY_NOTIONAL_OUT_OF_RANGE')
                 require(target.cumulative_quantity is not None and quantity > Decimal(target.cumulative_quantity), 'MODIFY_WOULD_CANCEL_FILLED_QUANTITY')
                 requests = (_request(target, ManagementEndpoint.USD_M_ORDER, 'PUT',

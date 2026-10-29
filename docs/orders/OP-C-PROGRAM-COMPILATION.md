@@ -42,6 +42,15 @@ Base MARKET/PEG/PRICE_MATCH require a trusted execution-price envelope rather
 than assuming unbounded buying power. Group exposure is retained as topology;
 the compiler does not sum native mutually exclusive legs as independent holds.
 
+USD-M profiles additionally require explicit native quantity_unit and
+contract_multiplier, including an explicit1 for instruments whose multiplier
+is1. Missing terms fail with CONTRACT_MULTIPLIER_REQUIRED. Quote sizing divides
+by price×multiplier and all futures notional checks/exposure metadata multiply
+by it. CompiledNode retains the native quantity unit, multiplier and quote asset;
+no USD/USDT conversion is inferred. A multiplier10 regression reproduced0.1
+instead of0.01 contracts for8149 at81490, then passed with exact8149 notional.
+Management LIMIT modification uses the same trusted multiplier.
+
 ## Official documentation rechecked 2026-10-29
 
 - [Spot trading endpoints](https://developers.binance.com/en/docs/catalog/core-trading-spot-trading/api/rest-api/trade): ordinary orders, SOR and each list have distinct routes and field prefixes. This plan uses the current orderList routes rather than deprecated OCO.
