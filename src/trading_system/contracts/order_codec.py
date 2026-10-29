@@ -11,6 +11,7 @@ from .order_lifecycle_v3 import (ParentAuthorityV3,ParentBindingV3,ChildMembersh
     ChildObservationV3,ParentObservationV3,ReceiptAllocationV3,LifecycleProofV3,ProgramStateV3)
 from .order_snapshots import OrderCapabilitySnapshot,OrderRuleSnapshot
 from .program_financial import ProgramFinancialIntent,ProgramFinancialRiskBasis
+from .application_write_v3 import ApplicationWriteV3
 
 KINDS={'order-proposal':OrderProposal,'order-program':OrderProgram,'atomic-order':AtomicOrderSpec,'parent-authority':ParentAuthority,'parent-observation':ParentObservation,
        'child-observation':ChildObservation,'program-state':ProgramState,'application-write':ApplicationWrite,
@@ -18,6 +19,7 @@ KINDS={'order-proposal':OrderProposal,'order-program':OrderProgram,'atomic-order
 KINDS_BY_VERSION={'2026-10-28':KINDS,'2026-10-29':{
     'order-program':OrderProgramV3,'order-proposal':OrderProposalV3,
     'program-financial-intent':ProgramFinancialIntent,'program-financial-risk-basis':ProgramFinancialRiskBasis,
+    'application-write':ApplicationWriteV3,
     'parent-authority':ParentAuthorityV3,'parent-binding':ParentBindingV3,
     'child-membership':ChildMembershipV3,'native-exclusivity':NativeExclusivityV3,
     'child-observation':ChildObservationV3,'parent-observation':ParentObservationV3,
