@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,**risk_options):
+def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,node_fees=None,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -61,6 +61,10 @@ def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,*
         return p,r,c,k
     with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs),patch.object(exposure_module,'inputs',scoped_inputs):
         c=risk_module.risk_case(**risk_options)
+    if node_fees is not None:
+        c.facts=replace(c.facts,budget_facts=replace(c.facts.budget_facts,node_facts=tuple(
+            replace(row,fees=node_fees) for row in c.facts.budget_facts.node_facts)),
+            node_bounds=tuple(replace(row,execution_fees=node_fees) for row in c.facts.node_bounds))
     group='program-group-'+suffix
     tf=replace(c.facts.target_facts,collateral_group_id=group)
     budget=replace(c.facts.budget_facts,collateral_group_id=group)

@@ -30,7 +30,7 @@ def venue(database):
     return roles
 
 
-def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None):
+def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_fee_rate='0',node_fees=None):
     from trading_system.engine.paper import PaperEngine
     from trading_system.engine.paper_market import PaperMatchingModel
     from trading_system.runtime.execution_owner import ExecutionOwner
@@ -39,14 +39,14 @@ def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None):
         n=p.program.nodes[0]
         return replace(p,program=replace(p.program,nodes=(replace(n,order=replace(n.order,
             tif=TimeInForceSpec(kind='NONE' if post_only else tif,expires_at=None),post_only=post_only)),)))
-    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex)
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees)
     c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
     c.gate=boundary(c);c.lease=lease(c);c.permit=None
     def unavailable(*args):raise ValueError('legacy guard never authorizes V3')
     c.engine=PaperEngine(c.scope,dsn=venue.runtime_dsn,event_dsn=venue.event_dsn,authority_guard=unavailable,
         owner_strategy_id=c.bundle.intent.owner_strategy_id,quantity_unit=c.bundle.intent.unit.native_unit,
         price_currency=c.bundle.archive.rules.quote_asset,clock=lambda:c.c.facts.inputs.clock,
-        matching_model=PaperMatchingModel(model_id='ISOLATED_DEPTH_FIFO_ZERO_FEE_FIXTURE',quote_fee_rate='0'))
+        matching_model=PaperMatchingModel(model_id='ISOLATED_DEPTH_FIFO_EXPLICIT_FEE_FIXTURE',quote_fee_rate=quote_fee_rate))
     @contextmanager
     def claim(shard):
         # Real Linux file exclusion; fixture proves execution logic, not dedicated
@@ -211,3 +211,28 @@ def test_matcher_definer_and_runtime_keep_actual_sql_role_boundaries(venue):
             with psycopg.connect(venue.runtime_dsn) as db:db.execute(statement)
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with psycopg.connect(venue.event_dsn) as db:db.execute('INSERT INTO public.paper_engine_commands DEFAULT VALUES')
+
+
+def test_unbacked_projection_fill_is_not_normalized_as_market_evidence(database,venue,tmp_path):
+    import psycopg
+    c=case(database,venue,tmp_path);submit(c)
+    with psycopg.connect(venue.event_dsn) as db:
+        db.execute('UPDATE public.paper_engine_orders SET filled=%s WHERE scope_key=%s AND client_id=%s',
+            (D('.1'),c.engine._scope_key,c.request.assigned_ids.members[0].client_id))
+    with pytest.raises(ValueError,match='PAPER_FILL_SOURCE_INCOMPLETE'):
+        c.engine.query_creation(c.write.command_id)
+
+
+def test_quote_fee_is_actual_source_segregated_and_bounded_by_real_admission(database,venue,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher
+    from trading_system.risk.program_exposure import FeeBound
+    fees=(FeeBound(amount=t.Money(currency='USDT',amount=D('100')),debit='EXTERNAL_BALANCE'),)
+    c=case(database,venue,tmp_path,quote_fee_rate='.001',node_fees=fees);submit(c)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.5'))
+    report=c.engine.query_creation(c.write.command_id);fill=report.fills[0]
+    assert fill.quantity_unit==c.bundle.intent.unit.native_unit and fill.price_asset=='USDT'
+    assert fill.gross_notional==D('40745') and fill.fees[0].asset=='USDT' and D(fill.fees[0].amount)==D('40.745')
+    assert fill.fees[0].position_effect=='NO_POSITION_DEBIT'
+    unreserved=case(database,venue,tmp_path,quote_fee_rate='.001')
+    with pytest.raises(ValueError,match='PAPER_FEE_MODEL_EXCEEDS_ADMITTED_BOUND'):submit(unreserved)
+    assert unreserved.engine.query_creation(unreserved.write.command_id) is None
