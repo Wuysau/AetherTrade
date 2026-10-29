@@ -69,7 +69,7 @@ class ReservationRepository:
         # conservative hold can be reduced; creation rows remain unchanged.
         if self.tx.execute("SELECT to_regclass('ledger.order_funding_links')").fetchone()[0] is not None:
             current=self.get(projection.reservation.reservation_id)
-            if projection.held < current.held and self.tx.execute(
+            if increases_program_financial_credit(current, projection) and self.tx.execute(
                 'SELECT 1 FROM ledger.order_funding_links WHERE scope_id=%s AND record_id=%s',
                 (scope_id(self.tx.scope),projection.reservation.reservation_id)).fetchone():
                 approved = False
@@ -101,6 +101,22 @@ class ReservationRepository:
                 query_budget=t.QueryBudget(maximum_requests=1, window_seconds=60,
                     minimum_interval_ms=1000, retry_after=None),
                 attempts=0, next_query_at=at, state='WAITING'), 0)
+
+
+def increases_program_financial_credit(before, after):
+    """Financial debit, reflection and renewed snapshot credit need authority.
+
+    A same-held projection can free capital through reflected/release_pending.
+    A zero-held projection can regain credit merely by replacing its watermark.
+    Neither transition is authenticated by knowing a public book/evidence hash.
+    """
+    before_debit = max(before.held - before.reflected, before.release_pending)
+    after_debit = max(after.held - after.reflected, after.release_pending)
+    return (after.held < before.held or after_debit < before_debit
+        or after.reflected > before.reflected
+        or after.reservation.reflected_amount > before.reservation.reflected_amount
+        or (after.reservation.evidence_watermark != before.reservation.evidence_watermark
+            and (after.held < after.reservation.amount or after.reflected > 0)))
 
 
 def balance_watermark(book, evidence):

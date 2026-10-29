@@ -1,0 +1,184 @@
+EEEEE.EEEEEEEEEEEEEEEEEEEEEEEEEEE                                        [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_same_held_forged_reflection_cannot_free_parent_capital[repository] _
+tests/integration/test_order_program_closure.py:26: in closure_db
+    c.execute((ROOT/'migrations/0009_order_program_closure.sql').read_text(encoding='utf-8'))
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.SyntaxError: mismatched parentheses at or near ";"
+E   LINE 168:            OR (NEW.payload->>'reflected')::numeric>0);
+E                                                                  ^
+_ ERROR at setup of test_same_held_forged_reflection_cannot_free_parent_capital[raw_sql] _
+tests/integration/test_order_program_closure.py:26: in closure_db
+    c.execute((ROOT/'migrations/0009_order_program_closure.sql').read_text(encoding='utf-8'))
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.SyntaxError: mismatched parentheses at or near ";"
+E   LINE 168:            OR (NEW.payload->>'reflected')::numeric>0);
+E                                                                  ^
+_ ERROR at setup of test_released_hold_watermark_cannot_be_forged_for_new_book[repository] _
+tests/integration/test_order_program_closure.py:26: in closure_db
+    c.execute((ROOT/'migrations/0009_order_program_closure.sql').read_text(encoding='utf-8'))
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.SyntaxError: mismatched parentheses at or near ";"
+E   LINE 168:            OR (NEW.payload->>'reflected')::numeric>0);
+E                                                                  ^
+_ ERROR at setup of test_released_hold_watermark_cannot_be_forged_for_new_book[raw_sql] _
+tests/integration/test_order_program_closure.py:26: in closure_db
+    c.execute((ROOT/'migrations/0009_order_program_closure.sql').read_text(encoding='utf-8'))
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.SyntaxError: mismatched parentheses at or near ";"
+E   LINE 168:            OR (NEW.payload->>'reflected')::numeric>0);
+E                                                                  ^
+____ ERROR at setup of test_unlinked_reflection_behavior_remains_unchanged _____
+tests/integration/test_order_program_closure.py:26: in closure_db
+    c.execute((ROOT/'migrations/0009_order_program_closure.sql').read_text(encoding='utf-8'))
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.SyntaxError: mismatched parentheses at or near ";"
+E   LINE 168:            OR (NEW.payload->>'reflected')::numeric>0);
+E                                                                  ^
+_ ERROR at setup of test_reviewed_full_release_preserves_creation_and_funding_link _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+____ ERROR at setup of test_reviewed_partial_reduction_keeps_residual_hold _____
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+________ ERROR at setup of test_missing_or_scalar_verifier_never_clears ________
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+____ ERROR at setup of test_owner_audit_forgery_cannot_release_linked_hold _____
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_____ ERROR at setup of test_runtime_role_cannot_mint_approval_or_escalate _____
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_committed_approval_cannot_be_replayed_in_another_transaction _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_____ ERROR at setup of test_stale_context_is_rejected_by_database[state] ______
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+______ ERROR at setup of test_stale_context_is_rejected_by_database[book] ______
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_____ ERROR at setup of test_stale_context_is_rejected_by_database[owner] ______
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+__ ERROR at setup of test_stale_context_is_rejected_by_database[reservation] ___
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_parent_stop_does_not_clear_open_or_unknown_child[SUBMITTED] _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_parent_stop_does_not_clear_open_or_unknown_child[UNKNOWN] _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_parent_stop_does_not_clear_open_or_unknown_child[CANCEL_UNKNOWN] _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_parent_stop_does_not_clear_open_or_unknown_child[PARTIALLY_FILLED] _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+____ ERROR at setup of test_active_risk_blocks_even_with_independent_review ____
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+____ ERROR at setup of test_residual_position_without_protection_stays_held ____
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+___ ERROR at setup of test_unlinked_reservation_save_preserves_old_behavior ____
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_nonflat_requires_review_explicitly_retaining_protection _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_reviewed_residual_with_accounted_fees_and_retained_protection_can_release _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_fill_accounting_and_protection_are_not_optional[False-True-LEDGER_FILL] _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_fill_accounting_and_protection_are_not_optional[True-False-RETAINED_PROTECTION] _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_approved_context_becoming_stale_in_same_transaction_is_denied _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_database_rejects_expired_review_even_on_resolver_path _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+____ ERROR at setup of test_balance_credit_is_limited_to_reviewed_snapshot _____
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+_ ERROR at setup of test_later_independent_review_can_release_a_remaining_partial_hold _
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+________ ERROR at setup of test_unchanged_hold_is_not_a_release_request ________
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+___ ERROR at setup of test_approval_expiring_before_save_cannot_reduce_hold ____
+tests/integration/support_ip_03.py:42: in isolated_postgres
+    pytest.fail('fixture refuses an existing ledger; provision a fresh database')
+E   Failed: fixture refuses an existing ledger; provision a fresh database
+=========================== short test summary info ============================
+ERROR tests/integration/test_order_program_financial_credit.py::test_same_held_forged_reflection_cannot_free_parent_capital[repository]
+ERROR tests/integration/test_order_program_financial_credit.py::test_same_held_forged_reflection_cannot_free_parent_capital[raw_sql]
+ERROR tests/integration/test_order_program_financial_credit.py::test_released_hold_watermark_cannot_be_forged_for_new_book[repository]
+ERROR tests/integration/test_order_program_financial_credit.py::test_released_hold_watermark_cannot_be_forged_for_new_book[raw_sql]
+ERROR tests/integration/test_order_program_financial_credit.py::test_unlinked_reflection_behavior_remains_unchanged
+ERROR tests/integration/test_order_program_closure.py::test_reviewed_full_release_preserves_creation_and_funding_link
+ERROR tests/integration/test_order_program_closure.py::test_reviewed_partial_reduction_keeps_residual_hold
+ERROR tests/integration/test_order_program_closure.py::test_missing_or_scalar_verifier_never_clears
+ERROR tests/integration/test_order_program_closure.py::test_owner_audit_forgery_cannot_release_linked_hold
+ERROR tests/integration/test_order_program_closure.py::test_runtime_role_cannot_mint_approval_or_escalate
+ERROR tests/integration/test_order_program_closure.py::test_committed_approval_cannot_be_replayed_in_another_transaction
+ERROR tests/integration/test_order_program_closure.py::test_stale_context_is_rejected_by_database[state]
+ERROR tests/integration/test_order_program_closure.py::test_stale_context_is_rejected_by_database[book]
+ERROR tests/integration/test_order_program_closure.py::test_stale_context_is_rejected_by_database[owner]
+ERROR tests/integration/test_order_program_closure.py::test_stale_context_is_rejected_by_database[reservation]
+ERROR tests/integration/test_order_program_closure.py::test_parent_stop_does_not_clear_open_or_unknown_child[SUBMITTED]
+ERROR tests/integration/test_order_program_closure.py::test_parent_stop_does_not_clear_open_or_unknown_child[UNKNOWN]
+ERROR tests/integration/test_order_program_closure.py::test_parent_stop_does_not_clear_open_or_unknown_child[CANCEL_UNKNOWN]
+ERROR tests/integration/test_order_program_closure.py::test_parent_stop_does_not_clear_open_or_unknown_child[PARTIALLY_FILLED]
+ERROR tests/integration/test_order_program_closure.py::test_active_risk_blocks_even_with_independent_review
+ERROR tests/integration/test_order_program_closure.py::test_residual_position_without_protection_stays_held
+ERROR tests/integration/test_order_program_closure.py::test_unlinked_reservation_save_preserves_old_behavior
+ERROR tests/integration/test_order_program_closure.py::test_nonflat_requires_review_explicitly_retaining_protection
+ERROR tests/integration/test_order_program_closure.py::test_reviewed_residual_with_accounted_fees_and_retained_protection_can_release
+ERROR tests/integration/test_order_program_closure.py::test_fill_accounting_and_protection_are_not_optional[False-True-LEDGER_FILL]
+ERROR tests/integration/test_order_program_closure.py::test_fill_accounting_and_protection_are_not_optional[True-False-RETAINED_PROTECTION]
+ERROR tests/integration/test_order_program_closure.py::test_approved_context_becoming_stale_in_same_transaction_is_denied
+ERROR tests/integration/test_order_program_closure.py::test_database_rejects_expired_review_even_on_resolver_path
+ERROR tests/integration/test_order_program_closure.py::test_balance_credit_is_limited_to_reviewed_snapshot
+ERROR tests/integration/test_order_program_closure.py::test_later_independent_review_can_release_a_remaining_partial_hold
+ERROR tests/integration/test_order_program_closure.py::test_unchanged_hold_is_not_a_release_request
+ERROR tests/integration/test_order_program_closure.py::test_approval_expiring_before_save_cannot_reduce_hold
+1 passed, 32 errors in 3.16s

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="5" time="5.337" timestamp="2026-10-29T02:57:43.345487+00:00" hostname="c8d4caa89258"><testcase classname="tests.integration.test_order_program_financial_credit" name="test_same_held_forged_reflection_cannot_free_parent_capital[repository]" time="1.457"><failure message="Failed: DID NOT RAISE Exception">tests/integration/test_order_program_financial_credit.py:43: in test_same_held_forged_reflection_cannot_free_parent_capital
+    with pytest.raises(Exception,match='PROGRAM_RESERVATION|dedicated program closure'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE Exception</failure></testcase><testcase classname="tests.integration.test_order_program_financial_credit" name="test_same_held_forged_reflection_cannot_free_parent_capital[raw_sql]" time="0.578"><failure message="Failed: DID NOT RAISE Exception">tests/integration/test_order_program_financial_credit.py:43: in test_same_held_forged_reflection_cannot_free_parent_capital
+    with pytest.raises(Exception,match='PROGRAM_RESERVATION|dedicated program closure'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE Exception</failure></testcase><testcase classname="tests.integration.test_order_program_financial_credit" name="test_released_hold_watermark_cannot_be_forged_for_new_book[repository]" time="0.577"><failure message="Failed: DID NOT RAISE Exception">tests/integration/test_order_program_financial_credit.py:63: in test_released_hold_watermark_cannot_be_forged_for_new_book
+    with pytest.raises(Exception,match='PROGRAM_RESERVATION|dedicated program closure'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE Exception</failure></testcase><testcase classname="tests.integration.test_order_program_financial_credit" name="test_released_hold_watermark_cannot_be_forged_for_new_book[raw_sql]" time="0.594"><failure message="Failed: DID NOT RAISE Exception">tests/integration/test_order_program_financial_credit.py:63: in test_released_hold_watermark_cannot_be_forged_for_new_book
+    with pytest.raises(Exception,match='PROGRAM_RESERVATION|dedicated program closure'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE Exception</failure></testcase><testcase classname="tests.integration.test_order_program_financial_credit" name="test_unlinked_reflection_behavior_remains_unchanged" time="0.852" /></testsuite></testsuites>
