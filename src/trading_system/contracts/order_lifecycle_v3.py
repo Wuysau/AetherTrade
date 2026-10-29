@@ -4,6 +4,7 @@ These records are claims until role-specific, independently authenticated
 archive proofs are read by the pure reducer's host. Construction is not proof.
 """
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import Literal
 from . import types as t
 from .canonical import decimal_string,utc_timestamp
@@ -53,6 +54,7 @@ class QuantityTermsV3:
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class NodeAllocationV3:
+    expected_client_id:str|None=None
     node_id:str
     group_id:str
     side:Literal['BUY','SELL']
@@ -65,6 +67,7 @@ class NodeAllocationV3:
     source_node_id:str|None
     def __post_init__(self):
         identifier(self.node_id);identifier(self.group_id);amount(self.quantity_limit);amount(self.price_upper)
+        if self.expected_client_id is not None:identifier(self.expected_client_id)
         if (self.activation=='IMMEDIATE')!=(self.source_node_id is None):raise ValueError('Activation source mismatch')
         if self.source_node_id is not None:identifier(self.source_node_id)
         if (self.quantity_mode=='NET_RECEIPT')!=(self.activation=='NET_RECEIPT'):raise ValueError('Receipt activation required')
@@ -90,6 +93,8 @@ class AllocationGroupV3:
 class ParentAuthorityV3:
     """Immutable pre-ACK economic authorization, deliberately no venue ID."""
     contract_version:Literal['2026-10-29']
+    funding_basis:Literal['ASSET_RESERVATIONS','OWNED_POSITION_REDUCTION']='ASSET_RESERVATIONS'
+    position_allocation_hash:str|None=None
     authority_id:str
     program_id:str
     program_hash:str
@@ -118,7 +123,7 @@ class ParentAuthorityV3:
     groups:tuple[AllocationGroupV3,...]
     starting_position_quantity:str
     maximum_notional:str
-    fee_budgets:tuple[AssetBudget,...]
+    fee_budgets:tuple[AssetBudget,...]|None
     submission_valid_until:str
     budget_valid_until:str
     management_policy:Literal['MANAGE_UNTIL_FLAT']
@@ -132,10 +137,17 @@ class ParentAuthorityV3:
             identifier(self.parent_command_id);identifier(self.parent_client_id)
         elif self.parent_command_id is not None or self.parent_client_id is not None or self.namespace!='ORDINARY':
             raise ValueError('Local activation has no fictitious native mother')
-        if not self.reservation_ids or not self.funding_requirements:raise ValueError('Durable funding references required')
+        if self.funding_basis=='ASSET_RESERVATIONS':
+            if not self.reservation_ids or not self.funding_requirements or not any(amount(f.amount,zero=True)>0 for f in self.funding_requirements):
+                raise ValueError('Durable positive funding references required')
+        elif self.funding_basis=='OWNED_POSITION_REDUCTION':
+            if self.reservation_ids or self.funding_requirements:raise ValueError('Zero-asset reduction cannot invent holds')
+            digest_text(self.position_allocation_hash)
+        if self.position_allocation_hash is not None:digest_text(self.position_allocation_hash)
         unique(self.reservation_ids)
         for v in self.reservation_ids:identifier(v)
-        unique(tuple(v.asset for v in self.funding_requirements));unique(tuple(v.asset for v in self.fee_budgets))
+        unique(tuple(v.asset for v in self.funding_requirements))
+        if self.fee_budgets is not None:unique(tuple(v.asset for v in self.fee_budgets))
         if not self.nodes or not self.groups or len(self.nodes)>32 or len(self.groups)>32:raise ValueError('Bounded complete allocation graph required')
         unique(tuple(n.node_id for n in self.nodes));unique(tuple(g.group_id for g in self.groups))
         assigned=tuple(n for g in self.groups for n in g.node_ids);unique(assigned)
@@ -149,9 +161,10 @@ class ParentAuthorityV3:
             if group.aggregation=='NATIVE_EXCLUSIVE':
                 if not native or self.namespace!='ORDER_LIST' or self.template not in ('OCO','OTOCO','OPOCO') or len(members)!=2:
                     raise ValueError('Native list exclusivity required')
-                if any(n.child_mode!='FIXED_LEG' for n in members) or len({n.side for n in members})!=1:
+                if any(n.child_mode!='FIXED_LEG' or n.origin!='VENUE_GENERATED_CHILD' for n in members) or len({n.side for n in members})!=1:
                     raise ValueError('Exclusive fixed legs must share a side')
                 if len({amount(n.quantity_limit) for n in members})!=1:raise ValueError('Exclusive leg quantities must match')
+                if len({(n.activation,n.source_node_id,n.quantity_mode) for n in members})!=1:raise ValueError('Exclusive legs require the same activation source')
         for node in self.nodes:
             if node.source_node_id is not None and node.source_node_id not in nodes:raise ValueError('Activation source missing')
             if not native and node.origin=='VENUE_GENERATED_CHILD':raise ValueError('Local programs cannot claim venue-generated children')
@@ -167,6 +180,8 @@ class ParentAuthorityV3:
             if self.units.position_asset_per_unit is not None:raise ValueError('Derivative collateral is not position quantity')
         elif self.units.position_asset_per_unit is None or amount(self.units.notional_multiplier)!=1:
             raise ValueError('Explicit cash unit attribution required')
+        elif Fraction(self.units.quantity_to_position)*Fraction(self.units.position_asset_per_unit)!=1:
+            raise ValueError('Cash position/asset conversion must be exact')
         exact_time(self.submission_valid_until);exact_time(self.budget_valid_until)
 
 
@@ -207,6 +222,7 @@ class ChildMembershipV3:
     child_order_id:str
     child_client_id:str|None
     origin:Literal['VENUE_GENERATED_CHILD','APPLICATION_GENERATED_CHILD']
+    mapping_basis:Literal['OUTBOUND_CLIENT_ID','NATIVE_PARENT_CHILD_QUERY','APPLICATION_COMMAND_ID']
     command_id:str|None
     command_hash:str|None
     durable_record_ref:str|None
@@ -217,8 +233,10 @@ class ChildMembershipV3:
         if self.child_client_id is not None:identifier(self.child_client_id)
         if self.origin=='APPLICATION_GENERATED_CHILD':
             identifier(self.command_id);digest_text(self.command_hash);identifier(self.durable_record_ref)
+            if self.mapping_basis!='APPLICATION_COMMAND_ID':raise ValueError('Application child requires its actual command mapping')
         elif any(v is not None for v in (self.command_id,self.command_hash,self.durable_record_ref)):
             raise ValueError('Venue children are not additional application sends')
+        elif self.mapping_basis=='APPLICATION_COMMAND_ID':raise ValueError('Native child is not an application command')
         reference(self.source_evidence)
 
 
@@ -430,8 +448,10 @@ class EventDigestV3:
 @dataclass(frozen=True,slots=True,kw_only=True)
 class GroupPoolV3:
     group_id:str
-    unallocated_quantity:str
-    def __post_init__(self):identifier(self.group_id);amount(self.unallocated_quantity,zero=True)
+    unallocated_quantity:str|None
+    def __post_init__(self):
+        identifier(self.group_id)
+        if self.unallocated_quantity is not None:amount(self.unallocated_quantity,zero=True)
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -455,6 +475,8 @@ class GroupProjectionV3:
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramStateV3:
     contract_version:Literal['2026-10-29']
+    unattributed_effects:bool=False
+    accepted_parent_status:Literal['ACTIVE','CANCEL_PENDING','STOPPED','COMPLETED']|None=None
     program_id:str
     authority_hash:str
     authority_proof_ref:t.EvidenceRef
@@ -479,6 +501,8 @@ class ProgramStateV3:
     def __post_init__(self):
         identifier(self.program_id);digest_text(self.authority_hash);reference(self.authority_proof_ref);exact_time(self.prepared_at)
         if type(self.sequence) is not int or self.sequence<1:raise ValueError('Positive state sequence required')
+        if self.accepted_parent_status is not None and self.status not in ('RECONCILIATION_REQUIRED',self.accepted_parent_status):
+            raise ValueError('Accepted parent phase must survive reconciliation overlays')
         if (self.binding is None)!=(self.binding_proof_ref is None):raise ValueError('Binding proof must be paired')
         if self.binding_proof_ref is not None:reference(self.binding_proof_ref)
         unique(tuple(p.membership.membership_id for p in self.memberships));unique(tuple(p.membership.child_order_id for p in self.memberships))

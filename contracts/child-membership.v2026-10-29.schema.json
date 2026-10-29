@@ -118,6 +118,13 @@
         "APPLICATION_GENERATED_CHILD"
       ]
     },
+    "mapping_basis": {
+      "enum": [
+        "OUTBOUND_CLIENT_ID",
+        "NATIVE_PARENT_CHILD_QUERY",
+        "APPLICATION_COMMAND_ID"
+      ]
+    },
     "command_id": {
       "anyOf": [
         {
@@ -210,6 +217,7 @@
     "child_order_id",
     "child_client_id",
     "origin",
+    "mapping_basis",
     "command_id",
     "command_hash",
     "durable_record_ref",
