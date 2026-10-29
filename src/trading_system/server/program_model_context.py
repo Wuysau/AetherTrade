@@ -221,6 +221,8 @@ def admit_program_assessment(assessment,frame,*,admission_service=None):
     original_load=service.load_inputs
     def guarded_inputs(tx,source,record,book,clock):
         from trading_system.risk.program_financial_admission import ProgramFinancialInputs
+        if canonical_hash(domain_payload(book))!=canonical_hash(domain_payload(frame.financial_book)):
+            raise ApiError('REPLAN_REQUIRED','模型所见持仓、在途或资金状态已变化。',409)
         actual=original_load(tx,source,record,book,clock)
         require(type(actual) is ProgramFinancialInputs,'PROGRAM_FINANCIAL_INPUTS_REQUIRED')
         if (canonical_hash(domain_payload(book))!=canonical_hash(domain_payload(frame.financial_book))
