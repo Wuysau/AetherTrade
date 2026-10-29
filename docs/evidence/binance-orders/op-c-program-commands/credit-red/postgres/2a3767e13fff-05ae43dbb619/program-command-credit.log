@@ -1,0 +1,16 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_external_program_hold_cannot_gain_unauthorized_reflection_credit[repository] _
+tests/integration/test_program_commands_postgres.py:360: in test_external_program_hold_cannot_gain_unauthorized_reflection_credit
+    with pytest.raises(expected):
+         ^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_external_program_hold_cannot_gain_unauthorized_reflection_credit[raw_sql] _
+tests/integration/test_program_commands_postgres.py:360: in test_external_program_hold_cannot_gain_unauthorized_reflection_credit
+    with pytest.raises(expected):
+         ^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE CheckViolation
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_commands_postgres.py::test_external_program_hold_cannot_gain_unauthorized_reflection_credit[repository]
+FAILED tests/integration/test_program_commands_postgres.py::test_external_program_hold_cannot_gain_unauthorized_reflection_credit[raw_sql]
+2 failed in 3.82s
