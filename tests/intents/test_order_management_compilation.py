@@ -145,3 +145,12 @@ def test_management_is_independent_of_expired_initial_proposal_but_replacement_i
     with pytest.raises(ProposalRejected,match='REPLACEMENT_SUBMISSION_EXPIRED'):
         compile_order_management(ManagementInstruction(kind=ManagementKind.CANCEL_REPLACE,replacement=replacement,
             cancel_replace_mode='STOP_ON_FAILURE',order_rate_limit_mode='DO_NOTHING'),target,command=command,**k)
+
+
+def test_futures_modify_notional_limit_includes_contract_multiplier():
+    from trading_system.intents.product_rules import DecimalRange
+    *_,target,command,k=fixture(Namespace.USD_M_ORDINARY)
+    k['profile']=replace(k['profile'],usd_m=replace(k['profile'].usd_m,contract_multiplier='10'),
+        notional=DecimalRange(minimum='10',maximum='10000'))
+    with pytest.raises(ProposalRejected,match='MODIFY_NOTIONAL_OUT_OF_RANGE'):
+        compile_order_management(ManagementInstruction(kind=ManagementKind.MODIFY_LIMIT,new_quantity='0.02',new_price='81490.00'),target,command=command,**k)

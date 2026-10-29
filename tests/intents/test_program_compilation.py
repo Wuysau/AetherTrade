@@ -46,6 +46,7 @@ def inputs(product=t.Product.SPOT):
             trailing_above_bips=DecimalRange(minimum='10', maximum='2000'),
             trailing_below_bips=DecimalRange(minimum='10', maximum='2000'), allowed_stp=('NONE', 'EXPIRE_BOTH')) if product==t.Product.SPOT else None,
         usd_m=UsdMRules(position_mode=PositionMode.ONE_WAY, callback_percent=DecimalRange(minimum='0.1', maximum='20'),
+            quantity_unit='CONTRACT',contract_multiplier='1',
             allowed_price_match=('OPPONENT_5',), allowed_stp=('NONE', 'EXPIRE_BOTH')) if product==t.Product.USD_M_PERP else None,
         equity=EquityRules(allowed_sessions=('RTH', 'EXTENDED', '24H')) if product==t.Product.US_EQUITY else None,
         algorithm=ExecutionAlgorithmRules(minimum_duration_seconds=300, maximum_duration_seconds=86400,
@@ -397,3 +398,31 @@ def test_resolved_handle_does_not_relax_scope_instrument_binding():
     k['profile']=replace(k['profile'],scope=replace(k['scope'],instrument_uid='native:other'))
     with pytest.raises(ProposalRejected,match='SCOPE_MISMATCH'):
         compile_order_program(p,r,c,**k)
+
+
+def test_usdm_quote_sizing_uses_explicit_contract_multiplier_and_preserves_native_unit():
+    p,r,c,k=inputs(t.Product.USD_M_PERP)
+    k['profile']=replace(k['profile'],usd_m=replace(k['profile'].usd_m,contract_multiplier='10'))
+    p=replace(change(p,quantity=QuantitySpec(kind='QUOTE_NOTIONAL',value='8149',source_node=None)),target_value='8149')
+    result=compile_order_program(p,r,c,**k);node=result.nodes[0]
+    assert Decimal(node.quantity.value)==Decimal('0.01')
+    assert Decimal(node.worst_case_quote_notional)==Decimal('8149')
+    assert node.quantity_unit=='CONTRACT' and node.quantity_multiplier=='10'
+    assert node.notional_asset==r.quote_asset
+
+
+@pytest.mark.parametrize('unit,multiplier',[(None,'1'),('CONTRACT',None),(None,None)])
+def test_usdm_missing_quantity_unit_or_multiplier_is_never_assumed_one(unit,multiplier):
+    p,r,c,k=inputs(t.Product.USD_M_PERP)
+    k['profile']=replace(k['profile'],usd_m=replace(k['profile'].usd_m,quantity_unit=unit,contract_multiplier=multiplier))
+    with pytest.raises(ProposalRejected,match='CONTRACT_MULTIPLIER_REQUIRED'):
+        compile_order_program(p,r,c,**k)
+
+
+def test_usdm_base_market_worst_case_exposure_includes_explicit_multiplier():
+    p,r,c,k=inputs(t.Product.USD_M_PERP)
+    k['profile']=replace(k['profile'],usd_m=replace(k['profile'].usd_m,contract_multiplier='10'))
+    p=change(p,price=price(),quantity=QuantitySpec(kind='BASE_QUANTITY',value='1',source_node=None),
+        tif=TimeInForceSpec(kind='NONE',expires_at=None))
+    result=compile_order_program(p,r,c,**k)
+    assert Decimal(result.nodes[0].worst_case_quote_notional)==Decimal('900000')
