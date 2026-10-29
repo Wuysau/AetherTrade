@@ -101,6 +101,31 @@ activation_fresh nowownsOP-D newbinance-opd-matcher basedaff4aa8. Reserved0013
 PAPER_SIM-only market matcher migration; no sharedledgerDDL allocatedtoit.
 Rootintegration_nextstillsolebinance-orders writer; all46/56/OP-D/E/F/G active.
 
+Fixedaff4 fullgate73508 nowTERMINALexit1:34PGsuites,958passed/0failed/1error/
+0skip; program-commands hit300s timeout124 after47progressdots, soitsJUnitcount
+is unknown andnotpromoted. Ordinary3294passed/560envskips/96deselected. Rawproof
+source-copiedunderop-c-generic-admission/aff4-full-timeout. This isolderthanpeer
+6e8 performance/identity/funding followups. Peerfixed6e8actual56PGgreen evidence
+integratedd9a39d9+6cbdf7e. Current combined source has no full green gate yet.
+
+RootintegratedOP-E reviewed unsignedmanagement/query code496/2f/08 as4e37c8c/
+b026b60/1374e6a; exactoriginalIDs/archivepages/completecollection/positionleg,
+no transport/writeauthority/release/nativequalification. SelectedOP-E evidence
+staysseparatefromparentcheckpoint; rootcheckpoint ispreserved.
+
+Importantmerged-Cfollowup:6e8optimization privatelegacyhelpers bypassactual
+localprogram registry checks in_current. RootgenuinePGnegative candidate4e01
+ran8passed/2failed, stoppedatfixture TARGET_BOOK_OR_COMPILATION_CHANGED before
+intendedMAY assertions (sharedforeignhold facts wereincomplete; guardunchanged).
+463c9b3 usesactualzero-assetsharedgroup exits; freshdiagnostic94422 RUNNING.
+After genuineRED restoreonce-per-TX local snapshot checks beforeprivatehelpers.
+No optimisticMAY/consume/fullgateclaim untilthatfixandactualPGproof.
+
+Newpurequotecash+bandcomponents now161focused/shared/legacytargetchecks GREEN
+after9+9+1observedREDs. Details OP-C-QUOTE-CASH-AND-BAND.md. These areperasset
+fee/receipt andownedpositioncontainment components, notintervalfinancialALLOW.
+Actualenforcedfacts/archive/SAMEkernel/wallet/protection/residualduties continue.
+
 ## OP_C_IMPLEMENTATION_COHORT_HANDOFF_TO_PARENT — 2026-10-29
 
 integration_lead completed its concrete root implementation cohort and now
