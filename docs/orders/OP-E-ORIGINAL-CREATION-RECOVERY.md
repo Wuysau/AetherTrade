@@ -40,7 +40,7 @@ Actual test evidence:
 - Unit/source-hash/history cases9 RED before implementation; combined225
   management/query/recovery/native-bridge regressions passed11.36 seconds. A local
   test variable shadowing its fixture helper was corrected without changing the
-  assertions; its initial8-pass/1-error output remains archived.
+  assertions; its initial8-pass/1-failure output remains archived.
 
 Reproduction:
 
@@ -57,3 +57,7 @@ JUnit, exact migration/image/dependency manifests and SHA256 copies are under
 is introduced. Authenticated transport, persisted recovery workflow, native and
 full ORD qualification remain unestablished by these read tests. All46/56 targets
 remain in the parent goal and TESTNET/LIVE stays disabled.
+
+All55 recovery artifact SHA256 values were also verified against committed Git
+blob bytes after publication, rather than only the working copies. The earlier
+18+5 management artifact maps passed the same committed-byte check.
