@@ -76,6 +76,39 @@ def test_consumed_but_not_observed_never_becomes_not_sent_or_releases_funds(data
     assert not result.funds_release_authorized
 
 
+def test_real_verifier_process_restart_preserves_exact_facts_and_archive_without_posting(database,venue,tmp_path):
+    import os
+    c=case(database,venue,tmp_path);submit(c)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    archive=tmp_path/'archive'
+    observer,codec=actual_verifier(c,archive)
+    try:first=observer.verify(c.write.command_id)
+    finally:codec.close()
+    assert first.source_verified,first.discrepancies
+    def facts(result):
+        return canonical_json(dict(source_verified=result.source_verified,
+            fills=[domain_payload(f) for f in result.fills],orders=[domain_payload(o) for o in result.orders],
+            raw_refs=[domain_payload(r) for r in result.raw_refs],discrepancies=list(result.discrepancies)))
+    read_end,write_end=os.pipe();child=os.fork()
+    if child==0:
+        os.close(read_end)
+        try:
+            restarted,restarted_codec=actual_verifier(c,archive)
+            try:second=restarted.verify(c.write.command_id)
+            finally:restarted_codec.close()
+            body=facts(second).encode('utf-8')
+            with os.fdopen(write_end,'wb') as output:output.write(body)
+        except BaseException:os._exit(71)
+        os._exit(0)
+    os.close(write_end)
+    with os.fdopen(read_end,'rb') as incoming:observed=incoming.read(1048577)
+    _,status=os.waitpid(child,0)
+    assert os.waitstatus_to_exitcode(status)==0 and len(observed)<=1048576
+    assert observed==facts(first).encode('utf-8')
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+
+
 def test_changed_venue_request_is_archived_but_never_adopted(database,venue,tmp_path):
     c=case(database,venue,tmp_path);submit(c)
     PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
