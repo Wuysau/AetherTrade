@@ -193,3 +193,19 @@ def test_delta_that_crosses_the_persisted_book_is_atomic_data_rejection(database
         bids=(DepthLevel(price='81501',quantity='1'),))
     with pytest.raises(ValueError,match='PAPER_CROSSED_SOURCE_BOOK'):matcher.apply_market_event(invalid)
     assert c.engine.query_creation(c.write.command_id)==before
+
+
+def test_matcher_definer_and_runtime_keep_actual_sql_role_boundaries(venue):
+    import psycopg
+    with psycopg.connect(venue.runtime_dsn) as db:
+        row=db.execute("SELECT p.prosecdef,p.proconfig,r.rolcanlogin,r.rolsuper,r.rolinherit FROM pg_proc p "
+            "JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.paper_match_order(text,text)'::regprocedure").fetchone()
+        assert row==(True,['search_path=pg_catalog'],False,False,False)
+        assert not db.execute("SELECT has_function_privilege('public','public.paper_match_order(text,text)','EXECUTE')").fetchone()[0]
+    for statement in ('UPDATE public.paper_engine_orders SET filled=0',
+                      "UPDATE public.paper_order_terms SET terms='{}'::jsonb",
+                      'UPDATE public.paper_market_levels SET available=100'):
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            with psycopg.connect(venue.runtime_dsn) as db:db.execute(statement)
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with psycopg.connect(venue.event_dsn) as db:db.execute('INSERT INTO public.paper_engine_commands DEFAULT VALUES')
