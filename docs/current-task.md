@@ -1,5 +1,51 @@
 # Current task
 
+## OP_C_FINANCIAL_REGISTRY_INTEGRATED — 2026-10-29
+
+Root through0f18598 now has real versioned financial DTO/codec/common identity
+and SAME ledger.intents/reservations registry hooks. Legacy commands explicitly
+require legacy intents before append/binding/permit. Actual newrecordsPG10,
+oldledgerPG30/reservationPG67 passed in agent source; root combinedcontracts/
+intents/unit1203 passed. CI change registers separate program-financial-ledger
+IP03 suite (28total). Generic archive conversion is still honestly denied with
+PROGRAM_RISK_FACTS_ARCHIVE_REQUIRED; metadata/record persistence is no ALLOW.
+
+Root full08718fc run is TERMINAL exit0:905mandatoryPG/27suites,zero failures/
+errors/skips; ordinary2942pass/459envskip/96deselected. Session79224 completed,
+.runtime/paper-qualification-dd956ae3b762/evidence. Earlier71345 alsoTERMINAL
+exit0 at58327f6:905PG/27suites,ordinary2842pass/459skip/96deselected. Current
+policy/collateral/window code+new strict capacity assertion fullyverified at
+08718fc; it PRECEDES financial registry. Byte-identical artifacts+maps committed
+under docs/evidence/binance-orders/op-c-common-financial-context (c5a5ba2).
+Risk peer c71a540 alsopassed904PG/26suites; artifacts548b440.
+
+Active owned work:
+
+- admission_review in binance-opc-financial-records: a9ff18f integrated; now
+  RED/fix effective archive TTL narrowing. RiskTerms.valid_until can be shorter
+  than original proposal due to target facts/unit/rules expiry; source/hash and
+  submission deadline remain original, no extension. Publicfinancialintent
+  already supports narrowed validity. Actualtyped ProgramRiskFacts archive
+  extension follows TaskB; do not alias budget facts to complete risk proof.
+- exposure_review in binance-opc-program-risk: planapproved. First8972f4e adds
+  typed pending/proposed inputs to SAME ExposureCalculator and static
+  risk/program_assessment.py ProgramRiskFacts/NodeRiskBound/ProtectionCoverage/
+  ProgramRiskDecision. NOT yetrootpicked: pending raw command IDs need scoped
+  dedup review/fix and fullflat proof. Actualsemantic derivation/evaluate_program
+  stillinprogress; currentOCO/quote/residual blockers stayuntilpropercontracts.
+  FixedBUY limit costs use limit; portfolio scenarios/retained inventory are
+  separate. No dummy orders, fake TradeIntent or second risk calculator.
+- pin_native_build in binance-opc-lifecycle-v3: approvedplan and1443f6c first
+  schemas NOTyetpicked. Pure unit/group reducers inprogress, including qualified
+  zero-asset OWNED_POSITION reduction (no dummy reserve), native OCO pairproof
+  bootstrap, explicit membership mapping, receipt-vs-position fee attribution.
+  Existing V2 bytes and rootV3production containment/senddenial must remain.
+
+Next root: integrate reviewed TTL/lifecycle/risk increments, finish real archive
+RiskFacts bindings and generic financial bundle/command/permit wiring through
+shared core, then OP-D/E/F/G. Never claim all46/56complete from thesecomponent
+passes. No account/native/model/operational config or TESTNET/LIVE actions.
+
 ## OP_C_SHARED_CAPACITY_INTEGRATED_GATE_RUNNING — 2026-10-29
 
 Root source58327f6 includes shared exact per-asset capacity (556ec29), preserving
