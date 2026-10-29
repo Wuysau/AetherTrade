@@ -109,6 +109,10 @@ def test_immediate_tif_uses_current_depth_without_fok_partial_consumption(databa
     submit(c)
     report=c.engine.query_creation(c.write.command_id)
     assert report.filled_quantity==D(expected) and report.status==status and report.remaining_quantity==0
+    if tif=='FOK':
+        following=case(database,venue,tmp_path,market=c.scope.instrument_uid)
+        submit(following)
+        assert following.engine.query_creation(following.write.command_id).filled_quantity==D('.4')
 
 
 def test_post_only_rejects_crossing_without_fabricated_fill(database,venue,tmp_path):
@@ -144,4 +148,48 @@ def test_conflicting_market_event_is_rejected_with_original_fills_retained(datab
     matcher=PaperMatcher(c.engine);matcher.apply_market_event(e)
     before=c.engine.query_creation(c.write.command_id)
     with pytest.raises(ValueError):matcher.apply_market_event(replace(e,asks=()))
+    assert c.engine.query_creation(c.write.command_id)==before
+
+
+def test_concurrent_duplicate_source_and_real_process_restart_do_not_reconsume(database,venue,tmp_path):
+    import os
+    from concurrent.futures import ThreadPoolExecutor
+    from trading_system.engine.paper_market import PaperMatcher
+    c=case(database,venue,tmp_path);submit(c)
+    e=event(c,quantity='.25')
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes=list(pool.map(lambda _:PaperMatcher(c.engine).apply_market_event(e),range(2)))
+    assert sorted(r.applied for r in outcomes)==[False,True]
+    assert c.engine.query_creation(c.write.command_id).filled_quantity==D('.25')
+    second=event(c,sequence=2,kind='DEPTH_DELTA',quantity='.25')
+    child=os.fork()
+    if child==0:
+        try:
+            PaperMatcher(c.engine).apply_market_event(second)
+        except BaseException:os._exit(71)
+        os._exit(0)
+    _,status=os.waitpid(child,0)
+    assert os.waitstatus_to_exitcode(status)==0
+    assert c.engine.query_creation(c.write.command_id).filled_quantity==D('.5')
+    assert not PaperMatcher(c.engine).apply_market_event(second).applied
+
+
+def test_resting_post_only_can_fill_on_later_market_event(database,venue,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher
+    c=case(database,venue,tmp_path,post_only=True);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,ask='81500',quantity='.4'));submit(c)
+    assert c.engine.query_creation(c.write.command_id).status=='SUBMITTED'
+    matcher.apply_market_event(event(c,sequence=2,quantity='.4'))
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.status=='PARTIALLY_FILLED' and report.filled_quantity==D('.4')
+
+
+def test_delta_that_crosses_the_persisted_book_is_atomic_data_rejection(database,venue,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=case(database,venue,tmp_path);submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,ask='81500',quantity='.4'))
+    before=c.engine.query_creation(c.write.command_id)
+    invalid=replace(event(c,sequence=2,ask='81600',quantity='1',kind='DEPTH_DELTA'),
+        bids=(DepthLevel(price='81501',quantity='1'),))
+    with pytest.raises(ValueError,match='PAPER_CROSSED_SOURCE_BOOK'):matcher.apply_market_event(invalid)
     assert c.engine.query_creation(c.write.command_id)==before
