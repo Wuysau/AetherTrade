@@ -262,6 +262,9 @@ class ModelService:
                 {'code': 'MODEL_REQUEST_FAILED', 'error': '模型请求未完成；不会自动重试。'})
 
     async def generate(self, symbol, expected_revision, key, context, *, profile_id=DEFAULT_PROFILE_ID, component=False):
+        from .program_model_context import FrozenProgramContext
+        if type(context) is FrozenProgramContext:
+            return await self.analyze(symbol, 'single', [profile_id], {profile_id: expected_revision}, key, context)
         if isinstance(context, dict) and 'analysis_snapshot' in context:
             return await self.analyze(symbol, 'single', [profile_id], {profile_id: expected_revision}, key, context)
         self._request_identity(symbol, key)
@@ -312,7 +315,7 @@ class ModelService:
             repository.write_run(connection, key, dict(record, status='SUCCEEDED', result=result))
         return result
 
-    async def analyze(self, symbol, analysis_mode, profile_ids, expected_revisions, key, context, *, decision_policy='unanimous'):
+    async def analyze(self, symbol, analysis_mode, profile_ids, expected_revisions, key, context, *, decision_policy='unanimous', research_request=None):
         self._request_identity(symbol, key)
         if (analysis_mode not in ('single', 'consensus') or not isinstance(profile_ids, list)
                 or any(not isinstance(p, str) or not 1 <= len(p) <= 64 for p in profile_ids)
@@ -324,6 +327,13 @@ class ModelService:
             raise ApiError('INVALID_MODEL_REQUEST', '请选择一个模型，或选择 2–3 个不同模型交叉分析，并提供对应版本。')
         if decision_policy not in ('unanimous', 'evidence_review'):
             raise ApiError('INVALID_MODEL_REQUEST', 'Unknown decision policy.')
+        from .program_model_context import FrozenProgramContext
+        if type(context) is FrozenProgramContext:
+            from .program_model_service import assess_program
+            return await assess_program(self, symbol, analysis_mode, list(profile_ids), dict(expected_revisions),
+                                        key, context, decision_policy, research_request)
+        if research_request is not None:
+            raise ApiError('INVALID_MODEL_REQUEST', 'Program research requires an explicit frozen program context.')
         if isinstance(context, dict) and 'analysis_snapshot' in context:
             return await self._assess(symbol, analysis_mode, list(profile_ids), dict(expected_revisions), key, context, decision_policy)
         if decision_policy != 'unanimous':

@@ -1,0 +1,16 @@
+
+=================================== ERRORS ====================================
+_________ ERROR collecting tests/server/test_program_model_context.py _________
+ImportError while importing test module 'D:\Projects\Python\AetherTrade\TradingHandoff\AutoDispatchWorktrees\binance-opf-observability\tests\server\test_program_model_context.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+D:\CodingTools\python\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\server\test_program_model_context.py:9: in <module>
+    from trading_system.server.program_model_context import build_program_context,parse_program_assessment
+E   ModuleNotFoundError: No module named 'trading_system.server.program_model_context'
+=========================== short test summary info ===========================
+ERROR tests/server/test_program_model_context.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.34s

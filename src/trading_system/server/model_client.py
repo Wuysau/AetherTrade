@@ -131,7 +131,19 @@ REVIEW_INSTRUCTIONS = ('Return only review_v1 JSON with schema_revision and issu
 def payload(config, context):
     text = json.dumps(context, ensure_ascii=False, allow_nan=False)
     instructions = INSTRUCTIONS
-    if 'analysis_snapshot' in context:
+    if context.get('model_schema_revision') == 'program_assessment_v1':
+        from ..contracts.resources import contract_path
+        proposal_schema = json.loads(contract_path('order-proposal.v2026-10-29.schema.json').read_text(encoding='utf-8'))
+        instructions = ('Return only program_assessment_v1 JSON with exactly schema_revision, context_hash, summary, '
+            'proposal (complete 2026-10-29 OrderProposalV3 or null), evidence_claims, watch_conditions, next_review_at. '
+            'Echo the supplied context_hash exactly; it binds this analysis and is never authority. '
+            'Use only the frozen capability/rule snapshots. UNQUALIFIED or blockers means no executable approval. '
+            'Preserve full order/program fields, original type, price/trigger/TIF/quantity, session, display and routing; '
+            'never downgrade to MARKET, choose accounts, arbitrary endpoints, permissions or a native-child exemption. '
+            '2026-10-30 POSITION_VALUE_BAND is pending and cannot be silently converted to scalar quantity. '
+            'Use the same bounded evidence_claims/watch_conditions syntax as assessment_v1. '
+            'The following schema applies ONLY to proposal: '+json.dumps(proposal_schema))
+    elif 'analysis_snapshot' in context:
         from ..contracts.wire import ContractCodec
         instructions = REVIEW_INSTRUCTIONS if context.get('role') == 'review' else ASSESSMENT_INSTRUCTIONS + 'The following JSON Schema applies ONLY to the nested proposal, not the outer assessment envelope: ' + json.dumps(ContractCodec()._schemas['decision-proposal'])
     common = {'model': config['model']}
