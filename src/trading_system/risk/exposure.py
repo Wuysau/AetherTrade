@@ -44,6 +44,8 @@ pending semantics. Host readers must authenticate exact command/quantity links.
     signed_quantity:t.Quantity
     command_refs:tuple[str,...]
     represented_order_ids:tuple[str,...]=()
+    source_family:Literal['LEGACY_COMMAND','APPLICATION_WRITE']='LEGACY_COMMAND'
+    service_namespace:Literal['ORDINARY','ORDER_LIST','CONDITIONAL_ALGO','EXECUTION_ALGO','EQUITY']='ORDINARY'
 
 
 @dataclass(frozen=True,kw_only=True)
@@ -96,7 +98,9 @@ class ExposureCalculator:
             if mark is None or mark.unit != quantity.unit:
                 missing.append('VALUATION_MARK_MISSING:' + scope.instrument_uid)
                 return
-            if (mark.scope!=scope or (original_mark is not None and mark.related_group!=original_mark.related_group)):
+            if (mark.scope!=scope or (original_mark is not None and (
+                mark.related_group!=original_mark.related_group or mark.unit!=original_mark.unit
+                or mark.multiplier!=original_mark.multiplier or mark.price.currency!=original_mark.price.currency))):
                 missing.append('EXPOSURE_MARK_BINDING_MISMATCH');return
             if (scope.environment != book.scope.environment
                     or scope.venue_account_id != book.scope.venue_account_id):
@@ -155,14 +159,19 @@ class ExposureCalculator:
                 working += signed
             add(identity.scope, t.Quantity(value=signed, unit=order.leaves_quantity.unit))
         seen_pending=set();seen_commands=set();represented=set()
-        orders={o.order.identity.logical_client_order_id:o for o in book.active_orders}
+        orders={(o.order.identity.scope,o.order.identity.logical_client_order_id):o for o in book.active_orders}
         for pending in self.pending:
+            source=(pending.scope,pending.source_family,pending.service_namespace) if type(pending) is PendingExposure else None
+            key=(*source,pending.obligation_id) if source is not None else None
+            command_keys={(*source,ref) for ref in pending.command_refs} if source is not None else set()
             if (type(pending) is not PendingExposure or not pending.obligation_id
-                or pending.obligation_id in seen_pending or not pending.command_refs
+                or pending.source_family not in ('LEGACY_COMMAND','APPLICATION_WRITE')
+                or pending.service_namespace not in ('ORDINARY','ORDER_LIST','CONDITIONAL_ALGO','EXECUTION_ALGO','EQUITY')
+                or key in seen_pending or not pending.command_refs
                 or len(set(pending.command_refs))!=len(pending.command_refs)
-                or seen_commands.intersection(pending.command_refs)):
+                or seen_commands.intersection(command_keys)):
                 missing.append('PENDING_EXPOSURE_IDENTITY_MISSING_OR_DUPLICATED');continue
-            seen_pending.add(pending.obligation_id);seen_commands.update(pending.command_refs)
+            seen_pending.add(key);seen_commands.update(command_keys)
             value=pending.signed_quantity
             mark=next((m for m in self.marks if m.scope==pending.scope),None)
             if (pending.scope.environment!=book.scope.environment or pending.scope.venue_account_id!=book.scope.venue_account_id
@@ -170,9 +179,9 @@ class ExposureCalculator:
                 or mark is None or value.unit!=mark.unit):
                 missing.append('PENDING_EXPOSURE_SCOPE_OR_UNIT_MISMATCH');continue
             if pending.represented_order_ids:
-                ids=set(pending.represented_order_ids)
+                ids={(pending.scope,i) for i in pending.represented_order_ids}
                 if (len(ids)!=len(pending.represented_order_ids) or ids.intersection(represented)
-                    or value.value!=0 or any(i not in orders or orders[i].order.identity.scope!=pending.scope for i in ids)):
+                    or value.value!=0 or any(i not in orders for i in ids)):
                     missing.append('PENDING_EXPOSURE_DOUBLE_COUNT_OR_MAPPING_INVALID')
                 represented.update(ids)
                 continue

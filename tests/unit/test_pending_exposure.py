@@ -79,3 +79,55 @@ def test_pending_already_represented_by_actual_order_is_not_counted_twice():
     report=ExposureCalculator(Valuation('USDT'),c.inputs.marks,(WorkingOrder(logical_client_order_id='order',side='BUY'),),
         pending=(pending,)).project(book,delta)
     assert not report.missing and report.gross.amount==report.net.amount==100
+
+
+def test_full_flat_sell_does_not_report_sale_mark_difference_as_residual_exposure():
+    from unit.support_ip_06 import position,price
+    c=make_case();scope=c.book.scope;book=replace(c.book,positions=(position(scope,'1'),))
+    delta=t.DeltaPlan(scope=scope,target=quantity('0'),actual=quantity('1'),working=quantity('0'),
+        remaining=quantity('-1'),classification='REDUCE',cancel_first=())
+    p=ProposedExposure(node_id='exit',scope=scope,signed_quantity=quantity('-1'),
+        mark=replace(c.inputs.marks[0],price=price('80')))
+    report=ExposureCalculator(Valuation('USDT'),c.inputs.marks,proposed=(p,)).project(book,delta)
+    assert not report.missing and report.gross.amount==report.net.amount==0
+
+
+@pytest.mark.parametrize('dimension',['product','instrument','leg'])
+def test_same_pending_source_id_in_different_physical_scope_is_legal(dimension):
+    c,delta,pending=case()
+    changes={'product':{'product':t.Product.SPOT},'instrument':{'instrument_uid':'other-instrument'},'leg':{'venue_leg':'LONG'}}[dimension]
+    other=replace(c.book.scope,**changes);unit='BASE' if dimension=='product' else 'CONTRACT'
+    second=replace(pending,scope=other,signed_quantity=quantity('1',unit))
+    marks=(*c.inputs.marks,replace(c.inputs.marks[0],scope=other,unit=unit))
+    report=ExposureCalculator(Valuation('USDT'),marks,pending=(pending,second)).project(c.book,delta)
+    assert not report.missing and report.gross.amount==report.net.amount==400
+
+
+def test_same_original_id_in_distinct_source_families_is_not_a_duplicate():
+    c,delta,pending=case();delta=replace(delta,target=quantity('4'),working=quantity('2'))
+    second=replace(pending,source_family='APPLICATION_WRITE',service_namespace='EXECUTION_ALGO')
+    report=ExposureCalculator(Valuation('USDT'),c.inputs.marks,pending=(pending,second)).project(c.book,delta)
+    assert not report.missing and report.gross.amount==report.net.amount==400
+
+
+def test_same_original_id_in_distinct_service_namespaces_is_not_a_duplicate():
+    c,delta,pending=case();delta=replace(delta,target=quantity('4'),working=quantity('2'))
+    pending=replace(pending,source_family='APPLICATION_WRITE')
+    second=replace(pending,service_namespace='EXECUTION_ALGO')
+    report=ExposureCalculator(Valuation('USDT'),c.inputs.marks,pending=(pending,second)).project(c.book,delta)
+    assert not report.missing and report.gross.amount==report.net.amount==400
+
+
+@pytest.mark.parametrize('fault',['currency','group','multiplier','unit'])
+def test_proposed_mark_cannot_change_physical_valuation_binding(fault):
+    from unit.support_ip_06 import price
+    from trading_system.risk.valuation import FxRate
+    c,delta,_=case();delta=replace(delta,target=quantity('2'),working=quantity('0'))
+    mark=c.inputs.marks[0]
+    if fault=='currency':mark=replace(mark,price=price('100','USD'))
+    if fault=='group':mark=replace(mark,related_group='another')
+    if fault=='multiplier':mark=replace(mark,multiplier=D(2))
+    if fault=='unit':mark=replace(mark,unit='BASE')
+    p=ProposedExposure(node_id='entry',scope=c.book.scope,signed_quantity=quantity('2'),mark=mark)
+    valuation=Valuation('USDT',(FxRate(source='USD',target='USDT',asset_rate=D(1),liability_rate=D(1),haircut=D(0),evidence_id='fx'),))
+    assert ExposureCalculator(valuation,c.inputs.marks,proposed=(p,)).project(c.book,delta).missing

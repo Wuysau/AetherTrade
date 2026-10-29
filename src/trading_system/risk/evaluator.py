@@ -16,6 +16,7 @@ from .valuation import FxRate, Valuation, floor_quantity, nonnegative
 from .policy_checks import (exact_risk_arithmetic,account_policy_codes,protection_policy_codes,
     portfolio_limit_codes,spendable_codes,capital_limit_exceeded,legacy_margin_upper_bound)
 from .terms import legacy_risk_terms
+from .bindings import legacy_binding,initial_binding_codes
 
 D = Decimal
 
@@ -135,53 +136,8 @@ class RiskEvaluator:
 
         try:
             now = utc_timestamp(facts.clock.utc_now)
-            if intent.environment == 'LIVE' or policy.environment == 'LIVE':
-                reject('LIVE_DISABLED')
-            if (facts.scope != book.scope or facts.scope != market.scope
-                    or facts.scope.environment != intent.environment
-                    or facts.scope.venue_account_id != intent.venue_account_id
-                    or facts.scope.product != intent.product
-                    or facts.scope.instrument_uid != intent.instrument_uid
-                    or facts.scope.venue_leg != intent.venue_leg
-                    or policy.environment != intent.environment):
-                reject('SCOPE_MISMATCH')
-            if (facts.intent_id != intent.intent_id or facts.authorization_id != intent.authorization_id
-                    or facts.owner_strategy_id != intent.owner_strategy_id
-                    or facts.ownership_epoch != intent.ownership_epoch
-                    or facts.policy_revision != intent.risk_policy_revision
-                    or facts.policy_revision != policy.revision
-                    or facts.collateral_group_id != intent.collateral_group_id
-                    or facts.collateral_group_id != policy.collateral_group_id):
-                reject('AUTHORITY_MISMATCH')
-            if (facts.basis_fingerprint != book.basis_fingerprint
-                    or intent.basis_fingerprint != book.basis_fingerprint
-                    or facts.book_sequence != book.sequence or facts.snapshot_ref != market.ref
-                    or intent.snapshot_id != market.ref.id):
-                reject('STALE_BASIS')
-            if (now >= utc_timestamp(intent.valid_until) or now >= utc_timestamp(facts.expires_at)
-                    or now >= utc_timestamp(intent.execution.entry_deadline)
-                    or utc_timestamp(intent.created_at) > now
-                    or utc_timestamp(intent.as_of) > utc_timestamp(intent.created_at)):
-                reject('EXPIRED_OR_FUTURE_INTENT')
-            if (not facts.evidence or any(not e.id or not e.hash
-                    or e.environment != facts.scope.environment or utc_timestamp(e.visible_at) > now
-                    for e in facts.evidence)):
-                reject('RISK_EVIDENCE_MISSING')
-            if not (book.coverage.query_succeeded and book.coverage.pagination_complete
-                    and book.coverage.supported and not book.coverage.missing
-                    and book.coverage.scope == book.scope):
-                reject('BOOK_INCOMPLETE')
-            if intent.action != 'SET_TARGET':
-                reject('ACTION_REQUIRES_INGRESS_VALIDATION')
+            for code in initial_binding_codes(legacy_binding(intent),facts,book,market,policy):reject(code)
             spec = facts.instrument
-            if (spec.instrument_uid != intent.instrument_uid or spec.product != intent.product
-                    or spec.quantity_step.unit != intent.quantity_unit
-                    or spec.minimum_quantity.unit != intent.quantity_unit
-                    or spec.tick_size.currency != spec.quote_currency
-                    or spec.minimum_notional.currency != spec.quote_currency
-                    or spec.settlement_currency != spec.quote_currency
-                    or nonnegative(facts.multiplier) == 0):
-                reject('INSTRUMENT_RULES_UNSUPPORTED')
             requested = nonnegative(decimal_string(intent.target_quantity))
             if intent.target_side not in ('LONG', 'SHORT', 'FLAT') or (intent.target_side == 'FLAT' and requested):
                 reject('INVALID_TARGET')
