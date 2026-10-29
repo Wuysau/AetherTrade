@@ -1,0 +1,44 @@
+.......................................................FFFFFF.           [100%]
+================================== FAILURES ===================================
+________ test_sell_limit_native_oco_uses_gross_ceiling_not_wire_floor _________
+tests\intents\test_program_exposure.py:342: in test_sell_limit_native_oco_uses_gross_ceiling_not_wire_floor
+    assert D(plan.nodes[0].worst_case_quote_notional)==D('90000')
+E   AssertionError: assert Decimal('83000') == Decimal('90000')
+E    +  where Decimal('83000') = D('83000')
+E    +    where '83000' = CompiledNode(original=OrderNode(node_id='above', role='LEG', child_origin='APPLICATION_GENERATED_CHILD', order=AtomicO...t='BTC', quantity_multiplier='1', notional_asset='USDT', leg=<Leg.ABOVE: 'ABOVE'>, activation_requires_full_fill=False).worst_case_quote_notional
+E    +  and   Decimal('90000') = D('90000')
+______ test_usdm_opening_sell_multiplier_uses_independent_gross_ceiling _______
+tests\intents\test_program_exposure.py:355: in test_usdm_opening_sell_multiplier_uses_independent_gross_ceiling
+    assert D(plan.nodes[0].worst_case_quote_notional)==D('9000')
+E   AssertionError: assert Decimal('8149.00000') == Decimal('9000')
+E    +  where Decimal('8149.00000') = D('8149.00000')
+E    +    where '8149.00000' = CompiledNode(original=OrderNode(node_id='entry', role='ENTRY', child_origin='APPLICATION_GENERATED_CHILD', order=Atomi...RACT', quantity_multiplier='0.001', notional_asset='USDT', leg=<Leg.NONE: 'NONE'>, activation_requires_full_fill=False).worst_case_quote_notional
+E    +  and   Decimal('9000') = D('9000')
+_____ test_sell_limit_without_profile_or_trusted_node_ceiling_is_blocked ______
+tests\intents\test_program_exposure.py:369: in test_sell_limit_without_profile_or_trusted_node_ceiling_is_blocked
+    assert plan.nodes[0].worst_case_quote_notional is None
+E   AssertionError: assert '81490.00' is None
+E    +  where '81490.00' = CompiledNode(original=OrderNode(node_id='entry', role='ENTRY', child_origin='APPLICATION_GENERATED_CHILD', order=Atomi...nit='BTC', quantity_multiplier='1', notional_asset='USDT', leg=<Leg.NONE: 'NONE'>, activation_requires_full_fill=False).worst_case_quote_notional
+___ test_fresh_trusted_node_ceiling_can_bound_sell_without_profile_ceiling ____
+tests\intents\test_program_exposure.py:378: in test_fresh_trusted_node_ceiling_can_bound_sell_without_profile_ceiling
+    assert not result.blockers and result.gross_program.amount==D('90000')
+E   AssertionError: assert (not ('PRICE_BOUND_CONFLICT',))
+E    +  where ('PRICE_BOUND_CONFLICT',) = ProgramExposure(compilation_hash='ed55ce834582d791d3f10e2ff78cef27ce4f690c9b6f6aab62439791a9e9484d', facts_hash='0a701...K_ADMISSION', 'RECONCILED_FUNDS_AND_RESERVATIONS', 'NO_RELEASE_OR_PERMIT_CREATED'), blockers=('PRICE_BOUND_CONFLICT',)).blockers
+___ test_profile_ceiling_below_sell_limit_cannot_be_used_as_financial_bound ___
+tests\intents\test_program_exposure.py:387: in test_profile_ceiling_below_sell_limit_cannot_be_used_as_financial_bound
+    with pytest.raises(ProposalRejected,match='SELL_LIMIT_EXCEEDS_EXECUTION_UPPER_BOUND'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ProposalRejected
+__ test_trusted_sell_ceiling_may_expand_but_not_shrink_proven_profile_bound ___
+tests\intents\test_program_exposure.py:395: in test_trusted_sell_ceiling_may_expand_but_not_shrink_proven_profile_bound
+    assert not result.blockers and result.gross_program.amount==D('92000')
+E   AssertionError: assert (not ('PRICE_BOUND_CONFLICT',))
+E    +  where ('PRICE_BOUND_CONFLICT',) = ProgramExposure(compilation_hash='9549b2a5a9ea5aaed2666864804dcf01fc49dc2c8ad08b9b67e78e427d7ccb19', facts_hash='310be...K_ADMISSION', 'RECONCILED_FUNDS_AND_RESERVATIONS', 'NO_RELEASE_OR_PERMIT_CREATED'), blockers=('PRICE_BOUND_CONFLICT',)).blockers
+=========================== short test summary info ===========================
+FAILED tests/intents/test_program_exposure.py::test_sell_limit_native_oco_uses_gross_ceiling_not_wire_floor
+FAILED tests/intents/test_program_exposure.py::test_usdm_opening_sell_multiplier_uses_independent_gross_ceiling
+FAILED tests/intents/test_program_exposure.py::test_sell_limit_without_profile_or_trusted_node_ceiling_is_blocked
+FAILED tests/intents/test_program_exposure.py::test_fresh_trusted_node_ceiling_can_bound_sell_without_profile_ceiling
+FAILED tests/intents/test_program_exposure.py::test_profile_ceiling_below_sell_limit_cannot_be_used_as_financial_bound
+FAILED tests/intents/test_program_exposure.py::test_trusted_sell_ceiling_may_expand_but_not_shrink_proven_profile_bound
+6 failed, 56 passed in 1.50s
