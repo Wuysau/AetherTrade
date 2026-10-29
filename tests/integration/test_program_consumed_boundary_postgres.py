@@ -39,13 +39,18 @@ def test_actual_committed_context_rechecks_without_historical_math_or_second_per
         assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
 
 
-@pytest.mark.parametrize('fault',['missing_consumption','token','request_hash','binding_hash','scope','lease','clock','fence','book','lock','unknown'])
+@pytest.mark.parametrize('fault',['missing_consumption','token','request_hash','binding_hash','scope','lease','clock','fence','book','lock','unknown',
+    'expiry_label','deadline_label','both_window_labels'])
 def test_real_post_consumption_changes_never_clear_a_new_side_effect(database,fault):
     c=ready(database,consume=fault!='missing_consumption');permit=c.permit
     if fault=='token':permit=replace(permit,token='forged')
     if fault=='request_hash':permit=replace(permit,request_hash='f'*64)
     if fault=='binding_hash':permit=replace(permit,binding_hash='f'*64)
     if fault=='scope':permit=replace(permit,scope=replace(c.scope,venue_account_id='foreign-account'))
+    if fault in ('expiry_label','both_window_labels'):
+        permit=replace(permit,expires_at=(utc_timestamp(permit.expires_at)+timedelta(milliseconds=1)).isoformat())
+    if fault in ('deadline_label','both_window_labels'):
+        permit=replace(permit,deadline_monotonic_ns=permit.deadline_monotonic_ns+1_000_000)
     if fault=='lease':c.gate.readers['load_lease']=lambda _:replace(c.lease,instance_id='new-owner-instance')
     if fault=='clock':
         before=c.c.facts.inputs.clock

@@ -61,8 +61,8 @@ async def probe(items):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--fixtures',required=True);parser.add_argument('--output',required=True)
-    args=parser.parse_args();items=json.loads(Path(args.fixtures).read_text())
-    result=asyncio.run(probe(items));Path(args.output).write_text(json.dumps(result,indent=2)+'\n')
+    args=parser.parse_args();items=json.loads(Path(args.fixtures).read_text(encoding="utf-8"))
+    result=asyncio.run(probe(items));Path(args.output).write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
     print(str(len(result['results']))+' actual pinned SDK signed wire shapes matched; fake transport only; native qualification NOT_RUN')
 
 
