@@ -18,8 +18,8 @@ from trading_system.risk.program_financial_admission import (ProgramFinancialBun
     DECISION_PREFIX,BUNDLE_PREFIX,program_bundle_command_ids,claim_program_attachment,current_program_bundle_witness)
 from trading_system.storage.models import scope_id,account_key,decode,encode,atomic_write,MissingEvidence
 from trading_system.storage.order_programs import OrderProgramRepository
-from .creation_requests import VenueCreationRequest,verify_creation
-from trading_system.intents.program_compilation import Timing
+from .creation_requests import VenueCreationRequest,EquityWalletSelection,verify_creation
+from trading_system.intents.program_compilation import Timing,Namespace
 
 def digest(value):
     return canonical_hash({'items':[domain_payload(v) for v in value]}) if type(value) is tuple else canonical_hash(domain_payload(value))
@@ -103,10 +103,11 @@ def validate_stored_program_binding(tx,original,current):
 
 class ProgramCommandRepository:
     def __init__(self,tx,*,load_clock=None,load_lease=None,load_current_facts=None,
-                 load_qualification=None,load_action_proof=None):
+                 load_qualification=None,load_action_proof=None,load_wallet_selection=None):
         self.tx=tx;self.load_clock=load_clock;self.load_lease=load_lease
         self.load_current_facts=load_current_facts;self.load_qualification=load_qualification
         self.load_action_proof=load_action_proof
+        self.load_wallet_selection=load_wallet_selection
 
     def _raw_binding(self,command_id):
         return self.tx._latest('program_request_bindings',command_id,ProgramRequestBinding)
@@ -158,7 +159,8 @@ class ProgramCommandRepository:
             type(clock.monotonic_ns) is int and clock.monotonic_ns>=0,'PROGRAM_CURRENT_CLOCK_REQUIRED')
         require(type(lease) is t.OwnerLease,'PROGRAM_CURRENT_LEASE_REQUIRED')
         s=lease.shard;now=utc_timestamp(clock.utc_now)
-        require(bool(lease.instance_id) and bool(s.node_id) and
+        require(type(s) is t.ExecutionShard and type(lease.instance_id) is str and bool(lease.instance_id)
+            and type(s.node_id) is str and bool(s.node_id) and type(s.execution_epoch) is int and s.execution_epoch>0 and
             (s.environment,s.venue_account_id,s.product,s.execution_epoch)==(
                 write.scope.environment,write.scope.venue_account_id,write.scope.product,write.execution_epoch)
             and now<utc_timestamp(lease.expires_at) and type(lease.deadline_monotonic_ns) is int
@@ -202,6 +204,19 @@ class ProgramCommandRepository:
             and utc_timestamp(initial_clock.utc_now)<=utc_timestamp(final_clock.utc_now)<utc_timestamp(witness.expires_at),
             'PROGRAM_BUNDLE_WITNESS_EXPIRED')
         return expected
+
+    def _verify_current_request(self,request,archive,clock):
+        equity_buy=request.namespace==Namespace.EQUITY and any(f.name=='side' and f.value=='BUY' for f in request.fields)
+        selection=None
+        if equity_buy:
+            selection=self.load_wallet_selection(self.tx,archive,clock) if self.load_wallet_selection else None
+            require(type(selection) is EquityWalletSelection,'PROGRAM_CURRENT_WALLET_REQUIRED')
+        verify_creation(request,archive.compilation,archive.profile,request.assigned_ids,
+            wallet_selection=selection,now=clock.utc_now)
+        if equity_buy:
+            # OP-E must bind the chosen CARD/MAIN location to independently
+            # assessed available balances. Asset totals alone do not prove it.
+            raise ValueError('PROGRAM_EQUITY_WALLET_FUNDING_LOCATION_UNBOUND')
 
     def _current(self,write,expected_lease):
         """Reload and replay actual compiler/target/exposure/RiskEvaluator facts.
@@ -296,8 +311,7 @@ class ProgramCommandRepository:
         duty=LockedActionVerifier().verify_program(self.tx,intent,a,clock.utc_now,book=book,read_proof=self.load_action_proof)
         require(duty is not None,'PROGRAM_ACTIVE_RISK_LOCK')
         request=self.request(write.command_id)
-        verify_creation(request,a.compilation,a.profile,request.assigned_ids,
-            wallet_selection=request.wallet_selection,now=clock.utc_now)
+        self._verify_current_request(request,a,clock)
         require(before==digest(self.tx.projections.book(self.tx.scope)) and
             digest(current_fence(self.tx,source.context))==digest(fence),'PROGRAM_CURRENT_STATE_CHANGED')
         end_clock,end_lease=self._clock_lease(write)
@@ -369,10 +383,10 @@ class ProgramCommandBoundary:
     nothing. No UNKNOWN replay mints or renews a permit.
     """
     def __init__(self,uow,scope,*,load_clock=None,load_lease=None,load_current_facts=None,
-                 load_qualification=None,load_action_proof=None):
+                 load_qualification=None,load_action_proof=None,load_wallet_selection=None):
         self.uow,self.scope=uow,scope
         self.readers=dict(load_clock=load_clock,load_lease=load_lease,load_current_facts=load_current_facts,
-            load_qualification=load_qualification,load_action_proof=load_action_proof)
+            load_qualification=load_qualification,load_action_proof=load_action_proof,load_wallet_selection=load_wallet_selection)
 
     def mark_may_have_sent(self,command_id,lease):
         token=secrets.token_urlsafe(32)

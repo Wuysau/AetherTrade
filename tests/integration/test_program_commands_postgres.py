@@ -295,5 +295,11 @@ def test_v3_unknown_cannot_regress_to_ready_or_local_terminal(database):
     with c.owner.transaction(c.scope) as tx:repo(tx,c).record_unknown(w.command_id)
     with pytest.raises(psycopg.errors.CheckViolation):
         with c.owner.transaction(c.scope) as tx:tx._append('order_writes_v2',w.command_id,w,3)
+    from trading_system.contracts.canonical import canonical_json
+    false_terminal={**domain_payload(w),'state':'VENUE_CONFIRMED'}
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with c.owner.transaction(c.scope) as tx:
+            tx.execute('INSERT INTO ledger.order_writes_v2(scope_id,record_id,sequence,payload,transaction_id) '
+                'VALUES(%s,%s,4,%s::jsonb,%s)',(scope_id(c.scope),w.command_id,canonical_json(false_terminal),tx.transaction_id))
     with c.owner.transaction(c.scope) as tx:
         assert application_write_obligations(tx)[0].current.state=='UNKNOWN'
