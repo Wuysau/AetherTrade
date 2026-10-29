@@ -132,7 +132,7 @@ GRANT EXECUTE ON FUNCTION ledger.approve_order_program_closure(text,text,jsonb,t
 
 CREATE FUNCTION ledger.guard_program_reservation_reduction() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
-DECLARE reservation_id text; prior jsonb; original jsonb; financial_credit boolean;
+DECLARE reservation_id text; prior jsonb; original jsonb;
 BEGIN
  IF NEW.record_id NOT LIKE 'ip07:reservation:%' THEN RETURN NEW; END IF;
  reservation_id:=substr(NEW.record_id,length('ip07:reservation:')+1);
@@ -143,30 +143,12 @@ BEGIN
   OR ((NEW.payload->'reservation')-'state'-'reflected_amount'-'evidence_watermark') IS DISTINCT FROM (original-'state'-'reflected_amount'-'evidence_watermark')
   OR COALESCE(NEW.payload->>'held','') !~ '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
   OR COALESCE(prior->>'held','') !~ '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
-  OR COALESCE(NEW.payload->>'reflected','') !~ '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
-  OR COALESCE(NEW.payload->>'release_pending','') !~ '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
-  OR COALESCE(NEW.payload#>>'{reservation,reflected_amount}','') !~ '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
   OR (NEW.payload->>'held')::numeric>(original->>'amount')::numeric
-  OR (NEW.payload->>'reflected')::numeric>(NEW.payload->>'held')::numeric
-  OR (NEW.payload->>'release_pending')::numeric>(NEW.payload->>'held')::numeric
-  OR (NEW.payload#>>'{reservation,reflected_amount}')::numeric IS DISTINCT FROM (NEW.payload->>'reflected')::numeric
   OR (NEW.payload->>'sequence')::bigint IS DISTINCT FROM NEW.sequence
   OR NEW.sequence IS DISTINCT FROM (prior->>'sequence')::bigint+1 THEN
   RAISE EXCEPTION 'invalid linked reservation projection' USING ERRCODE='23514';
  END IF;
- -- Public watermark hashes attest identity, not authority. Same-held reflection
- -- or refreshed released credit must not bypass independent closure approval.
- financial_credit := (NEW.payload->>'held')::numeric<(prior->>'held')::numeric
-  OR GREATEST((NEW.payload->>'held')::numeric-(NEW.payload->>'reflected')::numeric,
-              (NEW.payload->>'release_pending')::numeric)
-     < GREATEST((prior->>'held')::numeric-(prior->>'reflected')::numeric,
-                (prior->>'release_pending')::numeric)
-  OR (NEW.payload->>'reflected')::numeric>(prior->>'reflected')::numeric
-  OR (NEW.payload#>>'{reservation,reflected_amount}')::numeric>(prior#>>'{reservation,reflected_amount}')::numeric
-  OR (NEW.payload#>>'{reservation,evidence_watermark}' IS DISTINCT FROM prior#>>'{reservation,evidence_watermark}'
-      AND ((NEW.payload->>'held')::numeric<(original->>'amount')::numeric
-           OR (NEW.payload->>'reflected')::numeric>0));
- IF financial_credit AND
+ IF (NEW.payload->>'held')::numeric<(prior->>'held')::numeric AND
   NOT ledger.order_closure_approved(NEW.scope_id,reservation_id,NEW.payload,NEW.transaction_id) THEN
   RAISE EXCEPTION 'dedicated program closure required' USING ERRCODE='23514';
  END IF;

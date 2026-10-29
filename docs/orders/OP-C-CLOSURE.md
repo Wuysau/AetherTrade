@@ -21,6 +21,12 @@ trusted approval path is implemented. The existing closure resolver authorizes
 reviewed terminal reductions only; this correction does not pretend that an
 ordinary callback or a matching watermark supplies that authority.
 
+The final guard correction is additive migration0011;0009 keeps its original
+bytes. The upgrade refuses existing unapproved linked credit without rewriting
+it and accepts exact archived reviewed credit. Apply with writers quiesced and
+follow [the migration/recovery notes](OP-C-FINANCIAL-CREDIT-CORRECTION.md) on
+refusal. This does not qualify native reflection or enable an execution adapter.
+
 ## Verification performed
 
 Actual disposable Linux/PostgreSQL checks, with the worktree mounted read-only and writable test evidence mounted separately:
