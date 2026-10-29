@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="8" time="1.146" timestamp="2026-10-29T13:40:23.444007+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.unit.test_financial_archive_ttl" name="test_effective_ttl_accepts_real_narrower_qualified_allocation[bridge]" time="0.111"><failure message="ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH">tests\unit\test_financial_archive_ttl.py:48: in test_effective_ttl_accepts_real_narrower_qualified_allocation
+    assert codec.decode(codec.encode(a))==a
+                        ^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:125: in encode
+    require(self.decode(payload)==archive,'FINANCIAL_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:119: in decode
+    validate_archive(archive)
+src\trading_system\intents\program_financial_records.py:85: in validate_archive
+    require(terms.action==original.action and terms.target_side==a.terms.target_side==original.target_side
+src\trading_system\contracts\program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH</failure></testcase><testcase classname="tests.unit.test_financial_archive_ttl" name="test_effective_ttl_accepts_real_narrower_qualified_allocation[rules]" time="0.113"><failure message="ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH">tests\unit\test_financial_archive_ttl.py:48: in test_effective_ttl_accepts_real_narrower_qualified_allocation
+    assert codec.decode(codec.encode(a))==a
+                        ^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:125: in encode
+    require(self.decode(payload)==archive,'FINANCIAL_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:119: in decode
+    validate_archive(archive)
+src\trading_system\intents\program_financial_records.py:85: in validate_archive
+    require(terms.action==original.action and terms.target_side==a.terms.target_side==original.target_side
+src\trading_system\contracts\program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH</failure></testcase><testcase classname="tests.unit.test_financial_archive_ttl" name="test_effective_ttl_accepts_real_narrower_qualified_allocation[facts]" time="0.099"><failure message="ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH">tests\unit\test_financial_archive_ttl.py:48: in test_effective_ttl_accepts_real_narrower_qualified_allocation
+    assert codec.decode(codec.encode(a))==a
+                        ^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:125: in encode
+    require(self.decode(payload)==archive,'FINANCIAL_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:119: in decode
+    validate_archive(archive)
+src\trading_system\intents\program_financial_records.py:85: in validate_archive
+    require(terms.action==original.action and terms.target_side==a.terms.target_side==original.target_side
+src\trading_system\contracts\program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH</failure></testcase><testcase classname="tests.unit.test_financial_archive_ttl" name="test_effective_ttl_may_be_stricter_than_qualified_allocation" time="0.094"><failure message="ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH">tests\unit\test_financial_archive_ttl.py:58: in test_effective_ttl_may_be_stricter_than_qualified_allocation
+    ProgramFinancialArchiveCodec().encode(a)
+src\trading_system\intents\program_financial_records.py:125: in encode
+    require(self.decode(payload)==archive,'FINANCIAL_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:119: in decode
+    validate_archive(archive)
+src\trading_system\intents\program_financial_records.py:85: in validate_archive
+    require(terms.action==original.action and terms.target_side==a.terms.target_side==original.target_side
+src\trading_system\contracts\program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH</failure></testcase><testcase classname="tests.unit.test_financial_archive_ttl" name="test_effective_ttl_never_extends_qualification_or_original_proposal[2026-10-28T10:00:21Z]" time="0.106" /><testcase classname="tests.unit.test_financial_archive_ttl" name="test_effective_ttl_never_extends_qualification_or_original_proposal[2026-10-28T12:00:00Z]" time="0.097" /><testcase classname="tests.unit.test_financial_archive_ttl" name="test_even_consistent_rewritten_hashes_cannot_extend_allocation_ttl" time="0.087"><failure message="Failed: DID NOT RAISE ValueError">tests\unit\test_financial_archive_ttl.py:75: in test_even_consistent_rewritten_hashes_cannot_extend_allocation_ttl
+    with pytest.raises(ValueError):ProgramFinancialArchiveCodec().encode(a)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.unit.test_financial_archive_ttl" name="test_effective_ttl_requires_remaining_valid_captured_clock" time="0.088" /></testsuite></testsuites>
