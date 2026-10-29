@@ -30,15 +30,16 @@ def venue(database):
     return roles
 
 
-def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_fee_rate='0',node_fees=None,**risk_options):
+def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_fee_rate='0',node_fees=None,order_transform=None,**risk_options):
     from trading_system.engine.paper import PaperEngine
     from trading_system.engine.paper_market import PaperMatchingModel
     from trading_system.runtime.execution_owner import ExecutionOwner
     from trading_system.contracts.order_program import TimeInForceSpec
     def transform(p):
         n=p.program.nodes[0]
-        return replace(p,program=replace(p.program,nodes=(replace(n,order=replace(n.order,
-            tif=TimeInForceSpec(kind='NONE' if post_only else tif,expires_at=None),post_only=post_only)),)))
+        order=replace(n.order,tif=TimeInForceSpec(kind='NONE' if post_only else tif,expires_at=None),post_only=post_only)
+        if order_transform is not None:order=order_transform(order)
+        return replace(p,program=replace(p.program,nodes=(replace(n,order=order),)))
     c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
     c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
     c.gate=boundary(c);c.lease=lease(c);c.permit=None

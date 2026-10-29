@@ -1,0 +1,81 @@
+"""Actual protected commands + additive venue reference/trigger execution."""
+from dataclasses import replace
+from decimal import Decimal as D
+import pytest
+from integration.test_paper_market_matcher import isolated_postgres,database,venue,case,submit,event
+from trading_system.contracts import types as t
+from trading_system.contracts.order_program import PriceSpec,TriggerSpec
+
+
+@pytest.fixture(scope='module')
+def venue_v2(database,venue):
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
+    from trading_system.engine.paper_market_v2 import provision_paper_market_v2
+    admin=make_conninfo(**{**conninfo_to_dict(database),'dbname':conninfo_to_dict(venue.runtime_dsn)['dbname']})
+    provision_paper_market_v2(admin,venue)
+    return venue
+
+
+def advanced_case(database,venue_v2,tmp_path,**options):
+    from trading_system.engine.paper_market_v2 import PaperMatchingModelV2
+    c=case(database,venue_v2,tmp_path,**options)
+    c.engine._matching_model=PaperMatchingModelV2(model_id='ISOLATED_V2_VISIBLE_DEPTH_AND_REFERENCE_FIXTURE',quote_fee_rate='0')
+    return c
+
+
+def reference(c,sequence,source,price):
+    from trading_system.engine.paper_market_v2 import PaperReferenceEventV2,ReferencePrice
+    return PaperReferenceEventV2(contract_version='2026-10-30',event_id='reference-'+str(sequence),stream_id=c.scope.instrument_uid,
+        product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=sequence,kind='REFERENCE_PRICES',
+        prices=(ReferencePrice(source=source,price=price),),occurred_at=c.c.facts.inputs.clock.utc_now,
+        source='PAPER_MARKET_REPLAY_SYNTHETIC')
+
+
+def market_order(order):
+    return replace(order,price=PriceSpec(kind='MARKET',value=None,peg_type=None,offset_levels=None,price_match=None))
+
+
+def test_actual_v2_base_market_uses_visible_opposing_quote_and_partial_expiry(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher
+    c=advanced_case(database,venue_v2,tmp_path,tif='NONE',order_transform=market_order)
+    PaperMatcher(c.engine).apply_market_event(event(c,ask='81500',quantity='.4'))
+    submit(c);report=c.engine.query_creation(c.write.command_id)
+    assert report.status=='EXPIRED' and report.filled_quantity==D('.4') and report.remaining_quantity==0
+    assert report.fills[0].price==D('81500') and report.request==c.request
+    assert all(f.name!='price' for f in c.request.fields)
+
+
+def test_stop_limit_waits_for_exact_last_source_then_keeps_native_limit(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher
+    def stop_limit(order):
+        return replace(order,trigger=TriggerSpec(kind='STATIC',purpose='STOP_LOSS',source='LAST',price='83000',
+            activation_price=None,offset=None,offset_unit=None,price_protect=False))
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=stop_limit);submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,quantity='.4'))
+    assert not c.engine.query_creation(c.write.command_id).fills
+    matcher.apply_market_event(reference(c,2,'MARK_PRICE','83000'))
+    assert not c.engine.query_creation(c.write.command_id).fills
+    matcher.apply_market_event(reference(c,3,'LAST','83000'))
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.filled_quantity==D('.4') and report.fills[0].price==D('81490')
+    assert report.orders[0].runtime.activation_event_id=='reference-3'
+
+
+def test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher
+    def trailing(order):
+        return replace(market_order(order),trigger=TriggerSpec(kind='TRAILING',purpose='STOP_LOSS',source='LAST',price=None,
+            activation_price=None,offset='100',offset_unit='BIPS',price_protect=False))
+    c=advanced_case(database,venue_v2,tmp_path,tif='NONE',order_transform=trailing,actual='1',target='0',quantity='1',side='SELL',
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,quantity='1'))
+    matcher.apply_market_event(reference(c,2,'LAST','82000'));matcher.apply_market_event(reference(c,3,'LAST','83000'))
+    assert not c.engine.query_creation(c.write.command_id).fills
+    PaperMatcher(c.engine).apply_market_event(reference(c,4,'LAST','82500'))
+    assert not c.engine.query_creation(c.write.command_id).fills
+    PaperMatcher(c.engine).apply_market_event(reference(c,5,'LAST','82100'))
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.filled_quantity==1 and report.fills[0].price==D('81489')
+    assert report.orders[0].runtime.high_water==D('83000')
