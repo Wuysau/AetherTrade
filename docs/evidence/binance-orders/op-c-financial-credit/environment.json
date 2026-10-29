@@ -1,0 +1,35 @@
+{
+  "commands": [
+    "python -m pytest -p no:cacheprovider tests/integration/test_order_program_financial_credit.py -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/integration/test_order_program_financial_credit.py tests/unit/test_order_closure_review.py -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/unit/test_order_closure_review.py tests/integration/test_order_program_closure.py -q --tb=short"
+  ],
+  "scope": "ISOLATED_SYNTHETIC_POSTGRES_NOT_VENUE_QUALIFICATION",
+  "red": {
+    "passed": 1,
+    "exit_code": 1,
+    "failed": 4
+  },
+  "source_base_commit": "94ddae9c4cc85c3699f2d1e39eb9c1f60a092f3e",
+  "images": {
+    "python": "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f",
+    "postgres": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+  },
+  "closure_regression": {
+    "passed": 28,
+    "exit_code": 0,
+    "skipped": 0,
+    "failed": 0
+  },
+  "focused": {
+    "passed": 6,
+    "exit_code": 0,
+    "skipped": 0,
+    "failed": 0
+  },
+  "source_sha256": {
+    "tests/integration/test_order_program_financial_credit.py": "669bdf97d61da24bd0ac7d95d94a6cacfb6c6e763c1c64000be432b6f7f7bd0b",
+    "src/trading_system/risk/reservation_repository.py": "655375cf74457f1c51f8f3c01c24d63e2fff55cbfadcd13fa8101d1517b417bd",
+    "migrations/0009_order_program_closure.sql": "f0bf9562dc28268955fba957382da917084ab39159f1ef78169c06c0461541e1"
+  }
+}

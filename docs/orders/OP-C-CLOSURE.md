@@ -12,7 +12,14 @@ A nonflat position remains blocked unless its current owned protection plan is v
 
 Migration 0009 creates NOLOGIN `ledger_order_closure_resolver`, with no automatic role membership. Its definer function creates append-only approvals bound to the exact projection, PostgreSQL transaction ID, application transaction ID, latest state/book/owner/protection/fill facts and a review validity of at most 60 seconds. The existing reservation audit table has an INSERT guard: even direct ordinary-owner SQL cannot lower a linked hold without that approval. Approval reuse after commit, changed context, changed reservation revision, or expiry fails. Funding links and reservation creation rows remain immutable. Full and partial reductions are supported; further independent reviews may release remaining holds.
 
-`ReservationRepository.save` changes only its linked-reduction gate. Unlinked reservations retain previous behavior. Released balance credit is tied to the reviewed book watermark; a new book revision conservatively restores the hold until independently reconciled. This work does not bypass the existing released-balance attestation or ordinary command reconciliation gates.
+`ReservationRepository.save` gates linked financial credit as well as nominal held reductions. The SQL INSERT guard enforces the same boundary against direct ordinary-owner statements. Effective debit is `max(held-reflected,release_pending)`; lowering it, increasing reflected credit or refreshing a credit-bearing book watermark requires independent same-transaction approval. A public snapshot hash proves identity, never authority. Unlinked reservations retain previous behavior. Released balance credit is tied to the reviewed book watermark; a new book revision conservatively restores the hold until independently reconciled.
+
+The ordinary IP-07 reconciliation/attestation callback cannot mint an independent
+database approval for linked native funding. Active native-parent reflection and
+renewed released credit therefore remain default-denied until a separately
+trusted approval path is implemented. The existing closure resolver authorizes
+reviewed terminal reductions only; this correction does not pretend that an
+ordinary callback or a matching watermark supplies that authority.
 
 ## Verification performed
 

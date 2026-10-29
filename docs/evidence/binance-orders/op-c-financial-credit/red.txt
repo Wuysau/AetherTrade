@@ -1,0 +1,28 @@
+FFFF.                                                                    [100%]
+=================================== FAILURES ===================================
+___ test_same_held_forged_reflection_cannot_free_parent_capital[repository] ____
+tests/integration/test_order_program_financial_credit.py:43: in test_same_held_forged_reflection_cannot_free_parent_capital
+    with pytest.raises(Exception,match='PROGRAM_RESERVATION|dedicated program closure'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE Exception
+_____ test_same_held_forged_reflection_cannot_free_parent_capital[raw_sql] _____
+tests/integration/test_order_program_financial_credit.py:43: in test_same_held_forged_reflection_cannot_free_parent_capital
+    with pytest.raises(Exception,match='PROGRAM_RESERVATION|dedicated program closure'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE Exception
+____ test_released_hold_watermark_cannot_be_forged_for_new_book[repository] ____
+tests/integration/test_order_program_financial_credit.py:63: in test_released_hold_watermark_cannot_be_forged_for_new_book
+    with pytest.raises(Exception,match='PROGRAM_RESERVATION|dedicated program closure'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE Exception
+_____ test_released_hold_watermark_cannot_be_forged_for_new_book[raw_sql] ______
+tests/integration/test_order_program_financial_credit.py:63: in test_released_hold_watermark_cannot_be_forged_for_new_book
+    with pytest.raises(Exception,match='PROGRAM_RESERVATION|dedicated program closure'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE Exception
+=========================== short test summary info ============================
+FAILED tests/integration/test_order_program_financial_credit.py::test_same_held_forged_reflection_cannot_free_parent_capital[repository]
+FAILED tests/integration/test_order_program_financial_credit.py::test_same_held_forged_reflection_cannot_free_parent_capital[raw_sql]
+FAILED tests/integration/test_order_program_financial_credit.py::test_released_hold_watermark_cannot_be_forged_for_new_book[repository]
+FAILED tests/integration/test_order_program_financial_credit.py::test_released_hold_watermark_cannot_be_forged_for_new_book[raw_sql]
+4 failed, 1 passed in 5.34s
