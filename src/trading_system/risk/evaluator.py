@@ -97,6 +97,11 @@ class RiskEvaluator:
                 terms=None
             return self._evaluate(intent, book, market, policy,terms=terms)
 
+    def evaluate_program(self,terms,compilation,allocation,program_exposure,book,policy,facts):
+        """Pure generic semantic adapter into this same risk/policy core."""
+        from .program_assessment import evaluate_program
+        return evaluate_program(self.inputs,terms,compilation,allocation,program_exposure,book,policy,facts)
+
     def _evaluate(self, intent, book, market, policy,*,terms=None):
         facts = self.inputs
         currency = policy.valuation_currency
