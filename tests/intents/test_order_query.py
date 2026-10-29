@@ -7,6 +7,7 @@ import pytest
 
 from trading_system.engine.nautilus.id_codec import VenueIdCodec
 from trading_system.engine.nautilus.native_events import NativeEventBridge
+from trading_system.contracts import types as t
 from trading_system.intents.program_compilation import Namespace
 from intents.test_management_requests import setup,materialize
 
@@ -33,6 +34,8 @@ def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
     from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
     requests,bridge,_=reader
     rows=[row()] if rows is None else rows
+    if bridge.codec.scope.product==t.Product.USD_M_PERP:
+        rows=[dict(r,positionSide=r.get('positionSide','BOTH')) for r in rows]
     body=json.dumps(dict(total=len(rows) if total is None else total,orders=rows)).encode() if payload is None else payload
     request=query_page_request(requests[index],page_number=page,page_size=size)
     return archive_query_page(body,request=request,scan_id='scan-one',bridge=bridge,
@@ -128,6 +131,23 @@ def test_client_identity_is_a_string_not_a_coerced_number(reader):
     with pytest.raises(ValueError):archive(reader,rows=[row(client=123)])
 
 
+@pytest.mark.parametrize('position_side,expected',[('LONG','CONFLICT'),('SHORT','CONFLICT'),(None,'INCOMPLETE')])
+def test_futures_response_cannot_claim_a_different_or_unproven_position_leg(tmp_path,position_side,expected):
+    plan,k=setup(Namespace.USD_M_EXECUTION)
+    requests=materialize(plan,**k)
+    codec=VenueIdCodec(k['scope'])
+    try:
+        reader=(requests,NativeEventBridge(codec,tmp_path),tmp_path)
+        from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+        r=row()
+        if position_side is not None:r['positionSide']=position_side
+        first=archive_query_page(json.dumps(dict(total=1,orders=[r])).encode(),
+            request=query_page_request(requests[0]),scan_id='scan-one',bridge=reader[1],source=SOURCE,received_at=NOW)
+        result=resolve(reader,(first,archive(reader,1,rows=[],size=100)))
+        assert result.status==expected and not result.ownership_established
+    finally:codec.close()
+
+
 @pytest.mark.parametrize('namespace',[n for n in Namespace if n not in (
     Namespace.SPOT_EXECUTION,Namespace.USD_M_EXECUTION)])
 def test_single_original_identity_queries_use_product_specific_identity_fields(tmp_path,namespace):
@@ -138,6 +158,7 @@ def test_single_original_identity_queries_use_product_specific_identity_fields(t
         if namespace==Namespace.SPOT_LIST else {'algoId':123,'clientAlgoId':'original-client','algoStatus':'NEW'}
         if namespace==Namespace.USD_M_CONDITIONAL else {'orderId':123,'clientOrderId':'original-client','status':'NEW'})
     fields['symbol']='BTCUSDT'
+    if k['scope'].product==t.Product.USD_M_PERP:fields['positionSide']='BOTH'
     codec=VenueIdCodec(k['scope'])
     try:
         bridge=NativeEventBridge(codec,tmp_path)
