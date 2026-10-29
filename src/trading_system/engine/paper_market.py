@@ -8,6 +8,7 @@ from dataclasses import dataclass,replace,fields
 from decimal import Decimal,localcontext,Inexact,Rounded
 from pathlib import Path
 from hashlib import sha256
+from functools import wraps
 from typing import Literal
 import json
 import re
@@ -30,6 +31,13 @@ SOURCE='PAPER_MARKET_REPLAY_SYNTHETIC'
 def require(ok,reason):
     if not ok:raise ValueError(reason)
 def digest(value):return canonical_hash(domain_payload(value))
+def exact_market_arithmetic(function):
+    @wraps(function)
+    def call(*args,**kwargs):
+        with localcontext() as arithmetic:
+            arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
+            return function(*args,**kwargs)
+    return call
 def number(value,*,signed=False):
     require(type(value) is str and 0<len(value)<=64,'PAPER_DECIMAL_REQUIRED')
     result=Decimal(value)
@@ -581,6 +589,7 @@ class PaperMatcher:
         require(type(engine) is PaperEngine and engine.scope.environment==t.Environment.PAPER,'PAPER_ENGINE_REQUIRED')
         self.engine=engine
 
+    @exact_market_arithmetic
     def apply_market_event(self,event):
         require(type(event) is PaperMarketEvent and event.product==self.engine.scope.product
             and event.instrument_uid==self.engine.scope.instrument_uid,'PAPER_MARKET_SCOPE_MISMATCH')

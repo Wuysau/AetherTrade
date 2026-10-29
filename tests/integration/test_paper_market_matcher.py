@@ -362,3 +362,18 @@ def test_disabled_actual_source_fence_after_consume_blocks_sim_side_effect(datab
             with pytest.raises(ValueError,match='DEPLOYMENT_FENCE_REQUIRED|STALE_REVISION|PAPER_CURRENT_FENCE_CHANGED'):
                 pending.result(timeout=30)
     assert c.engine.query_creation(c.write.command_id) is None
+
+
+def test_depth_delta_never_rounds_tiny_unexecutable_residual_into_a_fill(database,venue,tmp_path):
+    from decimal import localcontext
+    from trading_system.engine.paper_market import PaperMatcher
+    c=case(database,venue,tmp_path);submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,quantity='.9999999999'))
+    assert c.engine.query_creation(c.write.command_id).filled_quantity==D('.999999')
+    with localcontext() as ambient:
+        ambient.prec=3
+        matcher.apply_market_event(event(c,sequence=2,quantity='.00000000001',kind='DEPTH_DELTA'))
+        report=c.engine.query_creation(c.write.command_id)
+    assert report.filled_quantity==D('.999999') and report.remaining_quantity==D('.000001')
+    source=c.engine.query_market_evidence(c.write.command_id)
+    assert sum((q.quantity for q in source.consumptions),D(0))==D('.999999')
