@@ -5,7 +5,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import json
 import pytest
-from integration.support_ip_03 import isolated_postgres,LedgerScenario,ROOT
+from integration.support_ip_03 import isolated_postgres,LedgerScenario,Counts,ROOT
 from contracts.test_order_lifecycle import authority,event,NOW
 from trading_system.contracts.order_program import OrderProgramCodec
 from trading_system.contracts.order_lifecycle import ApplicationWrite,ChildFill,AssetBudget,ProgramState
@@ -225,3 +225,179 @@ def test_owner_role_cannot_run_schema_migrations(scenario):
  import psycopg
  with pytest.raises(psycopg.errors.InsufficientPrivilege):
   with scenario.connect_owner() as c:c.execute('CREATE TABLE ledger.runtime_ddl_forbidden(value int)')
+
+
+def versioned_case(order_db,*,kind='VP',duration=None):
+    from unit.test_versioned_order_program_repository import program_record,command_for
+    s=LedgerScenario(order_db)
+    program=program_record('2026-10-29',kind,duration)
+    command=replace(command_for(program),scope=s.scope,owner_strategy_id=s.intent.owner_strategy_id,
+        ownership_epoch=s.intent.ownership_epoch,policy_revision=s.intent.risk_policy_revision)
+    with s.uow.transaction(s.scope) as tx:
+        s.write_bundle(tx)
+        r=repo(tx);r.save_program(program);r.create_write(command)
+    return s,program,command
+
+
+@pytest.mark.parametrize('kind,duration',[('VP',None),('VP',120),('TWAP',300)])
+def test_v3_algorithm_roundtrip_across_transactions_preserves_complete_payload(order_db,kind,duration):
+    from trading_system.contracts.order_codec import VersionedOrderCodec
+    s,program,command=versioned_case(order_db,kind=kind,duration=duration)
+    codec=VersionedOrderCodec()
+    with s.connect_admin() as conn:
+        old=conn.execute('SELECT record_id,sequence,payload,transaction_id FROM ledger.commands WHERE scope_id=%s',
+                         (scope_id(s.scope),)).fetchall()
+        stored=conn.execute('SELECT payload FROM ledger.order_programs WHERE scope_id=%s',
+                            (scope_id(s.scope),)).fetchone()[0]
+    assert stored==codec.encode('order-program',program)
+    with s.uow.transaction(s.scope) as tx:
+        r=repo(tx);restored=r.program(program.program_id)
+        assert type(restored) is type(program) and restored==program
+        assert restored.algorithm.duration_seconds==duration
+        assert restored.algorithm.urgency==('HIGH' if kind=='VP' else None)
+        assert r.write(command.command_id)==command
+        assert r.write(command.command_id).canonical_program_hash==codec.hash('order-program',program)
+        assert r.save_program(restored)==restored
+    with s.connect_admin() as conn:
+        assert conn.execute('SELECT count(*) FROM ledger.order_programs WHERE scope_id=%s',
+                             (scope_id(s.scope),)).fetchone()[0]==1
+        assert conn.execute('SELECT record_id,sequence,payload,transaction_id FROM ledger.commands WHERE scope_id=%s',
+                            (scope_id(s.scope),)).fetchall()==old
+
+
+def test_program_identity_cannot_change_version_after_commit(order_db):
+    from unit.test_versioned_order_program_repository import program_record
+    s=LedgerScenario(order_db);old=program_record()
+    with s.uow.transaction(s.scope) as tx:repo(tx).save_program(old)
+    with pytest.raises(ValueError,match='identity reused'),s.uow.transaction(s.scope) as tx:
+        repo(tx).save_program(program_record('2026-10-29'))
+    with s.uow.transaction(s.scope) as tx:
+        assert repo(tx).program(old.program_id)==old
+    with s.connect_admin() as conn:
+        assert conn.execute('SELECT count(*) FROM ledger.order_programs WHERE scope_id=%s',
+                             (scope_id(s.scope),)).fetchone()[0]==1
+
+
+def test_v3_command_cannot_hide_changed_algorithm_urgency_in_hash(order_db):
+    from trading_system.contracts.order_codec import VersionedOrderCodec
+    s,program,command=versioned_case(order_db)
+    changed=replace(program,algorithm=replace(program.algorithm,urgency='LOW'))
+    wrong=replace(command,command_id='wrong-versioned-hash',
+        canonical_program_hash=VersionedOrderCodec().hash('order-program',changed))
+    with pytest.raises(MissingEvidence,match='Program hash binding required'),s.uow.transaction(s.scope) as tx:
+        repo(tx).create_write(wrong)
+    with s.uow.transaction(s.scope) as tx:
+        assert repo(tx).write(wrong.command_id) is None
+        assert repo(tx).write(command.command_id)==command
+
+
+def test_v3_native_parent_lifecycle_denied_without_rewriting_original_command(order_db):
+    from trading_system.contracts.order_codec import VersionedOrderCodec
+    s,program,command=versioned_case(order_db)
+    a=replace(authority(),scope=s.scope,program_id=program.program_id,
+        program_hash=VersionedOrderCodec().hash('order-program',program),parent_command_id=command.command_id,
+        owner_strategy_id=s.intent.owner_strategy_id,ownership_epoch=s.intent.ownership_epoch,
+        authorization_id=s.intent.authorization_id,funding_intent_id=s.intent.intent_id,
+        reservation_ids=(s.reservation.reservation_id,))
+    # Explicit historical boundary fixture only; no transport, permit or fill.
+    uncertain=replace(command,state='MAY_HAVE_SENT',durable_record_ref='imported-original-v3-parent')
+    with s.uow.transaction(s.scope) as tx:
+        tx._append('order_writes_v2',command.command_id,uncertain,1)
+    with pytest.raises(MissingEvidence,match='PARENT_LIFECYCLE_VERSION_NOT_IMPLEMENTED'),s.uow.transaction(s.scope) as tx:
+        repo(tx).bind_parent(a)
+    with s.uow.transaction(s.scope) as tx:
+        r=repo(tx)
+        assert r.binding(program.program_id) is None and r.state(program.program_id) is None
+        assert r.write(command.command_id)==uncertain
+        assert r.program(program.program_id)==program
+    assert s.counts()==Counts(1,1,1)
+
+
+def test_v3_durable_storage_does_not_grant_send_or_resend_permit(order_db):
+    from types import SimpleNamespace
+    s,program,command=versioned_case(order_db)
+    lease=SimpleNamespace(shard=SimpleNamespace(environment=s.scope.environment,
+        venue_account_id=s.scope.venue_account_id,product=s.scope.product,execution_epoch=1),
+        expires_at='2026-10-29T11:00:00Z',deadline_monotonic_ns=10**30)
+    with pytest.raises(MissingEvidence,match='ORDER_COMPILER_RISK_ADMISSION_NOT_IMPLEMENTED'),s.uow.transaction(s.scope) as tx:
+        repo(tx).mark_may_have_sent(command.command_id,lease)
+    with s.uow.transaction(s.scope) as tx:
+        assert repo(tx).write(command.command_id)==command
+        tx._append('order_writes_v2',command.command_id,replace(command,state='MAY_HAVE_SENT'),1)
+    with pytest.raises(MissingEvidence,match='UNKNOWN commands require original-ID reconciliation'),s.uow.transaction(s.scope) as tx:
+        repo(tx).mark_may_have_sent(command.command_id,lease)
+    with s.uow.transaction(s.scope) as tx:
+        restored=repo(tx).write(command.command_id)
+        assert restored.venue_client_id==command.venue_client_id and restored.state=='MAY_HAVE_SENT'
+        assert restored.canonical_program_hash==command.canonical_program_hash
+
+
+def test_unknown_program_version_is_preserved_but_not_decoded_as_v2(order_db):
+    from unit.test_versioned_order_program_repository import program_payload
+    s=LedgerScenario(order_db);raw=program_payload()
+    raw['contract_version']='2099-01-01'
+    # Unknown historical import sentinel: a row is never upgraded by reading it.
+    with s.uow.transaction(s.scope) as tx:
+        tx._append('order_programs',raw['program_id'],raw,0)
+    with s.connect_admin() as conn:
+        before=conn.execute('SELECT payload,transaction_id FROM ledger.order_programs WHERE scope_id=%s',
+                             (scope_id(s.scope),)).fetchall()
+    with pytest.raises(ValueError,match='Unknown contract version'),s.uow.transaction(s.scope) as tx:
+        repo(tx).program(raw['program_id'])
+    with s.connect_admin() as conn:
+        assert conn.execute('SELECT payload,transaction_id FROM ledger.order_programs WHERE scope_id=%s',
+                             (scope_id(s.scope),)).fetchall()==before
+        assert conn.execute('SELECT count(*) FROM ledger.order_writes_v2 WHERE scope_id=%s',
+                             (scope_id(s.scope),)).fetchone()[0]==0
+
+
+@pytest.mark.parametrize('kind',['child','parent'])
+@pytest.mark.parametrize('authenticated',[True,False])
+def test_imported_v3_binding_preserves_reports_under_reconciliation_without_child_admission(order_db,kind,authenticated):
+    from trading_system.contracts.order_codec import VersionedOrderCodec
+    from trading_system.contracts.order_lifecycle import ParentObservation
+    s,program,command=versioned_case(order_db)
+    a=replace(authority(),scope=s.scope,program_id=program.program_id,
+        program_hash=VersionedOrderCodec().hash('order-program',program),parent_command_id=command.command_id,
+        owner_strategy_id=s.intent.owner_strategy_id,ownership_epoch=s.intent.ownership_epoch,
+        authorization_id=s.intent.authorization_id,funding_intent_id=s.intent.intent_id,
+        reservation_ids=(s.reservation.reservation_id,))
+    original_state=ProgramState(program_id=program.program_id,sequence=1,status='ACTIVE',
+        unallocated_quantity='10',children=(),observation_ids=(),restriction_codes=(),protection_quantity='0')
+    uncertain=replace(command,state='MAY_HAVE_SENT',durable_record_ref='original-imported-v3-parent')
+    # Pre-upgrade imported metadata fixture: no API call, simulated fill or new
+    # permission. New bind_parent explicitly rejects this authority/program pair.
+    with s.uow.transaction(s.scope) as tx:
+        tx._append('order_writes_v2',command.command_id,uncertain,1)
+        tx._append('order_program_bindings',program.program_id,a,0)
+        tx._append('order_program_states',program.program_id,original_state,0)
+    e=observation(s) if kind=='child' else ParentObservation(contract_version='2026-10-28',
+        observation_id='original-parent-report',scope=s.scope,venue=a.venue,namespace=a.namespace,
+        parent_client_id=a.parent_client_id,parent_venue_id=a.parent_venue_id,status='ACTIVE',
+        unallocated_quantity='10',cumulative_quantity='0',occurred_at=NOW)
+    evidence=proof(e)
+    reason='PARENT_LIFECYCLE_VERSION_NOT_IMPLEMENTED' if authenticated else 'SOURCE_UNVERIFIED'
+    with s.uow.transaction(s.scope) as tx:
+        r=OrderProgramRepository(tx,verify_ingress=lambda *args:authenticated,clock=lambda:NOW)
+        operation=r.ingest if kind=='child' else r.observe_parent
+        result=operation(program.program_id,e,evidence)
+        assert result.restriction==reason and result.state.status=='RECONCILIATION_REQUIRED'
+        assert result.state.children==() and result.state.unallocated_quantity=='10'
+    with s.uow.transaction(s.scope) as tx:
+        r=repo(tx)
+        assert r.binding(program.program_id)==a and r.write(command.command_id)==uncertain
+        assert tx.risk_locks.applicable(s.scope)
+        case=tx.execute('SELECT payload FROM ledger.order_reconciliation_cases WHERE scope_id=%s',
+                        (scope_id(s.scope),)).fetchone()[0]
+        assert case['reason']==reason and case['original_parent_id']==a.parent_venue_id
+        assert case['observation']==domain_payload(e) and case['evidence']==domain_payload(evidence)
+        for table in ('order_child_links','order_trade_links','fills'):
+            assert tx.execute('SELECT count(*) FROM ledger.'+table+' WHERE scope_id=%s',
+                                (scope_id(s.scope),)).fetchone()[0]==0
+        if kind=='child':
+            assert tx.execute('SELECT count(*) FROM ledger.order_source_observations WHERE scope_id=%s',
+                                (scope_id(s.scope),)).fetchone()[0]==int(authenticated)
+        else:
+            key='parent-observation:'+canonical_hash(dict(program=program.program_id,event=e.observation_id))
+            assert (tx._latest('audit_events',key,ParentObservation) is not None)==authenticated
+    assert s.counts()==Counts(1,1,1)
