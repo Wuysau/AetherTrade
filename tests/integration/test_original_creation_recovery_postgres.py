@@ -38,7 +38,11 @@ def test_original_may_and_unknown_survive_later_reservation_version(database,unk
         initial=b.reservations[0].reservation
         # Same economic hold; a later source watermark is a legitimate new
         # append-only reservation version, not collateral release or a fill.
-        tx.reservations.append(replace(initial,evidence_watermark='later-read-watermark'),1)
+        from trading_system.risk.reservation_repository import ReservationRepository
+        reservations=ReservationRepository(tx)
+        projection=reservations.get(initial.reservation_id)
+        reservations.save(replace(projection,sequence=projection.sequence+1,
+            reservation=replace(initial,evidence_watermark='later-read-watermark')))
     recovered=read(c,w.command_id)
     assert recovered.request==r and recovered.current_state==('UNKNOWN' if unknown else 'MAY_HAVE_SENT')
     from trading_system.recovery.original_creation import original_creation_case,original_query_targets
