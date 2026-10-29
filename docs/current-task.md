@@ -3,6 +3,16 @@
 ## OP_E_REPORT_VERIFIER_FRESH_SOLE_WRITER — 2026-10-29
 
 Root delegated THIS worktree solely to reports_fresh; parent reviews only.
+Latest exact source1d0106e:20PG passed0fail/error/skip168.66s, plus169related
+checks0fail/error/skip20.07s. Includes real forked verifier process restart,
+exact archive/facts replay and no ledger posting. Root independently reviewed
+read6e8 and full report corrections without blocking findings; final test review
+is pending. All report jobs are terminal; no restart/poll is needed.
+Final evidence copy/SHA/committed-blob verification is being prepared. Source
+verification never grants ownership, aggregate validity, permission or release;
+discrepant raw projections enter root risk/reconciliation with existing guards.
+OP-E-REPORT-INTEGRATION.md documents the concrete same-ledger consumption API.
+
 Actual fixed5afa535 run78c6c2758b3a is terminal3passed/1failed/0error/0skip33.86s;
 positive normalization returned BLOCKED. Its unmodified raw artifacts remain in
 `.runtime/paper-qualification-78c6c2758b3a/evidence`. The inherited handle53316

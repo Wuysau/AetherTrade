@@ -1,5 +1,26 @@
 # Actual PAPER report verifier continuation checkpoint
 
+Current ownership2026-10-29: reports_fresh is sole writer; root independently
+reviews. The checkpoint below is historical. Fixed source1d0106e includes
+read6e8d32f and economic fixes e2f2f87. Root reviewed both without blocking
+findings. Actual fd28878 had13pass/6fail150.74s; e2f2f87 had18pass/1fixture-reason
+failure148.94s. Fixed78055fa19PG passed0failure/error/skip145.75s. New test-only
+1d0106e adds actual process restart/exact replay/no posting:20PG passed
+0failure/error/skip168.66s. Related169checks at1d0106e passed20.07s. All jobs are
+terminal; no report job needs polling or restarting. Final evidence lives under
+docs/evidence/binance-orders/op-e-report-verifier with source/SHA maps.
+
+Read API now preserves actual row.revision, SQL payload::text and ORIGINAL stored
+payload_hash for fills/dispositions, with Decimal JSON parsing and exact query
+remaining/sum. App-canonical market-input hashes remain a separate domain.
+No historical rows/hash or migration0013 changed. Matcher peer applied this
+reviewed read patch as1c1b90d and retains all semantic/V2/session ownership.
+
+Current integration rules are in OP-E-REPORT-INTEGRATION.md. Source verification
+does not imply permission, financial release, complete account history or valid
+aggregate projections. Raw cumulative/leaves/overfill/fees remain uncapped;
+discrepant observations require risk/reconciliation before existing projection.
+
 Full parent goal remains ACTIVE through C/D/E/F/G,46 capabilities and56 acceptance
 cases. This report slice is not complete or qualified. Main/archive stay untouched.
 

@@ -1,0 +1,10 @@
+F...                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties _
+tests/integration/test_paper_program_reports_postgres.py:27: in test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties
+    assert result.source_verified and result.synthetic and not result.execution_authorized
+E   AssertionError: assert (False)
+E    +  where False = PaperProgramVerification(command_id='isolated-command-f56de98da89144189c70b0dcbe223c72', status='BLOCKED', source_veri... environment=<Environment.PAPER: 'PAPER'>, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))).source_verified
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties
+1 failed, 3 passed in 33.86s

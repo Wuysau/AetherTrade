@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="7" time="59.867" timestamp="2026-10-29T15:18:40.300101+00:00" hostname="83df21b883cf"><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties" time="9.556"><failure message="AssertionError: ('PAPER_ORDER_REVISION_REQUIRED',)&#10;assert (False)&#10; +  where False = PaperProgramVerification(command_id='isolated-command-36a15b4ec5984ff080b3e1fc18b30079', status='BLOCKED', source_veri... environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))).source_verified">tests/integration/test_paper_program_reports_postgres.py:28: in test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties
+    assert result.source_verified and result.synthetic and not result.execution_authorized,result.discrepancies
+E   AssertionError: ('PAPER_ORDER_REVISION_REQUIRED',)
+E   assert (False)
+E    +  where False = PaperProgramVerification(command_id='isolated-command-36a15b4ec5984ff080b3e1fc18b30079', status='BLOCKED', source_veri... environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))).source_verified</failure></testcase><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_consumed_but_not_observed_never_becomes_not_sent_or_releases_funds" time="7.853" /><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_changed_venue_request_is_archived_but_never_adopted" time="8.281" /><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_source_with_excess_competing_allocation_cannot_qualify_an_own_fill" time="7.766" /><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_real_query_preserves_persisted_revision_and_sql_event_hash_domain" time="7.755"><failure message="AttributeError: 'PaperMatchedOrder' object has no attribute 'lifecycle_revision'">tests/integration/test_paper_program_reports_postgres.py:97: in test_real_query_preserves_persisted_revision_and_sql_event_hash_domain
+    assert report.orders[0].lifecycle_revision==revision
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'PaperMatchedOrder' object has no attribute 'lifecycle_revision'</failure></testcase><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_real_query_remaining_and_fill_sum_are_independent_of_ambient_precision" time="8.278"><failure message="AssertionError: assert (Decimal('0.000011') == Decimal('0.000011') and Decimal('1.00') == Decimal('0.999989'))&#10; +  where Decimal('0.000011') = PaperCreationReport(command_id='isolated-command-30077a0dd74a43dfaf0ac911bf68ca17', request=VenueCreationRequest(contr...um_price='81490.00', maximum_price='81490.00', maximum_gross_notional='81490.00', fee_ceilings=())),), dispositions=()).filled_quantity&#10; +  and   Decimal('0.000011') = D('.000011')&#10; +  and   Decimal('1.00') = PaperCreationReport(command_id='isolated-command-30077a0dd74a43dfaf0ac911bf68ca17', request=VenueCreationRequest(contr...um_price='81490.00', maximum_price='81490.00', maximum_gross_notional='81490.00', fee_ceilings=())),), dispositions=()).remaining_quantity&#10; +  and   Decimal('0.999989') = D('.999989')">tests/integration/test_paper_program_reports_postgres.py:108: in test_real_query_remaining_and_fill_sum_are_independent_of_ambient_precision
+    assert report.filled_quantity==D('.000011') and report.remaining_quantity==D('.999989')
+E   AssertionError: assert (Decimal('0.000011') == Decimal('0.000011') and Decimal('1.00') == Decimal('0.999989'))
+E    +  where Decimal('0.000011') = PaperCreationReport(command_id='isolated-command-30077a0dd74a43dfaf0ac911bf68ca17', request=VenueCreationRequest(contr...um_price='81490.00', maximum_price='81490.00', maximum_gross_notional='81490.00', fee_ceilings=())),), dispositions=()).filled_quantity
+E    +  and   Decimal('0.000011') = D('.000011')
+E    +  and   Decimal('1.00') = PaperCreationReport(command_id='isolated-command-30077a0dd74a43dfaf0ac911bf68ca17', request=VenueCreationRequest(contr...um_price='81490.00', maximum_price='81490.00', maximum_gross_notional='81490.00', fee_ceilings=())),), dispositions=()).remaining_quantity
+E    +  and   Decimal('0.999989') = D('.999989')</failure></testcase><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified" time="8.904"><failure message="ValueError: only JSON values without floating point are permitted">tests/integration/test_paper_program_reports_postgres.py:115: in test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified
+    submit(c)
+tests/integration/test_paper_market_matcher.py:67: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:446: in submit_creation
+    report=query_creation(engine,write.command_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:476: in query_creation
+    payload=event['payload'];raw=canonical_json(payload)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:47: in canonical_json
+    _json_value(payload)
+src/trading_system/contracts/canonical.py:39: in _json_value
+    _json_value(item)
+src/trading_system/contracts/canonical.py:41: in _json_value
+    raise ValueError("only JSON values without floating point are permitted")
+E   ValueError: only JSON values without floating point are permitted</failure></testcase></testsuite></testsuites>

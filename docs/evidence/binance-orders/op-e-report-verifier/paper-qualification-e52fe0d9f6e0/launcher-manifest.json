@@ -1,0 +1,110 @@
+{
+  "source_commit": "3e53d77f6bcd7a88a569a8e5a057b44db0e1a005",
+  "started_utc": "2026-10-29T15:09:59.161349+00:00",
+  "postgres_container": "aethertrade-qualification-pg-e52fe0d9f6e0",
+  "runner_container": "aethertrade-qualification-runner-e52fe0d9f6e0",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-report-verifier\\.runtime\\paper-qualification-e52fe0d9f6e0\\source.bundle",
+        "HEAD",
+        "3e53d77f6bcd7a88a569a8e5a057b44db0e1a005"
+      ],
+      "log": "bundle.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        "aethertrade-qualification-pg-e52fe0d9f6e0",
+        "--env-file",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-report-verifier\\.runtime\\paper-qualification-e52fe0d9f6e0\\container.env",
+        "postgres:17-alpine"
+      ],
+      "log": "postgres-start.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        "aethertrade-qualification-runner-e52fe0d9f6e0",
+        "--network",
+        "container:aethertrade-qualification-pg-e52fe0d9f6e0",
+        "--env-file",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-report-verifier\\.runtime\\paper-qualification-e52fe0d9f6e0\\container.env",
+        "--mount",
+        "type=bind,source=D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-report-verifier\\.runtime\\paper-qualification-e52fe0d9f6e0,target=/handoff",
+        "python:3.12-slim",
+        "sleep",
+        "14400"
+      ],
+      "log": "runner-start.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.Image}}",
+        "aethertrade-qualification-pg-e52fe0d9f6e0",
+        "aethertrade-qualification-runner-e52fe0d9f6e0"
+      ],
+      "log": "container-images.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-e52fe0d9f6e0",
+        "sh",
+        "-c",
+        "apt-get update && apt-get install -y --no-install-recommends git"
+      ],
+      "log": "linux-dependencies.txt",
+      "timeout_seconds": 600,
+      "exit_code": 100
+    },
+    {
+      "argv": [
+        "docker",
+        "stop",
+        "--time",
+        "10",
+        "aethertrade-qualification-runner-e52fe0d9f6e0"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 30,
+      "log": "runner-stop.txt"
+    }
+  ],
+  "launcher_sha256": "28183f5dffced5f5ef774c534dc0e6b9ec0d2630449ec44b1b1d0956277ccea7",
+  "scope": "LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION",
+  "diagnostic_suite": "paper-program-reports",
+  "deadline_seconds": 1200,
+  "failure_type": "RuntimeError",
+  "exit_code": 1,
+  "finished_utc": "2026-10-29T15:12:00.280432+00:00",
+  "files_sha256": {
+    "bundle.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "container-images.txt": "ef6ccce9418a1c9a5c8f651a5e52d60acd1b6314828177017c99f335a01115ff",
+    "linux-dependencies.txt": "9aa3b99a7147e80e1ac1fe4d55e2e8e1598e567315976589133002b3f327d545",
+    "postgres-start.txt": "53a850768b748f774f6a5680a6a5bc9189bddf1d4e3c3de4df8b66b19ea646c5",
+    "runner-start.txt": "cecaeab31451474dd495633e69703016bfc8e7a4e1ce59f2c5cd4a05ed086065",
+    "runner-stop.txt": "5a9fe133c7b4c8c0050a5fa5b4154648fe7e82e56d171e1f9d71c4d97f19499d"
+  }
+}

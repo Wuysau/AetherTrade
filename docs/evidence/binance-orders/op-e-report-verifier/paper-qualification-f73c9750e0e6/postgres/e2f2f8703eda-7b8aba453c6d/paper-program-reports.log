@@ -1,0 +1,12 @@
+......F............                                                      [100%]
+=================================== FAILURES ===================================
+______ test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified _______
+tests/integration/test_paper_program_reports_postgres.py:159: in test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified
+    assert disposition.reason=='EXECUTION_ENVELOPE_REQUIRES_RECONCILIATION'
+E   AssertionError: assert 'EXECUTION_PR...OPE_VIOLATION' == 'EXECUTION_EN...ECONCILIATION'
+E     
+E     - EXECUTION_ENVELOPE_REQUIRES_RECONCILIATION
+E     + EXECUTION_PRICE_ENVELOPE_VIOLATION
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified
+1 failed, 18 passed in 148.94s (0:02:28)

@@ -1,0 +1,36 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties _
+tests/integration/test_paper_program_reports_postgres.py:24: in test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties
+    observer,codec=actual_verifier(c,tmp_path/'archive')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_reports_postgres.py:15: in actual_verifier
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+E   ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)
+___ test_consumed_but_not_observed_never_becomes_not_sent_or_releases_funds ____
+tests/integration/test_paper_program_reports_postgres.py:42: in test_consumed_but_not_observed_never_becomes_not_sent_or_releases_funds
+    observer,codec=actual_verifier(c,tmp_path/'archive')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_reports_postgres.py:15: in actual_verifier
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+E   ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)
+___________ test_changed_venue_request_is_archived_but_never_adopted ___________
+tests/integration/test_paper_program_reports_postgres.py:59: in test_changed_venue_request_is_archived_but_never_adopted
+    observer,codec=actual_verifier(c,tmp_path/'archive')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_reports_postgres.py:15: in actual_verifier
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+E   ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)
+___ test_source_with_excess_competing_allocation_cannot_qualify_an_own_fill ____
+tests/integration/test_paper_program_reports_postgres.py:79: in test_source_with_excess_competing_allocation_cannot_qualify_an_own_fill
+    observer,codec=actual_verifier(c,tmp_path/'archive')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_reports_postgres.py:15: in actual_verifier
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+E   ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_consumed_but_not_observed_never_becomes_not_sent_or_releases_funds
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_changed_venue_request_is_archived_but_never_adopted
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_source_with_excess_competing_allocation_cannot_qualify_an_own_fill
+4 failed in 35.71s
