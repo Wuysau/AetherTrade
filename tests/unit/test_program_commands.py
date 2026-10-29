@@ -41,3 +41,27 @@ def test_staged_external_creation_requires_genuine_activation_and_stage_admissio
     r=materialize_creation(a.compilation,1,a.profile,assign_client_ids(a.compilation,1,'staged-command'))
     with pytest.raises(ValueError,match='PROGRAM_STAGED_REQUEST_NOT_ADMITTED'):
         build_creation_write(r,b,execution_epoch=1)
+
+@pytest.mark.parametrize('fault,reason',[
+    ('missing','PROGRAM_CURRENT_WALLET_REQUIRED'),('mismatch','CREATION_REQUEST_CHANGED'),
+    ('stale','EQUITY_PAYMENT_WALLET_STALE'),('quote','EQUITY_PAYMENT_WALLET_BINDING_MISMATCH'),
+    ('scope','EQUITY_PAYMENT_WALLET_BINDING_MISMATCH'),('profile','EQUITY_PAYMENT_WALLET_BINDING_MISMATCH'),
+    ('exact','PROGRAM_EQUITY_WALLET_FUNDING_LOCATION_UNBOUND')])
+def test_equity_current_wallet_is_independent_and_cannot_invent_funding_location(fault,reason):
+    from types import SimpleNamespace
+    from trading_system.contracts import types as t
+    from trading_system.execution.creation_requests import EquityWalletSelection
+    from trading_system.execution.program_commands import ProgramCommandRepository
+    a=actual_archive(product=t.Product.US_EQUITY);plan=a.compilation;clock=a.risk_facts.inputs.clock
+    wallet=EquityWalletSelection(scope=plan.scope,profile_hash=plan.profile_hash,quote_asset='USD',wallet='CARD',
+        evidence=a.book.evidence[0],valid_until=a.risk_terms.valid_until)
+    r=materialize_creation(plan,0,a.profile,assign_client_ids(plan,0,'equity-wallet-command'),wallet_selection=wallet,now=clock.utc_now)
+    current=wallet
+    if fault=='mismatch':current=replace(wallet,wallet='MAIN')
+    if fault=='stale':current=replace(wallet,valid_until=clock.utc_now)
+    if fault=='quote':current=replace(wallet,quote_asset='USDT')
+    if fault=='scope':current=replace(wallet,scope=replace(wallet.scope,venue_account_id='other-account'))
+    if fault=='profile':current=replace(wallet,profile_hash='e'*64)
+    repository=ProgramCommandRepository(SimpleNamespace(scope=plan.scope),
+        load_wallet_selection=None if fault=='missing' else lambda *args:current)
+    with pytest.raises(ValueError,match=reason):repository._verify_current_request(r,a,clock)
