@@ -385,9 +385,9 @@ def query_market_evidence(engine,command_id):
         request=decode(VenueCreationRequest,command['request'])
         require(request.scope==engine.scope and request.command_id==command_id and digest(request)==command['request_hash'],
             'PAPER_MARKET_QUERY_BINDING_CHANGED')
-        event_rows=db.execute('SELECT DISTINCT i.market_key,i.event_id,i.payload_hash,i.payload,i.before_levels FROM public.paper_market_inputs i '
+        event_rows=db.execute('SELECT DISTINCT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels FROM public.paper_market_inputs i '
             'JOIN public.paper_market_consumptions c USING(market_key,event_id) WHERE c.scope_key=%s AND c.client_id=%s '
-            'ORDER BY i.market_key,i.event_id LIMIT 4097',(engine._scope_key,command['target_client_id'])).fetchall()
+            'ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097',(engine._scope_key,command['target_client_id'])).fetchall()
         require(len(event_rows)<=4096,'PAPER_MARKET_EVIDENCE_BOUND_EXCEEDED')
         inputs=[];consumptions=[]
         for row in event_rows:

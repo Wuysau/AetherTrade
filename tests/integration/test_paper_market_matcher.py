@@ -98,6 +98,15 @@ def test_actual_v3_acceptance_shared_depth_partial_limit_restart_and_replay(data
     matcher.apply_market_event(event(a,sequence=4,quantity='.7',kind='DEPTH_DELTA'))
     assert a.engine.query_creation(a.write.command_id).filled_quantity==1
     assert b.engine.query_creation(b.write.command_id).filled_quantity==D('.3')
+    report=a.engine.query_creation(a.write.command_id)
+    context=report.accepted_contexts[0]
+    assert context.request==a.request and context.compilation==a.bundle.archive.compilation
+    assert context.rules==a.bundle.archive.rules and context.terms.side=='BUY'
+    proof=a.engine.query_market_evidence(a.write.command_id)
+    assert proof.request_hash==canonical_hash(domain_payload(a.request)) and len(proof.inputs)==2
+    assert len(proof.consumptions)==3 and sum((r.quantity for r in proof.consumptions),D(0))==D('1.3')
+    assert {r.scope.venue_account_id for r in proof.consumptions}=={a.scope.venue_account_id,b.scope.venue_account_id}
+    assert proof.inputs[1].before_levels
 
 
 @pytest.mark.parametrize('tif,expected,status',[('IOC','.4','EXPIRED'),('FOK','0','EXPIRED')])
