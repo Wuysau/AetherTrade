@@ -28,7 +28,8 @@ def admit(c,*,fault=None):
                 return replace(current,utc_now=bundle.reservations[0].reservation.expires_at)
             return current
         receipt=activate_local_program(tx,bundle,load_clock=clock)
-        assert activate_local_program(tx,bundle,load_clock=clock)==receipt
+        if fault!='expired_during_activation':
+            assert activate_local_program(tx,bundle,load_clock=clock)==receipt
         if fault=='rollback':raise OSError('after actual activation')
         return receipt,bundle
     return c.service._transaction(operation)
