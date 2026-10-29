@@ -4,7 +4,7 @@ from decimal import Decimal as D
 import pytest
 from integration.test_paper_market_matcher import isolated_postgres,database,venue,case,submit,event
 from trading_system.contracts import types as t
-from trading_system.contracts.order_program import PriceSpec,TriggerSpec
+from trading_system.contracts.order_program import PriceSpec,TriggerSpec,TimeInForceSpec
 
 
 @pytest.fixture(scope='module')
@@ -157,3 +157,25 @@ def test_terminal_v2_order_is_not_reactivated_by_later_reference_or_depth(databa
     after=c.engine.query_creation(c.write.command_id)
     assert after.status=='FILLED' and after.filled_quantity==1 and not after.orders[0].runtime.active
     assert after.orders[0].lifecycle_revision==before.orders[0].lifecycle_revision
+
+
+def test_gtd_expires_from_actual_clock_source_after_proposal_window_without_fake_fill(database,venue_v2,tmp_path):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.engine.paper_market import PaperMatcher
+    from trading_system.engine.paper_market_v2 import PaperClockEventV2
+    expiry='2026-10-28T10:15:00Z'
+    c=advanced_case(database,venue_v2,tmp_path,product=t.Product.USD_M_PERP,
+        order_transform=lambda o:replace(o,tif=TimeInForceSpec(kind='GTD',expires_at=expiry)))
+    submit(c);matcher=PaperMatcher(c.engine);matcher.apply_market_event(event(c,ask='81500',quantity='1'))
+    assert c.engine.query_creation(c.write.command_id).status=='SUBMITTED'
+    base=c.c.facts.inputs.clock
+    advanced=replace(base,utc_now=expiry,monotonic_ns=base.monotonic_ns+15*60*10**9)
+    c.engine._clock=lambda:advanced
+    clock=PaperClockEventV2(contract_version='2026-10-30',event_id='gtd-clock',stream_id=c.scope.instrument_uid,
+        product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=2,kind='CLOCK',occurred_at=expiry,
+        source='PAPER_MARKET_REPLAY_SYNTHETIC')
+    matcher.apply_market_event(clock);report=c.engine.query_creation(c.write.command_id)
+    assert report.status=='EXPIRED' and not report.fills and report.remaining_quantity==0
+    assert report.dispositions[-1].reason=='VENUE_GTD_EXPIRED'
+    assert utc_timestamp(report.dispositions[-1].occurred_at)==utc_timestamp(expiry)
