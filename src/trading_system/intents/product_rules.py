@@ -46,6 +46,8 @@ class SpotRules:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class UsdMRules:
     position_mode: PositionMode
+    quantity_unit: str | None = None
+    contract_multiplier: str | None = None
     allowed_stp: tuple[str, ...] = ('NONE',)
     callback_percent: DecimalRange | None = None
     allowed_price_match: tuple[str, ...] = ()
@@ -116,6 +118,11 @@ class TrustedProductRules:
         if self.usd_m is not None and (self.usd_m.position_mode == PositionMode.CASH
                 or not 1 <= self.usd_m.maximum_batch_orders <= 5):
             raise ValueError('Invalid USD-M profile')
+        if self.usd_m is not None:
+            if self.usd_m.quantity_unit is not None:
+                identifier(self.usd_m.quantity_unit)
+            if self.usd_m.contract_multiplier is not None:
+                amount(self.usd_m.contract_multiplier)
         if self.equity is not None and (not self.equity.allowed_sessions
                 or not set(self.equity.allowed_sessions) <= {'RTH', 'EXTENDED', '24H'}):
             raise ValueError('Invalid Equity sessions')
