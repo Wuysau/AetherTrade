@@ -1,0 +1,1429 @@
+{
+  "after_crash": {
+    "ledger": {
+      "audit_events": [
+        {
+          "payload": {
+            "actual": {
+              "unit": "BASE",
+              "value": "0"
+            },
+            "book_sequence": 1,
+            "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "instrument": {
+              "instrument_uid": "console-paper:BTCUSDT",
+              "minimum_notional": {
+                "amount": "0.00000001",
+                "currency": "USDT"
+              },
+              "minimum_quantity": {
+                "unit": "BASE",
+                "value": "0.000000000001"
+              },
+              "native_symbol": "BTCUSDT",
+              "product": "SPOT",
+              "quantity_step": {
+                "unit": "BASE",
+                "value": "0.000000000001"
+              },
+              "quote_currency": "USDT",
+              "rule_revision": 1,
+              "settlement_currency": "USDT",
+              "tick_size": {
+                "currency": "USDT",
+                "value": "0.00000001"
+              },
+              "venue": "BINANCE"
+            }
+          },
+          "processed_at": "2026-10-29T04:41:18.71935+00:00",
+          "record_id": "ip07:target-basis:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        },
+        {
+          "payload": {
+            "aggregate_exposure_after": {
+              "gross": {
+                "amount": "100",
+                "currency": "USDT"
+              },
+              "groups": [
+                {
+                  "gross": {
+                    "amount": "100",
+                    "currency": "USDT"
+                  },
+                  "group_id": "console",
+                  "net": {
+                    "amount": "100",
+                    "currency": "USDT"
+                  }
+                }
+              ],
+              "missing": [],
+              "net": {
+                "amount": "100",
+                "currency": "USDT"
+              }
+            },
+            "estimated_loss": {
+              "amount": "5.400",
+              "currency": "USDT"
+            },
+            "evaluated_at": "2026-10-29T04:41:18.710035+00:00",
+            "evidence_completeness": {
+              "missing": [],
+              "pagination_complete": true,
+              "query_succeeded": true,
+              "scope": {
+                "environment": "PAPER",
+                "instrument_uid": "console-paper:BTCUSDT",
+                "product": "SPOT",
+                "venue_account_id": "paper-local",
+                "venue_leg": "BOTH"
+              },
+              "supported": true
+            },
+            "expires_at": "2026-10-29T04:41:48.657646+00:00",
+            "fees_assumption": {
+              "amount": "0.200",
+              "currency": "USDT"
+            },
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "permitted_leverage": 1,
+            "permitted_quantity": {
+              "unit": "BASE",
+              "value": "1"
+            },
+            "policy_revision": 1,
+            "rejection_codes": [],
+            "reserved_assets": [
+              {
+                "amount": "100.200",
+                "currency": "USDT"
+              }
+            ],
+            "risk_decision_id": "027338f0e4132c3138f1dd40e8daecf05fb22445e5613da9c7825c49d457dd5a",
+            "snapshot_ref": {
+              "environment": "PAPER",
+              "hash": "1ab3a72ba4ff234b84f4505be4225029592979e8ab3345e8f19cb230c034be70",
+              "id": "quote:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "source": "SERVER_VALIDATED_PUBLIC_QUOTE",
+              "visible_at": "2026-10-29T04:41:18.635148+00:00"
+            },
+            "verdict": "ALLOW"
+          },
+          "processed_at": "2026-10-29T04:41:18.71868+00:00",
+          "record_id": "ip07:risk:intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        },
+        {
+          "payload": {
+            "authorization": {
+              "authorization": {
+                "authorization_id": "grant:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+                "deployment_id": "console:manual",
+                "environment": "PAPER",
+                "expires_at": "2026-10-29T04:41:48.657646+00:00",
+                "maximum_capital": {
+                  "amount": "2500",
+                  "currency": "USDT"
+                },
+                "model_cost_budget": {
+                  "amount": "0",
+                  "currency": "USD"
+                },
+                "owner_strategy_id": "console-paper-owner",
+                "policy_revision": 1,
+                "protection_options": [
+                  "NATIVE_REQUIRED"
+                ],
+                "revoked_at": null,
+                "scopes": [
+                  {
+                    "environment": "PAPER",
+                    "instrument_uid": "console-paper:BTCUSDT",
+                    "product": "SPOT",
+                    "venue_account_id": "paper-local",
+                    "venue_leg": "BOTH"
+                  }
+                ],
+                "valid_from": "2026-10-29T04:41:18.657646+00:00"
+              },
+              "capabilities": [
+                "PAPER_SYNTHETIC_ONLY"
+              ],
+              "evidence": [
+                {
+                  "environment": "PAPER",
+                  "hash": "360016845653e7f4e5ece1702d35e0424c8ee722b6eddcdae0f296c42cc7578a",
+                  "id": "authenticated-request:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+                  "source": "SERVER_HELD_PAPER_LEDGER",
+                  "visible_at": "2026-10-29T04:41:18.657646+00:00"
+                }
+              ],
+              "identity_id": "console-authenticated-owner",
+              "ownership_epoch": 1,
+              "queue_environment": "PAPER",
+              "strategy_revision": 1
+            },
+            "budget": "2500",
+            "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "fingerprint": "ed81ac89a9c70e9633ef61ea3d8d55cd3852b2d8cd7ec0a9e567fc9081fb12cf",
+            "initial_cash": "10000",
+            "intent": {
+              "action": "SET_TARGET",
+              "as_of": "2026-10-29T04:41:18.635148+00:00",
+              "authorization_id": "grant:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "basis_fingerprint": "0d50b6d85bebbda0da16343e2f63c5d767ee3b20d3aa89d96e3c26eca97f0aa7",
+              "collateral_group_id": "console-paper-collateral",
+              "contract_version": "2026-10-20",
+              "created_at": "2026-10-29T04:41:18.657646+00:00",
+              "decision_run_id": "manual:killed-durable",
+              "environment": "PAPER",
+              "evidence_refs": [
+                "authenticated-request:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b"
+              ],
+              "execution": {
+                "allow_partial": true,
+                "entry_deadline": "2026-10-29T04:41:48.657646+00:00",
+                "limit_price": null,
+                "maximum_entry_slippage_bps": "20",
+                "order_preference": "MARKET"
+              },
+              "exit_plan": {
+                "maximum_holding_seconds": 3600,
+                "protection_policy": "NATIVE_REQUIRED",
+                "review_due_at": "2026-10-29T04:41:48.657646+00:00",
+                "stop_price": "95.00",
+                "stop_trigger": "LAST"
+              },
+              "instrument_uid": "console-paper:BTCUSDT",
+              "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "max_planned_loss": {
+                "amount": "2500",
+                "currency": "USDT"
+              },
+              "owner_strategy_id": "console-paper-owner",
+              "ownership_epoch": 1,
+              "product": "SPOT",
+              "proposal_hash": "ed81ac89a9c70e9633ef61ea3d8d55cd3852b2d8cd7ec0a9e567fc9081fb12cf",
+              "quantity_unit": "BASE",
+              "rationale_summary": "\u53d7\u6743\u4eba\u5de5 PAPER \u8bf7\u6c42",
+              "requested_leverage": 1,
+              "risk_policy_revision": 1,
+              "snapshot_id": "quote:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "strategy_revision": 1,
+              "supersedes_intent_id": null,
+              "target_quantity": "1",
+              "target_side": "LONG",
+              "valid_until": "2026-10-29T04:41:48.657646+00:00",
+              "venue": "BINANCE",
+              "venue_account_id": "paper-local",
+              "venue_leg": "BOTH"
+            },
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "key": "killed-durable",
+            "maximum_age": 90,
+            "mode": "MANUAL",
+            "quantity": "1",
+            "quote_at": "2026-10-29T04:41:18.635148+00:00",
+            "quote_price": "100",
+            "rationale": "\u53d7\u6743\u4eba\u5de5 PAPER \u8bf7\u6c42",
+            "requested_at": "2026-10-29T04:41:18.657646+00:00",
+            "risk_position_pct": "25",
+            "risk_revision": 1,
+            "side": "BUY",
+            "stop_loss_pct": "5",
+            "strategy_id": null,
+            "strategy_revision": 1,
+            "symbol": "BTCUSDT"
+          },
+          "processed_at": "2026-10-29T04:41:18.664739+00:00",
+          "record_id": "console:request:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "e9d73b18-6cbc-4511-b768-21fd5c88fe46"
+        },
+        {
+          "payload": {
+            "authorization_id": "grant:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "deployment_id": "console:manual",
+            "enabled": true,
+            "identity_id": "console-authenticated-owner",
+            "owner_strategy_id": "console-paper-owner",
+            "ownership_epoch": 1,
+            "risk_policy_revision": 1,
+            "sequence": 1,
+            "strategy_revision": 1
+          },
+          "processed_at": "2026-10-29T04:41:18.663009+00:00",
+          "record_id": "ip09:revision:d84107fbc14c42b851f5d5e48426e664c476498032ff8b4fc840ff8f1cd173ec",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "e9d73b18-6cbc-4511-b768-21fd5c88fe46"
+        },
+        {
+          "payload": {
+            "book_hash": "48ffa5ad790d43c3a2607eb60e4281cedf5b70e47c983421f719c89f241813c3",
+            "evidence": [
+              {
+                "environment": "PAPER",
+                "hash": "0d50b6d85bebbda0da16343e2f63c5d767ee3b20d3aa89d96e3c26eca97f0aa7",
+                "id": "console:book:bdf02e8fe77c460f8ad88016fd24200c",
+                "source": "SERVER_HELD_PAPER_LEDGER",
+                "visible_at": "2026-10-29T04:41:18.654589+00:00"
+              }
+            ],
+            "reservation_ids": [],
+            "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+          },
+          "processed_at": "2026-10-29T04:41:18.718109+00:00",
+          "record_id": "ip07:released-balances:intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        },
+        {
+          "payload": {
+            "initial_cash": "10000",
+            "source": "EXPLICIT_NEW_VIRTUAL_CAPITAL"
+          },
+          "processed_at": "2026-10-29T04:41:18.126482+00:00",
+          "record_id": "console:seed",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "8b03b88549364c9fb6df75de772fa525"
+        }
+      ],
+      "book_snapshots": [
+        {
+          "payload": {
+            "active_orders": [],
+            "balances": [
+              {
+                "amount": "10000",
+                "currency": "USDT"
+              },
+              {
+                "amount": "0",
+                "currency": "BTC"
+              }
+            ],
+            "basis_fingerprint": "0d50b6d85bebbda0da16343e2f63c5d767ee3b20d3aa89d96e3c26eca97f0aa7",
+            "coverage": {
+              "missing": [],
+              "pagination_complete": true,
+              "query_succeeded": true,
+              "scope": {
+                "environment": "PAPER",
+                "instrument_uid": "console-paper:BTCUSDT",
+                "product": "SPOT",
+                "venue_account_id": "paper-local",
+                "venue_leg": "BOTH"
+              },
+              "supported": true
+            },
+            "evidence": [
+              {
+                "environment": "PAPER",
+                "hash": "0d50b6d85bebbda0da16343e2f63c5d767ee3b20d3aa89d96e3c26eca97f0aa7",
+                "id": "console:book:bdf02e8fe77c460f8ad88016fd24200c",
+                "source": "SERVER_HELD_PAPER_LEDGER",
+                "visible_at": "2026-10-29T04:41:18.654589+00:00"
+              }
+            ],
+            "positions": [],
+            "reservations": [],
+            "scope": {
+              "environment": "PAPER",
+              "instrument_uid": "console-paper:BTCUSDT",
+              "product": "SPOT",
+              "venue_account_id": "paper-local",
+              "venue_leg": "BOTH"
+            },
+            "sequence": 1
+          },
+          "processed_at": "2026-10-29T04:41:18.656277+00:00",
+          "record_id": "book",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "e9d73b18-6cbc-4511-b768-21fd5c88fe46"
+        }
+      ],
+      "commands": [
+        {
+          "payload": {
+            "attempt_id": "attempt:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "canonical_payload": {
+              "full_position_exit": false,
+              "order_type": "MARKET",
+              "position_side": "BOTH",
+              "quantity": "1",
+              "reduce_only": false,
+              "side": "BUY"
+            },
+            "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "contract_version": "2026-10-20",
+            "created_at": "2026-10-29T04:41:18.657646+00:00",
+            "durable_record_ref": "pending-atomic-commit",
+            "environment": "PAPER",
+            "execution_epoch": 1,
+            "instrument_uid": "console-paper:BTCUSDT",
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "logical_client_order_id": "logical:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "operation": "SUBMIT",
+            "outcome_provenance": "NONE",
+            "ownership_epoch": 1,
+            "parent_command_id": null,
+            "payload_hash": "7014328a5e0820b48409cf7b1f9bb265904c6795752c1c6d5030a96cda4a965f",
+            "policy_revision": 1,
+            "product": "SPOT",
+            "state": "DURABLE_READY",
+            "target_order_id": null,
+            "venue_account_id": "paper-local",
+            "venue_client_order_id": "P1ebfe813b060001b7cb83778ccad7d923",
+            "venue_order_id": null
+          },
+          "processed_at": "2026-10-29T04:41:18.726239+00:00",
+          "record_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        }
+      ],
+      "domain_events": [],
+      "fills": [],
+      "order_projections": [],
+      "positions": [],
+      "protection_plans": [],
+      "reservations": [
+        {
+          "payload": {
+            "amount": "100.200",
+            "asset": "USDT",
+            "collateral_group_id": "console-paper-collateral",
+            "command_refs": [
+              "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b"
+            ],
+            "created_at": "2026-10-29T04:41:18.714937+00:00",
+            "environment": "PAPER",
+            "evidence_watermark": "",
+            "expires_at": "2026-10-29T04:41:48.657646+00:00",
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "owner_strategy_id": "console-paper-owner",
+            "reflected_amount": "0",
+            "reservation_id": "44853a3e-0058-4560-bc27-7c683aa13698",
+            "state": "HELD",
+            "venue_account_id": "paper-local"
+          },
+          "processed_at": "2026-10-29T04:41:18.721519+00:00",
+          "record_id": "44853a3e-0058-4560-bc27-7c683aa13698",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        }
+      ],
+      "risk_locks": [],
+      "transaction_observations": [
+        {
+          "observed_at": "2026-10-29T04:41:18.665742+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "e9d73b18-6cbc-4511-b768-21fd5c88fe46"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.730266+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        }
+      ]
+    },
+    "venue": {
+      "paper_engine_commands": [],
+      "paper_engine_events": [],
+      "paper_engine_orders": []
+    }
+  },
+  "after_recovery": {
+    "ledger": {
+      "audit_events": [
+        {
+          "payload": {
+            "actual": {
+              "unit": "BASE",
+              "value": "0"
+            },
+            "book_sequence": 1,
+            "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "instrument": {
+              "instrument_uid": "console-paper:BTCUSDT",
+              "minimum_notional": {
+                "amount": "0.00000001",
+                "currency": "USDT"
+              },
+              "minimum_quantity": {
+                "unit": "BASE",
+                "value": "0.000000000001"
+              },
+              "native_symbol": "BTCUSDT",
+              "product": "SPOT",
+              "quantity_step": {
+                "unit": "BASE",
+                "value": "0.000000000001"
+              },
+              "quote_currency": "USDT",
+              "rule_revision": 1,
+              "settlement_currency": "USDT",
+              "tick_size": {
+                "currency": "USDT",
+                "value": "0.00000001"
+              },
+              "venue": "BINANCE"
+            }
+          },
+          "processed_at": "2026-10-29T04:41:18.71935+00:00",
+          "record_id": "ip07:target-basis:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        },
+        {
+          "payload": {
+            "aggregate_exposure_after": {
+              "gross": {
+                "amount": "100",
+                "currency": "USDT"
+              },
+              "groups": [
+                {
+                  "gross": {
+                    "amount": "100",
+                    "currency": "USDT"
+                  },
+                  "group_id": "console",
+                  "net": {
+                    "amount": "100",
+                    "currency": "USDT"
+                  }
+                }
+              ],
+              "missing": [],
+              "net": {
+                "amount": "100",
+                "currency": "USDT"
+              }
+            },
+            "estimated_loss": {
+              "amount": "5.400",
+              "currency": "USDT"
+            },
+            "evaluated_at": "2026-10-29T04:41:18.710035+00:00",
+            "evidence_completeness": {
+              "missing": [],
+              "pagination_complete": true,
+              "query_succeeded": true,
+              "scope": {
+                "environment": "PAPER",
+                "instrument_uid": "console-paper:BTCUSDT",
+                "product": "SPOT",
+                "venue_account_id": "paper-local",
+                "venue_leg": "BOTH"
+              },
+              "supported": true
+            },
+            "expires_at": "2026-10-29T04:41:48.657646+00:00",
+            "fees_assumption": {
+              "amount": "0.200",
+              "currency": "USDT"
+            },
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "permitted_leverage": 1,
+            "permitted_quantity": {
+              "unit": "BASE",
+              "value": "1"
+            },
+            "policy_revision": 1,
+            "rejection_codes": [],
+            "reserved_assets": [
+              {
+                "amount": "100.200",
+                "currency": "USDT"
+              }
+            ],
+            "risk_decision_id": "027338f0e4132c3138f1dd40e8daecf05fb22445e5613da9c7825c49d457dd5a",
+            "snapshot_ref": {
+              "environment": "PAPER",
+              "hash": "1ab3a72ba4ff234b84f4505be4225029592979e8ab3345e8f19cb230c034be70",
+              "id": "quote:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "source": "SERVER_VALIDATED_PUBLIC_QUOTE",
+              "visible_at": "2026-10-29T04:41:18.635148+00:00"
+            },
+            "verdict": "ALLOW"
+          },
+          "processed_at": "2026-10-29T04:41:18.71868+00:00",
+          "record_id": "ip07:risk:intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        },
+        {
+          "payload": {
+            "authorization": {
+              "authorization": {
+                "authorization_id": "grant:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+                "deployment_id": "console:manual",
+                "environment": "PAPER",
+                "expires_at": "2026-10-29T04:41:48.657646+00:00",
+                "maximum_capital": {
+                  "amount": "2500",
+                  "currency": "USDT"
+                },
+                "model_cost_budget": {
+                  "amount": "0",
+                  "currency": "USD"
+                },
+                "owner_strategy_id": "console-paper-owner",
+                "policy_revision": 1,
+                "protection_options": [
+                  "NATIVE_REQUIRED"
+                ],
+                "revoked_at": null,
+                "scopes": [
+                  {
+                    "environment": "PAPER",
+                    "instrument_uid": "console-paper:BTCUSDT",
+                    "product": "SPOT",
+                    "venue_account_id": "paper-local",
+                    "venue_leg": "BOTH"
+                  }
+                ],
+                "valid_from": "2026-10-29T04:41:18.657646+00:00"
+              },
+              "capabilities": [
+                "PAPER_SYNTHETIC_ONLY"
+              ],
+              "evidence": [
+                {
+                  "environment": "PAPER",
+                  "hash": "360016845653e7f4e5ece1702d35e0424c8ee722b6eddcdae0f296c42cc7578a",
+                  "id": "authenticated-request:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+                  "source": "SERVER_HELD_PAPER_LEDGER",
+                  "visible_at": "2026-10-29T04:41:18.657646+00:00"
+                }
+              ],
+              "identity_id": "console-authenticated-owner",
+              "ownership_epoch": 1,
+              "queue_environment": "PAPER",
+              "strategy_revision": 1
+            },
+            "budget": "2500",
+            "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "fingerprint": "ed81ac89a9c70e9633ef61ea3d8d55cd3852b2d8cd7ec0a9e567fc9081fb12cf",
+            "initial_cash": "10000",
+            "intent": {
+              "action": "SET_TARGET",
+              "as_of": "2026-10-29T04:41:18.635148+00:00",
+              "authorization_id": "grant:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "basis_fingerprint": "0d50b6d85bebbda0da16343e2f63c5d767ee3b20d3aa89d96e3c26eca97f0aa7",
+              "collateral_group_id": "console-paper-collateral",
+              "contract_version": "2026-10-20",
+              "created_at": "2026-10-29T04:41:18.657646+00:00",
+              "decision_run_id": "manual:killed-durable",
+              "environment": "PAPER",
+              "evidence_refs": [
+                "authenticated-request:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b"
+              ],
+              "execution": {
+                "allow_partial": true,
+                "entry_deadline": "2026-10-29T04:41:48.657646+00:00",
+                "limit_price": null,
+                "maximum_entry_slippage_bps": "20",
+                "order_preference": "MARKET"
+              },
+              "exit_plan": {
+                "maximum_holding_seconds": 3600,
+                "protection_policy": "NATIVE_REQUIRED",
+                "review_due_at": "2026-10-29T04:41:48.657646+00:00",
+                "stop_price": "95.00",
+                "stop_trigger": "LAST"
+              },
+              "instrument_uid": "console-paper:BTCUSDT",
+              "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "max_planned_loss": {
+                "amount": "2500",
+                "currency": "USDT"
+              },
+              "owner_strategy_id": "console-paper-owner",
+              "ownership_epoch": 1,
+              "product": "SPOT",
+              "proposal_hash": "ed81ac89a9c70e9633ef61ea3d8d55cd3852b2d8cd7ec0a9e567fc9081fb12cf",
+              "quantity_unit": "BASE",
+              "rationale_summary": "\u53d7\u6743\u4eba\u5de5 PAPER \u8bf7\u6c42",
+              "requested_leverage": 1,
+              "risk_policy_revision": 1,
+              "snapshot_id": "quote:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "strategy_revision": 1,
+              "supersedes_intent_id": null,
+              "target_quantity": "1",
+              "target_side": "LONG",
+              "valid_until": "2026-10-29T04:41:48.657646+00:00",
+              "venue": "BINANCE",
+              "venue_account_id": "paper-local",
+              "venue_leg": "BOTH"
+            },
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "key": "killed-durable",
+            "maximum_age": 90,
+            "mode": "MANUAL",
+            "quantity": "1",
+            "quote_at": "2026-10-29T04:41:18.635148+00:00",
+            "quote_price": "100",
+            "rationale": "\u53d7\u6743\u4eba\u5de5 PAPER \u8bf7\u6c42",
+            "requested_at": "2026-10-29T04:41:18.657646+00:00",
+            "risk_position_pct": "25",
+            "risk_revision": 1,
+            "side": "BUY",
+            "stop_loss_pct": "5",
+            "strategy_id": null,
+            "strategy_revision": 1,
+            "symbol": "BTCUSDT"
+          },
+          "processed_at": "2026-10-29T04:41:18.664739+00:00",
+          "record_id": "console:request:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "e9d73b18-6cbc-4511-b768-21fd5c88fe46"
+        },
+        {
+          "payload": {
+            "authorization_id": "grant:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "deployment_id": "console:manual",
+            "enabled": true,
+            "identity_id": "console-authenticated-owner",
+            "owner_strategy_id": "console-paper-owner",
+            "ownership_epoch": 1,
+            "risk_policy_revision": 1,
+            "sequence": 1,
+            "strategy_revision": 1
+          },
+          "processed_at": "2026-10-29T04:41:18.663009+00:00",
+          "record_id": "ip09:revision:d84107fbc14c42b851f5d5e48426e664c476498032ff8b4fc840ff8f1cd173ec",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "e9d73b18-6cbc-4511-b768-21fd5c88fe46"
+        },
+        {
+          "payload": {
+            "book_hash": "48ffa5ad790d43c3a2607eb60e4281cedf5b70e47c983421f719c89f241813c3",
+            "evidence": [
+              {
+                "environment": "PAPER",
+                "hash": "0d50b6d85bebbda0da16343e2f63c5d767ee3b20d3aa89d96e3c26eca97f0aa7",
+                "id": "console:book:bdf02e8fe77c460f8ad88016fd24200c",
+                "source": "SERVER_HELD_PAPER_LEDGER",
+                "visible_at": "2026-10-29T04:41:18.654589+00:00"
+              }
+            ],
+            "reservation_ids": [],
+            "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+          },
+          "processed_at": "2026-10-29T04:41:18.718109+00:00",
+          "record_id": "ip07:released-balances:intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        },
+        {
+          "payload": {
+            "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "durable_record_ref": "postgres:63254611-7477-4e07-a079-41d01520e2b9",
+            "provenance": "VENUE_EVENT",
+            "receipt": {
+              "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "existing_result_ref": "paper-command:03ee8c8dd808eaab1d76e92180128522687cb6632eaad2ab51b4b174926438c7",
+              "reason": "PAPER_REQUEST_ACKNOWLEDGED_NOT_FILLED_OR_PROTECTION_VERIFIED",
+              "receipt_id": "paper-ack:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+              "status": "VENUE_CONFIRMED"
+            },
+            "request_hash": "a947146c33283d41d73ea3c4a610fa146ccc5a826c0b892a325985d6ff793831"
+          },
+          "processed_at": "2026-10-29T04:41:19.240188+00:00",
+          "record_id": "ip10:outcome:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "75a7d696-0596-4138-8049-a27cd2810a6f"
+        },
+        {
+          "payload": {
+            "initial_cash": "10000",
+            "source": "EXPLICIT_NEW_VIRTUAL_CAPITAL"
+          },
+          "processed_at": "2026-10-29T04:41:18.126482+00:00",
+          "record_id": "console:seed",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "8b03b88549364c9fb6df75de772fa525"
+        }
+      ],
+      "book_snapshots": [
+        {
+          "payload": {
+            "active_orders": [],
+            "balances": [
+              {
+                "amount": "10000",
+                "currency": "USDT"
+              },
+              {
+                "amount": "0",
+                "currency": "BTC"
+              }
+            ],
+            "basis_fingerprint": "0d50b6d85bebbda0da16343e2f63c5d767ee3b20d3aa89d96e3c26eca97f0aa7",
+            "coverage": {
+              "missing": [],
+              "pagination_complete": true,
+              "query_succeeded": true,
+              "scope": {
+                "environment": "PAPER",
+                "instrument_uid": "console-paper:BTCUSDT",
+                "product": "SPOT",
+                "venue_account_id": "paper-local",
+                "venue_leg": "BOTH"
+              },
+              "supported": true
+            },
+            "evidence": [
+              {
+                "environment": "PAPER",
+                "hash": "0d50b6d85bebbda0da16343e2f63c5d767ee3b20d3aa89d96e3c26eca97f0aa7",
+                "id": "console:book:bdf02e8fe77c460f8ad88016fd24200c",
+                "source": "SERVER_HELD_PAPER_LEDGER",
+                "visible_at": "2026-10-29T04:41:18.654589+00:00"
+              }
+            ],
+            "positions": [],
+            "reservations": [],
+            "scope": {
+              "environment": "PAPER",
+              "instrument_uid": "console-paper:BTCUSDT",
+              "product": "SPOT",
+              "venue_account_id": "paper-local",
+              "venue_leg": "BOTH"
+            },
+            "sequence": 1
+          },
+          "processed_at": "2026-10-29T04:41:18.656277+00:00",
+          "record_id": "book",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "e9d73b18-6cbc-4511-b768-21fd5c88fe46"
+        },
+        {
+          "payload": {
+            "active_orders": [
+              {
+                "command_certainty": "CONFIRMED",
+                "filled_quantity": {
+                  "unit": "BASE",
+                  "value": "0"
+                },
+                "leaves_quantity": {
+                  "unit": "BASE",
+                  "value": "1"
+                },
+                "lifecycle_revision": 1,
+                "lifecycle_state": "SUBMITTED",
+                "order": {
+                  "identity": {
+                    "logical_client_order_id": "logical:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+                    "native_client_order_id": "paper-native:P1ebfe813b060001b7cb83778ccad7d923",
+                    "scope": {
+                      "environment": "PAPER",
+                      "instrument_uid": "console-paper:BTCUSDT",
+                      "product": "SPOT",
+                      "venue_account_id": "paper-local",
+                      "venue_leg": "BOTH"
+                    },
+                    "venue_client_order_id": "P1ebfe813b060001b7cb83778ccad7d923",
+                    "venue_order_id": "paper-order:P1ebfe813b060001b7cb83778ccad7d923"
+                  },
+                  "owner_strategy_id": "console-paper-owner",
+                  "ownership_epoch": 1
+                },
+                "outcome_provenance": "VENUE_QUERY",
+                "pending_operation": "NONE",
+                "sequence": 1
+              }
+            ],
+            "balances": [
+              {
+                "amount": "10000",
+                "currency": "USDT"
+              },
+              {
+                "amount": "0",
+                "currency": "BTC"
+              }
+            ],
+            "basis_fingerprint": "a39116a5466b75800f6b8ac8e4573de6441562dc51e2ce9e4eea1f65d0038196",
+            "coverage": {
+              "missing": [],
+              "pagination_complete": true,
+              "query_succeeded": true,
+              "scope": {
+                "environment": "PAPER",
+                "instrument_uid": "console-paper:BTCUSDT",
+                "product": "SPOT",
+                "venue_account_id": "paper-local",
+                "venue_leg": "BOTH"
+              },
+              "supported": true
+            },
+            "evidence": [
+              {
+                "environment": "PAPER",
+                "hash": "bd1dd322061efc723c034da554a3eca8caac5353459b5a45f4ee7dfd4c70cb47",
+                "id": "console-reduce:5047e3be40384ace8c1d57512be65caf",
+                "source": "SERVER_HELD_PAPER_LEDGER",
+                "visible_at": "2026-10-29T04:41:19.295577+00:00"
+              }
+            ],
+            "positions": [],
+            "reservations": [],
+            "scope": {
+              "environment": "PAPER",
+              "instrument_uid": "console-paper:BTCUSDT",
+              "product": "SPOT",
+              "venue_account_id": "paper-local",
+              "venue_leg": "BOTH"
+            },
+            "sequence": 2
+          },
+          "processed_at": "2026-10-29T04:41:19.29681+00:00",
+          "record_id": "book",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 2,
+          "transaction_id": "af1cdbf5-694a-4676-9ed1-43f2b87bbac6"
+        }
+      ],
+      "commands": [
+        {
+          "payload": {
+            "attempt_id": "attempt:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "canonical_payload": {
+              "full_position_exit": false,
+              "order_type": "MARKET",
+              "position_side": "BOTH",
+              "quantity": "1",
+              "reduce_only": false,
+              "side": "BUY"
+            },
+            "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "contract_version": "2026-10-20",
+            "created_at": "2026-10-29T04:41:18.657646+00:00",
+            "durable_record_ref": "pending-atomic-commit",
+            "environment": "PAPER",
+            "execution_epoch": 1,
+            "instrument_uid": "console-paper:BTCUSDT",
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "logical_client_order_id": "logical:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "operation": "SUBMIT",
+            "outcome_provenance": "NONE",
+            "ownership_epoch": 1,
+            "parent_command_id": null,
+            "payload_hash": "7014328a5e0820b48409cf7b1f9bb265904c6795752c1c6d5030a96cda4a965f",
+            "policy_revision": 1,
+            "product": "SPOT",
+            "state": "DURABLE_READY",
+            "target_order_id": null,
+            "venue_account_id": "paper-local",
+            "venue_client_order_id": "P1ebfe813b060001b7cb83778ccad7d923",
+            "venue_order_id": null
+          },
+          "processed_at": "2026-10-29T04:41:18.726239+00:00",
+          "record_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        },
+        {
+          "payload": {
+            "attempt_id": "attempt:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "canonical_payload": {
+              "full_position_exit": false,
+              "order_type": "MARKET",
+              "position_side": "BOTH",
+              "quantity": "1",
+              "reduce_only": false,
+              "side": "BUY"
+            },
+            "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "contract_version": "2026-10-20",
+            "created_at": "2026-10-29T04:41:18.657646+00:00",
+            "durable_record_ref": "postgres:63254611-7477-4e07-a079-41d01520e2b9",
+            "environment": "PAPER",
+            "execution_epoch": 1,
+            "instrument_uid": "console-paper:BTCUSDT",
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "logical_client_order_id": "logical:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "operation": "SUBMIT",
+            "outcome_provenance": "NONE",
+            "ownership_epoch": 1,
+            "parent_command_id": null,
+            "payload_hash": "7014328a5e0820b48409cf7b1f9bb265904c6795752c1c6d5030a96cda4a965f",
+            "policy_revision": 1,
+            "product": "SPOT",
+            "state": "MAY_HAVE_SENT",
+            "target_order_id": null,
+            "venue_account_id": "paper-local",
+            "venue_client_order_id": "P1ebfe813b060001b7cb83778ccad7d923",
+            "venue_order_id": null
+          },
+          "processed_at": "2026-10-29T04:41:19.050354+00:00",
+          "record_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 2,
+          "transaction_id": "63254611-7477-4e07-a079-41d01520e2b9"
+        }
+      ],
+      "domain_events": [],
+      "fills": [],
+      "order_projections": [
+        {
+          "payload": {
+            "command_certainty": "CONFIRMED",
+            "filled_quantity": {
+              "unit": "BASE",
+              "value": "0"
+            },
+            "leaves_quantity": {
+              "unit": "BASE",
+              "value": "1"
+            },
+            "lifecycle_revision": 1,
+            "lifecycle_state": "SUBMITTED",
+            "order": {
+              "identity": {
+                "logical_client_order_id": "logical:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+                "native_client_order_id": "paper-native:P1ebfe813b060001b7cb83778ccad7d923",
+                "scope": {
+                  "environment": "PAPER",
+                  "instrument_uid": "console-paper:BTCUSDT",
+                  "product": "SPOT",
+                  "venue_account_id": "paper-local",
+                  "venue_leg": "BOTH"
+                },
+                "venue_client_order_id": "P1ebfe813b060001b7cb83778ccad7d923",
+                "venue_order_id": "paper-order:P1ebfe813b060001b7cb83778ccad7d923"
+              },
+              "owner_strategy_id": "console-paper-owner",
+              "ownership_epoch": 1
+            },
+            "outcome_provenance": "VENUE_QUERY",
+            "pending_operation": "NONE",
+            "sequence": 1
+          },
+          "processed_at": "2026-10-29T04:41:19.288812+00:00",
+          "record_id": "logical:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "af1cdbf5-694a-4676-9ed1-43f2b87bbac6"
+        }
+      ],
+      "positions": [
+        {
+          "payload": {
+            "active_exit_plan_id": "protection:57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+            "actual_quantity": {
+              "unit": "BASE",
+              "value": "0"
+            },
+            "cost_evidence": {
+              "missing": [],
+              "pagination_complete": true,
+              "query_succeeded": true,
+              "scope": {
+                "environment": "PAPER",
+                "instrument_uid": "console-paper:BTCUSDT",
+                "product": "SPOT",
+                "venue_account_id": "paper-local",
+                "venue_leg": "BOTH"
+              },
+              "supported": true
+            },
+            "owner_book_id": "console-authoritative-paper",
+            "owner_strategy_id": "console-paper-owner",
+            "ownership_epoch": 1,
+            "position_id": "position:57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+            "realized_pnl": null,
+            "risk_locks": [],
+            "scope": {
+              "environment": "PAPER",
+              "instrument_uid": "console-paper:BTCUSDT",
+              "product": "SPOT",
+              "venue_account_id": "paper-local",
+              "venue_leg": "BOTH"
+            },
+            "unrealized_valuation": null
+          },
+          "processed_at": "2026-10-29T04:41:19.293925+00:00",
+          "record_id": "position:57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "af1cdbf5-694a-4676-9ed1-43f2b87bbac6"
+        },
+        {
+          "payload": {
+            "active_exit_plan_id": "protection:57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+            "actual_quantity": {
+              "unit": "BASE",
+              "value": "0"
+            },
+            "cost_evidence": {
+              "missing": [],
+              "pagination_complete": true,
+              "query_succeeded": true,
+              "scope": {
+                "environment": "PAPER",
+                "instrument_uid": "console-paper:BTCUSDT",
+                "product": "SPOT",
+                "venue_account_id": "paper-local",
+                "venue_leg": "BOTH"
+              },
+              "supported": true
+            },
+            "owner_book_id": "console-authoritative-paper",
+            "owner_strategy_id": "console-paper-owner",
+            "ownership_epoch": 1,
+            "position_id": "position:57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+            "realized_pnl": null,
+            "risk_locks": [],
+            "scope": {
+              "environment": "PAPER",
+              "instrument_uid": "console-paper:BTCUSDT",
+              "product": "SPOT",
+              "venue_account_id": "paper-local",
+              "venue_leg": "BOTH"
+            },
+            "unrealized_valuation": null
+          },
+          "processed_at": "2026-10-29T04:41:19.389449+00:00",
+          "record_id": "position:57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 2,
+          "transaction_id": "d3557d6e-b1ca-4408-863d-ad58b53e21e4"
+        }
+      ],
+      "protection_plans": [],
+      "reservations": [
+        {
+          "payload": {
+            "amount": "100.200",
+            "asset": "USDT",
+            "collateral_group_id": "console-paper-collateral",
+            "command_refs": [
+              "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b"
+            ],
+            "created_at": "2026-10-29T04:41:18.714937+00:00",
+            "environment": "PAPER",
+            "evidence_watermark": "",
+            "expires_at": "2026-10-29T04:41:48.657646+00:00",
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "owner_strategy_id": "console-paper-owner",
+            "reflected_amount": "0",
+            "reservation_id": "44853a3e-0058-4560-bc27-7c683aa13698",
+            "state": "HELD",
+            "venue_account_id": "paper-local"
+          },
+          "processed_at": "2026-10-29T04:41:18.721519+00:00",
+          "record_id": "44853a3e-0058-4560-bc27-7c683aa13698",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        }
+      ],
+      "risk_locks": [],
+      "transaction_observations": [
+        {
+          "observed_at": "2026-10-29T04:41:18.665742+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "e9d73b18-6cbc-4511-b768-21fd5c88fe46"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.730266+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "afcdc02d-ab1c-4610-81ec-7a6d61b59d8e"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.782158+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "3928cbe7-229a-4699-a1cf-f166b725f2d9"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.796373+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "8191ac3a45146e017ce30526bd00609d16f20c5211017d293bc0fc127b492bb3",
+          "transaction_id": "0655f8b0-6984-410d-bdef-c5eaac81fb42"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.811116+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "2b3347441591ae924ed7d28ed6e4cad3a08a35e3264d0a849a6761015a7db9fd",
+          "transaction_id": "550ef1be-1d92-424d-b014-1d61eb43140b"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.824798+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "db419e231b3530e184b39cdcb56e35f56aabbd73688f1080b7a02696c00d168d",
+          "transaction_id": "dd246684-b7ca-46e9-a934-b0da2e8662b8"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.840774+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "a748ac0995b4e0c03477751397e48bf9c5807562ef7948c18ee7d9d02e84026f",
+          "transaction_id": "9390be22-b711-4aea-9224-4f58cc8b1733"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.855034+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "7d3f4e9342d0dacdbef4ab602894dace654cbc12b34f9f2a5b34f84ee6575388",
+          "transaction_id": "fcd9d1f4-2f6b-4d5c-92b4-b0c1ae331d30"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.867163+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "ef91b3d8-8edb-43ac-9460-817ec0c029c7"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.877389+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "8191ac3a45146e017ce30526bd00609d16f20c5211017d293bc0fc127b492bb3",
+          "transaction_id": "bb02602a-befd-48d1-933f-112c09f9b61f"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.886342+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "2b3347441591ae924ed7d28ed6e4cad3a08a35e3264d0a849a6761015a7db9fd",
+          "transaction_id": "a888f942-9404-4a42-afb4-f47d98f47645"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.897076+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "db419e231b3530e184b39cdcb56e35f56aabbd73688f1080b7a02696c00d168d",
+          "transaction_id": "6323ffbc-1b59-4a06-8d95-eb4b2e83d32f"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.905912+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "a748ac0995b4e0c03477751397e48bf9c5807562ef7948c18ee7d9d02e84026f",
+          "transaction_id": "103adb99-3162-46f2-abfb-cddd6338932a"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.914417+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "7d3f4e9342d0dacdbef4ab602894dace654cbc12b34f9f2a5b34f84ee6575388",
+          "transaction_id": "46c43fbc-634a-4459-bcf9-9553ea8254c7"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.972103+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "b202e68a-dbab-4df1-8417-c56a09aa0fcf"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:18.983476+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "8e19204d-fbdd-4b4c-b0f0-09a2394edb04"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.053141+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "63254611-7477-4e07-a079-41d01520e2b9"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.085221+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "940ce9c3-1047-48e1-8ee1-90f621ddb124"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.116392+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "5ea8236d-906d-4678-b71b-2ca47591ae17"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.160298+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "919a3b61-f8f3-48f5-a72e-9d0c895801b1"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.192526+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "c13fbd39-86bc-487e-b53a-b92ac9006c4a"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.225482+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "a03e5439-8e6a-48ec-a9db-42a66c4eaee1"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.240519+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "75a7d696-0596-4138-8049-a27cd2810a6f"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.268937+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "6ee9f658-7189-4682-9215-1fbbfb6c380a"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.300657+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "af1cdbf5-694a-4676-9ed1-43f2b87bbac6"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.33874+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "0629b0fb-d74e-4099-991a-3999ae3cff02"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.367216+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "a9a32dba-d456-4c5c-8a7f-df8f12e05a15"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.39158+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "d3557d6e-b1ca-4408-863d-ad58b53e21e4"
+        },
+        {
+          "observed_at": "2026-10-29T04:41:19.404558+00:00",
+          "phase": "COMMIT_MARKER",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "transaction_id": "8547764d-c1a9-474e-98e8-eb90b8d9269e"
+        }
+      ]
+    },
+    "venue": {
+      "paper_engine_commands": [
+        {
+          "client_id": "P1ebfe813b060001b7cb83778ccad7d923",
+          "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "environment": "PAPER",
+          "operation": "SUBMIT",
+          "request": {
+            "attempt_id": "attempt:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "canonical_payload": {
+              "full_position_exit": false,
+              "order_type": "MARKET",
+              "position_side": "BOTH",
+              "quantity": "1",
+              "reduce_only": false,
+              "side": "BUY"
+            },
+            "command_id": "console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "contract_version": "2026-10-20",
+            "created_at": "2026-10-29T04:41:18.657646+00:00",
+            "durable_record_ref": "postgres:63254611-7477-4e07-a079-41d01520e2b9",
+            "environment": "PAPER",
+            "execution_epoch": 1,
+            "instrument_uid": "console-paper:BTCUSDT",
+            "intent_id": "intent:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "logical_client_order_id": "logical:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+            "operation": "SUBMIT",
+            "outcome_provenance": "NONE",
+            "ownership_epoch": 1,
+            "parent_command_id": null,
+            "payload_hash": "7014328a5e0820b48409cf7b1f9bb265904c6795752c1c6d5030a96cda4a965f",
+            "policy_revision": 1,
+            "product": "SPOT",
+            "state": "MAY_HAVE_SENT",
+            "target_order_id": null,
+            "venue_account_id": "paper-local",
+            "venue_client_order_id": "P1ebfe813b060001b7cb83778ccad7d923",
+            "venue_order_id": null
+          },
+          "request_hash": "03ee8c8dd808eaab1d76e92180128522687cb6632eaad2ab51b4b174926438c7",
+          "scope_key": "{\"environment\":\"PAPER\",\"instrument_uid\":\"console-paper:BTCUSDT\",\"product\":\"SPOT\",\"venue_account_id\":\"paper-local\",\"venue_leg\":\"BOTH\"}",
+          "target_client_id": "P1ebfe813b060001b7cb83778ccad7d923"
+        }
+      ],
+      "paper_engine_events": [],
+      "paper_engine_orders": [
+        {
+          "certainty": "CONFIRMED",
+          "client_id": "P1ebfe813b060001b7cb83778ccad7d923",
+          "environment": "PAPER",
+          "filled": 0,
+          "lifecycle": "SUBMITTED",
+          "logical_id": "logical:console-command:ee1b08d154dab09002d2fdbe4b4f692cb5fd96669d6bb1211f1f77d59b287b7b",
+          "order_id": "paper-order:P1ebfe813b060001b7cb83778ccad7d923",
+          "owner_strategy_id": "console-paper-owner",
+          "ownership_epoch": 1,
+          "pending": "NONE",
+          "pending_command_id": null,
+          "price_currency": "USDT",
+          "quantity": 1,
+          "quantity_unit": "BASE",
+          "revision": 1,
+          "scope_key": "{\"environment\":\"PAPER\",\"instrument_uid\":\"console-paper:BTCUSDT\",\"product\":\"SPOT\",\"venue_account_id\":\"paper-local\",\"venue_leg\":\"BOTH\"}"
+        }
+      ]
+    }
+  },
+  "before": {
+    "ledger": {
+      "audit_events": [
+        {
+          "payload": {
+            "initial_cash": "10000",
+            "source": "EXPLICIT_NEW_VIRTUAL_CAPITAL"
+          },
+          "processed_at": "2026-10-29T04:41:18.126482+00:00",
+          "record_id": "console:seed",
+          "scope_id": "57f2ad813485afa54d33451a45d214b0d52a9dc1b71ab0882c3da8340138c786",
+          "sequence": 1,
+          "transaction_id": "8b03b88549364c9fb6df75de772fa525"
+        }
+      ],
+      "book_snapshots": [],
+      "commands": [],
+      "domain_events": [],
+      "fills": [],
+      "order_projections": [],
+      "positions": [],
+      "protection_plans": [],
+      "reservations": [],
+      "risk_locks": [],
+      "transaction_observations": []
+    },
+    "venue": {
+      "paper_engine_commands": [],
+      "paper_engine_events": [],
+      "paper_engine_orders": []
+    }
+  }
+}
