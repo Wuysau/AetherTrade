@@ -79,6 +79,14 @@ class OrderProgramCommandBinding:
 
 
 @dataclass(frozen=True, kw_only=True)
+class ProgramIntake:
+    proposal_hash: str
+    context_hash: str
+    compilation: AtomicCompilation
+    execution_policy: ExecutionPolicy
+
+
+@dataclass(frozen=True, kw_only=True)
 class ProgramAdmission:
     proposal_hash: str
     context_hash: str
@@ -188,8 +196,14 @@ class OrderProgramIngress:
         def accepted(tx, record):
             intent = accepted_intent(record)
             require(intent.target_quantity == compilation.normalized_target_quantity, 'NORMALIZED_TARGET_MISMATCH')
-            outcome = self.reservations._reserve(tx, intent, record.book_sequence, accepted=record)
             OrderProgramRepository(tx).save_program(proposal.program)
+            # The existing reservation input reader receives only TradeIntent.
+            # Make the complete original semantics available before it builds
+            # its exact command, in this same uncommitted transaction.
+            intake = ProgramIntake(proposal_hash=ph, context_hash=ch, compilation=compilation,
+                execution_policy=self.policy)
+            tx._append('audit_events', 'order-program-intake:' + intent.intent_id, intake, 0)
+            outcome = self.reservations._reserve(tx, intent, record.book_sequence, accepted=record)
             admission = ProgramAdmission(proposal_hash=ph, context_hash=ch, compilation=compilation,
                 execution_policy=self.policy, outcome=outcome)
             tx._append('audit_events', 'order-program-admission:' + intent.intent_id, admission, 0)
@@ -216,6 +230,23 @@ class OrderProgramIngress:
 
         receipt = ProposalIngress(self.uow, self.scope, load, on_accept=accepted, on_replay=replay).accept(projected, context)
         return ProgramAdmissionReceipt(receipt=receipt, reservation=captured.get('outcome') if receipt.status != t.IntentState.REJECTED else None)
+
+
+def program_intake(tx, intent):
+    """Read original v2 semantics for the trusted IP-07 command/risk loader.
+
+    An absent record means an ordinary legacy intake. A present record must
+    match this exact projected intent; it never authorizes a command itself.
+    """
+    intake = tx._latest('audit_events', 'order-program-intake:' + intent.intent_id, ProgramIntake)
+    if intake is None:
+        return None
+    projected = project_proposal(intake.compilation.original_proposal, intake.execution_policy)
+    require(intake.proposal_hash == intake.compilation.proposal_hash
+            and intent.proposal_hash == ContractCodec().hash(projected)
+            and intent.target_quantity == intake.compilation.normalized_target_quantity,
+            'PROGRAM_INTENT_MISMATCH')
+    return intake
 
 
 def validate_program_command(tx, command, intent, load_current_program_facts, load_qualification):
