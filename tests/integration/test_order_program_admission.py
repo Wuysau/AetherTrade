@@ -143,7 +143,16 @@ def test_distinct_target_cannot_duplicate_working_or_unknown(program_database, u
         proposal_hash=VersionedOrderCodec().hash('order-proposal', p2))
     result = ingress.admit(p2, context, compiled2)
     assert not result.reservation.accepted
-    assert c.count('commands') == c.count('intents') == 1
+    # MAY_HAVE_SENT appends a new version of the original command, not a new
+    # external write identity. Count both versions and distinct IDs explicitly.
+    assert c.count('commands') == (2 if uncertain else 1)
+    assert c.count('intents') == 1
+    with c.ledger.connect_admin() as conn:
+        rows=conn.execute('SELECT DISTINCT record_id FROM ledger.commands WHERE scope_id=%s',
+                          (scope_id(c.scope),)).fetchall()
+        assert len(rows)==1
+        if uncertain:
+            assert rows[0][0]==command.command_id
 
 
 def test_budget_denial_never_persists_command_or_funding(program_database):
