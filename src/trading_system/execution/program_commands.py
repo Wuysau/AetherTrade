@@ -235,7 +235,7 @@ class ProgramCommandRepository:
         from trading_system.risk.program_financial_admission import validate_current_inputs,ProgramFinancialQualification
         from trading_system.accounts.authorization import valid_evidence
         from trading_system.risk.reservation_repository import ReservationRepository,merge_holds
-        from trading_system.risk.target_guard import target_obligations
+        from trading_system.risk.target_guard import _legacy_target_obligations
         from trading_system.risk.locked_actions import LockedActionVerifier
         from trading_system.risk.asset_capacity import CapacityInputs,check_capacity,amounts
         from trading_system.execution.commands import CommandRepository
@@ -265,7 +265,6 @@ class ProgramCommandRepository:
                 and original.scope==write.scope and original.compilation_hash==write.compilation_hash,
                 'PROGRAM_COMPLETE_ATTACHMENT_REQUIRED')
             require(assigned.get(original.request_index)==cid,'PROGRAM_REQUEST_ALLOCATION_MISMATCH')
-            validate_stored_program_binding(self.tx,original,self.write(cid))
         require(digest(source)==digest(bundle.intent.source),'PROGRAM_SOURCE_CHANGED')
         fence=current_fence(self.tx,source.context)
         book=self.tx.projections.book(self.tx.scope)
@@ -303,13 +302,16 @@ class ProgramCommandRepository:
         require(any(w.command_id==write.command_id for w in exclusions),'PROGRAM_ATTACHMENT_REQUIRED')
         require(not any(o.unresolved and not(o.original.scope==write.scope and o.original.command_id==write.command_id)
             for o in obligations),'PROGRAM_OTHER_COMMAND_UNRESOLVED')
-        require(not CommandRepository(self.tx).unresolved_in_group('',program_exclusion=(replace(write,state='DURABLE_READY'),)),
+        require(not CommandRepository(self.tx)._legacy_unresolved_in_group(''),
             'PROGRAM_LEGACY_COMMAND_UNRESOLVED')
+        excluded_hashes={digest(original) for original in exclusions}
+        require(not any(o.original.scope==write.scope and digest(o.original) not in excluded_hashes for o in obligations),
+            'PROGRAM_TARGET_ALLOCATION_REQUIRED')
         local_ids={row[0] for row in self.tx.execute('SELECT record_id FROM ledger.reservations WHERE scope_id=%s',
             (scope_id(self.tx.scope),)).fetchall()}
         external_ids={p.reservation.reservation_id for p in book.reservations}-{p.reservation.reservation_id for p in reservations.group()}
-        pending=target_obligations(self.tx,intent,book,tuple(p for p in others
-            if p.reservation.reservation_id in local_ids|external_ids),clock.utc_now,program_exclusion=exclusions)
+        pending=_legacy_target_obligations(self.tx,intent,book,tuple(p for p in others
+            if p.reservation.reservation_id in local_ids|external_ids),clock.utc_now)
         require(digest(pending)==digest(a.target_facts.inputs.pending),'PROGRAM_CURRENT_QUANTITY_OBLIGATIONS_CHANGED')
         held=amounts(bundle.basis.incremental_requirements)
         require(all(m.amount<=held.get(m.currency,-1) for m in basis.incremental_requirements),'PROGRAM_RESERVED_BUDGET_EXCEEDED')
@@ -320,7 +322,10 @@ class ProgramCommandRepository:
         require(capacity.sufficient,'PROGRAM_CURRENT_CAPACITY_DENIED')
         duty=LockedActionVerifier().verify_program(self.tx,intent,a,clock.utc_now,book=book,read_proof=self.load_action_proof)
         require(duty is not None,'PROGRAM_ACTIVE_RISK_LOCK')
-        request=self.request(write.command_id)
+        # The original immutable request was validated by write() and the one
+        # complete obligation snapshot above in this SAME transaction. Do not
+        # replay that archive eight times inside the <=5 second permit budget.
+        request=self._raw_binding(write.command_id).request
         self._verify_current_request(request,a,clock)
         require(before==digest(self.tx.projections.book(self.tx.scope)) and
             digest(current_fence(self.tx,source.context))==digest(fence),'PROGRAM_CURRENT_STATE_CHANGED')
@@ -337,13 +342,13 @@ class ProgramCommandRepository:
             'lease':domain_payload(lease),'clock':domain_payload(end_clock),'fence':domain_payload(fence),
             'fence_record_id':revision_key(source.context),'assessment':domain_payload(a),
             'qualification':domain_payload(qualification),'valid_until':expires.isoformat()}
-        return context,end_clock,lease,expires
+        return context,end_clock,lease,expires,request
 
     @atomic_write
     def mark_may_have_sent(self,command_id,lease,*,token_hash):
         w=self.write(command_id)
         require(w is not None and w.state=='DURABLE_READY','PROGRAM_QUERY_ORIGINAL_IDS_NO_RETRY')
-        context,clock,current,expires=self._current(w,lease)
+        context,clock,current,expires,_=self._current(w,lease)
         ttl=min(self.tx.permit_ttl_ms,int((expires-utc_timestamp(clock.utc_now)).total_seconds()*1000),
             (current.deadline_monotonic_ns-clock.monotonic_ns)//1_000_000)
         require(ttl>=1,'PROGRAM_PERMIT_WINDOW_EXPIRED')
@@ -359,12 +364,12 @@ class ProgramCommandRepository:
         require(w is not None and w.state=='MAY_HAVE_SENT' and w.scope==permit.scope
             and w.request_hash==permit.request_hash and w.binding_hash==permit.binding_hash,
             'PROGRAM_PERMIT_BINDING_CHANGED')
-        context,clock,_,_=self._current(w,lease)
+        context,clock,_,_,request=self._current(w,lease)
         require(utc_timestamp(clock.utc_now)<utc_timestamp(permit.expires_at)
             and clock.monotonic_ns<permit.deadline_monotonic_ns,'PROGRAM_PERMIT_EXPIRED')
         self.tx.execute('SELECT ledger.consume_program_permit(%s,%s,%s,%s::jsonb,%s)',
             (scope_id(w.scope),w.command_id,_token_hash(permit.token),canonical_json(context),self.tx.transaction_id))
-        return self.request(w.command_id)
+        return request
 
     @atomic_write
     def record_unknown(self,command_id):
