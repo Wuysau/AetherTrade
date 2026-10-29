@@ -7,7 +7,9 @@ execution; runtime cannot supply execution quantities or mutate market sources.
 from dataclasses import dataclass,replace,fields
 from decimal import Decimal,localcontext,Inexact,Rounded
 from pathlib import Path
+from hashlib import sha256
 from typing import Literal
+import json
 import re
 import psycopg
 from psycopg import sql
@@ -120,6 +122,7 @@ class PaperMatchedOrder:
     filled_quantity:Decimal
     remaining_quantity:Decimal
     quantity_unit:str
+    lifecycle_revision:int
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -462,19 +465,30 @@ def query_creation(engine,command_id):
             'USING(scope_key,client_id) WHERE o.scope_key=%s AND o.client_id=%s',(engine._scope_key,command['target_client_id'])).fetchall()
         orders=[];fills=[];contexts=[];dispositions=[];raw_total=0
         for row in rows:
-            terms=row['terms'];remaining=Decimal(0) if row['lifecycle'] in ('FILLED','CANCELED','EXPIRED','REJECTED') else row['quantity']-row['filled']
+            terms=row['terms']
+            with localcontext() as arithmetic:
+                arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
+                remaining=Decimal(0) if row['lifecycle'] in ('FILLED','CANCELED','EXPIRED','REJECTED') else row['quantity']-row['filled']
             contexts.append(_accepted_context(terms,request))
             orders.append(PaperMatchedOrder(client_id=row['client_id'],venue_order_id=row['order_id'],node_id=terms['node_id'],namespace=terms['namespace'],
-                status=row['lifecycle'],quantity=row['quantity'],filled_quantity=row['filled'],remaining_quantity=remaining,quantity_unit=row['quantity_unit']))
+                status=row['lifecycle'],quantity=row['quantity'],filled_quantity=row['filled'],remaining_quantity=remaining,
+                quantity_unit=row['quantity_unit'],lifecycle_revision=row['revision']))
             with db.cursor(name='paper_creation_source_events') as events:
                 events.itersize=1
-                events.execute('SELECT * FROM public.paper_engine_events WHERE scope_key=%s AND client_id=%s '
+                events.execute('SELECT *,payload::text AS raw_payload_json FROM public.paper_engine_events WHERE scope_key=%s AND client_id=%s '
                     'ORDER BY occurred_at,event_id LIMIT 4097',(engine._scope_key,row['client_id']))
                 count=0
                 for event in events:
                     count+=1;require(count<=4096,'PAPER_FILL_EVIDENCE_BOUND_EXCEEDED')
-                    payload=event['payload'];raw=canonical_json(payload)
+                    # SQL-created events persist SHA256(payload::text), a distinct
+                    # domain from app-canonical market input hashes. Keep the
+                    # original bytes/hash; JSON NUMERIC must never round via float.
+                    raw=event['raw_payload_json']
                     require(len(raw.encode('utf-8'))<=1048576,'PAPER_RAW_EVIDENCE_BOUND_EXCEEDED')
+                    require(sha256(raw.encode('utf-8')).hexdigest()==event['payload_hash'],'PAPER_EVENT_STORED_HASH_CHANGED')
+                    payload=json.loads(raw,parse_float=Decimal)
+                    event_ref=t.EvidenceRef(id=event['event_id'],hash=event['payload_hash'],environment=t.Environment.PAPER,
+                        source=SOURCE,visible_at=event['occurred_at'].isoformat())
                     if payload.get('record_kind')=='PAPER_MARKET_DISPOSITION':
                         source=db.execute('SELECT payload_hash FROM public.paper_market_inputs WHERE market_key=%s AND event_id=%s',
                             (payload['market_key'],payload['market_event_id'])).fetchone()
@@ -482,7 +496,7 @@ def query_creation(engine,command_id):
                             'PAPER_DISPOSITION_SOURCE_REQUIRED')
                         item=PaperMarketDisposition(event_id=event['event_id'],client_id=row['client_id'],status=payload['status'],
                             reason=payload['reason'],market_event_id=payload['market_event_id'],market_hash=payload['market_hash'],
-                            occurred_at=event['occurred_at'].isoformat(),evidence=_evidence(event['event_id'],payload,event['occurred_at'].isoformat()),
+                            occurred_at=event['occurred_at'].isoformat(),evidence=event_ref,
                             raw_payload_json=raw)
                         raw_total+=len(canonical_json(domain_payload(item)).encode('utf-8'))
                         require(raw_total<=16777216,'PAPER_RAW_EVIDENCE_BOUND_EXCEEDED');dispositions.append(item)
@@ -497,12 +511,14 @@ def query_creation(engine,command_id):
                         namespace=terms['namespace'],quantity=event['fill_delta'],quantity_unit=row['quantity_unit'],
                         price=event['price'],price_asset=row['price_currency'],gross_notional=Decimal(payload['gross_notional']),
                         fees=tuple(decode(FeeV3,f) for f in payload['fees']),market_event_id=payload['market_event_id'],market_hash=payload['market_hash'],
-                        occurred_at=event['occurred_at'].isoformat(),evidence=_evidence(event['event_id'],payload,event['occurred_at'].isoformat()),
+                        occurred_at=event['occurred_at'].isoformat(),evidence=event_ref,
                         raw_payload_json=raw)
                     raw_total+=len(canonical_json(domain_payload(item)).encode('utf-8'))
                     require(raw_total<=16777216,'PAPER_RAW_EVIDENCE_BOUND_EXCEEDED');fills.append(item)
-            require(sum((f.quantity for f in fills if f.client_id==row['client_id']),Decimal(0))==row['filled'],
-                'PAPER_FILL_SOURCE_INCOMPLETE')
+            with localcontext() as arithmetic:
+                arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
+                require(sum((f.quantity for f in fills if f.client_id==row['client_id']),Decimal(0))==row['filled'],
+                    'PAPER_FILL_SOURCE_INCOMPLETE')
         payload={'request':domain_payload(request),'orders':[domain_payload(o) for o in orders],'fills':[domain_payload(f) for f in fills],
             'accepted_contexts':[domain_payload(c) for c in contexts],'dispositions':[domain_payload(d) for d in dispositions]}
         return PaperCreationReport(command_id=command_id,request=request,orders=tuple(orders),fills=tuple(fills),
