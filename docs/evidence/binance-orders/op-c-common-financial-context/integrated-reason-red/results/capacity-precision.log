@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_small_cross_account_debit_cannot_disappear_in_large_pool _________
+tests/integration/test_capacity_precision.py:26: in test_small_cross_account_debit_cannot_disappear_in_large_pool
+    assert result.rejection_codes==('INSUFFICIENT_CAPACITY:USDT',)
+E   AssertionError: assert ('INSUFFICIEN...NDABLE:USDT',) == ('INSUFFICIEN...PACITY:USDT',)
+E     
+E     At index 0 diff: 'INSUFFICIENT_SPENDABLE:USDT' != 'INSUFFICIENT_CAPACITY:USDT'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/integration/test_capacity_precision.py::test_small_cross_account_debit_cannot_disappear_in_large_pool
+1 failed in 0.58s
