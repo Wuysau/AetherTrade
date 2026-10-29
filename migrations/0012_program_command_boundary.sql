@@ -30,6 +30,7 @@ CREATE FUNCTION ledger.program_digest(v jsonb) RETURNS text LANGUAGE sql IMMUTAB
 CREATE TABLE ledger.program_request_bindings(
  scope_id text NOT NULL,record_id text NOT NULL UNIQUE,sequence bigint NOT NULL CHECK(sequence=1),
  payload jsonb NOT NULL,transaction_id text NOT NULL,processed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+ database_transaction xid8 NOT NULL DEFAULT pg_current_xact_id(),
  PRIMARY KEY(scope_id,record_id,sequence));
 CREATE TABLE ledger.program_client_identities(
  environment text NOT NULL,account_id text NOT NULL,product text NOT NULL,service_namespace text NOT NULL,
@@ -59,6 +60,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
  JOIN ledger.intents i ON i.scope_id=b.scope_id AND i.record_id=b.payload->>'intent_id'
  JOIN ledger.audit_events f ON f.scope_id=b.scope_id AND f.record_id='program-financial-bundle:'||(b.payload->>'intent_id')
  JOIN ledger.order_programs p ON p.scope_id=b.scope_id AND p.record_id=p_write->>'program_id'
+ LEFT JOIN ledger.order_writes_v2 ow ON ow.scope_id=b.scope_id AND ow.record_id=b.record_id AND ow.sequence=1
  WHERE b.scope_id=p_scope AND b.record_id=p_id AND b.payload->>'command_id'=p_id
  AND p_write->>'command_id'=p_id AND p_write->'scope'=b.payload->'scope'
  AND p_write->>'intent_id'=b.payload->>'intent_id'
@@ -76,6 +78,10 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
  AND p.payload=f.payload#>'{intent,proposal,program}'
  AND f.payload#>>'{decision,verdict}'='ALLOW'
  AND f.transaction_id=b.transaction_id AND i.transaction_id=b.transaction_id
+ AND f.xmin=b.xmin AND i.xmin=b.xmin AND (ow.record_id IS NULL OR ow.xmin=b.xmin)
+ AND NOT EXISTS(SELECT 1 FROM jsonb_array_elements(f.payload->'reservations') v
+  LEFT JOIN ledger.reservations r ON r.scope_id=b.scope_id AND r.record_id=v#>>'{reservation,reservation_id}'
+  WHERE r.record_id IS NULL OR r.payload IS DISTINCT FROM v->'reservation' OR r.xmin IS DISTINCT FROM b.xmin)
  AND p_write->>'owner_strategy_id'=i.payload->>'owner_strategy_id'
  AND p_write->>'ownership_epoch'=i.payload->>'ownership_epoch'
  AND p_write->>'policy_revision'=i.payload->>'risk_policy_revision')
@@ -113,7 +119,8 @@ SET search_path=pg_catalog,ledger AS $$ DECLARE prior jsonb; seq bigint; BEGIN
   RAISE EXCEPTION 'complete financial program binding required' USING ERRCODE='23514'; END IF;
  IF prior IS NULL THEN
   IF NEW.sequence<>1 OR NEW.payload->>'state' IS DISTINCT FROM 'DURABLE_READY' OR
-   NOT EXISTS(SELECT 1 FROM ledger.program_request_bindings b WHERE b.scope_id=NEW.scope_id AND b.record_id=NEW.record_id AND b.transaction_id=NEW.transaction_id) THEN
+   NOT EXISTS(SELECT 1 FROM ledger.program_request_bindings b WHERE b.scope_id=NEW.scope_id AND b.record_id=NEW.record_id
+    AND b.transaction_id=NEW.transaction_id AND b.database_transaction=pg_current_xact_id()) THEN
    RAISE EXCEPTION 'same transaction initial ready required' USING ERRCODE='23514'; END IF;
  ELSE
   IF NEW.sequence<>seq+1 OR (prior-'state') IS DISTINCT FROM (NEW.payload-'state') OR
@@ -173,6 +180,9 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$ DECLAR
   RAISE EXCEPTION 'current exact program boundary required' USING ERRCODE='23514'; END IF;
  INSERT INTO ledger.program_dispatch_marks VALUES(p_scope,p_id,jsonb_set(w,'{state}','"MAY_HAVE_SENT"'),p_context,p_token_hash,
   clock_timestamp()+p_ttl*interval '1 millisecond',p_transaction,pg_current_xact_id());
+ UPDATE ledger.aggregate_heads SET sequence=2 WHERE scope_id=p_scope
+  AND aggregate_id='order_writes_v2:'||p_id AND sequence=1;
+ IF NOT FOUND THEN RAISE EXCEPTION 'stale program command aggregate' USING ERRCODE='23514'; END IF;
  INSERT INTO ledger.order_writes_v2(scope_id,record_id,sequence,payload,transaction_id)
   VALUES(p_scope,p_id,2,jsonb_set(w,'{state}','"MAY_HAVE_SENT"'),p_transaction);
 END $$;

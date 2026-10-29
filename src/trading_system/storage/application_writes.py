@@ -104,7 +104,10 @@ def application_write_obligations(tx, *, scope_only=False):
             == original.canonical_program_hash, 'PROGRAM_HASH_MISMATCH')
         if type(original) is ApplicationWriteV3:
             from trading_system.execution.program_commands import validate_stored_program_binding
-            validate_stored_program_binding(tx, original, current)
+            try:
+                validate_stored_program_binding(tx, original, current)
+            except Exception as exc:
+                raise MissingEvidence('PROGRAM_WRITE_BINDING_INVALID') from exc
         selected[(physical_scope, identifier)] = ApplicationWriteObligation(original=original,
             current=current, collateral_group_id=bindings[key])
     # Application children remain independent local writes. Native children
