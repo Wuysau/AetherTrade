@@ -46,7 +46,10 @@ def real_case(dsn,*,qualified=True):
     original_inputs=risk_module.inputs;suffix=uuid4().hex
     def scoped_inputs(product):
         p,r,c,k=original_inputs(product);scope=replace(k['scope'],venue_account_id='isolated-'+suffix)
-        r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+        qualification_ref=t.EvidenceRef(id='isolated-qualification-fixture',hash='c'*64,
+            environment=scope.environment,source='SYNTHETIC_QUALIFICATION_FIXTURE_NOT_NATIVE',visible_at=r.as_of)
+        r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN',
+            evidence=(qualification_ref,) if qualified else ())
         k={**k,'scope':scope,'profile':replace(k['profile'],scope=scope),
             'expected_capabilities_hash':VersionedOrderCodec().hash('order-capability-snapshot',c)}
         return p,r,c,k
@@ -113,7 +116,8 @@ def real_case(dsn,*,qualified=True):
         return ProgramFinancialQualification(scope=scope,compilation_hash=digest(a.compilation),
             capabilities_hash=a.compilation.capabilities_hash,rules_hash=a.compilation.rules_hash,
             profile_hash=a.compilation.profile_hash,adapter_build_digest=a.compilation.adapter_build_digest,
-            execution_mode=a.compilation.original_program.execution_mode,evidence=c.book.evidence,valid_until=c.terms.valid_until)
+            execution_mode=a.compilation.original_program.execution_mode,evidence=a.capabilities.evidence,
+            valid_until=c.terms.valid_until)
     return SimpleNamespace(c=c,scope=scope,owner=owner,intake=intake,service=service,source=source,
         record=record,ingress=ingress,load=load,qualify=qualify,key=intake_key(c.plan.original_proposal,context),dsn=dsn)
 
