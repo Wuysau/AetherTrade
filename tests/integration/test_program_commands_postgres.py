@@ -373,3 +373,34 @@ def test_external_program_hold_cannot_gain_unauthorized_reflection_credit(databa
             else:tx._append('audit_events','ip07:reservation:'+previous.reservation.reservation_id,changed,0)
     with c.owner.transaction(c.scope) as tx:
         assert ReservationRepository(tx).get(b.reservations[0].reservation.reservation_id)==b.reservations[0]
+
+@pytest.mark.parametrize('first_family',['program','legacy'])
+@pytest.mark.parametrize('collision',['client','command'])
+def test_raw_concurrent_cross_family_identity_insertion_is_serialized(database,first_family,collision):
+    import psycopg
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    c=real_case(database);nonce=uuid4().hex;started=Event();finished=Event()
+    command='race-command-'+nonce;client='race-client-'+nonce
+    statements={
+        'program':('INSERT INTO ledger.program_client_identities VALUES(%s,%s,%s,%s,%s,%s,%s)',
+            ('PAPER',c.scope.venue_account_id,'SPOT','BINANCE_SPOT_ORDINARY',client,scope_id(c.scope),command)),
+        'legacy':('INSERT INTO ledger.command_identities VALUES(%s,%s,%s,%s,%s,%s,%s)',
+            ('PAPER',c.scope.venue_account_id,'SPOT',client if collision=='client' else client+'-other',
+                command if collision=='command' else command+'-other',scope_id(c.scope),'race-intent'))}
+    other='legacy' if first_family=='program' else 'program'
+    def second():
+        try:
+            with psycopg.connect(database) as db:
+                db.execute('SET ROLE ledger_owner');db.commit();started.set()
+                db.execute(*statements[other])
+            return 'committed'
+        except psycopg.errors.CheckViolation:return 'collision-denied'
+        finally:finished.set()
+    with psycopg.connect(database) as first,ThreadPoolExecutor(max_workers=1) as pool:
+        first.execute('SET ROLE ledger_owner');first.commit();first.execute(*statements[first_family])
+        future=pool.submit(second);assert started.wait(10)
+        # Both transactions overlap. A SQL guard may block the second insert;
+        # first commit releases it without a barrier-after-insert deadlock.
+        finished.wait(1);first.commit()
+        assert future.result(timeout=10)=='collision-denied'
