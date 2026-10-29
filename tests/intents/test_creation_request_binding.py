@@ -180,3 +180,27 @@ def test_venue_generated_list_child_cannot_become_a_standalone_local_send():
     changed=replace(plan,requests=(request,))
     with pytest.raises(ValueError,match='VENUE_CHILD_REQUIRES_ORIGINAL_NATIVE_PARENT'):
         materialize_creation(changed,0,profile,assign_client_ids(changed,0,'duplicate-child-command'))
+
+
+def test_conditional_algo_cannot_be_redirected_to_same_product_ordinary_service():
+    from test_program_compilation import trigger
+    from trading_system.intents.program_compilation import Namespace,Operation
+    from trading_system.contracts.order_program import QuantitySpec
+    p,r,c,k=inputs(t.Product.USD_M_PERP)
+    p=change(p,quantity=QuantitySpec(kind='BASE_QUANTITY',value='1',source_node=None),price=price(),
+        trigger=trigger(source='MARK_PRICE'),tif=TimeInForceSpec(kind='NONE',expires_at=None))
+    plan=compile_order_program(p,r,c,**k)
+    assert plan.nodes[0].namespace==Namespace.USD_M_CONDITIONAL
+    changed=replace(plan,requests=(replace(plan.requests[0],namespace=Namespace.USD_M_ORDINARY,operation=Operation.ORDER),))
+    with pytest.raises(ValueError,match='CREATION_NODE_SERVICE_MISMATCH'):
+        materialize_creation(changed,0,k['profile'],assign_client_ids(changed,0,'wrong-conditional-service'))
+
+
+def test_local_algorithm_parent_cannot_disguise_its_envelope_as_an_ordinary_order():
+    from trading_system.intents.program_compilation import Namespace,Operation,RequestPlan,Parameter,FieldName
+    plan=make_plan('TWAP','LOCAL_SYNTHETIC');profile=inputs()[3]['profile'];node=plan.nodes[0]
+    request=RequestPlan(namespace=Namespace.SPOT_ORDINARY,operation=Operation.ORDER,node_ids=(node.original.node_id,),
+        parameters=(Parameter(name=FieldName.SYMBOL,value=profile.venue_symbol),*node.parameters))
+    changed=replace(plan,requests=(request,))
+    with pytest.raises(ValueError,match='LOCAL_ALGORITHM_ACTIVATION_IS_NOT_EXTERNAL_WRITE'):
+        materialize_creation(changed,0,profile,assign_client_ids(changed,0,'disguised-local-parent'))
