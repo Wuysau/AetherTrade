@@ -114,6 +114,7 @@ class ChildState:
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramState:
+    parent_observed_at:str|None=None
     contract_version:Literal['2026-10-28']='2026-10-28'
     program_id:str
     sequence:int
@@ -136,7 +137,7 @@ class ObservationEvidence:
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class IngestionResult:
-    state:ProgramState
+    state:ProgramState|None
     restriction:str|None
     duplicate:bool=False
 
@@ -274,3 +275,38 @@ class ParentObservation:
     def __post_init__(self):
         for x in (self.observation_id,self.parent_client_id,self.parent_venue_id):identifier(x)
         amount(self.unallocated_quantity,zero=True);amount(self.cumulative_quantity,zero=True);utc_timestamp(self.occurred_at)
+
+
+PARENT_TRANSITIONS={
+ 'ACTIVE':{'ACTIVE','CANCEL_PENDING','STOPPED','COMPLETED'},
+ 'CANCEL_PENDING':{'CANCEL_PENDING','STOPPED','COMPLETED'},
+ 'STOPPED':{'STOPPED','COMPLETED'},'COMPLETED':{'COMPLETED'},
+}
+
+def apply_parent_observation(authority,state,event):
+    """An original-ID query updates facts, never releases a reservation or risk lock."""
+    if (event.scope!=authority.scope or event.namespace!=authority.namespace or event.venue!=authority.venue
+        or event.parent_client_id!=authority.parent_client_id or event.parent_venue_id!=authority.parent_venue_id):return restrict(state,'PARENT_LINK_UNVERIFIED')
+    if state.status=='RECONCILIATION_REQUIRED':return restrict(state,'PARENT_REVIEW_REQUIRED')
+    if event.status in ('SUBMIT_UNKNOWN','CANCEL_UNKNOWN'):return restrict(state,'PARENT_STATE_UNKNOWN')
+    if event.status not in PARENT_TRANSITIONS.get(state.status,set()):return restrict(state,'PARENT_STATE_REGRESSION')
+    if state.parent_observed_at is not None and utc_timestamp(event.occurred_at)<utc_timestamp(state.parent_observed_at):return restrict(state,'OUT_OF_ORDER_PARENT_OBSERVATION')
+    with localcontext() as arithmetic:
+        arithmetic.prec=256;arithmetic.traps[Inexact]=True;arithmetic.traps[Rounded]=True
+        filled=sum((Decimal(c.cumulative_quantity) for c in state.children),Decimal(0))
+        remaining=sum((Decimal(c.quantity)-Decimal(c.cumulative_quantity) for c in state.children if c.status not in TERMINAL),Decimal(0))
+        unallocated=Decimal(event.unallocated_quantity)
+        if filled!=Decimal(event.cumulative_quantity):return restrict(state,'CHILD_EVIDENCE_INCOMPLETE')
+        if filled+remaining+unallocated>Decimal(authority.maximum_quantity):return restrict(state,'PARENT_QUANTITY_EXCEEDED')
+        fees={}
+        for c in state.children:
+            for f in c.fills:
+                for fee in f.fees:fees[fee.asset]=fees.get(fee.asset,Decimal(0))+Decimal(fee.amount)
+        caps={b.asset:Decimal(b.amount) for b in authority.fee_budgets}
+        if any(asset not in caps or value>caps[asset] for asset,value in fees.items()):return restrict(state,'FEE_BUDGET_EXCEEDED')
+        spent=sum((Decimal(f.price)*Decimal(f.quantity) for c in state.children for f in c.fills),Decimal(0))
+        if spent+(remaining+unallocated)*Decimal(authority.maximum_price)+fees.get(authority.quote_asset,Decimal(0))>Decimal(authority.maximum_notional):return restrict(state,'PARENT_NOTIONAL_EXCEEDED')
+        if event.status in ('STOPPED','COMPLETED') and unallocated!=0:return restrict(state,'PARENT_STOP_UNVERIFIED')
+        if event.status=='COMPLETED' and any(c.status not in TERMINAL for c in state.children):return restrict(state,'CHILDREN_STILL_OPEN')
+    return IngestionResult(state=replace(state,sequence=state.sequence+1,status=event.status,
+        unallocated_quantity=event.unallocated_quantity,parent_observed_at=event.occurred_at),restriction=None)

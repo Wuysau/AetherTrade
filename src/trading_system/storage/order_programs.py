@@ -12,7 +12,7 @@ from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,domain_payload,utc_timestamp
 from trading_system.contracts.order_program import OrderProgram,OrderProgramCodec
 from trading_system.contracts.order_lifecycle import (ParentAuthority,ChildObservation,ProgramState,
-    ObservationEvidence,ApplicationWrite,ParentObservation,IngestionResult,apply_child_observation,restrict,TERMINAL)
+    ObservationEvidence,ApplicationWrite,ParentObservation,IngestionResult,apply_child_observation,restrict,TERMINAL,apply_parent_observation)
 from trading_system.contracts.wire import TradeIntent,ContractCodec
 from trading_system.risk.reservation_repository import ReservationRepository
 from trading_system.contracts.order_codec import VersionedOrderCodec
@@ -174,11 +174,21 @@ class OrderProgramRepository:
         if lock is None:
             self.tx.risk_locks.append(t.RiskLock(lock_id=lock_id,scope=self.tx.scope,cause='ORDER_OUTCOME_UNKNOWN',state='ACTIVE',permission=t.RiskPermission.RECOVERY_REQUIRED,required_evidence=('ORIGINAL_COMMAND_RECONCILIATION',),raised_at=self.clock()),0)
 
+    def _unbound(self,program_id,event,evidence):
+        case=ReconciliationCase(program_id=program_id,reason='PARENT_BINDING_MISSING',observation=event,
+            evidence=evidence,original_parent_id=event.parent_venue_id,recorded_at=self.clock())
+        key=canonical_hash(dict(program_id=program_id,event=domain_payload(event),reason=case.reason))
+        previous=self.tx._latest('order_reconciliation_cases',key,ReconciliationCase)
+        if previous is not None:return IngestionResult(state=None,restriction=case.reason,duplicate=True)
+        self.tx._append('order_reconciliation_cases',key,case,0)
+        self.tx.risk_locks.append(t.RiskLock(lock_id='order-unbound:'+key,scope=self.tx.scope,cause='IDENTITY_ERROR',state='ACTIVE',permission=t.RiskPermission.RECOVERY_REQUIRED,required_evidence=('IDENTITY_RECONCILED',),raised_at=self.clock()),0)
+        return IngestionResult(state=None,restriction=case.reason)
+
     @atomic_write
     def ingest(self,program_id,event,evidence):
         VersionedOrderCodec().encode('child-observation',event)
         authority=self.binding(program_id);state=self.state(program_id)
-        if authority is None or state is None:raise MissingEvidence('Parent binding required; no automatic association')
+        if authority is None or state is None:return self._unbound(program_id,event,evidence)
         raw_hash=canonical_hash(domain_payload(event))
         verified=(evidence.environment==self.tx.scope.environment and evidence.hash==raw_hash
             and evidence.source in ('PAPER_MODEL_EVENT','BINANCE_USER_DATA','BINANCE_ORDER_QUERY')
@@ -193,7 +203,7 @@ class OrderProgramRepository:
             self.tx._append('order_source_observations',event_key,ObservationEvidence(observation=event,evidence=evidence,verified_at=self.clock()),0)
         disposition_key=canonical_hash(dict(program_id=program_id,event_key=event_key))
         disposition=self.tx._latest('order_observation_dispositions',disposition_key,ObservationDisposition)
-        if disposition is not None:return IngestionResult(state=state,restriction=disposition.restriction,duplicate=True)
+        if disposition is not None:return IngestionResult(state=state,restriction=disposition.restriction or (state.restriction_codes[-1] if state.status=='RECONCILIATION_REQUIRED' else None),duplicate=True)
         # Archived source does not imply it was applied to this parent.
         if (event.scope!=authority.scope or event.parent_client_id!=authority.parent_client_id
             or event.parent_venue_id!=authority.parent_venue_id or event.namespace!=authority.namespace):
@@ -224,7 +234,7 @@ class OrderProgramRepository:
     def observe_parent(self,program_id,event,evidence):
         VersionedOrderCodec().encode('parent-observation',event)
         authority=self.binding(program_id);state=self.state(program_id)
-        if authority is None or state is None:raise MissingEvidence('Parent binding required')
+        if authority is None or state is None:return self._unbound(program_id,event,evidence)
         if (event.scope!=authority.scope or event.namespace!=authority.namespace or event.venue!=authority.venue
             or event.parent_venue_id!=authority.parent_venue_id or event.parent_client_id!=authority.parent_client_id):
             return self._restrict(authority,state,'PARENT_LINK_UNVERIFIED',event,evidence)
@@ -236,20 +246,12 @@ class OrderProgramRepository:
         previous=self.tx._latest('audit_events',key,ParentObservation)
         if previous is not None:
             if previous!=event:return self._restrict(authority,state,'EVENT_CONTENT_CONFLICT',event,evidence)
-            return IngestionResult(state=state,restriction=None,duplicate=True)
+            return IngestionResult(state=state,restriction=state.restriction_codes[-1] if state.status=='RECONCILIATION_REQUIRED' else None,duplicate=True)
         self.tx._append('audit_events',key,event,0)
         self.tx._append('audit_events','parent-proof:'+key,evidence,0)
-        if state.status=='RECONCILIATION_REQUIRED':return self._restrict(authority,state,'PARENT_REVIEW_REQUIRED',event,evidence)
-        if event.status in ('SUBMIT_UNKNOWN','CANCEL_UNKNOWN'):return self._restrict(authority,state,'PARENT_STATE_UNKNOWN',event,evidence)
-        if state.status in ('STOPPED','COMPLETED') and event.status not in ('STOPPED','COMPLETED'):return self._restrict(authority,state,'PARENT_STATE_REGRESSION',event,evidence)
-        with localcontext() as precision:
-            precision.prec=256
-            filled=sum((Decimal(c.cumulative_quantity) for c in state.children),Decimal(0))
-            remaining=sum((Decimal(c.quantity)-Decimal(c.cumulative_quantity) for c in state.children if c.status not in TERMINAL),Decimal(0))
-            if filled!=Decimal(event.cumulative_quantity):return self._restrict(authority,state,'CHILD_EVIDENCE_INCOMPLETE',event,evidence)
-            if filled+remaining+Decimal(event.unallocated_quantity)>Decimal(authority.maximum_quantity):return self._restrict(authority,state,'PARENT_QUANTITY_EXCEEDED',event,evidence)
-            if event.status in ('STOPPED','COMPLETED') and Decimal(event.unallocated_quantity)!=0:return self._restrict(authority,state,'PARENT_STOP_UNVERIFIED',event,evidence)
-            if event.status=='COMPLETED' and any(c.status not in TERMINAL for c in state.children):return self._restrict(authority,state,'CHILDREN_STILL_OPEN',event,evidence)
-        updated=replace(state,sequence=state.sequence+1,status=event.status,unallocated_quantity=event.unallocated_quantity)
-        self.tx._append('order_program_states',program_id,updated,state.sequence)
-        return IngestionResult(state=updated,restriction=None)
+        result=apply_parent_observation(authority,state,event)
+        if result.restriction:
+            self._save_restriction(authority,result,event,evidence)
+            return result
+        self.tx._append('order_program_states',program_id,result.state,state.sequence)
+        return result

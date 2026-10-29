@@ -2,6 +2,18 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "parent_observed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "contract_version": {
       "enum": [
         "2026-10-28"
@@ -175,6 +187,7 @@
     }
   },
   "required": [
+    "parent_observed_at",
     "contract_version",
     "program_id",
     "sequence",

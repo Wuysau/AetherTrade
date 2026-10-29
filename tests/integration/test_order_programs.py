@@ -15,10 +15,30 @@ from trading_system.storage.order_programs import OrderProgramRepository
 from trading_system.storage.models import scope_id,encode,MissingEvidence
 
 @pytest.fixture(scope='module')
-def order_db(isolated_postgres):
- import psycopg
- with psycopg.connect(isolated_postgres) as c:c.execute((ROOT/'migrations/0008_order_program_records.sql').read_text(encoding='utf-8'))
- return isolated_postgres
+def pre_upgrade(isolated_postgres):
+ s=LedgerScenario(isolated_postgres)
+ with s.uow.transaction(s.scope) as tx:
+  s.write_bundle(tx)
+  tx.commands.mark_may_have_sent(tx,s.command.command_id,'DURABLE_READY')
+ with s.connect_admin() as c:
+  s.original_rows=c.execute('SELECT scope_id,record_id,sequence,payload,transaction_id FROM ledger.commands ORDER BY scope_id,record_id,sequence').fetchall()
+ return s
+
+@pytest.fixture(scope='module')
+def order_db(pre_upgrade):
+ with pre_upgrade.connect_admin() as c:c.execute((ROOT/'migrations/0008_order_program_records.sql').read_text(encoding='utf-8'))
+ return pre_upgrade.dsn
+
+def test_ddl_upgrade_retains_existing_uncertain_command_bytes(order_db,pre_upgrade):
+ s=pre_upgrade
+ with s.connect_admin() as c:
+  after=c.execute('SELECT scope_id,record_id,sequence,payload,transaction_id FROM ledger.commands WHERE scope_id=%s ORDER BY scope_id,record_id,sequence',(scope_id(s.scope),)).fetchall()
+ assert after==[r for r in s.original_rows if r[0]==scope_id(s.scope)]
+ with s.uow.transaction(s.scope) as tx:
+  current=tx.commands.get(s.command.command_id)
+  assert current.state=='MAY_HAVE_SENT' and current.venue_client_order_id==s.command.venue_client_order_id
+  assert current.payload_hash==s.command.payload_hash
+
 
 def repo(tx,**kwargs):return OrderProgramRepository(tx,verify_parent=lambda a:True,verify_ingress=lambda o,e:True,clock=lambda:NOW,**kwargs)
 
@@ -107,7 +127,8 @@ def test_funding_subsets_are_not_extra_money(scenario,field):
 @pytest.mark.parametrize('operation',['UPDATE','DELETE','TRUNCATE'])
 def test_runtime_cannot_rewrite_or_erase_order_history(scenario,operation):
  s=scenario
- with pytest.raises(Exception):
+ import psycopg
+ with pytest.raises((psycopg.errors.InsufficientPrivilege,psycopg.errors.CheckViolation)):
   with s.connect_owner() as c:
    sql={'UPDATE':"UPDATE ledger.order_programs SET payload='{}'::jsonb",'DELETE':'DELETE FROM ledger.order_programs','TRUNCATE':'TRUNCATE ledger.order_programs'}[operation]
    c.execute(sql)
@@ -115,7 +136,8 @@ def test_runtime_cannot_rewrite_or_erase_order_history(scenario,operation):
 
 def test_missing_origin_is_rejected_by_database(scenario):
  s=scenario
- with pytest.raises(Exception):
+ import psycopg
+ with pytest.raises((psycopg.errors.InsufficientPrivilege,psycopg.errors.CheckViolation)):
   with s.connect_owner() as c:
    c.execute("INSERT INTO ledger.order_writes_v2(scope_id,record_id,sequence,payload,transaction_id) VALUES(%s,'bad-origin',1,%s::jsonb,'test')",(scope_id(s.scope),json.dumps(dict(contract_version='2026-10-28',state='DURABLE_READY'))))
 
@@ -153,3 +175,53 @@ def test_default_parent_verifier_never_accepts_metadata_alone(scenario):
  s=scenario
  with pytest.raises(MissingEvidence,match='Trusted parent'):
   with s.uow.transaction(s.scope) as tx:OrderProgramRepository(tx,clock=lambda:NOW).bind_parent(s.authority)
+
+
+def test_unknown_parent_retains_original_ids_without_assuming_ownership(scenario):
+ s=scenario;e=observation(s,parent_venue_id='unrecognized-native-parent')
+ with s.uow.transaction(s.scope) as tx:
+  r=repo(tx);result=r.ingest('unrecognized-program',e,proof(e))
+  assert result.state is None and result.restriction=='PARENT_BINDING_MISSING'
+ with s.uow.transaction(s.scope) as tx:
+  assert repo(tx).ingest('unrecognized-program',e,proof(e)).duplicate
+  row=tx.execute('SELECT payload FROM ledger.order_reconciliation_cases WHERE scope_id=%s',(scope_id(s.scope),)).fetchone()
+  assert row[0]['original_parent_id']=='unrecognized-native-parent'
+  assert row[0]['observation']['child_order_id']==e.child_order_id
+  assert tx.risk_locks.applicable(s.scope)
+
+
+def test_parent_duplicate_keeps_reconciliation_outcome(scenario):
+ from trading_system.contracts.order_lifecycle import ParentObservation
+ s=scenario;a=s.authority
+ e=ParentObservation(contract_version='2026-10-28',observation_id='same-parent',scope=s.scope,venue=a.venue,namespace=a.namespace,parent_client_id=a.parent_client_id,parent_venue_id=a.parent_venue_id,status='CANCEL_UNKNOWN',unallocated_quantity='10',cumulative_quantity='0',occurred_at=NOW)
+ with s.uow.transaction(s.scope) as tx:repo(tx).observe_parent(s.program.program_id,e,proof(e))
+ with s.uow.transaction(s.scope) as tx:
+  result=repo(tx).observe_parent(s.program.program_id,e,proof(e))
+  assert result.duplicate and result.restriction=='PARENT_STATE_UNKNOWN'
+
+
+def test_source_archived_under_wrong_parent_can_be_applied_to_correct_parent(scenario):
+ s=scenario
+ other_program=replace(s.program,program_id='second-program')
+ other_intent=replace(s.intent,intent_id='second-intent')
+ other_reservation=replace(s.reservation,reservation_id='second-reservation',intent_id=other_intent.intent_id)
+ other=replace(s.authority,program_id=other_program.program_id,program_hash=OrderProgramCodec().hash(other_program),parent_command_id='second-command',parent_client_id='second-client',parent_venue_id='second-native',funding_intent_id=other_intent.intent_id,reservation_ids=(other_reservation.reservation_id,))
+ with s.uow.transaction(s.scope) as tx:
+  tx.intents.append(other_intent);tx.reservations.append(other_reservation,0)
+  r=repo(tx);r.save_program(other_program)
+  original=r.write(s.authority.parent_command_id)
+  command=replace(original,command_id=other.parent_command_id,program_id=other.program_id,canonical_program_hash=other.program_hash,venue_client_id=other.parent_client_id,state='DURABLE_READY',durable_record_ref='pending')
+  r.create_write(command)
+  tx._append('order_writes_v2',command.command_id,replace(command,state='MAY_HAVE_SENT',durable_record_ref='fixture-parent2'),1)
+  r.bind_parent(other)
+ e=observation(s)
+ with s.uow.transaction(s.scope) as tx:assert repo(tx).ingest(other.program_id,e,proof(e)).restriction=='PARENT_LINK_UNVERIFIED'
+ with s.uow.transaction(s.scope) as tx:
+  result=repo(tx).ingest(s.program.program_id,e,proof(e))
+  assert result.restriction is None and not result.duplicate and len(result.state.children)==1
+
+
+def test_owner_role_cannot_run_schema_migrations(scenario):
+ import psycopg
+ with pytest.raises(psycopg.errors.InsufficientPrivilege):
+  with scenario.connect_owner() as c:c.execute('CREATE TABLE ledger.runtime_ddl_forbidden(value int)')

@@ -101,3 +101,17 @@ def test_child_write_cannot_reuse_prior_execution_epoch_lease():
  permit=t.DurablePermit(durable_record_ref='committed',command_id='c',payload_hash=canonical_hash(domain_payload(c)),scope=SCOPE,ownership_epoch=1,execution_epoch=1,policy_revision=1,expires_at='2026-10-28T10:01:00Z',deadline_monotonic_ns=1000)
  lease=t.OwnerLease(shard=t.ExecutionShard(environment=t.Environment.PAPER,venue_account_id=SCOPE.venue_account_id,product=SCOPE.product,node_id='node',execution_epoch=2),instance_id='process',expires_at='2026-10-28T10:01:00Z',deadline_monotonic_ns=1000)
  with pytest.raises(ValueError,match='EXECUTION_OWNER_REQUIRED'):require_write_authority(c,permit,lease,now=NOW,deadline_monotonic_ns=10)
+
+
+def test_parent_cannot_restore_active_after_cancel_requested():
+ from trading_system.contracts.order_lifecycle import ParentObservation,apply_parent_observation
+ p=ParentObservation(contract_version='2026-10-28',observation_id='old-active',scope=SCOPE,venue='BINANCE',namespace='EXECUTION_ALGO',parent_client_id='parent-client',parent_venue_id='parent-native',status='ACTIVE',unallocated_quantity='10',cumulative_quantity='0',occurred_at=NOW)
+ assert apply_parent_observation(authority(),replace(state(),status='CANCEL_PENDING'),p).restriction=='PARENT_STATE_REGRESSION'
+
+
+def test_parent_reallocation_rechecks_notional_after_expensive_fill():
+ from trading_system.contracts.order_lifecycle import ParentObservation,apply_parent_observation
+ f=ChildFill(native_trade_id='expensive',quantity='1',price='1000',fees=(),occurred_at=NOW)
+ previous=apply_child_observation(authority(),state(),event(quantity='10',status='CANCELED',cumulative_quantity='1',fills=(f,))).state
+ p=ParentObservation(contract_version='2026-10-28',observation_id='reuse',scope=SCOPE,venue='BINANCE',namespace='EXECUTION_ALGO',parent_client_id='parent-client',parent_venue_id='parent-native',status='ACTIVE',unallocated_quantity='9',cumulative_quantity='1',occurred_at=NOW)
+ assert apply_parent_observation(authority(),previous,p).restriction=='PARENT_NOTIONAL_EXCEEDED'
