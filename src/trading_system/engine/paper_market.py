@@ -32,6 +32,7 @@ def number(value,*,signed=False):
     require(type(value) is str and 0<len(value)<=64,'PAPER_DECIMAL_REQUIRED')
     result=Decimal(value)
     require(result.is_finite() and (signed or result>=0),'PAPER_DECIMAL_INVALID')
+    require(-64<=result.as_tuple().exponent<=64 and result.adjusted()<=64,'PAPER_DECIMAL_RANGE_EXCEEDED')
     return result
 
 
@@ -487,24 +488,36 @@ def query_market_evidence(engine,command_id):
         request=decode(VenueCreationRequest,command['request'])
         require(request.scope==engine.scope and request.command_id==command_id and digest(request)==command['request_hash'],
             'PAPER_MARKET_QUERY_BINDING_CHANGED')
-        event_rows=db.execute('SELECT DISTINCT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels,i.observed_clock FROM public.paper_market_inputs i '
-            'JOIN public.paper_market_consumptions c USING(market_key,event_id) WHERE c.scope_key=%s AND c.client_id=%s '
-            'ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097',(engine._scope_key,command['target_client_id'])).fetchall()
-        require(len(event_rows)<=4096,'PAPER_MARKET_EVIDENCE_BOUND_EXCEEDED')
-        inputs=[];consumptions=[]
-        for row in event_rows:
-            event=decode(PaperMarketEvent,row['payload']);require(digest(event)==row['payload_hash'],'PAPER_MARKET_ARCHIVE_HASH_CHANGED')
-            raw=canonical_json(row['payload']);require(len(raw.encode('utf-8'))<=1048576,'PAPER_MARKET_RAW_EVIDENCE_BOUND_EXCEEDED')
-            inputs.append(PaperMarketInput(event=event,event_hash=row['payload_hash'],raw_payload_json=raw,before_levels=tuple(
-                decode(PaperDepthState,level) for level in row['before_levels']),observed_clock=decode(t.ClockReading,row['observed_clock'])))
-            rows=db.execute('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price,quantity '
-                'FROM public.paper_market_consumptions WHERE market_key=%s AND event_id=%s ORDER BY fill_id LIMIT 100001',
-                (row['market_key'],row['event_id'])).fetchall()
-            require(len(rows)<=100000,'PAPER_MARKET_ALLOCATION_BOUND_EXCEEDED')
-            for allocated in rows:
-                consumptions.append(PaperLiquidityConsumption(market_key=allocated['market_key'],event_id=allocated['event_id'],
-                    scope=decode(t.ScopeKey,allocated['scope_key']),client_id=allocated['client_id'],fill_id=allocated['fill_id'],
-                    side=allocated['side'],price=allocated['price'],quantity=allocated['quantity']))
+        inputs=[];consumptions=[];used_bytes=512
+        # Named cursors fetch one source/allocation at a time. Bounds apply
+        # globally before append, not per event after loading an entire history.
+        with db.cursor(name='paper_market_evidence_sources') as source_cursor:
+            source_cursor.itersize=1
+            source_cursor.execute('SELECT DISTINCT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels,i.observed_clock '
+                'FROM public.paper_market_inputs i JOIN public.paper_market_consumptions c USING(market_key,event_id) '
+                'WHERE c.scope_key=%s AND c.client_id=%s ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097',
+                (engine._scope_key,command['target_client_id']))
+            for row in source_cursor:
+                require(len(inputs)<4096,'PAPER_MARKET_EVIDENCE_BOUND_EXCEEDED')
+                event=decode(PaperMarketEvent,row['payload']);require(digest(event)==row['payload_hash'],'PAPER_MARKET_ARCHIVE_HASH_CHANGED')
+                raw=canonical_json(row['payload'])
+                require(len(raw.encode('utf-8'))<=1048576 and len(row['before_levels'])<=8192,'PAPER_MARKET_RAW_EVIDENCE_BOUND_EXCEEDED')
+                item=PaperMarketInput(event=event,event_hash=row['payload_hash'],raw_payload_json=raw,before_levels=tuple(
+                    decode(PaperDepthState,level) for level in row['before_levels']),observed_clock=decode(t.ClockReading,row['observed_clock']))
+                used_bytes+=len(canonical_json(domain_payload(item)).encode('utf-8'))
+                require(used_bytes<=16777216,'PAPER_MARKET_TOTAL_EVIDENCE_BOUND_EXCEEDED');inputs.append(item)
+                with db.cursor(name='paper_market_evidence_allocations') as allocations:
+                    allocations.itersize=1
+                    allocations.execute('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price,quantity '
+                        'FROM public.paper_market_consumptions WHERE market_key=%s AND event_id=%s ORDER BY fill_id LIMIT %s',
+                        (row['market_key'],row['event_id'],100001-len(consumptions)))
+                    for allocated in allocations:
+                        require(len(consumptions)<100000,'PAPER_MARKET_ALLOCATION_BOUND_EXCEEDED')
+                        item=PaperLiquidityConsumption(market_key=allocated['market_key'],event_id=allocated['event_id'],
+                            scope=decode(t.ScopeKey,allocated['scope_key']),client_id=allocated['client_id'],fill_id=allocated['fill_id'],
+                            side=allocated['side'],price=allocated['price'],quantity=allocated['quantity'])
+                        used_bytes+=len(canonical_json(domain_payload(item)).encode('utf-8'))
+                        require(used_bytes<=16777216,'PAPER_MARKET_TOTAL_EVIDENCE_BOUND_EXCEEDED');consumptions.append(item)
         payload={'command_id':command_id,'request_hash':digest(request),'inputs':[domain_payload(i) for i in inputs],
             'consumptions':[domain_payload(c) for c in consumptions]}
         return PaperMarketEvidence(command_id=command_id,request_hash=digest(request),inputs=tuple(inputs),consumptions=tuple(consumptions),
@@ -537,8 +550,9 @@ class PaperMatcher:
                 and now.monotonic_ns>=book['observed_clock']['monotonic_ns']),'PAPER_MARKET_SEQUENCE_CONFLICT')
             require(event.kind=='DEPTH_SNAPSHOT' or (book is not None and event.sequence==book['sequence']+1),
                 'PAPER_DELTA_GAP_REQUIRES_SNAPSHOT')
-            before=db.execute('SELECT side,price,reported,available FROM public.paper_market_levels WHERE market_key=%s ORDER BY side,price',
+            before=db.execute('SELECT side,price,reported,available FROM public.paper_market_levels WHERE market_key=%s ORDER BY side,price LIMIT 8193',
                 (event.market_key,)).fetchall()
+            require(len(before)<=8192,'PAPER_MARKET_STATE_BOUND_EXCEEDED')
             before_payload=[dict(side=r['side'],price=format(r['price'],'f'),reported=format(r['reported'],'f'),available=format(r['available'],'f')) for r in before]
             db.execute('INSERT INTO public.paper_market_inputs VALUES(%s,%s,%s,%s,%s,%s,%s)',
                 (event.market_key,event.event_id,event.sequence,digest(event),Jsonb(domain_payload(event)),Jsonb(before_payload),Jsonb(domain_payload(now))))
@@ -562,6 +576,8 @@ class PaperMatcher:
                         'AND NOT(price=ANY(%s))',(event.market_key,side,present))
             bounds=db.execute("SELECT max(price) FILTER(WHERE side='BID') AS bid,min(price) FILTER(WHERE side='ASK') AS ask "
                 'FROM public.paper_market_levels WHERE market_key=%s AND reported>0',(event.market_key,)).fetchone()
+            require(db.execute('SELECT count(*) AS count FROM public.paper_market_levels WHERE market_key=%s',
+                (event.market_key,)).fetchone()['count']<=8192,'PAPER_MARKET_STATE_BOUND_EXCEEDED')
             require(bounds['bid'] is None or bounds['ask'] is None or bounds['bid']<bounds['ask'],'PAPER_CROSSED_SOURCE_BOOK')
             first=db.execute('SELECT scope_key,client_id FROM public.paper_order_terms WHERE market_key=%s ORDER BY arrival_sequence LIMIT 1',
                 (event.market_key,)).fetchone()
