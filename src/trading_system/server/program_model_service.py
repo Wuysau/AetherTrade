@@ -56,8 +56,6 @@ def _research_valid(service,request,symbol,mode,ids,revisions,key,frame):
 
 
 async def assess_program(service,symbol,mode,ids,revisions,key,frame,policy,research_request=None):
-    if policy!='unanimous':
-        raise ApiError('PROGRAM_REVIEW_PROTOCOL_NOT_IMPLEMENTED','完整订单计划的复核协议尚未接入。',409)
     payload=validate_program_context(frame)
     # Reuse existing market quality/freshness checks, without replacing its hash.
     service._clean_context(symbol,{'analysis_snapshot':payload['analysis_snapshot']})
@@ -86,6 +84,8 @@ async def assess_program(service,symbol,mode,ids,revisions,key,frame,policy,rese
             repository.write_run(connection,key,dict(fingerprint=fingerprint,status='SUCCEEDED',created_at=stamp(),
                 component=False,schema_revision=SCHEMA,program_context=payload,requests=[],result=result),new=True)
             return result
+        if policy!='unanimous':
+            raise ApiError('PROGRAM_REVIEW_PROTOCOL_NOT_IMPLEMENTED','完整订单计划的复核协议尚未接入。',409)
         configs={}
         for identifier in ids:
             config=service._profile(connection,identifier);service._revision(config,revisions[identifier])

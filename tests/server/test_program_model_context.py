@@ -121,7 +121,8 @@ def test_explicit_model_service_uses_durable_existing_journal_and_never_returns_
     finally:store.close()
 
 
-def test_default_unqualified_program_context_stops_before_provider_and_payload_flag_is_not_authority(monkeypatch,tmp_path):
+@pytest.mark.parametrize('mode,policy,ids',[('single','unanimous',['default']),('consensus','evidence_review',['default','review'])])
+def test_default_unqualified_program_context_stops_before_provider_and_payload_flag_is_not_authority(monkeypatch,tmp_path,mode,policy,ids):
     import asyncio
     from datetime import datetime
     from trading_system.server import model_service,model_client
@@ -138,7 +139,7 @@ def test_default_unqualified_program_context_stops_before_provider_and_payload_f
     async def forbidden(*args):raise AssertionError('Provider must not run for default UNQUALIFIED')
     monkeypatch.setattr(model_client,'request',forbidden)
     try:
-        result=asyncio.run(service.analyze('BTCUSDT','single',['default'],{'default':0},'program-blocked-1',frame))
+        result=asyncio.run(service.analyze('BTCUSDT',mode,ids,{p:0 for p in ids},'program-blocked-1',frame,decision_policy=policy))
         assert result['decision']['assessment_status']=='CAPABILITY_BLOCKED'
         assert result['decision']['qualification']=='UNQUALIFIED' and result['usage'] is None
         with pytest.raises(ApiError,match='EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED'):
