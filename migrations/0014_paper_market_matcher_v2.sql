@@ -81,13 +81,28 @@ CREATE FUNCTION public.paper_prepare_order_v2(p_scope text,p_client text,p_marke
 DECLARE terms jsonb;spec jsonb;trigger_spec jsonb;runtime public.paper_order_runtime_v2;
  ref record;price_source text;fired boolean;ready boolean;activation numeric;offset_value numeric;offset_unit text;
  mark_price numeric;contract_price numeric;protect_ratio numeric;original public.paper_engine_orders;arrival bigint;
- current_event text;resolved_price numeric;
+ current_event text;resolved_price numeric;book record;expired_at timestamptz;payload jsonb;event_identifier text;
 BEGIN
  SELECT t.terms INTO terms FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=p_client;
  IF coalesce((terms->>'model_revision')::int,1)<>2 THEN RETURN true; END IF;
  spec=terms->'spec';trigger_spec=spec->'trigger';
  SELECT * INTO original FROM public.paper_engine_orders WHERE scope_key=p_scope AND client_id=p_client FOR UPDATE;
  IF original.lifecycle IN ('FILLED','CANCELED','EXPIRED','REJECTED') THEN RETURN false; END IF;
+ SELECT * INTO book FROM public.paper_market_books WHERE market_key=p_market;
+ IF spec->'tif'->>'kind'='GTD' AND book IS NOT NULL
+  AND (book.observed_clock->>'utc_now')::timestamptz>=(spec->'tif'->>'expires_at')::timestamptz THEN
+  expired_at=greatest((terms->'accepted_clock'->>'utc_now')::timestamptz,(book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
+  payload=jsonb_build_object('record_kind','PAPER_MARKET_DISPOSITION','source','PAPER_MARKET_REPLAY_SYNTHETIC',
+   'status','EXPIRED','reason','VENUE_GTD_EXPIRED','market_key',p_market,'market_event_id',book.event_id,
+   'market_hash',(SELECT payload_hash FROM public.paper_market_inputs WHERE market_key=p_market AND event_id=book.event_id),
+   'execution_at',expired_at,'market_occurred_at',book.occurred_at,'model',terms->'model','execution_envelope',terms->'execution_envelope');
+  event_identifier='paper-v2-expiry:'||encode(sha256(convert_to(jsonb_build_array(p_scope::jsonb,p_client,book.event_id,'GTD')::text,'UTF8')),'hex');
+  INSERT INTO public.paper_engine_events(environment,scope_key,event_id,client_id,payload_hash,payload,fill_delta,price,occurred_at)
+   VALUES('PAPER',p_scope,event_identifier,p_client,encode(sha256(convert_to(payload::text,'UTF8')),'hex'),payload,0,NULL,expired_at);
+  UPDATE public.paper_engine_orders SET lifecycle='EXPIRED',revision=revision+1 WHERE scope_key=p_scope AND client_id=p_client;
+  UPDATE public.paper_order_runtime_v2 SET active=false,phase='EXPIRED',visible_remaining=0 WHERE scope_key=p_scope AND client_id=p_client;
+  RETURN false;
+ END IF;
  SELECT arrival_sequence INTO arrival FROM public.paper_order_terms WHERE scope_key=p_scope AND client_id=p_client;
  SELECT event_id INTO current_event FROM public.paper_market_books WHERE market_key=p_market;
  INSERT INTO public.paper_order_runtime_v2(scope_key,client_id,active,phase,effective_type,effective_limit,visible_remaining,queue_priority)
@@ -194,7 +209,7 @@ BEGIN
    OR (coalesce((ord.terms->>'model_revision')::integer,1)=2 AND
     (ord.terms->>'contract_version' IS DISTINCT FROM '2026-10-30' OR ord.terms->'spec' IS DISTINCT FROM ord.terms->'compilation'->'nodes'->0->'original'->'order'))
    OR ord.terms->>'side' NOT IN ('BUY','SELL')
-   OR ord.terms->>'tif' NOT IN ('GTC','IOC','FOK','GTX')
+   OR ord.terms->>'tif' NOT IN ('GTC','IOC','FOK','GTX','GTD')
    OR ord.terms->'accepted_clock'->>'clock_health' IS DISTINCT FROM 'HEALTHY'
    OR (ord.terms->'accepted_clock'->>'utc_now')::timestamptz<(ord.terms->'write'->>'created_at')::timestamptz THEN
     RAISE EXCEPTION 'invalid original PAPER execution terms';

@@ -66,6 +66,26 @@ class PaperReferenceEventV2:
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
+class PaperClockEventV2:
+    contract_version:Literal['2026-10-30']
+    event_id:str
+    stream_id:str
+    product:t.Product
+    instrument_uid:str
+    sequence:int
+    kind:Literal['CLOCK']
+    occurred_at:str
+    source:Literal['PAPER_MARKET_REPLAY_SYNTHETIC']
+    def __post_init__(self):
+        require(self.contract_version=='2026-10-30' and self.kind=='CLOCK' and self.source==SOURCE,'PAPER_CLOCK_VERSION_INVALID')
+        require(type(self.sequence) is int and 0<self.sequence<2**63 and type(self.product) is t.Product,'PAPER_CLOCK_SEQUENCE_INVALID')
+        require(all(type(v) is str and 0<len(v)<=256 for v in (self.event_id,self.stream_id,self.instrument_uid)),'PAPER_CLOCK_SCOPE_REQUIRED')
+        utc_timestamp(self.occurred_at)
+    @property
+    def market_key(self):return market_key(self.product,self.instrument_uid)
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
 class PaperExecutionTermsV2(PaperExecutionTerms):
     limit_price:str|None
     contract_version:Literal['2026-10-30']
@@ -110,7 +130,7 @@ def validate_atomic_v2(scope,node):
     require(scope.product in (t.Product.SPOT,t.Product.USD_M_PERP),'PAPER_EQUITY_SESSION_MODEL_REQUIRED')
     require(o.price.kind in ('FIXED_LIMIT','MARKET','PEG','PRICE_MATCH') and o.trigger.kind in ('NONE','STATIC','TRAILING')
         and o.stp=='NONE' and o.routing=='STANDARD' and o.trading_session is None
-        and o.tif.kind in ('NONE','GTC','IOC','FOK','GTX'),'PAPER_V2_EXECUTION_STAGE_REQUIRED')
+        and o.tif.kind in ('NONE','GTC','IOC','FOK','GTX','GTD'),'PAPER_V2_EXECUTION_STAGE_REQUIRED')
     # Conditional USD-M has a separate native parent/ordinary-child identity.
     # Its model is added with native parent membership; never alias the algo ID.
     require(scope.product!=t.Product.USD_M_PERP or o.trigger.kind=='NONE','PAPER_USDM_CONDITIONAL_MEMBERSHIP_REQUIRED')
@@ -161,7 +181,8 @@ def decorate_report_v2(engine,db,report):
 
 
 def decode_source_event(payload):
-    if payload.get('contract_version')=='2026-10-30':return decode(PaperReferenceEventV2,payload)
+    if payload.get('contract_version')=='2026-10-30':
+        return decode(PaperClockEventV2 if payload.get('kind')=='CLOCK' else PaperReferenceEventV2,payload)
     return decode(PaperMarketEvent,payload)
 
 
@@ -180,7 +201,7 @@ def provision_paper_market_v2(admin_dsn,roles):
 
 
 def apply_reference_event(engine,event):
-    require(type(event) is PaperReferenceEventV2 and event.product==engine.scope.product and event.instrument_uid==engine.scope.instrument_uid,
+    require(type(event) in (PaperReferenceEventV2,PaperClockEventV2) and event.product==engine.scope.product and event.instrument_uid==engine.scope.instrument_uid,
         'PAPER_REFERENCE_SCOPE_MISMATCH')
     now=engine._clock()
     require(type(now) is t.ClockReading and now.clock_health=='HEALTHY' and type(now.monotonic_ns) is int
