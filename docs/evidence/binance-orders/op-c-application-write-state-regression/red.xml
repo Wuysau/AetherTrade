@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="10" time="5.904" timestamp="2026-10-29T04:12:05.015446+00:00" hostname="20127b46f9d3"><testcase classname="tests.integration.test_application_write_obligations" name="test_ready_reversion_retains_original_uncertain_identity[pending-MAY_HAVE_SENT]" time="1.182"><failure message="Failed: DID NOT RAISE MissingEvidence">tests/integration/test_application_write_obligations.py:156: in test_ready_reversion_retains_original_uncertain_identity
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence</failure></testcase><testcase classname="tests.integration.test_application_write_obligations" name="test_ready_reversion_retains_original_uncertain_identity[pending-UNKNOWN]" time="0.646"><failure message="Failed: DID NOT RAISE MissingEvidence">tests/integration/test_application_write_obligations.py:156: in test_ready_reversion_retains_original_uncertain_identity
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence</failure></testcase><testcase classname="tests.integration.test_application_write_obligations" name="test_ready_reversion_retains_original_uncertain_identity[original-boundary-MAY_HAVE_SENT]" time="0.696"><failure message="Failed: DID NOT RAISE MissingEvidence">tests/integration/test_application_write_obligations.py:156: in test_ready_reversion_retains_original_uncertain_identity
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence</failure></testcase><testcase classname="tests.integration.test_application_write_obligations" name="test_ready_reversion_retains_original_uncertain_identity[original-boundary-UNKNOWN]" time="0.720"><failure message="Failed: DID NOT RAISE MissingEvidence">tests/integration/test_application_write_obligations.py:156: in test_ready_reversion_retains_original_uncertain_identity
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence</failure></testcase><testcase classname="tests.unit.test_application_write_reader" name="test_ready_reversion_cannot_erase_uncertain_history[pending-MAY_HAVE_SENT]" time="0.149"><failure message="Failed: DID NOT RAISE MissingEvidence">tests/unit/test_application_write_reader.py:163: in test_ready_reversion_cannot_erase_uncertain_history
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence</failure></testcase><testcase classname="tests.unit.test_application_write_reader" name="test_ready_reversion_cannot_erase_uncertain_history[pending-UNKNOWN]" time="0.149"><failure message="Failed: DID NOT RAISE MissingEvidence">tests/unit/test_application_write_reader.py:163: in test_ready_reversion_cannot_erase_uncertain_history
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence</failure></testcase><testcase classname="tests.unit.test_application_write_reader" name="test_ready_reversion_cannot_erase_uncertain_history[original-send-boundary-MAY_HAVE_SENT]" time="0.158"><failure message="Failed: DID NOT RAISE MissingEvidence">tests/unit/test_application_write_reader.py:163: in test_ready_reversion_cannot_erase_uncertain_history
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence</failure></testcase><testcase classname="tests.unit.test_application_write_reader" name="test_ready_reversion_cannot_erase_uncertain_history[original-send-boundary-UNKNOWN]" time="0.155"><failure message="Failed: DID NOT RAISE MissingEvidence">tests/unit/test_application_write_reader.py:163: in test_ready_reversion_cannot_erase_uncertain_history
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence</failure></testcase><testcase classname="tests.unit.test_application_write_reader" name="test_reference_change_cannot_discharge_uncertain_write" time="0.191" /><testcase classname="tests.unit.test_application_write_reader" name="test_initial_ready_write_is_not_sent_uncertainty" time="0.134" /></testsuite></testsuites>

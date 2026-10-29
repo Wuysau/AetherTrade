@@ -78,10 +78,16 @@ def application_write_obligations(tx, *, scope_only=False):
         if bindings[key] != tx.group_id:
             continue
         _require(tuple(s for s, _ in history) == tuple(range(1, len(history) + 1)), 'HISTORY_INVALID')
+        unresolved_seen = False
         for _, payload in history[1:]:
             current = _decode(payload)
             _require(replace(current, state=original.state,
                 durable_record_ref=original.durable_record_ref) == original, 'IMMUTABLE_IDENTITY_CHANGED')
+            # A corrupted/imported READY label cannot erase an earlier send
+            # boundary, irrespective of cosmetic durable_record_ref changes.
+            # Ordinary0008 writes already prohibit this transition in SQL.
+            _require(not (unresolved_seen and current.state == 'DURABLE_READY'), 'STATE_REGRESSION')
+            unresolved_seen = unresolved_seen or current.state != 'DURABLE_READY'
         current = _decode(history[-1][1])
         program_key = (physical_scope, original.program_id)
         if program_key not in programs:
