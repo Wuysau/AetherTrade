@@ -128,9 +128,10 @@ class ProposalIngress:
     authority, freshness, rules, responsibilities and order/reservation mappings.
     Database errors propagate: a failed commit must never return an acceptance.
     """
-    def __init__(self, uow, scope: t.ScopeKey, load_inputs):
+    def __init__(self, uow, scope: t.ScopeKey, load_inputs, *, on_accept=None, on_replay=None):
         require(scope.environment != t.Environment.LIVE, 'LIVE_DISABLED')
         self.uow, self.scope, self.load_inputs = uow, scope, load_inputs
+        self.on_accept, self.on_replay = on_accept, on_replay
 
     def accept(self, proposal: DecisionProposal, context: t.DecisionContext) -> t.ProposalReceipt:
         try:
@@ -161,6 +162,8 @@ class ProposalIngress:
                     # A duplicate reports an earlier intake only; it is not a
                     # renewed validation, expiry extension, or send permission.
                     receipt = replace(existing.receipt, existing_result_ref=existing.receipt.receipt_id)
+                    if self.on_replay is not None:
+                        self.on_replay(tx, existing)
                 else:
                     book = tx.projections.book(self.scope)
                     inputs = self.load_inputs(tx, proposal, context, book)
@@ -189,6 +192,8 @@ class ProposalIngress:
                     tx._append('audit_events', revision_key(context), replace(fence, sequence=fence.sequence + 1),
                                fence.sequence)
                     tx._append('proposals', key, record, 0)
+                    if self.on_accept is not None:
+                        self.on_accept(tx, record)
             return receipt  # only after the UnitOfWork commit barrier
         except (ProposalRejected, ValidationError) as exc:
             reason = str(exc) if isinstance(exc, ProposalRejected) else 'INVALID_PROPOSAL_SCHEMA'
