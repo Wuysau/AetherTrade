@@ -1,5 +1,24 @@
 # Current task
 
+## OP_B_VERIFIED_OP_C_STARTED — 2026-10-29
+
+Worktree binance-orders / codex/binance-order-capabilities. OP-B source d5074c9
+passed828 mandatory Linux/PG tests (21 suites, zero failures/skips) and2499 ordinary
+Python tests (382 environment skips,96 deselected). Native Windows target1.231.0
+is pinned; Linux/native qualification remains blocked. Review findings corrected.
+[OP-B report](orders/OP-B-REPORT.md) and [migration/recovery](orders/OP-B-MIGRATION.md).
+ORD-47 PAPER migration PASS; remaining55 full cases NOT_RUN; all46 targets retained.
+
+OP-C first slice added: non-authorizing atomic Spot LIMIT target normalization
+with exact field/rule/capability bindings, existing decimal/grid helpers, and
+4000/81490/81330 preservation.40 targeted contract/compiler tests pass. This is
+not yet integrated with locked target delta/risk/reservations/permit dispatch.
+Continue [OP-C progress](orders/OP-C-PROGRESS.md); no additional approval needed.
+New parent funding remains conservatively held pending reviewed closure support.
+No operational services/accounts/model calls changed; no TESTNET/LIVE activation.
+Previous pause markers are historical; user resumed work.
+
+
 ## OP_B_ACTIVE — resumed 2026-10-29
 
 User resumed the paused OP-B implementation. Work continues in binance-orders
