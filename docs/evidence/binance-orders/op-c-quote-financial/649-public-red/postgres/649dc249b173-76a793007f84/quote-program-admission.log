@@ -1,0 +1,28 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_quote_public_admission_attaches_actual_full_request_funding_and_outbox_then_replays _
+tests/integration/test_quote_program_admission_postgres.py:19: in test_quote_public_admission_attaches_actual_full_request_funding_and_outbox_then_replays
+    c=quote_case(database);service=public(c)
+                                   ^^^^^^^^^
+tests/integration/test_quote_program_admission_postgres.py:13: in public
+    return GenericProgramAdmissionService(c.qingress,c.service,load_inputs=c.qload,
+E   TypeError: GenericProgramAdmissionService.__init__() got an unexpected keyword argument 'load_execution_bounds'
+_ test_quote_failure_after_real_request_append_rolls_back_all_financial_attachments _
+tests/integration/test_quote_program_admission_postgres.py:45: in test_quote_failure_after_real_request_append_rolls_back_all_financial_attachments
+    with pytest.raises(OSError):public(c).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan)
+                                ^^^^^^^^^
+tests/integration/test_quote_program_admission_postgres.py:13: in public
+    return GenericProgramAdmissionService(c.qingress,c.service,load_inputs=c.qload,
+E   TypeError: GenericProgramAdmissionService.__init__() got an unexpected keyword argument 'load_execution_bounds'
+___ test_quote_public_missing_independent_execution_reader_keeps_intake_only ___
+tests/integration/test_quote_program_admission_postgres.py:55: in test_quote_public_missing_independent_execution_reader_keeps_intake_only
+    with pytest.raises(ValueError):public(c,bounds=False).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_program_admission_postgres.py:13: in public
+    return GenericProgramAdmissionService(c.qingress,c.service,load_inputs=c.qload,
+E   TypeError: GenericProgramAdmissionService.__init__() got an unexpected keyword argument 'load_execution_bounds'
+=========================== short test summary info ============================
+FAILED tests/integration/test_quote_program_admission_postgres.py::test_quote_public_admission_attaches_actual_full_request_funding_and_outbox_then_replays
+FAILED tests/integration/test_quote_program_admission_postgres.py::test_quote_failure_after_real_request_append_rolls_back_all_financial_attachments
+FAILED tests/integration/test_quote_program_admission_postgres.py::test_quote_public_missing_independent_execution_reader_keeps_intake_only
+3 failed in 3.09s

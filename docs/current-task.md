@@ -54,13 +54,20 @@ handle on observation timeout. It remains source-specific and has no result yet.
 
 Subsequent root2dde8f6 serially integrated the independently reviewed consumed
 source guard/public boundary method; focused60 tests passed and own14-case PG
-diagnostic72303 is RUNNING (peer14 PG remains source-specific). Actual public
+diagnostic72303 is TERMINAL exit0:14passed/0fail/error/skip. Actual public
 quote attachment has3 true PG REDs at649dc24 for its missing reader port;
 candidate now uses exact static bundle dispatch and SAME V3 request/funding/ID/
 outbox plus old immutable original-ID reader. Focused44 tests passed; its fixed
-candidate3-case PG is RUNNING. No quote MAY/consume or MARKET qualification is
+candidate1aab295 exec18864 is TERMINAL exit0:3 actual PG passed/0fail/error/skip.
+It commits actual quote request/outbox/funding links and original-ID replay,
+and rolls back after a genuine physical append failure. No quote MAY/consume or MARKET qualification is
 claimed; additive0015/current quote dispatch proof remains required. Later code
 does not upgrade the older fixed0a55692 full gate.
+
+Detailed fresh-context continuation is OP-C-INTEGRATION-NEXT-HANDOFF.md. Sole
+writer integration_next has NOT released ownership merely by writing it; parent
+must explicitly reassign. Goal remains ACTIVE and the original full gate57061
+continues on its existing handle.
 
 Next: full expanded PG+Python gate; actual public interval durable attachment,
 trusted MARKET enforcement and fee/dust residual persistence. Parent implements

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="3.089" timestamp="2026-10-29T16:20:22.603627+00:00" hostname="0ece90ff05d0"><testcase classname="tests.integration.test_quote_program_admission_postgres" name="test_quote_public_admission_attaches_actual_full_request_funding_and_outbox_then_replays" time="1.351"><failure message="TypeError: GenericProgramAdmissionService.__init__() got an unexpected keyword argument 'load_execution_bounds'">tests/integration/test_quote_program_admission_postgres.py:19: in test_quote_public_admission_attaches_actual_full_request_funding_and_outbox_then_replays
+    c=quote_case(database);service=public(c)
+                                   ^^^^^^^^^
+tests/integration/test_quote_program_admission_postgres.py:13: in public
+    return GenericProgramAdmissionService(c.qingress,c.service,load_inputs=c.qload,
+E   TypeError: GenericProgramAdmissionService.__init__() got an unexpected keyword argument 'load_execution_bounds'</failure></testcase><testcase classname="tests.integration.test_quote_program_admission_postgres" name="test_quote_failure_after_real_request_append_rolls_back_all_financial_attachments" time="0.313"><failure message="TypeError: GenericProgramAdmissionService.__init__() got an unexpected keyword argument 'load_execution_bounds'">tests/integration/test_quote_program_admission_postgres.py:45: in test_quote_failure_after_real_request_append_rolls_back_all_financial_attachments
+    with pytest.raises(OSError):public(c).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan)
+                                ^^^^^^^^^
+tests/integration/test_quote_program_admission_postgres.py:13: in public
+    return GenericProgramAdmissionService(c.qingress,c.service,load_inputs=c.qload,
+E   TypeError: GenericProgramAdmissionService.__init__() got an unexpected keyword argument 'load_execution_bounds'</failure></testcase><testcase classname="tests.integration.test_quote_program_admission_postgres" name="test_quote_public_missing_independent_execution_reader_keeps_intake_only" time="0.301"><failure message="TypeError: GenericProgramAdmissionService.__init__() got an unexpected keyword argument 'load_execution_bounds'">tests/integration/test_quote_program_admission_postgres.py:55: in test_quote_public_missing_independent_execution_reader_keeps_intake_only
+    with pytest.raises(ValueError):public(c,bounds=False).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_quote_program_admission_postgres.py:13: in public
+    return GenericProgramAdmissionService(c.qingress,c.service,load_inputs=c.qload,
+E   TypeError: GenericProgramAdmissionService.__init__() got an unexpected keyword argument 'load_execution_bounds'</failure></testcase></testsuite></testsuites>
