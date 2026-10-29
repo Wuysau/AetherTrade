@@ -14,12 +14,12 @@ python -X utf8 tools/qualify_paper_docker.py --commit d92dfda --timeout 3600
 ```
 
 Final d92dfda results: **264 targeted passed**, **1273 unit/intents/contracts
-passed**, and **904 mandatory PostgreSQL passed across26 suites**, all exits0.
+passed**, and **905 mandatory PostgreSQL passed across27 suites**, all exits0.
 The PG gate has zero failed/error/skipped safety cases. The selected PG console
 suite ran56 cases and deselected497 cases outside that gate; the complete server
 and browser/frontend suites were not independently rerun by this task.
 
-Both initial a055f2c and final reviewed d92dfda PG runs passed904/26, each with its
+Both initial a055f2c and final reviewed d92dfda PG runs passed905/27, each with its
 own fresh private cluster/databases and committed source. Their raw logs/JUnit,
 runtime-state snapshots, migration hashes, suite commands, dependency/image IDs
 and launcher manifests are retained in pg-initial/ and pg-final/. Artifact-map

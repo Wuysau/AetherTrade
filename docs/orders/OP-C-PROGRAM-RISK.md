@@ -46,7 +46,7 @@ write admission must recheck owner/risk/price rules at execution. Existing OCO,
 quote-order-quantity and residual blockers remain explicit; all46 goals remain.
 
 Reviewed source d92dfda passed264 targeted and1273 unit/intents/contracts tests.
-Its actual isolated PostgreSQL gate passed904 safety cases across26 suites with
+Its actual isolated PostgreSQL gate passed905 safety cases across27 suites with
 zero failures/errors/skips. Source-bound raw evidence and exact commands are in
 docs/evidence/binance-orders/op-c-program-risk/. These are local mathematical and
 transactional proofs, not full ORD/native qualification. Actual current fact and
