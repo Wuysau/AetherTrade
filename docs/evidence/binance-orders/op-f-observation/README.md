@@ -1,5 +1,29 @@
 # OP-F observation evidence
 
+Latest cohort: source28e7e07 adds schema-valid opaque program-ID route coverage
+after2 actual HTTP404 REDs;25 focused and522 ordinary server tests pass. The56
+paper-runtime deselections are environment-specific and remain separate from
+mandatory PG. Raw parent logs/XML are retained with exact source hashes.
+
+`pg0d0` preserves8 actual PG passes for latest reservation observations. `pg6c1`
+retains the real5-pass/1-failure model book-change classification run. `pg424`
+preserves14 actual PG passes (4 observer+4 admission observation+6 genuine fake-
+model→real GenericService financial handoff), zero failures/errors/skips. This
+includes current cap/rule/market/book REPLAN without new bundles and unqualified
+automatic paths with zero provider calls. It is an overridden diagnostic set,
+not full required inventory or native qualification. Later source86b263e adds
+provider-free behavior for all unqualified model policies; latest server checks
+include it. The route-only28e7e07 fix does not change PG financial semantics.
+
+Latest UI outputs `final-display-web.txt`/`reservation-web.txt` have119 passes;
+matching build/typecheck and actual reservation desktop/mobile captures retain
+original creation rows separately from scoped current projection records. Their
+own run/source evidence remains authoritative; they are not newly rerun here.
+Source labels in earlier sections below describe historical checkpoints.
+
+`cohort-manifest.json` covers all published artifact bytes. Private browser
+`.playwright-cli` state/cookies and container secrets are not publication inputs.
+
 Fixed source:
 - `31bf6df748dde2f4ba2885448705a112cd120e47`: initial backend/API/CLI + 3 actual PG.
 - `97ce8d7`: first UI and read projection followups + 3 actual PG.

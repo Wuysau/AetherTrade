@@ -1,0 +1,13 @@
+### Result
+{
+  "width": 390,
+  "documentWidth": 390,
+  "latest": true,
+  "warning": true,
+  "original": true,
+  "hasMay": true
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ({width:innerWidth,documentWidth:document.documentElement.scrollWidth,latest:document.querySelector(".program-detail")?.textContent.includes("已读取最新记录投影"),warning:document.querySelector(".program-detail")?.textContent.includes("记录值不代表当前可花余额"),original:document.querySelector(".program-detail")?.textContent.includes("原始资金预留（创建记录）"),hasMay:document.querySelector(".program-detail")?.textContent.includes("MAY_HAVE_SENT")})');
+```

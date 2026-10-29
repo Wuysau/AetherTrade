@@ -1,5 +1,20 @@
 # Current task
 
+## OP_F_PARENT_REVIEWED_COHORT — 2026-10-29
+
+Parent/root owns THIS binance-opf-observability worktree after observability_fresh
+stopped. Functional86b263e plus reviewed route28e7e07; latest ordinary server522
+passes/56 paper-runtime deselections, existing warning. Actual fixed42480a0 PG14
+passes/0fail/error/skip; prior6c130b5 5pass/1classification failure retained.
+UI119/build/browser evidence is worker-source-specific, not rerun as latest PG.
+All new evidence and original source maps are archived under op-f-observation.
+Opaque slash/Unicode IDs now work under the old schema/auth/scope contract.
+No new public programme write/strategy protocol opt-in is enabled; automatic
+unqualified analysis stays provider-free. Full OP-F cross-mode/model, qualified
+host/control/strategy integration and whole46/56 remain unfinished and ACTIVE.
+Parent must not modify integration_next's binance-orders or reports_fresh's
+report-verifier. Main/archive remain untouched; no LIVE/TESTNET/paid calls.
+
 ## OP_F_OBSERVATION_WORKER_CHECKPOINT — 2026-10-29
 
 Own sibling binance-opf-observability from exact integration6cbdf7e, branch
