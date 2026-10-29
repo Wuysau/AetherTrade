@@ -11,7 +11,7 @@ from typing import Callable
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp
-from trading_system.storage.models import decode, scope_id, ScopeMismatch, MissingEvidence
+from trading_system.storage.models import decode, scope_id, ScopeMismatch, MissingEvidence, atomic_write
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -21,6 +21,15 @@ class EvidenceRecord:
     aggregate_sequence: int
     status: str
     reason: str | None
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PreparedEvidence:
+    """Captured archive bytes and metadata, not financial or ownership authority."""
+    raw:t.RawVenueMessage
+    event:t.VenueEvent|None
+    reason:str|None
+    payload:bytes
 
 
 def next_account_sequence(tx) -> int:
@@ -57,19 +66,26 @@ class EvidenceIngestor:
         raise MissingEvidence('order projection requires ingested evidence for this identity')
 
     def _check_raw(self, raw):
+        self._check_raw_metadata(raw)
+        payload=self.read_raw(raw.raw_payload_ref)
+        self._check_raw_payload(raw,payload)
+        return payload
+
+    def _check_raw_metadata(self,raw):
         if raw.scope != self.scope or raw.raw_payload_ref.environment != self.scope.environment:
             raise ScopeMismatch('raw evidence scope mismatch')
         if not raw.source.strip() or raw.raw_payload_ref.source != raw.source:
             raise ValueError('raw source mismatch')
         utc_timestamp(raw.received_at)
         utc_timestamp(raw.raw_payload_ref.visible_at)
-        payload = self.read_raw(raw.raw_payload_ref)
+
+    def _check_raw_payload(self,raw,payload):
+        self._check_raw_metadata(raw)
         if not isinstance(payload, bytes):
             raise ValueError('archive must supply exact bytes')
         digest = sha256(payload).hexdigest()
         if digest != raw.payload_hash or digest != raw.raw_payload_ref.hash:
             raise ValueError('raw archive hash mismatch')
-        return payload
 
     def _check_event(self, event, raw):
         if not isinstance(event, t.VenueEvent) or not event.event_id.strip():
@@ -90,42 +106,64 @@ class EvidenceIngestor:
             raise ValueError('processing precedes receipt')
 
     def _persist(self, raw, event, reason):
+        with self.uow.transaction(self.scope) as tx:
+            receipt=self._persist_in_tx(tx,raw,event,reason)
+        return receipt
+
+    @atomic_write
+    def _persist_in_tx(self,tx,raw,event,reason):
+        tx.require_scope(self.scope)
         # Delivery duplicates may have different local timestamps. The raw
         # hash identifies the archived observation; source IDs are not assumed
         # globally unique and source_sequence is never a local ordering clock.
         key = 'ip12:raw:' + canonical_hash({'scope': domain_payload(self.scope),
             'source': raw.source, 'hash': raw.payload_hash,
             'event_id': None if event is None else event.event_id})
-        with self.uow.transaction(self.scope) as tx:
-            existing = tx._latest('venue_events', key, EvidenceRecord)
-            if existing is None:
-                record = EvidenceRecord(raw=raw, event=event,
-                    aggregate_sequence=next_account_sequence(tx),
-                    status='UNKNOWN' if event is None else 'OBSERVED', reason=reason)
-                tx._append('venue_events', key, record, 0)
-            else:
-                # Preserve the original receipt, without overwriting history.
-                if existing.event is not None and event is not None:
-                    a, b = domain_payload(existing.event), domain_payload(event)
-                    for item in ('received_at', 'processed_at', 'raw_payload_ref'):
-                        a.pop(item)
-                        b.pop(item)
-                    if a != b:
-                        raise ValueError('same archived identity has conflicting decoded facts')
-                raw, event, reason = existing.raw, existing.event, existing.reason
+        existing = tx._latest('venue_events', key, EvidenceRecord)
+        if existing is None:
+            record = EvidenceRecord(raw=raw, event=event,
+                aggregate_sequence=next_account_sequence(tx),
+                status='UNKNOWN' if event is None else 'OBSERVED', reason=reason)
+            tx._append('venue_events', key, record, 0)
+        else:
+            # Preserve the original receipt, without overwriting history.
+            if existing.event is not None and event is not None:
+                a, b = domain_payload(existing.event), domain_payload(event)
+                for item in ('received_at', 'processed_at', 'raw_payload_ref'):
+                    a.pop(item)
+                    b.pop(item)
+                if a != b:
+                    raise ValueError('same archived identity has conflicting decoded facts')
+            raw, event, reason = existing.raw, existing.event, existing.reason
         return t.EvidenceReceipt(event_id=key if event is None else event.event_id,
             accepted=event is not None, reason=reason, raw_ref=raw.raw_payload_ref)
 
     def ingest(self, event: t.VenueEvent) -> t.EvidenceReceipt:
+        prepared=self.prepare(event)
+        with self.uow.transaction(self.scope) as tx:
+            receipt=self.ingest_in_tx(tx,prepared)
+        return receipt
+
+    def prepare(self,event:t.VenueEvent)->PreparedEvidence:
+        """Read and validate durable bytes before a business transaction begins."""
         raw = t.RawVenueMessage(scope=self.scope, source=event.source,
             payload_hash=event.payload_hash, raw_payload_ref=event.raw_payload_ref,
             received_at=event.received_at)
-        self._check_raw(raw)
+        payload=self._check_raw(raw)
         try:
             self._check_event(event, raw)
         except (ValueError, TypeError, AttributeError):
-            return self._persist(raw, None, 'UNKNOWN:EVENT_BINDING_INVALID')
-        return self._persist(raw, event, None)
+            return PreparedEvidence(raw=raw,event=None,reason='UNKNOWN:EVENT_BINDING_INVALID',payload=payload)
+        return PreparedEvidence(raw=raw,event=event,reason=None,payload=payload)
+
+    @atomic_write
+    def ingest_in_tx(self,tx,prepared:PreparedEvidence)->t.EvidenceReceipt:
+        """Recheck captured bytes/metadata without archive or venue IO."""
+        tx.require_scope(self.scope)
+        if type(prepared) is not PreparedEvidence:raise TypeError('prepared evidence required')
+        self._check_raw_payload(prepared.raw,prepared.payload)
+        if prepared.event is not None:self._check_event(prepared.event,prepared.raw)
+        return self._persist_in_tx(tx,prepared.raw,prepared.event,prepared.reason)
 
     def ingest_raw(self, raw: t.RawVenueMessage, *,
                    decoder: Callable[[bytes], t.VenueEvent]) -> t.EvidenceReceipt:

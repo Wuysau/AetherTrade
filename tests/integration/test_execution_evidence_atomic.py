@@ -35,6 +35,7 @@ def test_evidence_native_fill_fee_event_outbox_and_notice_share_one_physical_tra
         notice=tx.execute('SELECT transaction_id,xmin::text FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s',
             (scope_id(s.scope),'ip12:fill-notice:'+fill.fill_id)).fetchone()
         assert evidence==native==event==outbox==notice
+        assert tx.execute('SELECT xmin::text FROM ledger.fill_fees WHERE fill_id=%s',(fill.fill_id,)).fetchone()==(native[1],)
     assert s.count('fills')==s.count('fill_fees')==s.count('outbox')==1
 
 
