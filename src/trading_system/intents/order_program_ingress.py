@@ -221,6 +221,10 @@ def validate_program_command(tx, command, intent, load_current_program_facts, lo
     require(binding is not None and binding.command_id == command.command_id
             and binding.command_hash == command_hash(command) and binding.intent_hash == ContractCodec().hash(intent),
             'PROGRAM_COMMAND_BINDING_MISMATCH')
+    codec = VersionedOrderCodec()
+    require(codec.hash('order-rule-snapshot', binding.rules) == binding.compilation.rules_hash
+            and codec.hash('order-capability-snapshot', binding.capabilities) == binding.compilation.capabilities_hash,
+            'PROGRAM_SNAPSHOT_BINDING_MISMATCH')
     proposal = binding.compilation.original_proposal
     facts = load_current_program_facts(tx, proposal, intent)
     require(type(facts) is AdmissionInputs and facts.execution_policy == binding.execution_policy,
