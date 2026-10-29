@@ -1,0 +1,40 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_evidence_native_fill_fee_event_outbox_and_notice_share_one_physical_transaction _
+tests/integration/test_execution_evidence_atomic.py:23: in test_evidence_native_fill_fee_event_outbox_and_notice_share_one_physical_transaction
+    s=evidence_case;fill,prepared=prepared_case(s)
+                                  ^^^^^^^^^^^^^^^^
+tests/integration/test_execution_evidence_atomic.py:19: in prepared_case
+    return replace(fill,evidence=raw.raw_payload_ref),s.ingestor.prepare(event)
+                                                      ^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'EvidenceIngestor' object has no attribute 'prepare'
+______ test_caller_failure_rolls_back_evidence_fill_fee_event_and_notice _______
+tests/integration/test_execution_evidence_atomic.py:42: in test_caller_failure_rolls_back_evidence_fill_fee_event_and_notice
+    s=evidence_case;fill,prepared=prepared_case(s)
+                                  ^^^^^^^^^^^^^^^^
+tests/integration/test_execution_evidence_atomic.py:19: in prepared_case
+    return replace(fill,evidence=raw.raw_payload_ref),s.ingestor.prepare(event)
+                                                      ^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'EvidenceIngestor' object has no attribute 'prepare'
+_ test_caught_validation_failure_still_rolls_back_the_whole_caller_transaction _
+tests/integration/test_execution_evidence_atomic.py:53: in test_caught_validation_failure_still_rolls_back_the_whole_caller_transaction
+    s=evidence_case;fill,prepared=prepared_case(s)
+                                  ^^^^^^^^^^^^^^^^
+tests/integration/test_execution_evidence_atomic.py:19: in prepared_case
+    return replace(fill,evidence=raw.raw_payload_ref),s.ingestor.prepare(event)
+                                                      ^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'EvidenceIngestor' object has no attribute 'prepare'
+_ test_same_transaction_and_later_replay_keep_one_native_fill_and_original_notice _
+tests/integration/test_execution_evidence_atomic.py:64: in test_same_transaction_and_later_replay_keep_one_native_fill_and_original_notice
+    s=evidence_case;fill,prepared=prepared_case(s)
+                                  ^^^^^^^^^^^^^^^^
+tests/integration/test_execution_evidence_atomic.py:19: in prepared_case
+    return replace(fill,evidence=raw.raw_payload_ref),s.ingestor.prepare(event)
+                                                      ^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'EvidenceIngestor' object has no attribute 'prepare'
+=========================== short test summary info ============================
+FAILED tests/integration/test_execution_evidence_atomic.py::test_evidence_native_fill_fee_event_outbox_and_notice_share_one_physical_transaction
+FAILED tests/integration/test_execution_evidence_atomic.py::test_caller_failure_rolls_back_evidence_fill_fee_event_and_notice
+FAILED tests/integration/test_execution_evidence_atomic.py::test_caught_validation_failure_still_rolls_back_the_whole_caller_transaction
+FAILED tests/integration/test_execution_evidence_atomic.py::test_same_transaction_and_later_replay_keep_one_native_fill_and_original_notice
+4 failed in 0.95s
