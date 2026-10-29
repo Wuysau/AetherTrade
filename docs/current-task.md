@@ -22,7 +22,7 @@ must check real protected consumption, fullSIM accepted source and ALL competing
 liquidity allocations; preserve discrepancies/overfills/fees and duties, no caps,
 permits, ownership grants, automatic releases or second cash ledger. OP-F peer
 observability_fresh owns separate UI/API+explicit opt-in model frame and has a
-pending review fix for latest reservation projections; no actual paid calls.
+implemented0d0e909 latest reservation projections (8PG/119web); no actual paid calls.
 
 Goal remains ACTIVE through C/D/E/F/G with all46/56; TESTNET/LIVE stays disabled.
 Do not pause, mark complete, overwrite main/archive or integrate into public.
