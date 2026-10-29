@@ -333,3 +333,18 @@ def test_migration_preserves_actual_v2_history_hash_and_legacy_unknown(database)
         obligation,=application_write_obligations(tx)
         assert obligation.unresolved and obligation.original==w
         assert VersionedOrderCodec().hash('application-write',obligation.original)==original_hash
+
+def test_one_financial_plan_request_cannot_be_appended_twice_under_distinct_command_ids(database):
+    import psycopg
+    c=real_case(database);ids=('duplicate-first-'+uuid4().hex,'duplicate-second-'+uuid4().hex)
+    def operation(tx):
+        b=c.service._reserve_program(tx,c.key,ids,load_inputs=c.load,load_qualification=c.qualify,
+            load_clock=lambda _:c.c.facts.inputs.clock)
+        for cid in ids:
+            r=materialize_creation(b.archive.compilation,0,b.archive.profile,assign_client_ids(b.archive.compilation,0,cid))
+            w,_=build_creation_write(r,b,execution_epoch=1)
+            repo(tx,c).append_creation(w,r,bundle=b)
+    with pytest.raises(psycopg.errors.UniqueViolation):c.service._transaction(operation)
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.intents.get(c.record.intent_id) is None
+        assert tx.reservations.for_intent(c.record.intent_id)==()

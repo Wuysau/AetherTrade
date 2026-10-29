@@ -29,6 +29,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
     ('program-commands', '03', 'tests/integration/test_program_commands_postgres.py'),
+    ('program-command-semantic-identity', '03', 'tests/integration/test_program_commands_postgres.py::test_one_financial_plan_request_cannot_be_appended_twice_under_distinct_command_ids'),
     ('program-financial-admission', '03', 'tests/integration/test_program_financial_admission.py'),
     ('assessment-archive', '03', 'tests/integration/test_assessment_archive_ledger.py'),
     ('program-financial-ledger', '03', 'tests/integration/test_program_financial_ledger.py'),
@@ -294,7 +295,7 @@ def main(argv=None):
                     command = [sys.executable, '-m', 'pytest', '-q', '--tb=short', f'--rootdir={ROOT}', f'--junitxml={xml}', absolute_test]
                     if name == 'console-contract':
                         command.extend(['-m', 'paper_runtime'])
-                    suite_timeout = 600 if name == 'console-contract' else 300
+                    suite_timeout = 600 if name in ('console-contract','program-commands') else 300
                     with log.open('wb') as output:
                         try:
                             outcome = subprocess.run(command, cwd=cwd, env=env, stdout=output,
