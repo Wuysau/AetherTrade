@@ -1,5 +1,48 @@
 # Current task
 
+## OP_C_COMMON_FINANCIAL_CORE_ACTIVE — 2026-10-29
+
+Root HEADbe72cab: generic target allocation, exact numeric LIMIT equivalence,
+and explicit unaccounted residual blocking integrated. Contracts/intents/unit
+1045 passed, zero failures/skips. This is offline evidence; full current-source
+PG gate remains due. Earlier fixed-source4b6b941 mandatory873/ordinary2650 green
+is historical baseline, not proof for these later changes. Root46441 completed
+exit0; do not restart its old handle. Full56acceptance statuses remain honest.
+
+Root also integrated new/old command obligation readers and READY-regression
+defense (9b28899). Two separate IP03 suites are registered. Old database absence
+is supported; raw terminal/READY labels never clear prior UNKNOWN obligations.
+
+Active delegated owners, one writer each:
+
+- admission_review: binance-opc-financial-core / codex/binance-opc-financial-core,
+  based9b28899. Extracts amounts/capacity into SAME shared financial path, retains
+  old publicalias and call ordering. Genuine old-PG precision RED: free10**80+70,
+  other holds1+10**80 wrongly admitted70 when69 remained, no RiskEvaluator stub
+  or fills. Candidate256digit trapped math denies correctly; PG regressions and
+  full unit runs are ongoing. Review+integrate actual committed result next.
+- exposure_review: binance-opc-risk-core / codex/binance-opc-risk-core,
+  based9b28899. Implements typed neutral risk terms/metrics and shared policy/
+  mode/spendable checks, retaining old diagnostic ordering/normalcase hashes.
+  It is independently probing RiskEvaluator80digit rounding. Scope/freshness/
+  price/stop extraction is staged, not silently declared complete. Generic
+  metrics must cover net/groups/protection/loss/horizon/counts; ProgramExposure
+  is insufficient alone. No generic financial permission has been enabled.
+- pin_native_build: binance-opc-lifecycle-v3 / codex/binance-opc-lifecycle-v3,
+  basedbe72cab. First researches native group/unit semantics and RED probes,
+  must send root explicit additive authority/binding/state contract plan before
+  implementing new codecs/reducers. Root reviews architecture, no routine user
+  approval question. Preserve V2 schemas/history and existing V3 containment.
+
+Next root actions: review lifecycle plan, integrate reviewed shared finance/risk
+commits and run fresh fixed-commit mandatory PG+Python gate. Then finish actual
+versioned generic financial intent/admission/bundle/command/permit adapters using
+the SAME ledger/risk/reservations, not fake legacy projections. Residual dust,
+native OCO target grouping, quote-quantity allocation and management remain
+explicit unresolved contracts in addition to full OP-D/E/F/G scope. No LIVE,
+TESTNET, real accounts, product model calls or operational profile changes.
+Persistent goal remains active; this checkpoint is not a pause/completion.
+
 ## OP_C_INTEGRATING_GENERIC_TARGETS — 2026-10-29
 
 Root integrated throughd7c761d: explicit version/legacy lifecycle containment,
