@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp
+from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp, decimal_string
 from trading_system.contracts.order_codec import VersionedOrderCodec
 from trading_system.contracts.order_program import OrderProposal, identifier
 from trading_system.contracts.order_snapshots import OrderRuleSnapshot, OrderCapabilitySnapshot
@@ -37,7 +37,7 @@ class ExecutionPolicy:
         identifier(self.policy_id)
         require(type(self.revision) is int and self.revision > 0, 'EXECUTION_POLICY_REQUIRED')
         require(isinstance(self.maximum_entry_slippage_bps, str), 'EXECUTION_POLICY_REQUIRED')
-        value = Decimal(self.maximum_entry_slippage_bps)
+        value = decimal_string(self.maximum_entry_slippage_bps)
         require(value.is_finite() and 0 <= value <= 10000, 'EXECUTION_POLICY_REQUIRED')
 
 
