@@ -203,7 +203,11 @@ def intake_with_denial(monkeypatch):
     ledger = MemoryLedger(case)
     calls = []
     def deny(tx, intent, sequence, *, accepted):
+        from trading_system.intents.order_program_ingress import program_intake
         assert tx is ledger and ledger.active
+        original = program_intake(tx, intent)
+        assert original.compilation.original_proposal == p
+        assert original.compilation.time_in_force == 'GTC'
         calls.append(intent)
         return t.ReservationOutcome(accepted=False, reservations=(), book_sequence=sequence, rejection_codes=('BUDGET',))
     def save(repo, program):

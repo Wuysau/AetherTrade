@@ -21,6 +21,7 @@ from trading_system.intents.order_program_compiler import compile_atomic_target
 from trading_system.intents.order_program_ingress import (
     AdmissionInputs, OrderProgramIngress, PaperQualification,
     OrderProgramCommandBinding, COMMAND_PREFIX, validate_program_command,
+    program_intake,
 )
 from trading_system.execution.commands import CommandRepository
 from trading_system.risk.reservations import ReservationService
@@ -78,8 +79,10 @@ def program_case(dsn):
 
     def reserve_inputs(tx, intent, book):
         values = c.inputs(tx, intent, book)
+        original = program_intake(tx, intent)
+        assert original is not None
         payload = replace(c.command.canonical_payload, side='BUY', order_type='LIMIT', price='81490.00',
-            quantity=compiled.normalized_target_quantity, time_in_force=p.program.nodes[0].order.tif.kind)
+            quantity=original.compilation.normalized_target_quantity, time_in_force=original.compilation.time_in_force)
         command = replace(c.command, intent_id=intent.intent_id, canonical_payload=payload,
             command_id='command-' + intent.intent_id, logical_client_order_id='logical-' + intent.intent_id,
             venue_client_order_id='client-' + intent.intent_id)
