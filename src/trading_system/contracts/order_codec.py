@@ -7,14 +7,22 @@ from .wire import ContractCodec
 from .order_program import OrderProgram,AtomicOrderSpec,OrderProposal,OrderProgramCodec
 from .order_lifecycle import ParentAuthority,ChildObservation,ProgramState,ApplicationWrite,ParentObservation
 from .order_program_v3 import OrderProgramV3,OrderProposalV3
+from .order_lifecycle_v3 import (ParentAuthorityV3,ParentBindingV3,ChildMembershipV3,NativeExclusivityV3,
+    ChildObservationV3,ParentObservationV3,ReceiptAllocationV3,LifecycleProofV3,ProgramStateV3)
 from .order_snapshots import OrderCapabilitySnapshot,OrderRuleSnapshot
 from .program_financial import ProgramFinancialIntent,ProgramFinancialRiskBasis
 
 KINDS={'order-proposal':OrderProposal,'order-program':OrderProgram,'atomic-order':AtomicOrderSpec,'parent-authority':ParentAuthority,'parent-observation':ParentObservation,
        'child-observation':ChildObservation,'program-state':ProgramState,'application-write':ApplicationWrite,
        'order-capability-snapshot':OrderCapabilitySnapshot,'order-rule-snapshot':OrderRuleSnapshot}
-KINDS_BY_VERSION={'2026-10-28':KINDS,'2026-10-29':{'order-program':OrderProgramV3,'order-proposal':OrderProposalV3,
-    'program-financial-intent':ProgramFinancialIntent,'program-financial-risk-basis':ProgramFinancialRiskBasis}}
+KINDS_BY_VERSION={'2026-10-28':KINDS,'2026-10-29':{
+    'order-program':OrderProgramV3,'order-proposal':OrderProposalV3,
+    'program-financial-intent':ProgramFinancialIntent,'program-financial-risk-basis':ProgramFinancialRiskBasis,
+    'parent-authority':ParentAuthorityV3,'parent-binding':ParentBindingV3,
+    'child-membership':ChildMembershipV3,'native-exclusivity':NativeExclusivityV3,
+    'child-observation':ChildObservationV3,'parent-observation':ParentObservationV3,
+    'receipt-allocation':ReceiptAllocationV3,'lifecycle-proof':LifecycleProofV3,'program-state':ProgramStateV3}}
+
 LEGACY={'decision-proposal','trade-intent','execution-command','risk-policy'}
 
 class VersionedOrderCodec:

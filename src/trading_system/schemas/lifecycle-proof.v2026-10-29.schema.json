@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-29"
+      ]
+    },
+    "proof_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "role": {
+      "enum": [
+        "FUNDING_AUTHORITY",
+        "PARENT_BINDING",
+        "CHILD_MEMBERSHIP",
+        "NATIVE_EXCLUSIVITY",
+        "LIFECYCLE_EVENT",
+        "RECEIPT_ALLOCATION"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "venue_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "product": {
+          "enum": [
+            "SPOT",
+            "USD_M_PERP",
+            "US_EQUITY"
+          ]
+        },
+        "instrument_uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue_leg": {
+          "enum": [
+            "BOTH",
+            "LONG",
+            "SHORT"
+          ]
+        }
+      },
+      "required": [
+        "environment",
+        "venue_account_id",
+        "product",
+        "instrument_uid",
+        "venue_leg"
+      ],
+      "additionalProperties": false
+    },
+    "subject_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "context_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "valid_from": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "valid_until": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "hash": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "environment": {
+            "enum": [
+              "RESEARCH",
+              "PAPER",
+              "TESTNET",
+              "LIVE"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "visible_at": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "id",
+          "hash",
+          "environment",
+          "source",
+          "visible_at"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "contract_version",
+    "proof_id",
+    "role",
+    "scope",
+    "subject_hash",
+    "context_hash",
+    "valid_from",
+    "valid_until",
+    "source_refs"
+  ],
+  "additionalProperties": false
+}

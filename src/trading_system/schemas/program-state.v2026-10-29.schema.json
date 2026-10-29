@@ -1,0 +1,2045 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-29"
+      ]
+    },
+    "program_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "authority_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "authority_proof_ref": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "hash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "visible_at": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "id",
+        "hash",
+        "environment",
+        "source",
+        "visible_at"
+      ],
+      "additionalProperties": false
+    },
+    "prepared_at": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "PREPARED",
+        "BOUND",
+        "ACTIVE",
+        "SUBMIT_UNKNOWN",
+        "CANCEL_PENDING",
+        "CANCEL_UNKNOWN",
+        "STOPPED",
+        "COMPLETED",
+        "RECONCILIATION_REQUIRED"
+      ]
+    },
+    "binding": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "contract_version": {
+              "enum": [
+                "2026-10-29"
+              ]
+            },
+            "binding_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "authority_hash": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "scope": {
+              "type": "object",
+              "properties": {
+                "environment": {
+                  "enum": [
+                    "RESEARCH",
+                    "PAPER",
+                    "TESTNET",
+                    "LIVE"
+                  ]
+                },
+                "venue_account_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "product": {
+                  "enum": [
+                    "SPOT",
+                    "USD_M_PERP",
+                    "US_EQUITY"
+                  ]
+                },
+                "instrument_uid": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "venue_leg": {
+                  "enum": [
+                    "BOTH",
+                    "LONG",
+                    "SHORT"
+                  ]
+                }
+              },
+              "required": [
+                "environment",
+                "venue_account_id",
+                "product",
+                "instrument_uid",
+                "venue_leg"
+              ],
+              "additionalProperties": false
+            },
+            "venue": {
+              "enum": [
+                "BINANCE"
+              ]
+            },
+            "namespace": {
+              "enum": [
+                "ORDINARY",
+                "ORDER_LIST",
+                "CONDITIONAL_ALGO",
+                "EXECUTION_ALGO"
+              ]
+            },
+            "binding_kind": {
+              "enum": [
+                "VENUE_ACCEPTANCE",
+                "LOCAL_PROGRAM_ACTIVATION"
+              ]
+            },
+            "parent_command_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "parent_client_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "parent_venue_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "bound_at": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "source_evidence": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "hash": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "environment": {
+                  "enum": [
+                    "RESEARCH",
+                    "PAPER",
+                    "TESTNET",
+                    "LIVE"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "visible_at": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id",
+                "hash",
+                "environment",
+                "source",
+                "visible_at"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "contract_version",
+            "binding_id",
+            "authority_hash",
+            "scope",
+            "venue",
+            "namespace",
+            "binding_kind",
+            "parent_command_id",
+            "parent_client_id",
+            "parent_venue_id",
+            "bound_at",
+            "source_evidence"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "binding_proof_ref": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "hash": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "environment": {
+              "enum": [
+                "RESEARCH",
+                "PAPER",
+                "TESTNET",
+                "LIVE"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "visible_at": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "id",
+            "hash",
+            "environment",
+            "source",
+            "visible_at"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "memberships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "membership": {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "enum": [
+                  "2026-10-29"
+                ]
+              },
+              "membership_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "authority_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "binding_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "scope": {
+                "type": "object",
+                "properties": {
+                  "environment": {
+                    "enum": [
+                      "RESEARCH",
+                      "PAPER",
+                      "TESTNET",
+                      "LIVE"
+                    ]
+                  },
+                  "venue_account_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "product": {
+                    "enum": [
+                      "SPOT",
+                      "USD_M_PERP",
+                      "US_EQUITY"
+                    ]
+                  },
+                  "instrument_uid": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "venue_leg": {
+                    "enum": [
+                      "BOTH",
+                      "LONG",
+                      "SHORT"
+                    ]
+                  }
+                },
+                "required": [
+                  "environment",
+                  "venue_account_id",
+                  "product",
+                  "instrument_uid",
+                  "venue_leg"
+                ],
+                "additionalProperties": false
+              },
+              "venue": {
+                "enum": [
+                  "BINANCE"
+                ]
+              },
+              "parent_namespace": {
+                "enum": [
+                  "ORDINARY",
+                  "ORDER_LIST",
+                  "CONDITIONAL_ALGO",
+                  "EXECUTION_ALGO"
+                ]
+              },
+              "child_namespace": {
+                "enum": [
+                  "ORDINARY"
+                ]
+              },
+              "node_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "group_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "child_order_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "child_client_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "origin": {
+                "enum": [
+                  "VENUE_GENERATED_CHILD",
+                  "APPLICATION_GENERATED_CHILD"
+                ]
+              },
+              "command_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "command_hash": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "durable_record_ref": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "source_evidence": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "hash": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "environment": {
+                    "enum": [
+                      "RESEARCH",
+                      "PAPER",
+                      "TESTNET",
+                      "LIVE"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "visible_at": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "required": [
+                  "id",
+                  "hash",
+                  "environment",
+                  "source",
+                  "visible_at"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "contract_version",
+              "membership_id",
+              "authority_hash",
+              "binding_hash",
+              "scope",
+              "venue",
+              "parent_namespace",
+              "child_namespace",
+              "node_id",
+              "group_id",
+              "child_order_id",
+              "child_client_id",
+              "origin",
+              "command_id",
+              "command_hash",
+              "durable_record_ref",
+              "source_evidence"
+            ],
+            "additionalProperties": false
+          },
+          "proof_ref": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "environment": {
+                "enum": [
+                  "RESEARCH",
+                  "PAPER",
+                  "TESTNET",
+                  "LIVE"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "visible_at": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "id",
+              "hash",
+              "environment",
+              "source",
+              "visible_at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "membership",
+          "proof_ref"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "exclusivities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "exclusivity": {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "enum": [
+                  "2026-10-29"
+                ]
+              },
+              "group_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "authority_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "binding_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "membership_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "scope": {
+                "type": "object",
+                "properties": {
+                  "environment": {
+                    "enum": [
+                      "RESEARCH",
+                      "PAPER",
+                      "TESTNET",
+                      "LIVE"
+                    ]
+                  },
+                  "venue_account_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "product": {
+                    "enum": [
+                      "SPOT",
+                      "USD_M_PERP",
+                      "US_EQUITY"
+                    ]
+                  },
+                  "instrument_uid": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "venue_leg": {
+                    "enum": [
+                      "BOTH",
+                      "LONG",
+                      "SHORT"
+                    ]
+                  }
+                },
+                "required": [
+                  "environment",
+                  "venue_account_id",
+                  "product",
+                  "instrument_uid",
+                  "venue_leg"
+                ],
+                "additionalProperties": false
+              },
+              "venue": {
+                "enum": [
+                  "BINANCE"
+                ]
+              },
+              "namespace": {
+                "enum": [
+                  "ORDER_LIST"
+                ]
+              },
+              "template": {
+                "enum": [
+                  "OCO",
+                  "OTOCO",
+                  "OPOCO"
+                ]
+              },
+              "node_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "guarantee": {
+                "enum": [
+                  "ONE_EXECUTING_MEMBER"
+                ]
+              },
+              "rule_revision": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rule_snapshot_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "adapter_build_digest": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "source_evidence": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "hash": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "environment": {
+                    "enum": [
+                      "RESEARCH",
+                      "PAPER",
+                      "TESTNET",
+                      "LIVE"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "visible_at": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "required": [
+                  "id",
+                  "hash",
+                  "environment",
+                  "source",
+                  "visible_at"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "contract_version",
+              "group_id",
+              "authority_hash",
+              "binding_hash",
+              "membership_hash",
+              "scope",
+              "venue",
+              "namespace",
+              "template",
+              "node_ids",
+              "guarantee",
+              "rule_revision",
+              "rule_snapshot_hash",
+              "adapter_build_digest",
+              "source_evidence"
+            ],
+            "additionalProperties": false
+          },
+          "proof_ref": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "environment": {
+                "enum": [
+                  "RESEARCH",
+                  "PAPER",
+                  "TESTNET",
+                  "LIVE"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "visible_at": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "id",
+              "hash",
+              "environment",
+              "source",
+              "visible_at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "exclusivity",
+          "proof_ref"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "receipts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "enum": [
+                  "2026-10-29"
+                ]
+              },
+              "receipt_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "authority_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "binding_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "scope": {
+                "type": "object",
+                "properties": {
+                  "environment": {
+                    "enum": [
+                      "RESEARCH",
+                      "PAPER",
+                      "TESTNET",
+                      "LIVE"
+                    ]
+                  },
+                  "venue_account_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "product": {
+                    "enum": [
+                      "SPOT",
+                      "USD_M_PERP",
+                      "US_EQUITY"
+                    ]
+                  },
+                  "instrument_uid": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "venue_leg": {
+                    "enum": [
+                      "BOTH",
+                      "LONG",
+                      "SHORT"
+                    ]
+                  }
+                },
+                "required": [
+                  "environment",
+                  "venue_account_id",
+                  "product",
+                  "instrument_uid",
+                  "venue_leg"
+                ],
+                "additionalProperties": false
+              },
+              "source_node_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "target_group_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "source_fill_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "asset": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "quantity_unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "gross_received_quantity": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "receipt_commission_quantity": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "locked_quantity": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "pending_quantity": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "unused_quantity": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "unused_disposition": {
+                "enum": [
+                  "STILL_LOCKED",
+                  "UNLOCK_REPORTED"
+                ]
+              },
+              "lot_step": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "rule_snapshot_hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "occurred_at": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "source_evidence": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "hash": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "environment": {
+                    "enum": [
+                      "RESEARCH",
+                      "PAPER",
+                      "TESTNET",
+                      "LIVE"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "visible_at": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "required": [
+                  "id",
+                  "hash",
+                  "environment",
+                  "source",
+                  "visible_at"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "contract_version",
+              "receipt_id",
+              "authority_hash",
+              "binding_hash",
+              "scope",
+              "source_node_id",
+              "target_group_id",
+              "source_fill_hash",
+              "asset",
+              "quantity_unit",
+              "gross_received_quantity",
+              "receipt_commission_quantity",
+              "locked_quantity",
+              "pending_quantity",
+              "unused_quantity",
+              "unused_disposition",
+              "lot_step",
+              "rule_snapshot_hash",
+              "occurred_at",
+              "source_evidence"
+            ],
+            "additionalProperties": false
+          },
+          "proof_ref": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "hash": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "environment": {
+                "enum": [
+                  "RESEARCH",
+                  "PAPER",
+                  "TESTNET",
+                  "LIVE"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "visible_at": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "id",
+              "hash",
+              "environment",
+              "source",
+              "visible_at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "receipt",
+          "proof_ref"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "pools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "unallocated_quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "group_id",
+          "unallocated_quantity"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "observation": {
+            "type": "object",
+            "properties": {
+              "contract_version": {
+                "enum": [
+                  "2026-10-29"
+                ]
+              },
+              "observation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "membership_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "scope": {
+                "type": "object",
+                "properties": {
+                  "environment": {
+                    "enum": [
+                      "RESEARCH",
+                      "PAPER",
+                      "TESTNET",
+                      "LIVE"
+                    ]
+                  },
+                  "venue_account_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "product": {
+                    "enum": [
+                      "SPOT",
+                      "USD_M_PERP",
+                      "US_EQUITY"
+                    ]
+                  },
+                  "instrument_uid": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "venue_leg": {
+                    "enum": [
+                      "BOTH",
+                      "LONG",
+                      "SHORT"
+                    ]
+                  }
+                },
+                "required": [
+                  "environment",
+                  "venue_account_id",
+                  "product",
+                  "instrument_uid",
+                  "venue_leg"
+                ],
+                "additionalProperties": false
+              },
+              "venue": {
+                "enum": [
+                  "BINANCE"
+                ]
+              },
+              "parent_namespace": {
+                "enum": [
+                  "ORDINARY",
+                  "ORDER_LIST",
+                  "CONDITIONAL_ALGO",
+                  "EXECUTION_ALGO"
+                ]
+              },
+              "child_namespace": {
+                "enum": [
+                  "ORDINARY"
+                ]
+              },
+              "parent_client_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "parent_venue_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "child_order_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "child_client_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "side": {
+                "enum": [
+                  "BUY",
+                  "SELL"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "PENDING_NEW",
+                  "SUBMITTED",
+                  "PARTIALLY_FILLED",
+                  "FILLED",
+                  "CANCELED",
+                  "EXPIRED",
+                  "REJECTED",
+                  "UNKNOWN",
+                  "CANCEL_PENDING",
+                  "CANCEL_UNKNOWN"
+                ]
+              },
+              "quantity_unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "quantity": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cumulative_quantity": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "leaves_quantity": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fills": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "native_trade_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "quantity": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "quantity_unit": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "price": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "price_asset": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "fees": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "asset": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "amount": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "receipt_effect": {
+                                "enum": [
+                                  "DEDUCT_RECEIVED_ASSET",
+                                  "NO_RECEIPT_DEBIT"
+                                ]
+                              },
+                              "position_effect": {
+                                "enum": [
+                                  "DEDUCT_OWNED_BASE",
+                                  "NO_POSITION_DEBIT"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "asset",
+                              "amount",
+                              "receipt_effect",
+                              "position_effect"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "occurred_at": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "correction_of": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "native_trade_id",
+                    "quantity",
+                    "quantity_unit",
+                    "price",
+                    "price_asset",
+                    "fees",
+                    "occurred_at",
+                    "correction_of"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "report_sequence": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "occurred_at": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "source_evidence": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "hash": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "environment": {
+                    "enum": [
+                      "RESEARCH",
+                      "PAPER",
+                      "TESTNET",
+                      "LIVE"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "visible_at": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "required": [
+                  "id",
+                  "hash",
+                  "environment",
+                  "source",
+                  "visible_at"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "contract_version",
+              "observation_id",
+              "membership_id",
+              "scope",
+              "venue",
+              "parent_namespace",
+              "child_namespace",
+              "parent_client_id",
+              "parent_venue_id",
+              "child_order_id",
+              "child_client_id",
+              "side",
+              "status",
+              "quantity_unit",
+              "quantity",
+              "cumulative_quantity",
+              "leaves_quantity",
+              "fills",
+              "report_sequence",
+              "occurred_at",
+              "source_evidence"
+            ],
+            "additionalProperties": false
+          },
+          "event_hash": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "fills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "native_trade_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "quantity": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "quantity_unit": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "price": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "price_asset": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "fees": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "asset": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "amount": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "receipt_effect": {
+                            "enum": [
+                              "DEDUCT_RECEIVED_ASSET",
+                              "NO_RECEIPT_DEBIT"
+                            ]
+                          },
+                          "position_effect": {
+                            "enum": [
+                              "DEDUCT_OWNED_BASE",
+                              "NO_POSITION_DEBIT"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "asset",
+                          "amount",
+                          "receipt_effect",
+                          "position_effect"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "occurred_at": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "correction_of": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "native_trade_id",
+                "quantity",
+                "quantity_unit",
+                "price",
+                "price_asset",
+                "fees",
+                "occurred_at",
+                "correction_of"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "observation",
+          "event_hash",
+          "fills"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "payload_hash": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "kind": {
+            "enum": [
+              "CHILD",
+              "PARENT"
+            ]
+          }
+        },
+        "required": [
+          "observation_id",
+          "payload_hash",
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "parent_observation": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "contract_version": {
+              "enum": [
+                "2026-10-29"
+              ]
+            },
+            "observation_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "scope": {
+              "type": "object",
+              "properties": {
+                "environment": {
+                  "enum": [
+                    "RESEARCH",
+                    "PAPER",
+                    "TESTNET",
+                    "LIVE"
+                  ]
+                },
+                "venue_account_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "product": {
+                  "enum": [
+                    "SPOT",
+                    "USD_M_PERP",
+                    "US_EQUITY"
+                  ]
+                },
+                "instrument_uid": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "venue_leg": {
+                  "enum": [
+                    "BOTH",
+                    "LONG",
+                    "SHORT"
+                  ]
+                }
+              },
+              "required": [
+                "environment",
+                "venue_account_id",
+                "product",
+                "instrument_uid",
+                "venue_leg"
+              ],
+              "additionalProperties": false
+            },
+            "venue": {
+              "enum": [
+                "BINANCE"
+              ]
+            },
+            "namespace": {
+              "enum": [
+                "ORDINARY",
+                "ORDER_LIST",
+                "CONDITIONAL_ALGO",
+                "EXECUTION_ALGO"
+              ]
+            },
+            "parent_client_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "parent_venue_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "ACTIVE",
+                "SUBMIT_UNKNOWN",
+                "CANCEL_PENDING",
+                "CANCEL_UNKNOWN",
+                "STOPPED",
+                "COMPLETED"
+              ]
+            },
+            "groups": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "group_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "cumulative_quantity": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "unallocated_quantity": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "group_id",
+                  "cumulative_quantity",
+                  "unallocated_quantity"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "child_inventory": {
+              "enum": [
+                "COMPLETE",
+                "INCOMPLETE"
+              ]
+            },
+            "child_order_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "report_sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "occurred_at": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "source_evidence": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "hash": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "environment": {
+                  "enum": [
+                    "RESEARCH",
+                    "PAPER",
+                    "TESTNET",
+                    "LIVE"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "visible_at": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id",
+                "hash",
+                "environment",
+                "source",
+                "visible_at"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "contract_version",
+            "observation_id",
+            "scope",
+            "venue",
+            "namespace",
+            "parent_client_id",
+            "parent_venue_id",
+            "status",
+            "groups",
+            "child_inventory",
+            "child_order_ids",
+            "report_sequence",
+            "occurred_at",
+            "source_evidence"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "projections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "aggregation": {
+            "enum": [
+              "SUM",
+              "VERIFIED_NATIVE_EXCLUSIVE"
+            ]
+          },
+          "cumulative_quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "reported_remaining_quantity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effective_remaining_quantity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "actual_notional": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "possible_notional": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "executing_node_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unsettled_child_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        },
+        "required": [
+          "group_id",
+          "aggregation",
+          "cumulative_quantity",
+          "reported_remaining_quantity",
+          "effective_remaining_quantity",
+          "actual_notional",
+          "possible_notional",
+          "executing_node_id",
+          "unsettled_child_ids"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "fee_totals": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "asset": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "amount": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "asset",
+              "amount"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "net_position_quantity": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "required_protection_quantity": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "protection_status": {
+      "enum": [
+        "UNVERIFIED_DUTY",
+        "RECONCILIATION_REQUIRED"
+      ]
+    },
+    "restriction_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    }
+  },
+  "required": [
+    "contract_version",
+    "program_id",
+    "authority_hash",
+    "authority_proof_ref",
+    "prepared_at",
+    "sequence",
+    "status",
+    "binding",
+    "binding_proof_ref",
+    "memberships",
+    "exclusivities",
+    "receipts",
+    "pools",
+    "children",
+    "events",
+    "parent_observation",
+    "projections",
+    "fee_totals",
+    "net_position_quantity",
+    "required_protection_quantity",
+    "protection_status",
+    "restriction_codes"
+  ],
+  "additionalProperties": false
+}

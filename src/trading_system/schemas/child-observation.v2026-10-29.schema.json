@@ -1,0 +1,358 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-29"
+      ]
+    },
+    "observation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "membership_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "venue_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "product": {
+          "enum": [
+            "SPOT",
+            "USD_M_PERP",
+            "US_EQUITY"
+          ]
+        },
+        "instrument_uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue_leg": {
+          "enum": [
+            "BOTH",
+            "LONG",
+            "SHORT"
+          ]
+        }
+      },
+      "required": [
+        "environment",
+        "venue_account_id",
+        "product",
+        "instrument_uid",
+        "venue_leg"
+      ],
+      "additionalProperties": false
+    },
+    "venue": {
+      "enum": [
+        "BINANCE"
+      ]
+    },
+    "parent_namespace": {
+      "enum": [
+        "ORDINARY",
+        "ORDER_LIST",
+        "CONDITIONAL_ALGO",
+        "EXECUTION_ALGO"
+      ]
+    },
+    "child_namespace": {
+      "enum": [
+        "ORDINARY"
+      ]
+    },
+    "parent_client_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "parent_venue_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "child_order_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "child_client_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    "status": {
+      "enum": [
+        "PENDING_NEW",
+        "SUBMITTED",
+        "PARTIALLY_FILLED",
+        "FILLED",
+        "CANCELED",
+        "EXPIRED",
+        "REJECTED",
+        "UNKNOWN",
+        "CANCEL_PENDING",
+        "CANCEL_UNKNOWN"
+      ]
+    },
+    "quantity_unit": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "quantity": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cumulative_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "leaves_quantity": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "native_trade_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "quantity_unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "price": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "price_asset": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "fees": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "asset": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "amount": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "receipt_effect": {
+                      "enum": [
+                        "DEDUCT_RECEIVED_ASSET",
+                        "NO_RECEIPT_DEBIT"
+                      ]
+                    },
+                    "position_effect": {
+                      "enum": [
+                        "DEDUCT_OWNED_BASE",
+                        "NO_POSITION_DEBIT"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "asset",
+                    "amount",
+                    "receipt_effect",
+                    "position_effect"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "occurred_at": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "correction_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "native_trade_id",
+          "quantity",
+          "quantity_unit",
+          "price",
+          "price_asset",
+          "fees",
+          "occurred_at",
+          "correction_of"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "report_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "occurred_at": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_evidence": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "hash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "visible_at": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "id",
+        "hash",
+        "environment",
+        "source",
+        "visible_at"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "contract_version",
+    "observation_id",
+    "membership_id",
+    "scope",
+    "venue",
+    "parent_namespace",
+    "child_namespace",
+    "parent_client_id",
+    "parent_venue_id",
+    "child_order_id",
+    "child_client_id",
+    "side",
+    "status",
+    "quantity_unit",
+    "quantity",
+    "cumulative_quantity",
+    "leaves_quantity",
+    "fills",
+    "report_sequence",
+    "occurred_at",
+    "source_evidence"
+  ],
+  "additionalProperties": false
+}

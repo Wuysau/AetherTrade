@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-29"
+      ]
+    },
+    "receipt_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "authority_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "binding_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "venue_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "product": {
+          "enum": [
+            "SPOT",
+            "USD_M_PERP",
+            "US_EQUITY"
+          ]
+        },
+        "instrument_uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue_leg": {
+          "enum": [
+            "BOTH",
+            "LONG",
+            "SHORT"
+          ]
+        }
+      },
+      "required": [
+        "environment",
+        "venue_account_id",
+        "product",
+        "instrument_uid",
+        "venue_leg"
+      ],
+      "additionalProperties": false
+    },
+    "source_node_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "target_group_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_fill_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "quantity_unit": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "gross_received_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "receipt_commission_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "locked_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "pending_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "unused_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "unused_disposition": {
+      "enum": [
+        "STILL_LOCKED",
+        "UNLOCK_REPORTED"
+      ]
+    },
+    "lot_step": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "rule_snapshot_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "occurred_at": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_evidence": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "hash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "visible_at": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "id",
+        "hash",
+        "environment",
+        "source",
+        "visible_at"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "contract_version",
+    "receipt_id",
+    "authority_hash",
+    "binding_hash",
+    "scope",
+    "source_node_id",
+    "target_group_id",
+    "source_fill_hash",
+    "asset",
+    "quantity_unit",
+    "gross_received_quantity",
+    "receipt_commission_quantity",
+    "locked_quantity",
+    "pending_quantity",
+    "unused_quantity",
+    "unused_disposition",
+    "lot_step",
+    "rule_snapshot_hash",
+    "occurred_at",
+    "source_evidence"
+  ],
+  "additionalProperties": false
+}
