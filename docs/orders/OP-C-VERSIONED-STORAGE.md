@@ -42,3 +42,10 @@ Validation evidence is kept under
 `docs/evidence/binance-orders/op-c-versioned-storage/`. Focused tests and actual
 isolated PostgreSQL results are reported separately; neither implies native
 exchange qualification or full ORD acceptance.
+
+Actual verification: focused54 passed; broad contracts/intents/unit890 passed.
+Committed source0e1e2c4 passed32 isolated PostgreSQL cases with no failures,
+errors or skips. The initial PG result31 passed/1 failed is retained: a typed
+historical sentinel corrected the unknown-version test fixture; no guard was
+relaxed. See the evidence README for exact commands and remaining qualification
+boundaries.
