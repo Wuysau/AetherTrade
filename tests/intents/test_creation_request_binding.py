@@ -150,3 +150,14 @@ def test_generated_client_ids_cannot_be_rebound_to_a_different_durable_command()
     reassigned=replace(original,command_id='different-command')
     with pytest.raises(ValueError,match='CREATION_CLIENT_ASSIGNMENT_CHANGED'):
         materialize_creation(plan,0,profile,reassigned)
+
+
+def test_boolean_and_integer_equality_cannot_hide_different_wire_requests():
+    plan,profile=ordinary(t.Product.USD_M_PERP);ids=assign_client_ids(plan,0,'typed-command')
+    original=materialize_creation(plan,0,profile,ids)
+    changed=replace(original,fields=tuple(replace(f,value=0) if f.name=='reduceOnly' else f for f in original.fields))
+    assert original==changed  # Python value equality is insufficient here.
+    assert dict(original.form_parameters())['reduceOnly']=='false'
+    assert dict(changed.form_parameters())['reduceOnly']=='0'
+    with pytest.raises(ValueError,match='CREATION_REQUEST_CHANGED'):
+        verify_creation(changed,plan,profile,ids)

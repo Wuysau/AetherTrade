@@ -208,5 +208,7 @@ def verify_creation(request,plan,profile,ids,*,wallet_selection=None,now=None):
     require(type(request) is VenueCreationRequest,'CREATION_REQUEST_REQUIRED')
     expected=materialize_creation(plan,request.request_index,profile,ids,
         wallet_selection=wallet_selection,now=now)
-    require(request==expected,'CREATION_REQUEST_CHANGED')
+    # Dataclass equality treats False==0 and True==1, although their wire
+    # encodings differ. Compare the complete canonical typed content instead.
+    require(digest(request)==digest(expected),'CREATION_REQUEST_CHANGED')
     return digest(expected)
