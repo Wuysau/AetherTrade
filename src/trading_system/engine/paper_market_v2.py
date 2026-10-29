@@ -23,10 +23,12 @@ from trading_system.intents.program_compilation import ProgramCompilation
 class PaperMatchingModelV2(PaperMatchingModel):
     contract_version:Literal['2026-10-30']='2026-10-30'
     model_revision:Literal[2]=2
+    iceberg_reveal_policy:Literal['ONE_TRANCHE_PER_INPUT_FIFO']='ONE_TRANCHE_PER_INPUT_FIFO'
     def __post_init__(self):
         PaperMatchingModel.__post_init__(self)
         require(self.contract_version=='2026-10-30' and type(self.model_revision) is int and self.model_revision==2,
             'PAPER_MODEL_REVISION_INVALID')
+        require(self.iceberg_reveal_policy=='ONE_TRANCHE_PER_INPUT_FIFO','PAPER_ICEBERG_MODEL_UNKNOWN')
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -85,6 +87,9 @@ class PaperOrderRuntimeV2:
     activation_event_id:str|None
     high_water:Decimal|None
     low_water:Decimal|None
+    effective_limit:Decimal|None
+    visible_remaining:Decimal|None
+    queue_priority:int
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -103,8 +108,8 @@ class PaperCreationReportV2(PaperCreationReport):
 def validate_atomic_v2(scope,node):
     o=node.original.order
     require(scope.product in (t.Product.SPOT,t.Product.USD_M_PERP),'PAPER_EQUITY_SESSION_MODEL_REQUIRED')
-    require(o.price.kind in ('FIXED_LIMIT','MARKET') and o.trigger.kind in ('NONE','STATIC','TRAILING')
-        and o.iceberg_quantity is None and o.stp=='NONE' and o.routing=='STANDARD' and o.trading_session is None
+    require(o.price.kind in ('FIXED_LIMIT','MARKET','PEG','PRICE_MATCH') and o.trigger.kind in ('NONE','STATIC','TRAILING')
+        and o.stp=='NONE' and o.routing=='STANDARD' and o.trading_session is None
         and o.tif.kind in ('NONE','GTC','IOC','FOK','GTX'),'PAPER_V2_EXECUTION_STAGE_REQUIRED')
     # Conditional USD-M has a separate native parent/ordinary-child identity.
     # Its model is added with native parent membership; never alias the algo ID.
@@ -142,7 +147,7 @@ def restore_accepted_context_v2(payload,request):
 def decorate_report_v2(engine,db,report):
     orders=[]
     for order in report.orders:
-        row=db.execute('SELECT active,phase,activation_event_id,high_water,low_water FROM public.paper_order_runtime_v2 '
+        row=db.execute('SELECT active,phase,activation_event_id,high_water,low_water,effective_limit,visible_remaining,queue_priority FROM public.paper_order_runtime_v2 '
             'WHERE scope_key=%s AND client_id=%s',(engine._scope_key,order.client_id)).fetchone()
         require(row is not None,'PAPER_V2_RUNTIME_SOURCE_REQUIRED')
         runtime=PaperOrderRuntimeV2(**row)

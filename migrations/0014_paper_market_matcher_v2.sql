@@ -23,7 +23,7 @@ CREATE TABLE public.paper_published_rules_v2(
 CREATE TABLE public.paper_order_runtime_v2(
  scope_key text NOT NULL,client_id text NOT NULL,active boolean NOT NULL,phase text NOT NULL,
  activation_event_id text,high_water numeric,low_water numeric,trail_started boolean NOT NULL DEFAULT false,
- effective_type text NOT NULL,effective_limit numeric,
+ effective_type text NOT NULL,effective_limit numeric,visible_remaining numeric,queue_priority bigint NOT NULL,last_reveal_event_id text,
  PRIMARY KEY(scope_key,client_id),FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 REVOKE ALL ON public.paper_market_state_v2,public.paper_reference_prices_v2,public.paper_published_rules_v2,
  public.paper_order_runtime_v2 FROM PUBLIC;
@@ -54,21 +54,65 @@ INSERT INTO public.paper_market_state_v2(market_key,depth_event_id)
  SELECT DISTINCT ON(market_key) market_key,event_id FROM public.paper_market_inputs
  WHERE payload->>'kind' IN ('DEPTH_SNAPSHOT','DEPTH_DELTA') ORDER BY market_key,sequence DESC;
 
+CREATE FUNCTION public.paper_resolve_price_v2(p_market text,p_spec jsonb) RETURNS numeric
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE basis text;book_side text;level_offset integer;result numeric;mode text;
+BEGIN
+ mode=p_spec->'price'->>'kind';
+ IF mode='FIXED_LIMIT' THEN RETURN (p_spec->'price'->>'value')::numeric; END IF;
+ IF mode='MARKET' THEN RETURN NULL; END IF;
+ IF mode='PEG' THEN
+  basis=CASE WHEN p_spec->'price'->>'peg_type'='PRIMARY_PEG' THEN 'SAME' ELSE 'OPPOSITE' END;
+  level_offset=(p_spec->'price'->>'offset_levels')::integer;
+ ELSIF mode='PRICE_MATCH' THEN
+  basis=CASE WHEN starts_with(p_spec->'price'->>'price_match','QUEUE') THEN 'SAME' ELSE 'OPPOSITE' END;
+  level_offset=CASE WHEN position('_' IN (p_spec->'price'->>'price_match'))=0 THEN 0
+   ELSE split_part(p_spec->'price'->>'price_match','_',2)::integer-1 END;
+ ELSE RAISE EXCEPTION 'price mode unsupported'; END IF;
+ IF level_offset NOT BETWEEN 0 AND 100 THEN RAISE EXCEPTION 'price level invalid'; END IF;
+ book_side=CASE WHEN (p_spec->>'side'='BUY')=(basis='SAME') THEN 'BID' ELSE 'ASK' END;
+ SELECT price INTO result FROM public.paper_market_levels WHERE market_key=p_market AND side=book_side AND reported>0
+  ORDER BY CASE WHEN book_side='BID' THEN -price ELSE price END OFFSET level_offset LIMIT 1;
+ RETURN result;
+END $$;
+
 CREATE FUNCTION public.paper_prepare_order_v2(p_scope text,p_client text,p_market text) RETURNS boolean
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE terms jsonb;spec jsonb;trigger_spec jsonb;runtime public.paper_order_runtime_v2;
  ref record;price_source text;fired boolean;ready boolean;activation numeric;offset_value numeric;offset_unit text;
- mark_price numeric;contract_price numeric;protect_ratio numeric;
+ mark_price numeric;contract_price numeric;protect_ratio numeric;original public.paper_engine_orders;arrival bigint;
+ current_event text;resolved_price numeric;
 BEGIN
  SELECT t.terms INTO terms FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=p_client;
  IF coalesce((terms->>'model_revision')::int,1)<>2 THEN RETURN true; END IF;
  spec=terms->'spec';trigger_spec=spec->'trigger';
- INSERT INTO public.paper_order_runtime_v2(scope_key,client_id,active,phase,effective_type,effective_limit)
+ SELECT * INTO original FROM public.paper_engine_orders WHERE scope_key=p_scope AND client_id=p_client FOR UPDATE;
+ SELECT arrival_sequence INTO arrival FROM public.paper_order_terms WHERE scope_key=p_scope AND client_id=p_client;
+ SELECT event_id INTO current_event FROM public.paper_market_books WHERE market_key=p_market;
+ INSERT INTO public.paper_order_runtime_v2(scope_key,client_id,active,phase,effective_type,effective_limit,visible_remaining,queue_priority)
   VALUES(p_scope,p_client,trigger_spec->>'kind'='NONE',CASE WHEN trigger_spec->>'kind'='NONE' THEN 'ACTIVE' ELSE 'WAITING_REFERENCE' END,
-   CASE WHEN spec->'price'->>'kind'='MARKET' THEN 'MARKET' ELSE 'LIMIT' END,(spec->'price'->>'value')::numeric)
+   CASE WHEN spec->'price'->>'kind'='MARKET' THEN 'MARKET' ELSE 'LIMIT' END,(spec->'price'->>'value')::numeric,
+   CASE WHEN spec->>'iceberg_quantity' IS NULL THEN NULL ELSE least((spec->>'iceberg_quantity')::numeric,original.quantity-original.filled) END,arrival)
   ON CONFLICT(scope_key,client_id) DO NOTHING;
  SELECT * INTO runtime FROM public.paper_order_runtime_v2 r WHERE r.scope_key=p_scope AND r.client_id=p_client FOR UPDATE;
- IF runtime.active THEN RETURN true; END IF;
+ IF runtime.active THEN
+  IF spec->>'iceberg_quantity' IS NOT NULL THEN
+   IF runtime.visible_remaining<=0 AND runtime.last_reveal_event_id IS DISTINCT FROM current_event THEN
+    UPDATE public.paper_order_runtime_v2 SET visible_remaining=least((spec->>'iceberg_quantity')::numeric,original.quantity-original.filled),
+     queue_priority=(SELECT coalesce(max(arrival_sequence),0)+1 FROM public.paper_order_terms),last_reveal_event_id=current_event
+     WHERE scope_key=p_scope AND client_id=p_client;
+   ELSIF runtime.last_reveal_event_id IS NULL AND current_event IS NOT NULL THEN
+    UPDATE public.paper_order_runtime_v2 SET last_reveal_event_id=current_event WHERE scope_key=p_scope AND client_id=p_client;
+   END IF;
+  END IF;
+  IF runtime.effective_type='LIMIT' AND runtime.effective_limit IS NULL THEN
+   resolved_price=public.paper_resolve_price_v2(p_market,spec);
+   UPDATE public.paper_order_runtime_v2 SET effective_limit=resolved_price,
+    phase=CASE WHEN resolved_price IS NULL THEN 'WAITING_PRICING_DEPTH' ELSE 'ACTIVE' END WHERE scope_key=p_scope AND client_id=p_client;
+   RETURN resolved_price IS NOT NULL;
+  END IF;
+  RETURN true;
+ END IF;
  price_source=trigger_spec->>'source';
  IF price_source='BID_ASK' THEN price_source=CASE WHEN spec->>'side'='BUY' THEN 'ASK' ELSE 'BID' END; END IF;
  SELECT price,event_id INTO ref FROM public.paper_reference_prices_v2 WHERE market_key=p_market AND source=price_source;
@@ -106,12 +150,13 @@ BEGIN
  END IF;
  UPDATE public.paper_order_runtime_v2 SET active=true,phase='ACTIVE',activation_event_id=ref.event_id
   WHERE scope_key=p_scope AND client_id=p_client;
- RETURN true;
+ RETURN public.paper_prepare_order_v2(p_scope,p_client,p_market);
 END $$;
-REVOKE ALL ON FUNCTION public.paper_record_market_input_v2(),public.paper_prepare_order_v2(text,text,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.paper_record_market_input_v2(),public.paper_prepare_order_v2(text,text,text),public.paper_resolve_price_v2(text,jsonb) FROM PUBLIC;
 GRANT USAGE,CREATE ON SCHEMA public TO paper_matcher_definer;
 ALTER FUNCTION public.paper_record_market_input_v2() OWNER TO paper_matcher_definer;
 ALTER FUNCTION public.paper_prepare_order_v2(text,text,text) OWNER TO paper_matcher_definer;
+ALTER FUNCTION public.paper_resolve_price_v2(text,jsonb) OWNER TO paper_matcher_definer;
 REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
 
 -- The upgraded allocator follows below. It replaces the one live venue kernel;
@@ -125,17 +170,22 @@ DECLARE market_id text; book record; ord record; level record; need numeric; ava
  activity_at timestamptz;execution_at timestamptz;envelope_min numeric;envelope_max numeric;envelope_gross numeric;
  spent_gross numeric;spent_fee numeric;fee_ceiling numeric;best_price numeric;gross_candidate numeric;fee_candidate numeric;
  preflight_need numeric;preflight_gross numeric;preflight_ok boolean;
- is_market boolean;model_revision integer;
+ is_market boolean;model_revision integer;prepared record;
 BEGIN
  SELECT market_key,(terms->'accepted_clock'->>'utc_now')::timestamptz INTO market_id,activity_at FROM public.paper_order_terms WHERE scope_key=p_scope AND client_id=p_client;
  IF market_id IS NULL THEN RAISE EXCEPTION 'original accepted PAPER terms required'; END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(market_id,0));
  SELECT * INTO book FROM public.paper_market_books WHERE market_key=market_id FOR UPDATE;
+ FOR prepared IN SELECT scope_key,client_id FROM public.paper_order_terms WHERE market_key=market_id
+  AND coalesce((terms->>'model_revision')::integer,1)=2 ORDER BY arrival_sequence LOOP
+  PERFORM public.paper_prepare_order_v2(prepared.scope_key,prepared.client_id,market_id);
+ END LOOP;
  -- FIFO spans accounts and orders sharing the exact product/instrument source.
- FOR ord IN SELECT o.*,t.terms,t.arrival_sequence FROM public.paper_order_terms t
+ FOR ord IN SELECT o.*,t.terms,t.arrival_sequence,r.effective_limit AS model_limit,r.visible_remaining AS model_visible FROM public.paper_order_terms t
   JOIN public.paper_engine_orders o ON o.scope_key=t.scope_key AND o.client_id=t.client_id
+  LEFT JOIN public.paper_order_runtime_v2 r ON r.scope_key=o.scope_key AND r.client_id=o.client_id
   WHERE t.market_key=market_id AND o.lifecycle NOT IN ('FILLED','CANCELED','EXPIRED','REJECTED')
-  ORDER BY t.arrival_sequence FOR UPDATE OF o LOOP
+  ORDER BY coalesce(r.queue_priority,t.arrival_sequence),t.arrival_sequence FOR UPDATE OF o LOOP
   IF ord.terms->'scope' IS DISTINCT FROM ord.scope_key::jsonb
    OR ord.terms->>'client_id' IS DISTINCT FROM ord.client_id
    OR ord.terms->>'quantity' IS NULL OR (ord.terms->>'quantity')::numeric<>ord.quantity
@@ -164,7 +214,7 @@ BEGIN
   IF ord.terms->'scope'->>'product' IS DISTINCT FROM book.product
    OR ord.terms->'scope'->>'instrument_uid' IS DISTINCT FROM book.instrument_uid THEN RAISE EXCEPTION 'market scope mismatch'; END IF;
   original_side=ord.terms->>'side';opposite_side=CASE WHEN original_side='BUY' THEN 'ASK' ELSE 'BID' END;
-  limit_price=(ord.terms->>'limit_price')::numeric;need=ord.quantity-ord.filled;reason=NULL;
+  limit_price=CASE WHEN model_revision=2 THEN ord.model_limit ELSE (ord.terms->>'limit_price')::numeric END;need=ord.quantity-ord.filled;reason=NULL;
   execution_at=greatest(activity_at,(ord.terms->'accepted_clock'->>'utc_now')::timestamptz,
    (book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
   envelope_min=(ord.terms->'execution_envelope'->>'minimum_price')::numeric;
@@ -211,7 +261,7 @@ BEGIN
     AND (is_market OR CASE WHEN original_side='BUY' THEN price<=limit_price ELSE price>=limit_price END)
     ORDER BY CASE WHEN original_side='BUY' THEN price ELSE -price END FOR UPDATE LOOP
     EXIT WHEN need<=0;
-    take_quantity=least(need,level.available);
+    take_quantity=least(need,level.available,coalesce(ord.model_visible,need));
     take_quantity=trunc(take_quantity/(ord.terms->>'quantity_step')::numeric)*(ord.terms->>'quantity_step')::numeric;
     CONTINUE WHEN take_quantity<=0;
     gross_candidate=spent_gross+take_quantity*level.price*(ord.terms->>'multiplier')::numeric;
@@ -239,6 +289,11 @@ BEGIN
      VALUES('PAPER',ord.scope_key,fill_identifier,ord.client_id,encode(sha256(convert_to(fill_payload::text,'UTF8')),'hex'),fill_payload,take_quantity,level.price,execution_at);
     UPDATE public.paper_market_levels SET available=available-take_quantity
      WHERE market_key=market_id AND side=opposite_side AND price=level.price;
+    IF model_revision=2 AND ord.model_visible IS NOT NULL THEN
+     ord.model_visible=ord.model_visible-take_quantity;
+     UPDATE public.paper_order_runtime_v2 SET visible_remaining=ord.model_visible WHERE scope_key=ord.scope_key AND client_id=ord.client_id;
+     EXIT WHEN ord.model_visible<=0;
+    END IF;
    END LOOP;
    resulting_status=CASE WHEN reason IS NOT NULL THEN 'EXPIRED' WHEN need=0 THEN 'FILLED' WHEN ord.terms->>'tif' IN ('IOC','FOK') THEN 'EXPIRED'
     WHEN accumulated>0 THEN 'PARTIALLY_FILLED' ELSE 'SUBMITTED' END;
@@ -246,6 +301,10 @@ BEGIN
    IF resulting_status='EXPIRED' AND reason IS NULL THEN reason='IMMEDIATE_RESIDUAL_EXPIRED'; END IF;
   END IF;
   UPDATE public.paper_engine_orders SET lifecycle=resulting_status,revision=revision+1 WHERE scope_key=ord.scope_key AND client_id=ord.client_id;
+  IF model_revision=2 AND resulting_status IN ('FILLED','CANCELED','EXPIRED','REJECTED') THEN
+   UPDATE public.paper_order_runtime_v2 SET phase=resulting_status,active=false,visible_remaining=0
+    WHERE scope_key=ord.scope_key AND client_id=ord.client_id;
+  END IF;
   IF reason IS NOT NULL THEN
    fill_payload=jsonb_build_object('record_kind','PAPER_MARKET_DISPOSITION','source','PAPER_MARKET_REPLAY_SYNTHETIC',
     'reason',reason,'status',resulting_status,'market_event_id',book.event_id,'market_key',market_id,
