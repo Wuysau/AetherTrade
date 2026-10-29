@@ -162,6 +162,8 @@ def test_native_opo_uses_one_mother_and_staged_net_receipt():
     assert FieldName.QUANTITY not in fields(result.nodes[1])
     assert result.nodes[1].trusted_origin=='VENUE_GENERATED_CHILD'
     assert result.nodes[1].activation_requires_full_fill
+    assert all(node.child_origin=='APPLICATION_GENERATED_CHILD' for node in program.nodes)
+    assert len(result.requests)==1 and result.requests[0].node_ids==(working.node_id,pending.node_id)
 
 
 def test_local_oto_children_are_staged_independent_writes():
@@ -286,6 +288,7 @@ def test_native_twap_mother_separate_from_observed_children(product,limit):
     p=replace(p,program=replace(p.program,template='TWAP',execution_mode='VENUE_NATIVE',nodes=(node,),
         algorithm=AlgorithmSpec(kind='TWAP',duration_seconds=300,participation_bps=None,urgency=None)))
     result=compile_order_program(p,r,c,**k); request=result.requests[0]
+    assert len(result.requests)==1 and node.child_origin=='APPLICATION_GENERATED_CHILD'
     f={param.name:param.value for param in request.parameters}
     assert request.native_mother and request.generated_child_origin=='VENUE_GENERATED_CHILD'
     assert f[FieldName.DURATION]==300 and (FieldName.LIMIT_PRICE in f)==limit

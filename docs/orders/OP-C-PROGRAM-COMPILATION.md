@@ -67,6 +67,6 @@ Fresh green command: `python -X utf8 -m pytest tests/intents tests/contracts -q`
 proves offline compilation and strict codec regressions, not native trading,
 database settlement, market matching, restart recovery or full ORD acceptance.
 All complex native qualification remains NOT_RUN. The complete46 target catalog
-is unchanged. Lifecycle amend/cancel-replace/query require controlled typed
-management instruction input and independently admitted commands; those targets
-are not erased or claimed implemented by this creation-plan slice.
+is unchanged. Controlled typed lifecycle request plans are described in
+OP-C-MANAGEMENT-COMPILATION.md; their write admission, adapter calls and actual
+outcomes remain separate acceptance requirements.
