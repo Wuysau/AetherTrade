@@ -320,6 +320,7 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     require(digest(tx.projections.book(tx.scope))==original_book_hash,'PROGRAM_CURRENT_BOOK_CHANGED')
     if quote:
         validate_current_quote_bounds(tx,source,intake,book,clock,a,load_execution_bounds)
+        require(window.poll(expires) is not None,'EXPIRED_OR_UNBOUND_CLOCK')
         require(digest(current_fence(tx,source.context))==digest(fence),'STALE_REVISION')
         require(digest(tx.projections.book(tx.scope))==original_book_hash,'PROGRAM_CURRENT_BOOK_CHANGED')
     tx.intents.append(intent)
