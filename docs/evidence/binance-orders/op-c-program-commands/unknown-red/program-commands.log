@@ -1,0 +1,21 @@
+...................................F..                                   [100%]
+=================================== FAILURES ===================================
+_____ test_unknown_keeps_original_request_ids_and_cannot_issue_or_consume ______
+tests/integration/test_program_commands_postgres.py:163: in test_unknown_keeps_original_request_ids_and_cannot_issue_or_consume
+    with c.owner.transaction(c.scope) as tx:assert repo(tx,c).record_unknown(w.command_id)==r
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:328: in record_unknown
+    if w.state=='MAY_HAVE_SENT':self.tx._append('order_writes_v2',command_id,replace(w,state='UNKNOWN'),2)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/uow.py:70: in _append
+    sequence = self.advance(table + ':' + record_id, expected_sequence)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/uow.py:65: in advance
+    raise SequenceConflict('stale aggregate sequence')
+E   trading_system.storage.models.SequenceConflict: stale aggregate sequence
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_commands_postgres.py::test_unknown_keeps_original_request_ids_and_cannot_issue_or_consume
+1 failed, 37 passed in 155.76s (0:02:35)

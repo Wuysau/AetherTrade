@@ -1,0 +1,24 @@
+..........F.........................................                     [100%]
+=================================== FAILURES ===================================
+__________ test_actual_may_commits_before_short_permit_consumes_once ___________
+tests/integration/test_program_commands_postgres.py:113: in test_actual_may_commits_before_short_permit_consumes_once
+    assert gate.consume(permit,lease(c))==r
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:412: in consume
+    request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:365: in consume
+    self.tx.execute('SELECT ledger.consume_program_permit(%s,%s,%s,%s::jsonb,%s)',
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: committed unused current permit required
+E   CONTEXT:  PL/pgSQL function consume_program_permit(text,text,text,jsonb,text) line 8 at RAISE
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_commands_postgres.py::test_actual_may_commits_before_short_permit_consumes_once
+1 failed, 51 passed in 318.55s (0:05:18)
