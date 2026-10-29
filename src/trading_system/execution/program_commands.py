@@ -250,11 +250,15 @@ class ProgramCommandRepository:
         require(len(physical)==len(attachment.command_ids) and {cid for cid,_,_,_ in physical}==set(attachment.command_ids)
             and all(tid==attachment.admission_transaction_id and xmin==physical_attachment[0]
                 for _,tid,_,xmin in physical),'PROGRAM_COMPLETE_ATTACHMENT_REQUIRED')
+        initial_indices=tuple(index for index,r in enumerate(bundle.archive.compilation.requests) if r.timing==Timing.INITIAL)
+        require(len(attachment.command_ids)==len(initial_indices),'PROGRAM_REQUEST_ALLOCATION_MISMATCH')
+        assigned=dict(zip(initial_indices,attachment.command_ids))
         for cid,_,payload,_ in physical:
             original=VersionedOrderCodec().decode('application-write',payload)
             require(type(original) is ApplicationWriteV3 and original.intent_id==write.intent_id
                 and original.scope==write.scope and original.compilation_hash==write.compilation_hash,
                 'PROGRAM_COMPLETE_ATTACHMENT_REQUIRED')
+            require(assigned.get(original.request_index)==cid,'PROGRAM_REQUEST_ALLOCATION_MISMATCH')
             validate_stored_program_binding(self.tx,original,self.write(cid))
         require(digest(source)==digest(bundle.intent.source),'PROGRAM_SOURCE_CHANGED')
         fence=current_fence(self.tx,source.context)
