@@ -1,5 +1,40 @@
 # Current task
 
+## OP_C_REGISTRY_FULL_GATE_GREEN — 2026-10-29
+
+Fullfixed7d9deb7 gate TERMINALexit0:915mandatoryPG/28suites,zero fail/error/skip;
+ordinary2974pass/469envskip/96deselected. Rootsession63956 completed, ignored
+.runtime/paper-qualification-12c067c04b95/evidence; do NOTrestart oldhandle.
+Published byte-identical logs/JUnit/manifests/maps under
+docs/evidence/binance-orders/op-c-financial-registry-integrated.
+LaterTTLfixd13a9f2 integrated5f4e7eb; root32financial+8TTL focusedpassed,
+agentPG10passed. Fullgate is BEFOREthatfollowup, notcurrentfutureproof.
+
+Active next work (goalstillactive/no pause):
+
+- exposure_review/binance-opc-program-risk:8972f4e+6791518 stillNOTrootpicked.
+  SameExposureCalculator pending/proposed source refs nowphysicalscope/family/
+  namespace-aware; fullflat physical0 tested. StaticProgramRiskFacts definitions
+  in risk/program_assessment.py are actual code; semanticderivation and
+  RiskEvaluator.evaluate_program stillbeingimplemented. Preservelegacygoldens,
+  properportfolio/loss/horizon/fee/protection/count proof, no fakeTradeIntent.
+- admission_review/binance-opc-financial-records: TTLfixdone. Nextapprovedtask
+  NEWcomplete-assessmentarchivekind/revision withactualProgramRiskFacts+Decision,
+  preservingoldPROGRAM_FINANCIAL_ARCHIVE fields/hashes/blockedconversion. May
+  cherryactual8972+679dependencies inown tree; no dummyRiskFacts or budgethash
+  alias. Fullconversion waitsforactualrecomputedprogramassessment, notprovided
+  ALLOW/booleans. Actualsemanticadapter sourcehash/codeAPI coordinatedwithpeer.
+- pin_native_build/binance-opc-lifecycle-v3:1443f6c schemas firstslice NOTpicked;
+  reducers/zero-asset OWNED_POSITION proof/pairbootstrap/native membership
+  mapping/receipt-vs-ownedposition fee correctness inprogress. Existing V2 bytes
+  and rootV3production/sendcontainment retained. Rootapprovedplan alreadycovers
+  these; no routineuserapproval needed.
+
+Rootmust review/integrate these commits, then actual same-core generic financial
+bundle+new command/request/permit/UNKNOWN adapters and OP-D/E/F/G. All46targets/
+56cases retained, componentgreen nevermeansnativequalified. PAPERonly, no real
+account, TESTNET/LIVE, productmodel or operationalconfig calls were made.
+
 ## OP_C_FINANCIAL_REGISTRY_INTEGRATED — 2026-10-29
 
 Root through0f18598 now has real versioned financial DTO/codec/common identity
