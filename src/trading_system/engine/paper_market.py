@@ -268,6 +268,18 @@ def _evidence(identifier,payload,now):
     return t.EvidenceRef(id=identifier,hash=canonical_hash(payload),environment=t.Environment.PAPER,source=SOURCE,visible_at=now)
 
 
+def _consumed_permit_clock(engine,permit,*,after=None,created_at=None):
+    clock=engine._clock()
+    require(type(clock) is t.ClockReading and clock.clock_health=='HEALTHY'
+        and type(clock.monotonic_ns) is int and clock.monotonic_ns>=0
+        and utc_timestamp(clock.utc_now)<utc_timestamp(permit.expires_at)
+        and clock.monotonic_ns<permit.deadline_monotonic_ns
+        and (created_at is None or utc_timestamp(clock.utc_now)>=utc_timestamp(created_at))
+        and (after is None or utc_timestamp(clock.utc_now)>=utc_timestamp(after.utc_now)
+             and clock.monotonic_ns>=after.monotonic_ns),'PAPER_CONSUMED_PERMIT_EXPIRED')
+    return clock
+
+
 def _accepted_context(payload,request):
     names={f.name for f in fields(PaperExecutionTerms)}
     require(set(payload)==names|{'write','request','compilation','rules','model','execution_envelope'},'PAPER_ACCEPTED_CONTEXT_SHAPE_INVALID')
@@ -373,14 +385,14 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
             'write':domain_payload(original),'rules':domain_payload(assessment.rules),'compilation':domain_payload(plan),
             'execution_envelope':domain_payload(envelope)}
         with owner.guard(lease):
-            clock=engine._clock()
-            require(clock.clock_health=='HEALTHY' and utc_timestamp(clock.utc_now)<utc_timestamp(permit.expires_at)
-                and clock.monotonic_ns<permit.deadline_monotonic_ns and utc_timestamp(clock.utc_now)>=utc_timestamp(original.created_at),
-                'PAPER_CONSUMED_PERMIT_EXPIRED')
+            clock=_consumed_permit_clock(engine,permit,created_at=original.created_at)
             terms['accepted_clock']=domain_payload(clock)
             with engine._connect() as db:
                 key=market_key(engine.scope.product,engine.scope.instrument_uid)
                 db.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(key,))
+                with owner.guard(lease):
+                    clock=_consumed_permit_clock(engine,permit,after=clock,created_at=original.created_at)
+                terms['accepted_clock']=domain_payload(clock)
                 require(db.execute('SELECT 1 FROM public.paper_engine_commands WHERE scope_key=%s AND command_id=%s',
                     (engine._scope_key,write.command_id)).fetchone() is None,'PAPER_ORIGINAL_ID_ALREADY_OBSERVED')
                 db.execute('INSERT INTO public.paper_engine_orders(environment,scope_key,client_id,order_id,logical_id,'
@@ -393,7 +405,7 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                     (engine._scope_key,client,key,Jsonb(terms)))
                 db.execute('SELECT public.paper_match_order(%s,%s)',(engine._scope_key,client))
                 # Owner clock/lease remains held and current through SIM commit.
-                with owner.guard(lease):pass
+                with owner.guard(lease):_consumed_permit_clock(engine,permit,after=clock,created_at=original.created_at)
         report=query_creation(engine,write.command_id)
         return PaperCreationReceipt(command_id=write.command_id,request_hash=digest(request),scope=engine.scope,
             namespace=request.namespace.value,client_ids=(client,),status=report.status,evidence=report.evidence)
@@ -487,7 +499,8 @@ class PaperMatcher:
         require(type(event) is PaperMarketEvent and event.product==self.engine.scope.product
             and event.instrument_uid==self.engine.scope.instrument_uid,'PAPER_MARKET_SCOPE_MISMATCH')
         now=self.engine._clock()
-        require(now.clock_health=='HEALTHY' and utc_timestamp(event.occurred_at)<=utc_timestamp(now.utc_now),'PAPER_MARKET_CLOCK_REQUIRED')
+        require(type(now) is t.ClockReading and now.clock_health=='HEALTHY' and type(now.monotonic_ns) is int
+            and now.monotonic_ns>=0 and utc_timestamp(event.occurred_at)<=utc_timestamp(now.utc_now),'PAPER_MARKET_CLOCK_REQUIRED')
         with self.engine._event_connect() as db:
             db.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(event.market_key,))
             previous=db.execute('SELECT payload_hash FROM public.paper_market_inputs WHERE market_key=%s AND event_id=%s',
