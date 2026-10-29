@@ -1,5 +1,55 @@
 # Current task
 
+## OP_C_REQUEST_MATERIALIZATION_AND_RISK_REVIEW — 2026-10-29
+
+Root f66a584 adds actual unsigned creation-request materialization and original
+client-ID assignment (no transport/signature/permit). Exact compiler/profile/
+request index/source fields are retained; ordinary/SOR, lists, conditionalalgo,
+TWAP/VP and batch use documentedidentitynames, no fake batchvenueparent. Equity
+BUY requires fresh explicit wallet routing; verify uses independently supplied
+expected wallet, not stored request's choice. Nativechilds never extra sends.
+Root958dc30 fixes missing EquityquoteAsset from rule snapshot; official interface
+defaultsUSDC, so omission could debit a differentcurrency. No FX/eligibility
+inference.26request+quotecases and broadcontracts/intents/unit1258passed.
+Independentcreationbinding review assignedpin_native_build; not yetcomplete.
+
+Root independent actual assessorevidence in peer tree (a055f2c, NOTrootpicked):
+partialactual2→target1SELL1 reportsALLOW/loss0; invalidremaininglongstop90000
+alsoALLOW; increasingofftick81330.005ALLOW; coherentSPOT/NATIVE_REQUIRED unified
+MARK sourceALLOW. Negativeexecutionprice wasconstructor-rejected (not abug).
+Peerfix3aa2ad9 normalstops/residualloss ready,68generic tests reported; do NOT
+merge/qualify olda055 withoutfollowup. Protectedpartial retained1 nowloss16458,
+offtick/native-product stop mismatchesdeny, fullflatfees-only. Approvedexplicit
+versioned ReductionRiskMetrics+ResidualRiskState+BoundedReductionProof extension
+preserves existing authorizedboundedemergencyEXIT withtruthfulunprotected/unknown
+residual and sticky EXIT_ONLY management/risk-lock obligations. No false normal
+protection_completeTrue/zero loss, no bypassUNKNOWN/RECOVERY/owner/qty/price.
+
+Active agents:
+- exposure_review/binance-opc-program-risk: a055f2c actualevaluate_program,
+  3aa2ad9 normalfixes, emergency subtype inprogress; root has only8972+679 from
+  this branch. Needswholederivedmetrics/source/cost/protection/currentproof tests
+  and actualPGregressions beforefullsourceeligibility. Coordinate new metric/fact
+  union with assessmentarchive; baseRiskMetrics/oldarchivehash stayunchanged.
+- admission_review/binance-opc-financial-records: NEWcompleteassessmentkind/
+  archive_revision1 WIP,27realassessor/archivecasesgreenafter3aa owncherry;
+  waitingstablesubtype beforefreezingnestedshape, no oldarchive edits. Actual
+  replay/assessment mandatory, no providedALLOW/stub. No basis/intent converter
+  proofqualification or financialbundle enabled; oldkind staysblocked.
+- pin_native_build/binance-opc-lifecycle-v3: contracts/reducers lateproof/native
+  pair bootstrap/localSUM/realoverfill/algopool/nanosecondwatermarks/receipt+fees/
+  qualifiedzero-asset reduce draft49focused/1094relatedpass; finalfundingproof
+  sourceartifact tightening+commit pending.1443 firstcontracts stillnotpicked.
+
+No new fullPG since7d9deb7 (915/28zero skips; ordinary2974/469skip/96deselected).
+All earlierrootprocesshandles areterminal, no jobrestartneeded. Nextroot must
+review/integrate actualassessor+fixes/completearchive/lifecycle and creation
+review, then SAME-core generic financial bundle +versionedapplicationwrite/
+fullrequest/MAY/permit/UNKNOWN and localactivation (no fake native mother).
+OCO target grouping/nativequote/fee-dust contracts andfullOP-D/E/F/G remain.
+All46/56 retained. PAPERonly; no account/Testnet/live/productmodel/configactions.
+GoalACTIVE; this is a continuation checkpoint, not pause/completion.
+
 ## OP_C_SCOPE_SAFE_EXPOSURE_INTEGRATED — 2026-10-29
 
 Root8fdfcf6 integrates8972f4e as412e21a and6791518 as8fdfcf6: SAME exposure
