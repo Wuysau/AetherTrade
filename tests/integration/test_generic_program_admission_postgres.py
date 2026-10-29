@@ -74,3 +74,39 @@ def test_public_failure_rolls_back_real_request_outbox_and_financial_bundle(data
         assert tx.execute('SELECT count(*) FROM ledger.outbox WHERE scope_id=%s AND kind=%s',
             (scope_id(c.scope),'PROGRAM_COMMAND_READY')).fetchone()==(0,)
         assert tx._latest('order_program_intakes',c.key,type(c.record))==c.record
+
+
+@pytest.mark.parametrize('template',['TWAP','VP'])
+def test_public_local_program_admission_attaches_real_sum_state_without_a_venue_mother(database,template):
+    from trading_system.execution.local_program_activation import read_local_activation
+    c=real_case(database,template=template,mode='LOCAL_SYNTHETIC');service=public_service(c)
+    service.load_lease=None
+    receipt=service.admit(c.record.proposal,c.record.context,c.c.plan)
+    assert receipt.attachment.command_ids==() and receipt.attachment.request_hashes==()
+    assert receipt.attachment.activation_id and not receipt.execution_authorized
+    with c.owner.transaction(c.scope) as tx:
+        local=read_local_activation(tx,receipt.attachment.activation_id)
+        assert local.financial_intent_id==receipt.intent_id and local.bundle_hash==receipt.bundle_hash
+        assert local.state.status=='ACTIVE' and local.authority.groups[0].aggregation=='SUM'
+        assert local.authority.parent_command_id is local.binding.parent_venue_id is None
+        assert tx.reservations.for_intent(receipt.intent_id)[0].command_refs==()
+        assert tx.execute('SELECT count(*) FROM ledger.order_writes_v2 WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+        assert tx.execute('SELECT count(*) FROM ledger.outbox WHERE scope_id=%s AND kind=%s',
+            (scope_id(c.scope),'PROGRAM_COMMAND_READY')).fetchone()==(0,)
+    assert service.admit(c.record.proposal,c.record.context,c.c.plan)==receipt
+
+
+def test_public_local_attachment_failure_rolls_back_actual_activation_and_financial_bundle(database,monkeypatch):
+    from trading_system.execution import local_program_activation as local
+    c=real_case(database,template='TWAP',mode='LOCAL_SYNTHETIC');service=public_service(c)
+    original=local.activate_local_program
+    def fail_after(*args,**kwargs):
+        original(*args,**kwargs)
+        raise OSError('injected after actual local activation')
+    monkeypatch.setattr(local,'activate_local_program',fail_after)
+    with pytest.raises(OSError,match='after actual local activation'):
+        service.admit(c.record.proposal,c.record.context,c.c.plan)
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.intents.get(c.record.intent_id) is None
+        assert tx.reservations.for_intent(c.record.intent_id)==()
+        assert local.read_local_activation(tx,'local-program:'+c.record.intent_id) is None

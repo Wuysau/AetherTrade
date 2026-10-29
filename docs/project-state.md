@@ -1,5 +1,15 @@
 # Project state
 
+Latest engineering2026-10-29: ACTIVE full Binance46-target/56-case OP-C→D/E/F→G
+continuation. Implementation tree is TradingHandoff/AutoDispatchWorktrees/binance-orders;
+sole writer integration_next, parent coordinates/reviews (and may own separate
+OP-E tree). Actual shared typed financial/request/local activation integration is
+under verification, with native quote interval financial and later work pending.
+Authoritative live engineering checkpoint: docs/current-task.md top sections.
+Older completed PAPER/operational states below are preserved historical scope;
+they do not qualify current full order capability work. No account/Testnet/LIVE
+or paid model calls are authorized by this engineering continuation.
+
 Latest 2026-10-28 15:48 +08:00: user authorized real-quote PAPER and paid models.
 New API/UI, owner and monitor run; automatic strategy remains paused due to two
 INVALID_MODEL_RESPONSE results, no proposal/order. MODEL_PROTOCOL_BLOCKED.

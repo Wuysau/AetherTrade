@@ -3,7 +3,7 @@
 Stable request identities are created for the exact compiled initial writes.
 They are identities, never permits. A local schedule has no venue mother.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass,replace
 from typing import Literal
 
 from trading_system.contracts import types as t
@@ -174,19 +174,22 @@ class GenericProgramAdmissionService:
             'PROGRAM_ADMISSION_ATTACHMENT_CHANGED')
         require(not same_transaction or claim.admission_transaction_id==tx.transaction_id,
             'PROGRAM_ADMISSION_ATTACHMENT_TRANSACTION_CHANGED')
-        bundle_row=tx.execute('SELECT transaction_id FROM ledger.audit_events WHERE scope_id=%s '
+        bundle_row=tx.execute('SELECT transaction_id,xmin::text FROM ledger.audit_events WHERE scope_id=%s '
             'AND record_id=%s AND sequence=1',(scope_id(tx.scope),BUNDLE_PREFIX+bundle.intent.intent_id)).fetchone()
         require(bundle_row is not None and bundle_row[0]==claim.admission_transaction_id,
             'PROGRAM_ADMISSION_ATTACHMENT_TRANSACTION_CHANGED')
+        claim_row=tx.execute('SELECT transaction_id,xmin::text FROM ledger.audit_events WHERE scope_id=%s '
+            'AND record_id=%s AND sequence=1',(scope_id(tx.scope),ATTACHMENT_PREFIX+bundle.intent.intent_id)).fetchone()
+        require(claim_row==bundle_row,'PROGRAM_ADMISSION_ATTACHMENT_PHYSICAL_TRANSACTION_CHANGED')
         if attachment.command_ids:
-            from trading_system.execution.program_commands import ProgramCommandRepository
+            from trading_system.execution.program_commands import ProgramCommandRepository,validate_stored_program_binding
             repo=ProgramCommandRepository(tx)
-            rows=tx.execute('SELECT record_id,transaction_id FROM ledger.order_writes_v2 '
+            rows=tx.execute('SELECT record_id,transaction_id,xmin::text FROM ledger.order_writes_v2 '
                 'WHERE scope_id=%s AND sequence=1 AND payload->>\'intent_id\'=%s',
                 (scope_id(tx.scope),bundle.intent.intent_id)).fetchall()
             require(len(rows)==len(attachment.command_ids)
                 and {row[0] for row in rows}==set(attachment.command_ids)
-                and all(row[1]==claim.admission_transaction_id for row in rows),
+                and all(row[1]==claim.admission_transaction_id and row[2]==bundle_row[1] for row in rows),
                 'PROGRAM_ADMISSION_WRITES_INCOMPLETE')
             for command_id,request_hash in zip(attachment.command_ids,attachment.request_hashes,strict=True):
                 write,request=repo.write(command_id),repo.request(command_id)
@@ -196,6 +199,7 @@ class GenericProgramAdmissionService:
                     and write.archive_hash==bundle.intent.hashes.archive
                     and (not same_transaction or write.state=='DURABLE_READY'),
                     'PROGRAM_ADMISSION_ATTACHMENT_CHANGED')
+                validate_stored_program_binding(tx,replace(write,state='DURABLE_READY'),write)
         else:
             from trading_system.execution.local_program_activation import read_local_activation
             local=read_local_activation(tx,attachment.activation_id)

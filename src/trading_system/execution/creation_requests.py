@@ -15,6 +15,7 @@ from trading_system.intents.program_compilation import (
     ProgramCompilation,Namespace,Operation,Endpoint,FieldName,Leg,
 )
 from trading_system.intents.product_rules import TrustedProductRules
+from trading_system.intents.quote_program_compilation import QuoteProgramCompilationV1
 
 
 def require(condition,reason):
@@ -105,7 +106,8 @@ class VenueCreationRequest:
 
 
 def _selected(plan,index):
-    require(type(plan) is ProgramCompilation and type(index) is int and 0<=index<len(plan.requests),
+    require(type(plan) in (ProgramCompilation,QuoteProgramCompilationV1)
+        and type(index) is int and 0<=index<len(plan.requests),
         'CREATION_REQUEST_INDEX_INVALID')
     request=plan.requests[index]
     routes={t.Product.SPOT:(Namespace.SPOT_ORDINARY,Namespace.SPOT_LIST,Namespace.SPOT_EXECUTION),

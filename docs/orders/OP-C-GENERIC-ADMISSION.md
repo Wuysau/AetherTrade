@@ -16,12 +16,15 @@ the composition again checks healthy clock, bounded wall/monotonic time, current
 deployment fence and unchanged book. An attachment reader cannot extend the
 original submission window.
 
-This is an active integration slice. The command repository and internal local
-activation implementations are independently being built in their own worktrees.
-Until their real tested commits are integrated, positive public attachment and
-replay PostgreSQL qualification remain NOT_RUN. Production readers/transport are
-not registered. Missing clock and current execution lease deny admission. Unit
-transaction probes verify composition only and never qualify financial SQL or a
+This is an active integration slice. Actual command repository, additive0012 and
+internal V3 local activation are integrated. Fixed681329a public request admission
+ran5 actual isolated PG cases with zero failure/error/skip: request/outbox,
+original-ID replay and rollback after real append, commit, book and expiry faults.
+Its first launcher attempt failed PyPI TLS before collecting tests; both original
+runs are retained. Later physical-xmin closure and actual public local activation
+cases need their fresh combined diagnostic. Production readers/transport are not
+registered. Missing clock and current execution lease deny new external
+admission. Unit transaction probes verify composition only and never qualify a
 native adapter.
 
 The initial external slice requires INITIAL timing for every request. Full native
@@ -37,4 +40,7 @@ combined intake/current-input/request/old-obligation/V3-codec checks passed76.
 Actual PostgreSQL public negative composition is added to the existing financial
 admission suite, pending a fresh fixed-source diagnostic. No positive financial,
 command, outbox, permit, matcher or native qualification is claimed by these unit
-tests. TESTNET/LIVE and paid model calls remain disabled for this engineering work.
+tests. Fixedb7e0dd5 subsequently passed16 actual private/public-negative financial
+PG cases; fixed681329a passed the5 public-positive/rollback cases described above.
+Neither result proves later source or all46 capabilities. TESTNET/LIVE and paid
+model calls remain disabled for this engineering work.

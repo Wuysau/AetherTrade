@@ -65,6 +65,21 @@ attachment3-case module nowalso registeredinrequired gate. TheirfreshrootPG
 positive diagnostic remains NOT_RUN untilitsfixedsourcejob completes.
 Native/localactivation stillpendingfreshactivationpeer, fullcombinedgate due.
 
+RootintegratedcommandUNKNOWN/CAS+physicalSQLfix2991 as6e8a767; activationactual
+6a32515..56f7cbb as18eee4a..8555201. Mergesretained BOTH currentprogram exclusions
+and localUNKNOWNobligations andallrequiredPGsuite entries. Peerfinalclock/wallet
+followups remainpending; nofinalcombinedgreenclaim. Publicfixed681 diagnostic
+62953TERMINALTLSsetupfailure0tests; freshretry78704TERMINALexit0,5actualPGpassed
+0failure/error/skip. Bothrawsources copiedunderop-c-generic-admission; public
+current8-caseexternal+local/rollback andphysicalxminclosurefreshgate due.
+
+Newquote sourceversion2026-10-30 explicitband+basis andlosslessnewcompiledtype
+areimplemented; SpotMARKETquoteBUY/SELL andEquityBUYnotional preserve original
+body; invalidEquitySELLnotional denies. Oldscalar/readers/schemas untouched.
+Source7+compiler3 observedRED, currentselected55/59checksGREEN. This isonlysource/
+compiler/math, notintervalallocation/risk/financialadmission/nativequalification.
+Actualnewintervalfinancialpipeline/walletlocation/fee-dust andOP-D/E/F/G continue.
+
 ## OP_C_IMPLEMENTATION_COHORT_HANDOFF_TO_PARENT — 2026-10-29
 
 integration_lead completed its concrete root implementation cohort and now
