@@ -12,7 +12,16 @@ def admit(c,*,fault=None):
     def operation(tx):
         bundle=c.service._reserve_program(tx,c.key,(),load_inputs=c.load,load_qualification=c.qualify,
             load_clock=lambda tx:c.c.facts.inputs.clock)
-        clock=lambda tx:replace(c.c.facts.inputs.clock,clock_health='UNHEALTHY') if fault=='clock' else c.c.facts.inputs.clock
+        if fault=='owner':
+            from trading_system.intents.ingress import revision_key,IngressRevision
+            key=revision_key(bundle.archive.source.context)
+            previous=tx._latest('audit_events',key,IngressRevision)
+            tx._append('audit_events',key,replace(previous,sequence=previous.sequence+1,enabled=False),previous.sequence)
+        def clock(tx):
+            current=c.c.facts.inputs.clock
+            if fault=='clock':return replace(current,clock_health='UNHEALTHY')
+            if fault=='expired':return replace(current,utc_now=bundle.reservations[0].reservation.expires_at)
+            return current
         receipt=activate_local_program(tx,bundle,load_clock=clock)
         assert activate_local_program(tx,bundle,load_clock=clock)==receipt
         if fault=='rollback':raise OSError('after actual activation')
@@ -45,7 +54,7 @@ def test_real_local_program_activates_with_sum_pool_without_external_parent(data
     assert not receipt.execution_authorized
 
 
-@pytest.mark.parametrize('fault',['clock','rollback'])
+@pytest.mark.parametrize('fault',['clock','expired','owner','rollback'])
 def test_activation_failure_rolls_back_financial_bundle_and_lifecycle(database,fault):
     from trading_system.execution.local_program_activation import read_local_activation
     c=real_case(database,template='TWAP',mode='LOCAL_SYNTHETIC')
@@ -61,8 +70,8 @@ def test_historical_bundle_cannot_be_attached_after_commit(database):
     c=real_case(database,template='TWAP',mode='LOCAL_SYNTHETIC')
     bundle=c.service._transaction(lambda tx:c.service._reserve_program(tx,c.key,(),load_inputs=c.load,
         load_qualification=c.qualify,load_clock=lambda tx:c.c.facts.inputs.clock))
-    with c.owner.transaction(c.scope) as tx:
-        with pytest.raises(ValueError,match='PROGRAM_FINANCIAL_WITNESS_REQUIRED'):
+    with pytest.raises(ValueError,match='PROGRAM_FINANCIAL_WITNESS_REQUIRED'):
+        with c.owner.transaction(c.scope) as tx:
             activate_local_program(tx,bundle,load_clock=lambda tx:c.c.facts.inputs.clock)
 
 
@@ -122,7 +131,11 @@ def test_unknown_local_pool_blocks_entire_collateral_group_and_preserves_origina
     with psycopg.connect(database) as db:
         db.execute('INSERT INTO ledger.account_bindings VALUES(%s,%s,%s,%s,NULL)',
             (str(other.environment),other.venue_account_id,str(other.product),bundle.intent.collateral_group_id))
-        db.execute('UPDATE ledger.active_owners SET ownership_epoch=2 WHERE account_id=%s',(c.scope.venue_account_id,))
+    # A direct owner overwrite is forbidden; the original activation remains
+    # attached to its original epoch and duty through restart.
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with psycopg.connect(database) as db:
+            db.execute('UPDATE ledger.active_owners SET ownership_epoch=2 WHERE account_id=%s',(c.scope.venue_account_id,))
     with c.owner.transaction(other) as tx:
         obligation=local_program_obligations(tx)[0]
         assert obligation.original.authority.ownership_epoch==1 and obligation.original.authority.owner_strategy_id==bundle.intent.owner_strategy_id
