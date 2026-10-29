@@ -1,5 +1,33 @@
 # Current task
 
+## OP_C_FINANCIAL_FIXED_SOURCE_GATE_AND_CURRENT_DIAGNOSTIC — 2026-10-29
+
+Root sourcebdbd9b0, docs latesta4f4bb4. Sole writer integration_lead remains
+active; parent reads/coordinates only. Full fixedb6b2dbb job81820 is TERMINAL
+exit0:924 actual PG passes/30 suites, zero errors/failures/skips; ordinary3231
+passed/478 environmental skips/96 deselected, one existing deprecation warning.
+It predates52ecf8e query-age,41867ce OCO,299f9db/bdbd9b0 qualification corrections.
+Never reuse its result as proof of later source or native qualification.
+
+Fixed299f9db diagnostic86745 TERMINAL RED:1 pass/11 failures, all qualified-cap
+fixtures rejected by existing Qualification evidence missing guard. No guard
+was relaxed. Sourcebdbd9b0 supplies explicit synthetic qualification artifact and
+requires the independent proof's exact artifact references; latest21 focused
+input/proof cases passed. Fresh fixedbdbd9b0 PG12 diagnostic is RUNNING exec80618,
+.runtime/paper-qualification-44f0fa4238bc/evidence. Poll this exact handle; do not
+restart terminal81820/86745. Fullb6/299RED raw artifacts and SHA256 maps copied
+byte-for-byte under docs/evidence/binance-orders/op-c-fin-kernel (b6/299-red).
+
+Parent reviewed native OCO41867ce read-only with no confirmed new defect. Actual
+combined contracts/intents/unit1468 passed, native OCO7 passed. No public generic
+admission success/command/permit is opened. Command peer owns V3/0012 and local
+activation peer's concrete plan is approved: actual same-tx financial bundle,
+ParentAuthorityV3/LOCAL_PROGRAM_ACTIVATION/SUM pool, no fictitious mother IDs,
+existing program/audit/funding-link tables, source-derived proofs, default-deny
+new-target guard for active pool and group uncertainty obligations. Both peers
+continue real implementation in their own trees. Full46/56 plusOP-D/E/F/G remain
+active; native quote target interval and fee/dust contracts remain unfinished.
+
 ## OP_C_CURRENT_PROGRAM_FINANCIAL_KERNEL — 2026-10-29
 
 Sole root writer remains integration_lead; parent reads/coordinates only.

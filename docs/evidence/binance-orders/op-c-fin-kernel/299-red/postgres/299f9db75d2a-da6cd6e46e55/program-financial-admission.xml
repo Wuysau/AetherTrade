@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="11" skipped="0" tests="12" time="2.309" timestamp="2026-10-29T08:11:37.388544+00:00" hostname="6e3d17ced56a"><testcase classname="tests.integration.test_program_financial_admission" name="test_actual_shared_bundle_persists_and_restarts_in_the_existing_cash_ledger" time="0.568"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:122: in test_actual_shared_bundle_persists_and_restarts_in_the_existing_cash_ledger
+    c=real_case(database)
+      ^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[missing_qualification]" time="0.053"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:140: in test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[foreign_transaction]" time="0.049"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:140: in test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[rollback_after_bundle]" time="0.045"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:140: in test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[capacity]" time="0.076"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:140: in test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[missing_clock]" time="0.050"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:140: in test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[unhealthy_clock]" time="0.045"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:140: in test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[unqualified_capabilities]" time="0.417" /><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[commit_failure]" time="0.047"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:140: in test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[fence_changed]" time="0.047"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:140: in test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle[expired_during_reader]" time="0.051"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:140: in test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase><testcase classname="tests.integration.test_program_financial_admission" name="test_execution_owner_cannot_forge_a_bounded_generic_intake" time="0.045"><failure message="ValueError: Qualification evidence missing">tests/integration/test_program_financial_admission.py:176: in test_execution_owner_cannot_forge_a_bounded_generic_intake
+    c=real_case(database)
+      ^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in real_case
+    c=risk_module.risk_case()
+      ^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:28: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:49: in scoped_inputs
+    r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:15: in __init__
+    ???
+src/trading_system/contracts/order_snapshots.py:27: in __post_init__
+    if self.qualification!='NOT_RUN' and not self.evidence:raise ValueError('Qualification evidence missing')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: Qualification evidence missing</failure></testcase></testsuite></testsuites>

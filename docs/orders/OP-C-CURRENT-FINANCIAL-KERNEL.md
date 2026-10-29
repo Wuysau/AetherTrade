@@ -55,3 +55,16 @@ Complete V3 command/outbox/permit integration, local activation and child
 admission, native quote target intervals, fee/dust residual handling and all
 OP-D/E/F/G work remain active. All46 capabilities and56 acceptance cases retain
 their full scope. This component evidence does not qualify Testnet or LIVE.
+
+The full fixedb6b2dbb cohort subsequently completed924 mandatory PostgreSQL tests
+across30 suites, zero errors/failures/skips, plus ordinary3231 passed/478 explicit
+environmental skips/96 deselected. This source predates the query-age, OCO and
+strict qualification followups. Fixed299f9db diagnostic failed1 passed/11 failed
+because the newly qualified fixture omitted required qualification evidence.
+The fixture was corrected to supply an explicitly synthetic artifact, and the
+financial proof must match the snapshot's exact artifact references. The
+bdbd9b0 fixed-source diagnostic remains pending; guards were not weakened.
+
+Byte-identical fullb6 and299RED logs, JUnit, manifests and SHA256 maps are retained
+under `docs/evidence/binance-orders/op-c-fin-kernel/` (b6 and299-red). These are
+engineering evidence with declared synthetic provenance, not native readiness.
