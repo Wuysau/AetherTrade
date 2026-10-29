@@ -89,6 +89,9 @@ def test_actual_v3_acceptance_shared_depth_partial_limit_restart_and_replay(data
     ar=a.engine.query_creation(a.write.command_id);br=b.engine.query_creation(b.write.command_id)
     assert ar.filled_quantity==D('.6') and ar.remaining_quantity==D('.4') and br.filled_quantity==0
     assert ar.request==a.request and ar.fills[0].market_event_id==cross.event_id
+    from hashlib import sha256
+    assert sha256(ar.fills[0].raw_payload_json.encode('utf-8')).hexdigest()==ar.fills[0].evidence.hash
+    assert ar.orders[0].venue_order_id
     assert not PaperMatcher(a.engine).apply_market_event(cross).applied
     assert a.engine.query_creation(a.write.command_id)==ar
     # A new identical snapshot cannot supply another .6 to either order.
@@ -287,3 +290,38 @@ def test_original_4000_quote_limit_uses_compiled_native_quantity_without_rewriti
     report=c.engine.query_creation(c.write.command_id)
     assert report.orders[0].quantity==D('.049085') and report.filled_quantity==D('.02') and report.remaining_quantity==D('.029085')
     assert report.accepted_contexts[0].compilation.nodes[0].original.order.quantity.kind=='QUOTE_NOTIONAL'
+
+
+def test_consumed_permit_cannot_start_a_side_effect_after_actual_sim_lock_wait(database,venue,tmp_path):
+    import psycopg,time
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import timedelta
+    from psycopg.conninfo import conninfo_to_dict
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.engine.paper_market import market_key
+    c=case(database,venue,tmp_path);key=market_key(c.scope.product,c.scope.instrument_uid)
+    dbname=conninfo_to_dict(venue.runtime_dsn)['dbname']
+    with psycopg.connect(venue.event_dsn) as blocker:
+        blocker.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(key,))
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending=pool.submit(submit,c)
+            deadline=time.monotonic()+30
+            with psycopg.connect(database) as observer:
+                while time.monotonic()<deadline:
+                    waiting=observer.execute('SELECT EXISTS(SELECT FROM pg_locks l JOIN pg_database d ON d.oid=l.database '
+                        "WHERE d.datname=%s AND l.locktype='advisory' AND NOT l.granted)",(dbname,)).fetchone()[0]
+                    if waiting:break
+                    if pending.done():pending.result()
+                    time.sleep(.02)
+                else:raise AssertionError('actual SIM advisory wait not observed')
+            # This is a healthy clock advance, while its execution-owner lease
+            # still has nearly a minute. It does not create or renew a permit.
+            current=replace(c.c.facts.inputs.clock,utc_now=(utc_timestamp(c.c.facts.inputs.clock.utc_now)+timedelta(seconds=6)).isoformat(),
+                monotonic_ns=c.c.facts.inputs.clock.monotonic_ns+6*10**9)
+            c.engine._clock=lambda:current;c.owner.clock=lambda:current
+            blocker.commit()
+            with pytest.raises(ValueError,match='PAPER_CONSUMED_PERMIT_EXPIRED'):pending.result(timeout=30)
+    assert c.engine.query_creation(c.write.command_id) is None
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',
+            (c.write.command_id,)).fetchone()==(1,)
