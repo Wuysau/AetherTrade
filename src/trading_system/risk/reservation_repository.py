@@ -72,7 +72,13 @@ class ReservationRepository:
             if projection.held < current.held and self.tx.execute(
                 'SELECT 1 FROM ledger.order_funding_links WHERE scope_id=%s AND record_id=%s',
                 (scope_id(self.tx.scope),projection.reservation.reservation_id)).fetchone():
-                raise MissingEvidence('PROGRAM_RESERVATION_REQUIRES_RECONCILIATION')
+                approved = False
+                if self.tx.execute("SELECT to_regprocedure('ledger.order_closure_approved(text,text,jsonb,text)')").fetchone()[0] is not None:
+                    from trading_system.storage.models import encode
+                    approved = self.tx.execute('SELECT ledger.order_closure_approved(%s,%s,%s::jsonb,%s)',
+                        (scope_id(self.tx.scope),projection.reservation.reservation_id,encode(projection),self.tx.transaction_id)).fetchone()[0]
+                if not approved:
+                    raise MissingEvidence('PROGRAM_RESERVATION_REQUIRES_RECONCILIATION')
         self.tx._append('audit_events', 'ip07:reservation:' + projection.reservation.reservation_id,
                         projection, projection.sequence - 1)
 
