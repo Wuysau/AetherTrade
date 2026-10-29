@@ -50,3 +50,27 @@ Official Binance Spot, USD-M and Equity catalog pages reread on2026-10-29. Older
 Ruling: the user has approved the architecture and explicitly instructed continuing downstream implementation; no routine stage reapproval is required. This plan documents a bounded OP-E slice, not completion of OP-E or promotion of the56 acceptance cases.
 
 The oversized remote-total counterexample exposed a real allocation failure. Its owned pytest process was terminated after observing5,514,739,712 bytes working set; the resource RED and interrupted exit are retained. Completion now checks only received pages, without allocating/iterating to the claimed total. The unchanged10**50 total case passes. Endpoint-set omission separately produced2 RED failures before correction. Neither negative result is a native execution qualification.
+
+### Task 3: Read immutable original creation identities for recovery
+
+Root integrator confirmed this separate OP-E scope. Create
+`recovery/original_creation.py`: `read_original_creation(tx, command_id)` reads
+the scoped original V3 write, its complete immutable binding/bundle and protected
+MAY history. It verifies historical hashes and state continuity without requiring
+latest reservation projections to equal the initial financial snapshot. It
+returns no send permit, terminal proof, credit or ownership grant.
+`original_query_targets(record)` restores only previously assigned parent/member
+client IDs; `original_creation_case(record, *, now, budget)` reuses the existing
+ReconciliationCase/CaseScheduler read model, without persisting or changing writes.
+
+- [ ] Observe actual isolated PG RED for missing reader: stored READY read,
+  committed MAY/UNKNOWN after a same-economic later reservation version, and
+  cross-scope/missing-ID isolation. Register one new mandatory diagnostic suite.
+- [ ] Implement original record/hash/history validation, query-only target
+  extraction and same scheduler cases. No new order IDs or financial writes.
+- [ ] Run actual isolated PG and original recovery/native regressions; retain
+  real evidence, obtain review and integrate through root owner.
+
+Ruling: an expired submission or changed current collateral projection cannot
+erase a durable command's query identity. Current risk/owner/lease checks remain
+mandatory for every send. Historical identity reading grants no send authority.
