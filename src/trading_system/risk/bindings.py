@@ -24,6 +24,19 @@ class RiskBinding:
     as_of:str
 
 
+def working_bound_side_matches(bound,inputs,book):
+    """Bind every priced working leaf to its independently read current side.
+
+    The historical WorkingOrder source keys by logical ID only. Duplicate IDs
+    across scopes therefore remain ambiguous rather than acquiring a side from
+    a different order. A future scoped source must be separately versioned.
+    """
+    sources=[s for s in inputs.order_sides if s.logical_client_order_id==bound.logical_client_order_id]
+    orders=[o for o in book.active_orders if o.order.identity.logical_client_order_id==bound.logical_client_order_id]
+    return (len(sources)==len(orders)==1 and sources[0].side==bound.side
+        and orders[0].order.identity.scope==bound.scope)
+
+
 def legacy_binding(intent):
     # Raw diagnostic metadata only. RiskEvaluator separately requires the exact
     # unchanged legacy codec before any ALLOW; no intent is fabricated here.

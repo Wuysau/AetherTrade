@@ -355,6 +355,8 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
         'PAPER_ACTUAL_BOUNDARY_OWNER_REQUIRED')
     require(write.scope==engine.scope==boundary.scope and write.command_id==request.command_id==permit.command_id
         and write.request_hash==permit.request_hash==digest(request),'PAPER_ORIGINAL_REQUEST_REQUIRED')
+    require(engine.scope.product in (t.Product.SPOT,t.Product.USD_M_PERP),
+        'PAPER_EQUITY_SESSION_MODEL_REQUIRED' if engine.scope.product==t.Product.US_EQUITY else 'PAPER_PRODUCT_MODEL_REQUIRED')
     model=engine._matching_model
     require(type(model) is PaperMatchingModel,'PAPER_EXPLICIT_MATCHING_MODEL_REQUIRED')
     with owner.guard(lease):
@@ -385,6 +387,7 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
         node=plan.nodes[0];order=node.original.order
         require(node.order_type in ('LIMIT','LIMIT_MAKER') and order.price.kind=='FIXED_LIMIT' and order.trigger.kind=='NONE'
             and order.iceberg_quantity is None and order.stp=='NONE' and order.routing=='STANDARD'
+            and order.trading_session is None
             and (order.tif.kind in ('GTC','IOC','FOK','GTX') or node.order_type=='LIMIT_MAKER' and order.tif.kind=='NONE'),
             'PAPER_EXECUTION_SEMANTICS_STAGE_REQUIRED')
         require(node.quantity.kind=='BASE_QUANTITY','PAPER_NATIVE_QUANTITY_REQUIRED')

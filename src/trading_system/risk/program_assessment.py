@@ -21,7 +21,7 @@ from trading_system.intents.program_compilation import compile_order_program
 from trading_system.intents.program_target_allocation import compile_program_target
 from trading_system.market.snapshots import snapshot_content_hash
 from trading_system.market.freshness import FreshnessPolicy
-from .bindings import terms_binding,initial_binding_codes
+from .bindings import terms_binding,initial_binding_codes,working_bound_side_matches
 from .policy_checks import (exact_risk_arithmetic,account_policy_codes,protection_policy_codes,
     portfolio_limit_codes,spendable_codes,capital_limit_exceeded,legacy_margin_upper_bound)
 from .valuation import Valuation,nonnegative
@@ -343,7 +343,7 @@ def _portfolio(inputs,terms,plan,a,e,book,facts,bounds,valuation):
     for key,order in current.items():
         b=ordered[key]
         require(order.command_certainty!='UNKNOWN','UNKNOWN_ORDER_RECONCILIATION_REQUIRED')
-        require(b.side in ('BUY','SELL') and b.quantity==order.leaves_quantity
+        require(b.side in ('BUY','SELL') and working_bound_side_matches(b,inputs,book) and b.quantity==order.leaves_quantity
             and b.evidence_refs and set(b.evidence_refs)<={r.id for r in facts.evidence},'PROGRAM_RISK_WORKING_BOUND_MISMATCH')
         working.append(WorkingExposure(scope=b.scope,logical_client_order_id=b.logical_client_order_id,
             side=b.side,mark=mark_for(b.scope,b.maximum_price)))

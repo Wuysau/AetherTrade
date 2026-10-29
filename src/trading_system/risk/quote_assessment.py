@@ -18,7 +18,7 @@ from trading_system.market.freshness import FreshnessPolicy
 from trading_system.market.snapshots import snapshot_content_hash
 from .evaluator import RiskInputs
 from .terms import RiskSource,RiskMetrics,_bound_metric_codes
-from .bindings import RiskBinding,initial_binding_codes
+from .bindings import RiskBinding,initial_binding_codes,working_bound_side_matches
 from .program_assessment import WorkingRiskBound,PendingRiskBound,ProtectionCoverage,_valid_refs,_sum_assets,_money
 from .program_exposure import FeeBound
 from .exposure import ExposureCalculator,WorkingExposure,PendingExposure
@@ -260,7 +260,7 @@ def _portfolio(i,terms,a,book,f,valuation):
     for key,o in current.items():
         b=working[key]
         need(o.command_certainty!='UNKNOWN','UNKNOWN_ORDER_RECONCILIATION_REQUIRED')
-        need(b.quantity==o.leaves_quantity and b.side in ('BUY','SELL') and b.evidence_refs
+        need(b.quantity==o.leaves_quantity and b.side in ('BUY','SELL') and working_bound_side_matches(b,i,book) and b.evidence_refs
             and set(b.evidence_refs)<={r.id for r in f.evidence},'QUOTE_WORKING_BOUND_MISMATCH')
         ws.append(WorkingExposure(scope=b.scope,logical_client_order_id=b.logical_client_order_id,side=b.side,
             mark=mark_for(b.scope,b.maximum_price)))
