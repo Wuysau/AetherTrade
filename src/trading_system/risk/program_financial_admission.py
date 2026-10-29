@@ -34,6 +34,7 @@ ARCHIVE_PREFIX='program-financial-archive:'
 BASIS_PREFIX='program-financial-basis:'
 DECISION_PREFIX='program-financial-decision:'
 BUNDLE_PREFIX='program-financial-bundle:'
+ATTACHMENT_PREFIX='program-financial-attachment:'
 
 
 def digest(value):
@@ -74,6 +75,100 @@ class ProgramFinancialBundle:
 
     @property
     def execution_authorized(self)->Literal[False]:return False
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class _ProgramFinancialWitness:
+    """Live private kernel provenance, never restored from owner audit JSON."""
+    transaction_id:str
+    scope:t.ScopeKey
+    bundle_hash:str
+    original_book_hash:str
+    command_ids:tuple[str,...]
+    expires_at:str
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class ProgramFinancialAttachment:
+    contract_version:Literal['2026-10-29']
+    record_kind:Literal['PROGRAM_FINANCIAL_ATTACHMENT']
+    intent_id:str
+    bundle_hash:str
+    admission_transaction_id:str
+    mode:Literal['EXTERNAL_REQUESTS','LOCAL_ACTIVATION']
+    command_ids:tuple[str,...]
+
+    @property
+    def execution_authorized(self)->Literal[False]:return False
+
+
+def current_program_bundle_witness(tx,bundle):
+    """Read only the actual successful SAME-transaction kernel invocation."""
+    witnesses=getattr(tx,'_program_financial_witnesses',None)
+    require(tx.active and type(bundle) is ProgramFinancialBundle and type(witnesses) is dict,
+        'PROGRAM_FINANCIAL_WITNESS_REQUIRED')
+    witness=witnesses.get(bundle.intent.intent_id)
+    require(type(witness) is _ProgramFinancialWitness and witness.transaction_id==tx.transaction_id
+        and witness.scope==tx.scope and witness.bundle_hash==digest(bundle),
+        'PROGRAM_FINANCIAL_WITNESS_REQUIRED')
+    row=tx.execute('SELECT payload,transaction_id FROM ledger.audit_events '
+        'WHERE scope_id=%s AND record_id=%s AND sequence=1',
+        (scope_id(tx.scope),BUNDLE_PREFIX+bundle.intent.intent_id)).fetchone()
+    require(row is not None and row[1]==tx.transaction_id and canonical_hash(row[0])==witness.bundle_hash,
+        'PROGRAM_FINANCIAL_BUNDLE_SOURCE_MISMATCH')
+    require(digest(tx.intents.get(bundle.intent.intent_id))==digest(bundle.intent)
+        and bundle.archive.target_facts.transaction_id==tx.transaction_id
+        and bundle.intent.scope==tx.scope and bundle.intent.collateral_group_id==tx.group_id,
+        'PROGRAM_FINANCIAL_BUNDLE_SOURCE_MISMATCH')
+    source,record=read_program_source(tx,bundle.intent.source.intake_record_id)
+    require(digest(source)==digest(bundle.archive.source) and record.intent_id==bundle.intent.intent_id,
+        'PROGRAM_FINANCIAL_BUNDLE_SOURCE_MISMATCH')
+    fence=current_fence(tx,source.context)
+    require((fence.owner_strategy_id,fence.ownership_epoch,fence.risk_policy_revision)==(
+        bundle.intent.owner_strategy_id,bundle.intent.ownership_epoch,bundle.intent.risk_policy_revision),
+        'STALE_OWNER')
+    require(digest(tx.projections.book(tx.scope))==witness.original_book_hash,'PROGRAM_CURRENT_BOOK_CHANGED')
+    stored={r.reservation_id:digest(r) for r in tx.reservations.for_intent(bundle.intent.intent_id)}
+    expected={p.reservation.reservation_id:digest(p.reservation) for p in bundle.reservations}
+    require(stored==expected,'PROGRAM_FINANCIAL_FUNDING_CHANGED')
+    repo=ReservationRepository(tx)
+    require(all(digest(repo.get(p.reservation.reservation_id))==digest(p) for p in bundle.reservations),
+        'PROGRAM_FINANCIAL_FUNDING_CHANGED')
+    return witness
+
+
+def program_bundle_command_ids(tx,bundle):
+    """Whole preassigned set, including zero-assets; never infer fake IDs."""
+    return current_program_bundle_witness(tx,bundle).command_ids
+
+
+class _AttachmentWriter:
+    def __init__(self,tx):self.tx=tx
+
+    @atomic_write
+    def claim(self,bundle,*,mode,command_ids):
+        tx=self.tx;witness=current_program_bundle_witness(tx,bundle)
+        require(mode in ('EXTERNAL_REQUESTS','LOCAL_ACTIVATION'),'PROGRAM_ATTACHMENT_MODE_INVALID')
+        require(type(command_ids) is tuple and command_ids==witness.command_ids,
+            'PROGRAM_ATTACHMENT_IDENTITIES_CHANGED')
+        local=bundle.archive.compilation.original_program.template in ('TWAP','VP') and (
+            bundle.archive.compilation.original_program.execution_mode!='VENUE_NATIVE')
+        require((mode=='LOCAL_ACTIVATION')==local,'PROGRAM_ATTACHMENT_MODE_CONFLICT')
+        require(not command_ids if local else bool(command_ids),'PROGRAM_ATTACHMENT_IDENTITIES_CHANGED')
+        require(all(p.reservation.command_refs==command_ids for p in bundle.reservations),
+            'PROGRAM_ATTACHMENT_FUNDING_IDENTITIES_CHANGED')
+        record=ProgramFinancialAttachment(contract_version='2026-10-29',record_kind='PROGRAM_FINANCIAL_ATTACHMENT',
+            intent_id=bundle.intent.intent_id,bundle_hash=witness.bundle_hash,
+            admission_transaction_id=tx.transaction_id,mode=mode,command_ids=command_ids)
+        key=ATTACHMENT_PREFIX+record.intent_id
+        previous=tx._latest('audit_events',key,ProgramFinancialAttachment)
+        require(previous is None or digest(previous)==digest(record),'PROGRAM_ATTACHMENT_ALREADY_CONSUMED')
+        if previous is None:tx._append('audit_events',key,record,0)
+        return previous or record
+
+
+def claim_program_attachment(tx,bundle,*,mode,command_ids):
+    return _AttachmentWriter(tx).claim(bundle,mode=mode,command_ids=command_ids)
 
 
 def validate_current_inputs(tx,source,intake,book,inputs,clock):
@@ -217,6 +312,13 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     bundle=ProgramFinancialBundle(intent=intent,basis=basis,archive=a,decision=a.assessment,
         reservations=tuple(projections))
     tx._append('audit_events',BUNDLE_PREFIX+intent.intent_id,bundle,0)
+    witnesses=getattr(tx,'_program_financial_witnesses',None)
+    if witnesses is None:
+        witnesses={};tx._program_financial_witnesses=witnesses
+    require(type(witnesses) is dict and intent.intent_id not in witnesses,'PROGRAM_FINANCIAL_ALREADY_ADMITTED')
+    witnesses[intent.intent_id]=_ProgramFinancialWitness(transaction_id=tx.transaction_id,scope=tx.scope,
+        bundle_hash=digest(bundle),original_book_hash=original_book_hash,command_ids=command_ids,
+        expires_at=expires.isoformat())
     return bundle
 
 
