@@ -53,3 +53,10 @@ compiled notional asset plus independently supplied wallet selection. Stored
 IDs are never replaced on recovery.28 request/quote cases pass after correction.
 These are integrity guards; actual financial/source qualification remains the
 execution owner's responsibility before any MAY boundary or transport.
+
+Further structural review reproduced a Spot→Futures route substitution and a
+native-list child rewritten as an ordinary standalone send. The materializer
+now checks product/service routing and requires the complete original native
+mother/list operation and member set before handling any venue-generated node.
+Both counterexamples were retained and turned green;31 request/quote cases pass.
+Native proof/state ingestion and actual transport qualification remain separate.

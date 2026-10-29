@@ -108,11 +108,26 @@ def _selected(plan,index):
     require(type(plan) is ProgramCompilation and type(index) is int and 0<=index<len(plan.requests),
         'CREATION_REQUEST_INDEX_INVALID')
     request=plan.requests[index]
+    routes={t.Product.SPOT:(Namespace.SPOT_ORDINARY,Namespace.SPOT_LIST,Namespace.SPOT_EXECUTION),
+        t.Product.USD_M_PERP:(Namespace.USD_M_ORDINARY,Namespace.USD_M_CONDITIONAL,Namespace.USD_M_EXECUTION),
+        t.Product.US_EQUITY:(Namespace.EQUITY,)}
+    require(request.namespace in routes.get(plan.scope.product,()),'CREATION_PRODUCT_ROUTE_MISMATCH')
     require(request.operation!=Operation.LOCAL_ALGORITHM and request.endpoint is not None,
         'LOCAL_ALGORITHM_ACTIVATION_IS_NOT_EXTERNAL_WRITE')
     require(len(set(request.node_ids))==len(request.node_ids),'CREATION_NODE_IDENTITIES_DUPLICATED')
     nodes={n.original.node_id:n for n in plan.nodes}
     require(set(request.node_ids)<=set(nodes),'CREATION_NODE_MISSING')
+    program=plan.original_program
+    native_templates=('OCO','OTO','OTOCO','OPO','OPOCO','TWAP','VP')
+    if (program.execution_mode=='VENUE_NATIVE' and program.template in native_templates
+            or any(nodes[n].trusted_origin=='VENUE_GENERATED_CHILD' for n in request.node_ids)):
+        expected_namespace=(Namespace.SPOT_LIST if program.template in native_templates[:5] else
+            Namespace.SPOT_EXECUTION if plan.scope.product==t.Product.SPOT else Namespace.USD_M_EXECUTION)
+        require(program.execution_mode=='VENUE_NATIVE' and program.template in native_templates
+            and request.namespace==expected_namespace and request.operation==Operation[program.template]
+            and request.node_ids==tuple(n.node_id for n in program.nodes)
+            and request.native_mother is True and request.generated_child_origin=='VENUE_GENERATED_CHILD',
+            'VENUE_CHILD_REQUIRES_ORIGINAL_NATIVE_PARENT')
     return request,tuple(nodes[n] for n in request.node_ids)
 
 

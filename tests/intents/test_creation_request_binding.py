@@ -161,3 +161,22 @@ def test_boolean_and_integer_equality_cannot_hide_different_wire_requests():
     assert dict(changed.form_parameters())['reduceOnly']=='0'
     with pytest.raises(ValueError,match='CREATION_REQUEST_CHANGED'):
         verify_creation(changed,plan,profile,ids)
+
+
+def test_spot_compilation_cannot_be_redirected_to_a_futures_endpoint():
+    from trading_system.intents.program_compilation import Namespace
+    plan,profile=ordinary()
+    changed=replace(plan,requests=(replace(plan.requests[0],namespace=Namespace.USD_M_ORDINARY),))
+    with pytest.raises(ValueError,match='CREATION_PRODUCT_ROUTE_MISMATCH'):
+        materialize_creation(changed,0,profile,assign_client_ids(changed,0,'route-command'))
+
+
+def test_venue_generated_list_child_cannot_become_a_standalone_local_send():
+    from trading_system.intents.program_compilation import RequestPlan,Namespace,Operation,Parameter,FieldName
+    plan=make_plan('OCO','VENUE_NATIVE');profile=inputs()[3]['profile'];node=plan.nodes[0]
+    assert node.trusted_origin=='VENUE_GENERATED_CHILD'
+    request=RequestPlan(namespace=Namespace.SPOT_ORDINARY,operation=Operation.ORDER,
+        node_ids=(node.original.node_id,),parameters=(Parameter(name=FieldName.SYMBOL,value=profile.venue_symbol),*node.parameters))
+    changed=replace(plan,requests=(request,))
+    with pytest.raises(ValueError,match='VENUE_CHILD_REQUIRES_ORIGINAL_NATIVE_PARENT'):
+        materialize_creation(changed,0,profile,assign_client_ids(changed,0,'duplicate-child-command'))
