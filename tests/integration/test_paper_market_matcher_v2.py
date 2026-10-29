@@ -127,7 +127,7 @@ def test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority(da
     from trading_system.engine.paper_market import PaperMatcher
     from trading_system.risk.reservation_repository import ReservationRepository
     market='iceberg-market-'+uuid4().hex
-    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda order:replace(order,iceberg_quantity='.1'))
+    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda order:replace(order,iceberg_quantity='0.1'))
     other=advanced_case(database,venue_v2,tmp_path,market=market)
     submit(c);submit(other);matcher=PaperMatcher(c.engine)
     matcher.apply_market_event(event(c,quantity='.25'))
