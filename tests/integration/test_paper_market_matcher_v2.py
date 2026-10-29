@@ -105,3 +105,39 @@ def test_runtime_cannot_publish_price_sources_or_change_activation_progress(venu
                       'UPDATE public.paper_order_runtime_v2 SET active=true'):
         with pytest.raises(psycopg.errors.InsufficientPrivilege):
             with psycopg.connect(venue_v2.runtime_dsn) as db:db.execute(statement)
+
+
+def test_primary_peg_latches_placement_price_without_rewriting_native_spec(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    def peg(order):
+        return replace(order,price=PriceSpec(kind='PEG',value=None,peg_type='PRIMARY_PEG',offset_levels=1,price_match=None))
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=peg);matcher=PaperMatcher(c.engine)
+    snapshot=replace(event(c,ask='81500',quantity='1'),bids=(DepthLevel(price='81489',quantity='1'),DepthLevel(price='81488',quantity='1')))
+    matcher.apply_market_event(snapshot);submit(c)
+    report=c.engine.query_creation(c.write.command_id)
+    assert not report.fills and report.orders[0].runtime.effective_limit==D('81488')
+    moved=replace(event(c,sequence=2,ask='81488',quantity='.4'),bids=(DepthLevel(price='81487',quantity='1'),))
+    matcher.apply_market_event(moved);report=c.engine.query_creation(c.write.command_id)
+    assert report.filled_quantity==D('.4') and report.orders[0].runtime.effective_limit==D('81488')
+    assert report.accepted_contexts[0].terms.spec.price.kind=='PEG' and all(f.name!='price' for f in c.request.fields)
+
+
+def test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority(database,venue_v2,tmp_path):
+    from uuid import uuid4
+    from trading_system.engine.paper_market import PaperMatcher
+    from trading_system.risk.reservation_repository import ReservationRepository
+    market='iceberg-market-'+uuid4().hex
+    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda order:replace(order,iceberg_quantity='.1'))
+    other=advanced_case(database,venue_v2,tmp_path,market=market)
+    submit(c);submit(other);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,quantity='.25'))
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.filled_quantity==D('.1') and report.remaining_quantity==D('.9')
+    assert report.orders[0].runtime.visible_remaining==0
+    assert other.engine.query_creation(other.write.command_id).filled_quantity==D('.15')
+    matcher.apply_market_event(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'))
+    assert c.engine.query_creation(c.write.command_id).filled_quantity==D('.1')
+    assert other.engine.query_creation(other.write.command_id).filled_quantity==D('.35')
+    with c.service.uow.transaction(c.scope) as tx:
+        hold=ReservationRepository(tx).get(c.bundle.reservations[0].reservation.reservation_id)
+        assert hold.held==c.bundle.reservations[0].held
