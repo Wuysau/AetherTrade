@@ -102,6 +102,11 @@ class RiskEvaluator:
         from .program_assessment import evaluate_program
         return evaluate_program(self.inputs,terms,compilation,allocation,program_exposure,book,policy,facts)
 
+    def evaluate_quote_program(self,terms,compilation,allocation,book,policy,facts):
+        """Explicit value-band adapter using this same current risk/policy core."""
+        from .quote_assessment import evaluate_quote_program
+        return evaluate_quote_program(self.inputs,terms,compilation,allocation,book,policy,facts)
+
     def _evaluate(self, intent, book, market, policy,*,terms=None):
         facts = self.inputs
         currency = policy.valuation_currency

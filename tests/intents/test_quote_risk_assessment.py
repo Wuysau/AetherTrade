@@ -15,16 +15,27 @@ from test_program_risk_assessment import risk_case
 def digest(value):return canonical_hash(domain_payload(value))
 
 
-def quote_risk_case():
+def quote_risk_case(*,actual='0',side='BUY',quote='4000',fees=()):
     from trading_system.risk.quote_assessment import QuoteRiskTermsV1,QuoteRiskFactsV1
     from trading_system.risk.terms import RiskSource
     from trading_system.intents.quote_target_allocation import compile_quote_target
-    c=risk_case();plan,book,target=allocation_case()
-    book=replace(book,balances=c.book.balances)
+    from trading_system.intents.quote_program_compilation import compile_quote_program
+    c=risk_case(actual=actual,quantity=str(D(1)-D(actual)));plan,book,target=allocation_case()
+    node=plan.original_program.nodes[0]
+    node=replace(node,order=replace(node.order,side=side,quantity=replace(node.order.quantity,value=quote)))
+    proposal=replace(plan.original_proposal,program=replace(plan.original_program,nodes=(node,)))
+    plan=compile_quote_program(proposal,target.scope_facts.rules,target.capabilities,profile=target.profile,
+        scope=plan.scope,now=target.scope_facts.inputs.clock.utc_now,
+        expected_build_digest=target.expected_build_digest,expected_rule_revision=target.scope_facts.rules.revision,
+        expected_capabilities_hash=plan.capabilities_hash,expected_instrument_ref=target.expected_instrument_ref,
+        allow_round_down=target.scope_facts.inputs.allow_round_down)
+    book=replace(book,balances=c.book.balances,positions=c.book.positions)
     context=replace(target.scope_facts.context,snapshot_ref=c.facts.market.ref)
-    scope_facts=replace(target.scope_facts,book_hash=digest(book),context=context,
+    scope_facts=replace(target.scope_facts,book_hash=digest(book),context=context,compilation_hash=digest(plan),
+        unit_binding=replace(target.scope_facts.unit_binding,compilation_hash=digest(plan)),
         inputs=replace(target.scope_facts.inputs,context=context))
-    target=replace(target,scope_facts=scope_facts)
+    target=replace(target,scope_facts=scope_facts,bounds=replace(target.bounds,compilation_hash=digest(plan),fees=fees,
+        maximum_gross_quote=t.Money(currency='USDT',amount=D(quote))))
     allocation=compile_quote_target(plan,book,target)
     p=plan.original_proposal;s=scope_facts
     terms=QuoteRiskTermsV1(contract_version='2026-10-30',record_kind='QUOTE_RISK_TERMS_V1',
@@ -40,9 +51,10 @@ def quote_risk_case():
         as_of=c.terms.as_of,created_at=c.terms.created_at,valid_until=allocation.valid_until,
         submission_deadline=p.program.submit_valid_until)
     current=replace(c.facts.inputs,instrument=s.inputs.instrument,session=s.inputs.session,
-        order_sides=s.inputs.order_sides,clock=s.inputs.clock)
+        order_sides=s.inputs.order_sides,clock=s.inputs.clock,allow_round_down=s.inputs.allow_round_down,
+        fee_reserve=tuple(f.amount for f in fees))
     proofs=tuple(replace(proof,program_hash=plan.program_hash,allocation_hash=digest(allocation),
-        book_hash=digest(book),maximum_quantity=t.Quantity(unit='BASE',value=D('.08')),
+        book_hash=digest(book),maximum_quantity=t.Quantity(unit='BASE',value=max(D(actual),allocation.position.projected_maximum.value)),
         stop_price=t.Price(currency='USDT',value=D('40000'))) for proof in c.facts.protection)
     facts=QuoteRiskFactsV1(contract_version='2026-10-30',record_kind='QUOTE_RISK_FACTS_V1',
         inputs=current,market=c.facts.market,authorization=c.facts.authorization,target_facts=target,
@@ -86,7 +98,7 @@ def test_quote_risk_rejects_each_current_policy_or_full_source_gap(fault,code):
     if fault=='missing_protection':c.facts=replace(c.facts,protection=())
     if fault=='future_clock':c.terms=replace(c.terms,created_at='2099-01-01T00:00:00Z')
     if fault=='bad_market':c.facts=replace(c.facts,market=replace(c.facts.market,
-        ref=replace(c.facts.market.ref,hash='f'*64)))
+        quote=replace(c.facts.market.quote,last=t.Price(currency='USDT',value=D(1)))))
     if fault=='new_risk_disabled':c.facts=replace(c.facts,inputs=replace(c.facts.inputs,new_risk_allowed=False))
     if fault=='changed_allocation':c.allocation=replace(c.allocation,native_quote_amount=t.Money(currency='USDT',amount=D(1)))
     if fault=='wrong_authority':c.facts=replace(c.facts,inputs=replace(c.facts.inputs,ownership_epoch=2))
@@ -100,11 +112,57 @@ def test_quote_risk_rejects_each_current_policy_or_full_source_gap(fault,code):
 
 def test_full_quote_assessment_archive_replays_math_and_rejects_forged_allow():
     from trading_system.intents.quote_assessment_archive import QuoteAssessmentArchiveV1,QuoteAssessmentArchiveCodec
+    from trading_system.contracts.quote_financial import QuoteFinancialSourceV1
     c=quote_risk_case();decision=assess(c)
+    context=c.facts.target_facts.scope_facts.context
+    source=QuoteFinancialSourceV1(source_kind='POSITION_VALUE_BAND_PROPOSAL',source_version='2026-10-30',
+        source_hash=c.plan.proposal_hash,intake_record_id='synthetic-bounded-intake',intake_hash='a'*64,
+        intake_transaction_id='synthetic-intake-transaction',context=context,context_hash=digest(context))
     archive=QuoteAssessmentArchiveV1(contract_version='2026-10-30',record_kind='QUOTE_ASSESSMENT_ARCHIVE_V1',
-        intent_id=c.terms.decision_id,compilation=c.plan,book=c.book,allocation=c.allocation,
+        intent_id=c.terms.decision_id,source=source,compilation=c.plan,book=c.book,allocation=c.allocation,
         risk_terms=c.terms,risk_facts=c.facts,risk_policy=c.policy,assessment=decision)
     codec=QuoteAssessmentArchiveCodec();payload=codec.encode(archive)
     assert digest(codec.decode(payload))==digest(archive)
     payload['assessment']['metrics']['required_assets'][0]['amount']='1'
     with pytest.raises(ValueError,match='QUOTE_ARCHIVE_DECISION_REPLAY_MISMATCH'):codec.decode(payload)
+
+
+def test_actual_above_band_partial_reduction_retains_nofill_loss_and_exact_base_fee_obligation():
+    from trading_system.risk.program_exposure import FeeBound
+    c=quote_risk_case(actual='.1',side='SELL',quote='1000',fees=(
+        FeeBound(amount=t.Money(currency='BTC',amount=D('.001')),debit='EXTERNAL_BALANCE'),))
+    decision=assess(c)
+    assert decision.verdict=='ALLOW',decision.rejection_codes
+    assert c.allocation.position.unmet_goal_possible and c.allocation.position.classification=='REDUCE'
+    assert decision.metrics.required_assets==(t.Money(currency='BTC',amount=D('.021')),)
+    assert decision.metrics.exposure.gross.amount>=D('.1')*D('81490')
+    assert decision.metrics.planned_loss.amount>D('4000')
+    assert c.allocation.scope_state.actual.value==D('.1')
+
+
+def test_unknown_original_command_ids_never_get_zeroed_by_interval_risk():
+    from trading_system.intents.quote_target_allocation import compile_quote_target
+    c=quote_risk_case();target=c.facts.target_facts
+    target=replace(target,scope_facts=replace(target.scope_facts,unknown_command_ids=('original-unknown',)))
+    c.facts=replace(c.facts,target_facts=target);c.allocation=compile_quote_target(c.plan,c.book,target)
+    decision=assess(c)
+    assert decision.verdict=='DENY' and 'TARGET_COMMAND_RECONCILIATION_REQUIRED' in decision.rejection_codes
+    assert c.facts.target_facts.scope_facts.unknown_command_ids==('original-unknown',)
+
+
+def test_immutable_native_request_is_never_resized_to_make_risk_allow():
+    c=quote_risk_case(quote='5000');original=digest(c.plan)
+    decision=assess(c)
+    assert decision.verdict=='REPLAN_REQUIRED' and 'REPLAN:POSITION_BAND_UPPER' in decision.rejection_codes
+    assert digest(c.plan)==original and c.plan.nodes[0].quantity.value=='5000'
+
+
+def test_interval_scope_context_cannot_borrow_a_different_authorization():
+    from trading_system.intents.quote_target_allocation import compile_quote_target
+    c=quote_risk_case();tf=c.facts.target_facts;s=tf.scope_facts
+    context=replace(s.context,authorization_id='different-authorization')
+    tf=replace(tf,scope_facts=replace(s,context=context,inputs=replace(s.inputs,context=context)))
+    c.facts=replace(c.facts,target_facts=tf);c.allocation=compile_quote_target(c.plan,c.book,tf)
+    c.facts=replace(c.facts,protection=tuple(replace(p,allocation_hash=digest(c.allocation)) for p in c.facts.protection))
+    decision=assess(c)
+    assert decision.verdict=='DENY' and 'QUOTE_SCOPE_AUTHORITY_MISMATCH' in decision.rejection_codes

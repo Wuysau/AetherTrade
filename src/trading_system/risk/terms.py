@@ -14,12 +14,13 @@ from trading_system.contracts.canonical import utc_timestamp,canonical_hash,doma
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class RiskSource:
-    kind:Literal['TRADE_INTENT','ORDER_PROPOSAL']
+    kind:Literal['TRADE_INTENT','ORDER_PROPOSAL','POSITION_VALUE_BAND_PROPOSAL']
     version:str
     hash:str
 
     def __post_init__(self):
-        versions={'TRADE_INTENT':('2026-10-20',),'ORDER_PROPOSAL':('2026-10-28','2026-10-29')}
+        versions={'TRADE_INTENT':('2026-10-20',),'ORDER_PROPOSAL':('2026-10-28','2026-10-29'),
+            'POSITION_VALUE_BAND_PROPOSAL':('2026-10-30',)}
         if self.version not in versions.get(self.kind,()) or len(self.hash)!=64 or any(c not in '0123456789abcdef' for c in self.hash):
             raise ValueError('RISK_SOURCE_VERSION_OR_HASH_INVALID')
 
@@ -186,8 +187,13 @@ def metric_binding_codes(terms,metrics,book,snapshot,clock)->tuple[str,...]:
 No reader/permit is installed by this predicate. Full program metrics still
 require reviewed scenario, protection and funding derivation before its use.
 """
+    if type(terms) is not RiskTerms:return tuple(list(metrics_completeness(metrics))+['RISK_TERMS_REQUIRED'])
+    return _bound_metric_codes(terms,metrics,book,snapshot,clock)
+
+
+def _bound_metric_codes(terms,metrics,book,snapshot,clock):
+    """Shared metadata checks; each entrypoint separately validates its terms type."""
     codes=list(metrics_completeness(metrics))
-    if type(terms) is not RiskTerms:return tuple(codes+['RISK_TERMS_REQUIRED'])
     if codes:return tuple(codes)
     if metrics.source!=terms.source:codes.append('RISK_SOURCE_BINDING_MISMATCH')
     if (book.scope!=terms.scope or metrics.financial_coverage.scope!=terms.scope

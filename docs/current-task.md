@@ -7,7 +7,7 @@ owns the separate OP-F tree; activation_fresh owns OP-D binance-opd-matcher;
 reports_fresh owns the separate OP-E report verifier. Main/archive are untouched. Goal
 stays ACTIVE, with all46 targets/56 cases and complete OP-C→D/E/F→G in scope.
 
-Current root code5866ddc includes full typed financial kernel, actual request/
+Fixed root checkpoint5866ddc includes full typed financial kernel, actual request/
 outbox/MAY/single-use consume, real internal TWAP/VP SUM activation, physical SQL
 bindings/funding links, cross-family identity serialization, read-only management/
 query/original-ID recovery, new explicit value-band source/compiler and shared
@@ -47,6 +47,22 @@ Immutable metadata cache9928147 passed406 selected tests. Direct20-iteration bun
 decode+canonical-equality microbenchmark improved0.502s→0.270s with both decoders
 using the current shared validator. Only code-owned metadata is cached; no current
 facts or authority. Raw profile/comparison artifacts are in op-c-metadata-performance.
+
+The new explicit-band current RiskEvaluator adapter and full replay archive now
+compute NOFILL and fee-adjusted endpoint portfolio/loss/protection/cash envelopes
+through the shared policy predicates and ExposureCalculator. The existing intent
+registry also restores a distinct2026-10-30 QUOTE_FINANCIAL_INTENT_V1 with the
+original native quote budget and band, never FinancialTarget scalar normalization.
+14 missing-module REDs and a genuine borrowed-context ALLOW RED preceded fixes;
+23 focused and1675 contracts/intents/unit tests passed. SAME financial writer,
+physical source/enforcement/current holdings and durable attachment integration
+remain required; these content/math records do not authorize admission or sends.
+
+OP-D frozen9748 interface/migration0013 was serial-reviewed/integrated4843bff,
+with current root collateral fixtures and all suites preserved. Fixed4843bff
+diagnostic83773 is TERMINAL exit0:17 actual matcher PG pass,0fail/error/skip,
+fresh499c757fc475 evidence. Read/source correction and later semantics/evidence
+cohorts remain peer-specific until serial integration and new verification.
 
 Next: finish authentic interval allocation/risk/financial pipeline using the
 qualified matcher's enforced internal execution envelope, without fake scalar

@@ -18,9 +18,19 @@ class LedgerIntentCodec:
         if payload.get('contract_version')=='2026-10-29' and payload.get('record_kind')=='PROGRAM_FINANCIAL_INTENT':
             from .order_codec import VersionedOrderCodec
             return VersionedOrderCodec().decode('program-financial-intent',payload)
+        if payload.get('contract_version')=='2026-10-30' and payload.get('record_kind')=='QUOTE_FINANCIAL_INTENT_V1':
+            from .quote_financial import QuoteFinancialIntentV1
+            from trading_system.storage.models import decode
+            return decode(QuoteFinancialIntentV1,payload)
         raise ValueError('LEDGER_INTENT_KIND_OR_VERSION_UNSUPPORTED')
 
     def encode(self,intent):
+        from .quote_financial import QuoteFinancialIntentV1
+        if type(intent) is QuoteFinancialIntentV1:
+            from .canonical import domain_payload
+            payload=domain_payload(intent)
+            self.decode(payload)
+            return payload
         if type(intent) is TradeIntent:
             return ContractCodec().encode(intent)
         if type(intent) is ProgramFinancialIntent:
