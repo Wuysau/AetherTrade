@@ -6,6 +6,7 @@ facts. Cash reservation amounts cannot be converted to working order quantity.
 """
 from dataclasses import dataclass
 from decimal import Decimal, localcontext
+from typing import Literal
 
 from trading_system.contracts import types as t
 from trading_system.contracts.wire import ContractCodec, TradeIntent, validate_transition
@@ -43,13 +44,72 @@ class TargetInputs:
     context: t.DecisionContext | None = None
 
 
+@dataclass(frozen=True, kw_only=True)
+class TargetTerms:
+    """Economic target terms only; no execution type, payload or permission.
+
+Quantities use the existing ledger's BASE/CONTRACT/SHARE units. A program
+adapter must prove any native-unit bridge before calling the common engine.
+"""
+    scope: t.ScopeKey
+    venue: str
+    owner_strategy_id: str
+    ownership_epoch: int
+    collateral_group_id: str
+    basis_fingerprint: str
+    action: Literal['SET_TARGET', 'HOLD', 'UPDATE_EXIT']
+    target_side: Literal['LONG', 'SHORT', 'FLAT']
+    target: t.Quantity
+    valid_until: str
+    submission_deadline: str
+
+    def __post_init__(self):
+        require(self.action in ('SET_TARGET','HOLD','UPDATE_EXIT')
+                and self.target_side in ('LONG','SHORT','FLAT'),'INVALID_TARGET_TERMS')
+        require(isinstance(self.target.value,Decimal) and self.target.value.is_finite()
+                and self.target.value>=0 and bool(self.target.unit),'INVALID_TARGET_TERMS')
+        require((self.target_side=='FLAT')==(self.target.value==0),'TARGET_SIDE_QUANTITY_MISMATCH')
+        time_key(self.valid_until);time_key(self.submission_deadline)
+
+
+def legacy_target_terms(intent: TradeIntent) -> TargetTerms:
+    """Validate the unchanged legacy wire before exposing its economic terms."""
+    ContractCodec().encode(intent)
+    return TargetTerms(scope=t.ScopeKey(environment=t.Environment(intent.environment),
+        venue_account_id=intent.venue_account_id,product=t.Product(intent.product),
+        instrument_uid=intent.instrument_uid,venue_leg=intent.venue_leg),venue=intent.venue,
+        owner_strategy_id=intent.owner_strategy_id,ownership_epoch=intent.ownership_epoch,
+        collateral_group_id=intent.collateral_group_id,basis_fingerprint=intent.basis_fingerprint,
+        action=intent.action,target_side=intent.target_side,
+        target=t.Quantity(value=Decimal(intent.target_quantity),unit=intent.quantity_unit),
+        valid_until=intent.valid_until,submission_deadline=intent.execution.entry_deadline)
+
+
 class TargetCompiler:
     def __init__(self, inputs: TargetInputs):
         self.inputs = inputs
 
     def compile(self, intent: TradeIntent, book: t.BookSnapshot) -> t.DeltaPlan:
-        ContractCodec().encode(intent)
-        values = [Decimal(intent.target_quantity), self.inputs.instrument.quantity_step.value,
+        terms = legacy_target_terms(intent)
+        result = self._compile_terms(terms, book)
+        # Preserve the full historical HOLD/UPDATE_EXIT responsibility check;
+        # the shared numerical terms deliberately cannot express that contract.
+        if intent.action != 'SET_TARGET':
+            require(self.inputs.previous_intent is not None, 'PREVIOUS_RESPONSIBILITY_REQUIRED')
+            try:
+                validate_transition(self.inputs.previous_intent, intent)
+            except ValueError as exc:
+                raise ProposalRejected('RESPONSIBILITY_CHANGED') from exc
+        return result
+
+    def compile_terms(self, terms: TargetTerms, book: t.BookSnapshot) -> t.DeltaPlan:
+        """Non-authorizing generic SET_TARGET adapter, using the same engine."""
+        require(type(terms) is TargetTerms, 'TARGET_TERMS_REQUIRED')
+        require(terms.action == 'SET_TARGET', 'MANAGEMENT_TARGET_TERMS_UNSUPPORTED')
+        return self._compile_terms(terms, book)
+
+    def _compile_terms(self, terms, book):
+        values = [terms.target.value, self.inputs.instrument.quantity_step.value,
                   self.inputs.instrument.minimum_quantity.value,
                   *(p.actual_quantity.value for p in book.positions),
                   *(p.leaves_quantity.value for p in book.active_orders),
@@ -57,14 +117,12 @@ class TargetCompiler:
         with localcontext() as ctx:
             ctx.prec = max(80, max(v.adjusted() for v in values)
                            - min(v.as_tuple().exponent for v in values) + len(str(len(values))) + 8)
-            return self._compile(intent, book)
+            return self._compile(terms, book)
 
     def _compile(self, intent, book):
         f, scope = self.inputs, book.scope
         require(scope.environment != t.Environment.LIVE, 'LIVE_DISABLED')
-        require((intent.environment, intent.venue_account_id, intent.product, intent.instrument_uid,
-                 intent.venue_leg) == (scope.environment, scope.venue_account_id, scope.product,
-                                      scope.instrument_uid, scope.venue_leg), 'INTENT_SCOPE_MISMATCH')
+        require(intent.scope == scope, 'INTENT_SCOPE_MISMATCH')
         require(complete(book.coverage, scope) and bool(book.evidence), 'BOOK_INCOMPLETE')
         require(intent.basis_fingerprint == book.basis_fingerprint, 'STALE_BOOK')
         require(f.clock.clock_health == 'HEALTHY' and type(f.clock.monotonic_ns) is int
@@ -81,12 +139,12 @@ class TargetCompiler:
         require(f.session.instrument_uid == scope.instrument_uid and f.session.state == 'OPEN'
                 and f.session.evidence.environment == scope.environment
                 and time_key(f.session.observed_at) <= time_key(f.clock.utc_now), 'SESSION_NOT_OPEN')
-        unit = intent.quantity_unit
+        unit = intent.target.unit
         require(unit == spec.quantity_step.unit == spec.minimum_quantity.unit
                 and unit == {t.Product.SPOT: 'BASE', t.Product.USD_M_PERP: 'CONTRACT',
                              t.Product.US_EQUITY: 'SHARE'}[scope.product], 'QUANTITY_UNIT_MISMATCH')
         require(spec.minimum_quantity.value > 0, 'INVALID_INSTRUMENT_RULE')
-        magnitude = quantity_on_grid(Decimal(intent.target_quantity), spec.quantity_step.value,
+        magnitude = quantity_on_grid(intent.target.value, spec.quantity_step.value,
                                      f.allow_round_down and intent.action == 'SET_TARGET')
         require(scope.product == t.Product.USD_M_PERP or intent.target_side != 'SHORT', 'CASH_SHORT')
         require(scope.venue_leg == 'BOTH' or intent.target_side in (scope.venue_leg, 'FLAT'), 'LEG_MISMATCH')
@@ -160,11 +218,6 @@ class TargetCompiler:
         require(mapped == set(reservations), 'RESERVATION_QUANTITY_REQUIRED')
         quantity = lambda value: t.Quantity(value=value, unit=unit)
         if intent.action != 'SET_TARGET':
-            require(f.previous_intent is not None, 'PREVIOUS_RESPONSIBILITY_REQUIRED')
-            try:
-                validate_transition(f.previous_intent, intent)
-            except ValueError as exc:
-                raise ProposalRejected('RESPONSIBILITY_CHANGED') from exc
             return t.DeltaPlan(scope=scope, target=quantity(target), actual=quantity(actual),
                 working=quantity(working), remaining=quantity(Decimal(0)), classification='NONE', cancel_first=())
         # Opposite exposure cannot be netted away by outstanding close orders.
@@ -181,7 +234,7 @@ class TargetCompiler:
                 working=quantity(working), remaining=quantity(Decimal(0)), classification='NONE',
                 cancel_first=tuple(orders))
         if remaining:
-            require(time_key(f.clock.utc_now) < time_key(intent.execution.entry_deadline), 'ENTRY_DEADLINE')
+            require(time_key(f.clock.utc_now) < time_key(intent.submission_deadline), 'ENTRY_DEADLINE')
             rounded = quantity_on_grid(abs(remaining), spec.quantity_step.value, f.allow_round_down)
             require(rounded >= spec.minimum_quantity.value, 'BELOW_MINIMUM_QUANTITY')
             remaining = rounded.copy_sign(remaining)
