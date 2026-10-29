@@ -1,0 +1,13 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________ test_spendable_subtraction_does_not_round_away_small_holds __________
+tests\unit\test_common_risk_core.py:74: in test_spendable_subtraction_does_not_round_away_small_holds
+    assert result.verdict=='DENY',result
+E   AssertionError: RiskDecision(risk_decision_id='229105151b9c87da20e614572ff97892cc9d3ec4e899c1dee1082be6fe27c458', intent_id='paper-int...-binance-spot-btcusdt', venue_leg='BOTH'), query_succeeded=True, pagination_complete=True, supported=True, missing=()))
+E   assert 'ALLOW' == 'DENY'
+E     
+E     - DENY
+E     + ALLOW
+=========================== short test summary info ===========================
+FAILED tests/unit/test_common_risk_core.py::test_spendable_subtraction_does_not_round_away_small_holds
+1 failed in 0.26s

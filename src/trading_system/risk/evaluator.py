@@ -4,7 +4,8 @@ RiskInputs are service-bound facts, not proposal fields. They must be rebuilt
 for each decision. No account access, mode switching, or order side effects.
 """
 from dataclasses import dataclass, replace
-from decimal import Decimal, localcontext
+from decimal import Decimal, DecimalException
+from jsonschema import ValidationError
 
 from trading_system.contracts import types as t
 from trading_system.contracts.wire import TradeIntent, RiskPolicy
@@ -12,6 +13,9 @@ from trading_system.contracts.canonical import canonical_hash, decimal_string, u
 from trading_system.market.freshness import FreshnessPolicy
 from .exposure import ExposureCalculator, ExposureMark, WorkingOrder
 from .valuation import FxRate, Valuation, floor_quantity, nonnegative
+from .policy_checks import (exact_risk_arithmetic,account_policy_codes,protection_policy_codes,
+    portfolio_limit_codes,spendable_codes,capital_limit_exceeded,legacy_margin_upper_bound)
+from .terms import legacy_risk_terms
 
 D = Decimal
 
@@ -83,11 +87,16 @@ class RiskEvaluator:
 
     def evaluate(self, intent: TradeIntent, book: t.BookSnapshot,
                  market: t.SnapshotPacket, policy: RiskPolicy) -> t.RiskDecision:
-        with localcontext() as ctx:
-            ctx.prec = 80
-            return self._evaluate(intent, book, market, policy)
+        with exact_risk_arithmetic():
+            try:
+                terms=legacy_risk_terms(intent)
+            except (ValueError,TypeError,ValidationError):
+                # Preserve established diagnostic DENY ordering for malformed
+                # legacy inputs. A malformed source can never acquire ALLOW.
+                terms=None
+            return self._evaluate(intent, book, market, policy,terms=terms)
 
-    def _evaluate(self, intent, book, market, policy):
+    def _evaluate(self, intent, book, market, policy,*,terms=None):
         facts = self.inputs
         currency = policy.valuation_currency
         money = lambda value: t.Money(amount=value, currency=currency)
@@ -104,6 +113,7 @@ class RiskEvaluator:
             replan = replan or plan
 
         def result():
+            if not codes and terms is None:codes.append('INVALID_LEGACY_RISK_SOURCE')
             # Diagnostic zeros on DENY are explicitly incomplete, not estimates.
             verdict = ('REPLAN_REQUIRED' if replan and all(c.startswith('REPLAN:') for c in codes)
                        else 'DENY') if codes else 'ALLOW'
@@ -206,23 +216,13 @@ class RiskEvaluator:
             if not reducing and (not facts.new_risk_allowed
                     or any(p.risk_locks for p in book.positions)):
                 reject('NEW_RISK_LOCKED')
-            if intent.product != 'USD_M_PERP' and (target < 0 or intent.requested_leverage != 1
-                                                 or facts.multiplier != 1):
-                reject('CASH_ONLY')
-            if type(intent.requested_leverage) is not int or intent.requested_leverage < 1:
-                reject('INVALID_LEVERAGE')
-            elif not reducing and intent.requested_leverage > policy.maximum_leverage:
-                reject('REPLAN:LEVERAGE_LIMIT', plan=True)
-            if not reducing and intent.product == 'USD_M_PERP' and (
-                    facts.authorized_margin_mode not in ('ISOLATED', 'CROSS')
-                    or facts.authorized_position_mode not in ('ONE_WAY', 'HEDGE')
-                    or facts.authorized_margin_mode != facts.observed_margin_mode
-                    or facts.authorized_position_mode != facts.observed_position_mode):
-                reject('ACCOUNT_MODE_MISMATCH')
-            if not reducing and intent.product == 'USD_M_PERP' and (
-                    (facts.observed_position_mode == 'ONE_WAY' and intent.venue_leg != 'BOTH')
-                    or (facts.observed_position_mode == 'HEDGE' and intent.venue_leg == 'BOTH')):
-                reject('POSITION_MODE_LEG_MISMATCH')
+            for code in account_policy_codes(product=terms.scope.product if terms is not None else intent.product,
+                    venue_leg=terms.scope.venue_leg if terms is not None else intent.venue_leg,
+                    target=target,leverage=terms.requested_leverage if terms is not None else intent.requested_leverage,multiplier=facts.multiplier,
+                    reducing=reducing,policy=policy,authorized_margin_mode=facts.authorized_margin_mode,
+                    observed_margin_mode=facts.observed_margin_mode,authorized_position_mode=facts.authorized_position_mode,
+                    observed_position_mode=facts.observed_position_mode):
+                reject(code,plan=code.startswith('REPLAN:'))
             emergency = facts.emergency if reducing else None
             age = policy.maximum_quote_age_ms
             if emergency is not None:
@@ -296,10 +296,9 @@ class RiskEvaluator:
             if delta_value and (abs(delta_value) < spec.minimum_quantity.value or notional_quote < spec.minimum_notional.amount):
                 reject('REPLAN:BELOW_MINIMUM', plan=True)
             if not reducing:
-                if intent.exit_plan.protection_policy != policy.protection_policy:
-                    reject('PROTECTION_POLICY_MISMATCH')
-                if intent.product == 'USD_M_PERP' and intent.exit_plan.protection_policy != 'NATIVE_REQUIRED':
-                    reject('NATIVE_PROTECTION_REQUIRED')
+                for code in protection_policy_codes(product=intent.product,
+                        protection_policy=terms.protection_policy if terms is not None else intent.exit_plan.protection_policy,
+                        policy=policy):reject(code)
                 if intent.exit_plan.stop_price is None:
                     reject('STOP_REQUIRED')
                     return result()
@@ -310,58 +309,29 @@ class RiskEvaluator:
                 loss = money(valuation.convert(t.Money(amount=price_loss, currency=spec.quote_currency), liability=True).amount + fees.amount + funding)
                 if intent.max_planned_loss.currency != currency:
                     reject('PLANNED_LOSS_CURRENCY_MISMATCH')
-                limits = ((notional, policy.maximum_order_notional, 'ORDER_NOTIONAL'),
-                          (loss.amount, policy.maximum_planned_loss_per_intent, 'INTENT_LOSS'),
-                          (loss.amount, intent.max_planned_loss.amount, 'REQUESTED_LOSS'),
-                          (exposure.gross.amount, policy.maximum_gross_exposure, 'GROSS'),
-                          (abs(exposure.net.amount), policy.maximum_net_exposure, 'NET'),
-                          (loss.amount + valuation.convert(facts.existing_planned_loss, liability=True).amount,
-                           policy.maximum_total_planned_loss, 'TOTAL_LOSS'))
-                for value, limit, name in limits:
-                    if value > nonnegative(decimal_string(limit)):
-                        reject('REPLAN:' + name, plan=True)
-                group_limits = {g.group_id: g.maximum_gross for g in facts.group_limits}
-                if len(group_limits) != len(facts.group_limits):
-                    reject('DUPLICATE_GROUP_LIMIT')
-                for group in exposure.groups:
-                    bound = group_limits.get(group.group_id)
-                    if bound is None or bound.currency != currency:
-                        reject('GROUP_LIMIT_MISSING')
-                    elif group.gross.amount > nonnegative(bound.amount):
-                        reject('REPLAN:RELATED_GROUP', plan=True)
                 count = sum(p.actual_quantity.value != 0 for p in book.positions) + (not positions and target != 0)
-                if count > policy.maximum_open_positions or (delta_value != 0 and len(book.active_orders) + 1 > policy.maximum_active_orders):
-                    reject('REPLAN:COUNT_LIMIT', plan=True)
+                for code in portfolio_limit_codes(notional=notional,loss=loss.amount,
+                        requested_loss=intent.max_planned_loss.amount,exposure=exposure,
+                        existing_loss=valuation.convert(facts.existing_planned_loss,liability=True).amount,
+                        group_limits=facts.group_limits,position_count=count,
+                        active_order_count=len(book.active_orders)+1 if delta_value else None,policy=policy):
+                    reject(code,plan=code.startswith('REPLAN:'))
             else:
                 loss = money(fees.amount + funding)
-            margin = (notional_quote / intent.requested_leverage if intent.product == 'USD_M_PERP' and not reducing
+            margin = (legacy_margin_upper_bound(notional_quote,intent.requested_leverage) if intent.product == 'USD_M_PERP' and not reducing
                       else notional_quote if intent.product != 'USD_M_PERP' and delta_value > 0 else D(0))
             amounts[spec.settlement_currency] = amounts.get(spec.settlement_currency, D(0)) + margin
             if intent.product != 'USD_M_PERP' and delta_value < 0:
                 amounts[facts.base_asset] = amounts.get(facts.base_asset, D(0)) + abs(delta_value)
-            spendable = {m.currency: nonnegative(m.amount) for m in facts.spendable}
-            balances = {m.currency: nonnegative(m.amount) for m in book.balances}
-            if len(spendable) != len(facts.spendable) or len(balances) != len(book.balances):
-                reject('AMBIGUOUS_BALANCES')
-            # spendable is net of venue freezes; subtract local unreflected holds.
-            for reservation in book.reservations:
-                if reservation.reservation.state == t.ReservationState.RELEASED:
-                    continue
-                asset = reservation.reservation.asset
-                held, reflected, pending = (nonnegative(v) for v in
-                    (reservation.held, reservation.reflected, reservation.release_pending))
-                if reflected > held:
-                    reject('INVALID_RESERVATION')
-                spendable[asset] = spendable.get(asset, D(0)) - max(held - reflected, pending)
-            for asset, amount in amounts.items():
-                if amount > min(spendable.get(asset, D(0)), balances.get(asset, D(0))):
-                    reject('INSUFFICIENT_SPENDABLE:' + asset)
+            for code in spendable_codes(required_assets=amounts,spendable=facts.spendable,book=book):reject(code)
             reserves = tuple(t.Money(amount=value, currency=asset) for asset, value in sorted(amounts.items()) if value)
             if not reducing:
                 capital = valuation.convert(t.Money(amount=margin, currency=spec.settlement_currency), liability=True).amount
-                if (capital + fees.amount + funding + nonnegative(valuation.convert(facts.capital_in_use, liability=True).amount)
-                        + nonnegative(decimal_string(policy.cash_buffer)) > nonnegative(decimal_string(policy.maximum_capital))):
+                if capital_limit_exceeded(capital=capital,fees=fees.amount,funding=funding,
+                        capital_in_use=valuation.convert(facts.capital_in_use,liability=True).amount,policy=policy):
                     reject('REPLAN:CAPITAL', plan=True)
+        except DecimalException:
+            reject('ARITHMETIC_PRECISION_UNPROVEN')
         except (ValueError, ArithmeticError) as exc:
             reject('INVALID_OR_MISSING_INPUT:' + str(exc))
         return result()
