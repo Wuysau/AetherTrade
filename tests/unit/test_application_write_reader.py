@@ -44,6 +44,8 @@ class Reads:
         self.bindings[(str(write.scope.environment),write.scope.venue_account_id,str(write.scope.product))]=self.group_id
 
     def execute(self,query,args=()):
+        if 'FROM ledger.audit_events WHERE left(record_id,' in query and args==(25,'local-program-activation:'):
+            return SimpleNamespace(fetchall=lambda:[])
         if 'to_regclass' in query:
             return SimpleNamespace(fetchone=lambda:('ledger.order_writes_v2' if self.present else None,))
         if 'FROM ledger.order_writes_v2' in query:
