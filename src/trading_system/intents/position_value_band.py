@@ -1,8 +1,10 @@
-"""Position-value envelope containment, separate from risk/authority approval.
+"""Primary SET_TARGET band containment, separate from risk/authority approval.
 
 Every existing leaf is independently possible; opposite directions cannot fund
 one another. A bounded reduction may retain pre-existing above-goal inventory in
 NO-FILL/partial scenarios. That does not authorize any new increasing request.
+Independent protective/triggered/emergency exits use their separately authorized
+contracts; callers cannot label a primary request as protection to skip its goal.
 """
 from dataclasses import dataclass
 from decimal import Decimal,DecimalException
@@ -83,11 +85,13 @@ def _assess(goal,state,scope,side,low,high,unit):
     factor=reference.value*goal.valuation_basis.notional_multiplier
     value=lambda quantity:t.Money(currency=reference.currency,amount=abs(quantity)*factor)
     upper=max(abs(minimum),abs(maximum));baseline_upper=max(abs(baseline_low),abs(baseline_high))
+    magnitude_lower=Decimal(0) if minimum<=0<=maximum else min(abs(minimum),abs(maximum))
     if classification=='REDUCE':
         if upper>baseline_upper:blockers.append('REPLAN:REDUCTION_EXPOSURE_INCREASED')
+        if value(magnitude_lower).amount<goal.minimum_quote.amount:
+            blockers.append('REPLAN:PRIMARY_REDUCTION_BELOW_BAND')
     elif value(upper).amount>goal.maximum_quote.amount:
         blockers.append('REPLAN:POSITION_BAND_UPPER')
-    magnitude_lower=Decimal(0) if minimum<=0<=maximum else min(abs(minimum),abs(maximum))
     unmet=(value(magnitude_lower).amount<goal.minimum_quote.amount or value(upper).amount>goal.maximum_quote.amount)
     quantity=lambda v:t.Quantity(unit=unit,value=v)
     return PositionValueBandAssessmentV1(contract_version='2026-10-30',record_kind='POSITION_VALUE_BAND_ASSESSMENT_V1',

@@ -2,9 +2,9 @@
 
 ## OP_C_CURRENT_INTEGRATION_CHECKPOINT — 2026-10-29
 
-Sole binance-orders writer remains integration_next. Parent root owns OP-E in a
-separate tree; activation_fresh owns OP-D binance-opd-matcher; observability_fresh
-owns OP-F binance-opf-observability. Main checkout/archive remain untouched. Goal
+Sole binance-orders writer remains integration_next. Parent root coordinates and
+owns the separate OP-F tree; activation_fresh owns OP-D binance-opd-matcher;
+reports_fresh owns the separate OP-E report verifier. Main/archive are untouched. Goal
 stays ACTIVE, with all46 targets/56 cases and complete OP-C→D/E/F→G in scope.
 
 Current root code5866ddc includes full typed financial kernel, actual request/
@@ -27,11 +27,21 @@ program-commands exceeded300s without complete JUnit. Ordinary Python3294pass/
 560 explicit environmental skips/96deselected. It predates current optimizations.
 All raw artifacts/maps are preserved; do not promote it to current green.
 
-New fixed5866ddc full combined PG+Python gate is RUNNING exec45760, timeout5400,
-fresh private Docker. Do not restart it on observation timeout. It covers current
-local guard, request/funding/identity fixes, metadata optimization and reviewed
-original creation recovery. Final results are pending and remain source-specific.
-Root has no other live test jobs; all earlier handles are terminal.
+Fixed5866ddc full combined PG+Python gate45760 is TERMINAL exit0:35 mandatory
+PostgreSQL suites,1020 passed,0 failed/errors/skips. Ordinary Python3411 passed,
+574 explicit environmental skips,96 deselected,1 existing warning. The95 original
+artifacts and SHA256 copy map are retained under op-c-generic-admission/586-full-green.
+This checkpoint predates new quote allocation and incoming OP-D/F; it is not full
+46/56 qualification. No root test jobs remain live; do not restart terminal handles.
+
+QuoteTargetFactsV1/QuoteTargetAllocationV1 now replay the real new compiler and
+reuse the same scope validator, TargetCompiler scope reader and fee/cash/band
+engines. Full financial book hash and explicit quantity-reservation subset stay
+separate; evidence identities alone grant no authority. Primary SET_TARGET
+reductions cannot undershoot their desired lower band including fees/old leaves;
+independent protective exits retain separately trusted contracts. Focused90 tests
+passed after the recorded REDs. Financial assessment/archive/kernel coupling and
+authentic current enforcement/source readers are still required next.
 
 Immutable metadata cache9928147 passed406 selected tests. Direct20-iteration bundle
 decode+canonical-equality microbenchmark improved0.502s→0.270s with both decoders

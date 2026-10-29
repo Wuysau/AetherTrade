@@ -147,7 +147,7 @@ def compile_program_target(plan:ProgramCompilation,book:t.BookSnapshot,facts:Pro
         raise ProposalRejected('TARGET_UNIT_ARITHMETIC_NOT_EXACT') from error
 
 
-def _compile_program_target(plan,book,facts):
+def _validate_program_scope(plan,book,facts):
     scope=plan.scope;now=facts.inputs.clock.utc_now;proposal=plan.original_proposal;program=plan.original_program
     codec=VersionedOrderCodec();digest=_digest(plan);bridge=facts.unit_binding;spec=facts.inputs.instrument
     require(scope.environment in (t.Environment.PAPER,t.Environment.RESEARCH),'ENVIRONMENT_DISABLED')
@@ -196,6 +196,11 @@ def _compile_program_target(plan,book,facts):
     require(isinstance(facts.unknown_command_ids,tuple) and len(set(facts.unknown_command_ids))==len(facts.unknown_command_ids),
         'UNKNOWN_COMMAND_COVERAGE_REQUIRED')
 
+    return scope,now,proposal,program,codec,digest,bridge,spec,ratio,rules
+
+
+def _compile_program_target(plan,book,facts):
+    scope,now,proposal,program,codec,digest,bridge,spec,ratio,rules=_validate_program_scope(plan,book,facts)
     incoming={link.target for link in program.links}
     initial=tuple(n for n in plan.nodes if n.original.node_id not in incoming)
     valid_until=[proposal.valid_until,facts.valid_until,bridge.valid_until,rules.valid_until]

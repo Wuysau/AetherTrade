@@ -70,3 +70,12 @@ def test_unconditional_buy_interval_can_fit_upper_band_while_goal_is_still_unmet
 
 def test_sell_cannot_claim_a_positive_position_delta():
     with pytest.raises(ValueError):assess(side='SELL',lower='-.02',upper='.001')
+
+
+@pytest.mark.parametrize('values',[
+    dict(lower='-.08'),
+    dict(product=t.Product.USD_M_PERP,actual='-.1',side='BUY',lower='0',upper='.08',goal_side='SHORT'),
+    dict(lower='-.031'),
+    dict(lower='-.02',working='.02',working_side='SELL')])
+def test_primary_target_reduction_cannot_undershoot_desired_lower_band_even_with_fees_or_unknown_leaves(values):
+    assert 'REPLAN:PRIMARY_REDUCTION_BELOW_BAND' in assess(**values).blockers
