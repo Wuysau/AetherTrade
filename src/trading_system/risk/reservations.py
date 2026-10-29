@@ -22,6 +22,7 @@ from .evaluator import RiskEvaluator, RiskInputs
 from .reservation_repository import ReservationRepository, merge_holds, balance_watermark
 from .locked_actions import LockedActionVerifier
 from .target_guard import TargetBasis, target_obligations
+from .asset_capacity import amounts, CapacityInputs, check_capacity
 from trading_system.intents.semantic_validation import ProposalRejected
 from trading_system.intents.target_compiler import TargetInputs, compile_locked
 
@@ -72,17 +73,6 @@ class ReleasedBalanceAttestation:
     book_hash: str
     reservation_ids: tuple[str, ...]
     evidence: tuple[t.EvidenceRef, ...]
-
-
-def amounts(values):
-    result = {}
-    for value in values:
-        if (not value.currency or value.currency in result or not isinstance(value.amount, Decimal)
-                or not value.amount.is_finite()
-                or value.amount < 0):
-            raise ValueError('invalid or ambiguous asset amounts')
-        result[value.currency] = value.amount
-    return result
 
 
 def complete(coverage, scope):
@@ -397,17 +387,12 @@ class ReservationService:
             return deny('TARGET_CANCEL_AND_RECONCILE_REQUIRED')
         if plan.remaining.value == 0:
             return deny('TARGET_ALREADY_SATISFIED')
-        balances, limits, strategy, buffers = map(amounts,
-            (book.balances, inputs.group_capacity, inputs.strategy_capacity, inputs.buffer))
-        for asset, required in amounts(decision.reserved_assets).items():
-            same = [p for p in group if p.reservation.asset == asset]
-            held = sum((p.held for p in same), D(0))
-            owned = sum((p.held for p in same if p.reservation.owner_strategy_id == intent.owner_strategy_id), D(0))
-            unreflected = sum((max(p.held - p.reflected, p.release_pending) for p in same), D(0))
-            if any(asset not in values for values in (balances, limits, strategy, buffers)) or required > min(
-                    balances.get(asset, D(0)) - unreflected - buffers.get(asset, D(0)),
-                    limits.get(asset, D(0)) - held, strategy.get(asset, D(0)) - owned):
-                return deny('INSUFFICIENT_CAPACITY:' + asset)
+        capacity = check_capacity(CapacityInputs(incremental_requirements=decision.reserved_assets,
+            venue_free_balances=book.balances, remaining_group_capacity=inputs.group_capacity,
+            remaining_strategy_capacity=inputs.strategy_capacity, buffers=inputs.buffer,
+            reconciled_group_holds=group, owner_strategy_id=intent.owner_strategy_id))
+        if not capacity.sufficient:
+            return deny(*capacity.rejection_codes)
         command = inputs.command
         if (command.intent_id != intent.intent_id or command.environment != intent.environment
                 or command.venue_account_id != intent.venue_account_id or command.product != intent.product
