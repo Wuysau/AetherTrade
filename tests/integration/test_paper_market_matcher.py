@@ -375,3 +375,18 @@ def test_equity_session_is_explicitly_unqualified_until_real_v2_calendar(databas
     with c.service.uow.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',
             (c.write.command_id,)).fetchone()==(0,)
+
+
+def test_depth_delta_never_rounds_tiny_unexecutable_residual_into_a_fill(database,venue,tmp_path):
+    from decimal import localcontext
+    from trading_system.engine.paper_market import PaperMatcher
+    c=case(database,venue,tmp_path);submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,quantity='.9999999999'))
+    assert c.engine.query_creation(c.write.command_id).filled_quantity==D('.999999')
+    with localcontext() as ambient:
+        ambient.prec=3
+        matcher.apply_market_event(event(c,sequence=2,quantity='.00000000001',kind='DEPTH_DELTA'))
+        report=c.engine.query_creation(c.write.command_id)
+    assert report.filled_quantity==D('.999999') and report.remaining_quantity==D('.000001')
+    source=c.engine.query_market_evidence(c.write.command_id)
+    assert sum((q.quantity for q in source.consumptions),D(0))==D('.999999')
