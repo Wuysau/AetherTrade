@@ -333,17 +333,17 @@ def test_v3_durable_storage_does_not_grant_send_or_resend_permit(order_db):
 
 
 def test_unknown_program_version_is_preserved_but_not_decoded_as_v2(order_db):
-    from unit.test_versioned_order_program_repository import program_payload
-    s=LedgerScenario(order_db);raw=program_payload()
-    raw['contract_version']='2099-01-01'
+    from unit.test_versioned_order_program_repository import program_record
+    s=LedgerScenario(order_db)
+    raw=replace(program_record(),contract_version='2099-01-01')
     # Unknown historical import sentinel: a row is never upgraded by reading it.
     with s.uow.transaction(s.scope) as tx:
-        tx._append('order_programs',raw['program_id'],raw,0)
+        tx._append('order_programs',raw.program_id,raw,0)
     with s.connect_admin() as conn:
         before=conn.execute('SELECT payload,transaction_id FROM ledger.order_programs WHERE scope_id=%s',
                              (scope_id(s.scope),)).fetchall()
     with pytest.raises(ValueError,match='Unknown contract version'),s.uow.transaction(s.scope) as tx:
-        repo(tx).program(raw['program_id'])
+        repo(tx).program(raw.program_id)
     with s.connect_admin() as conn:
         assert conn.execute('SELECT payload,transaction_id FROM ledger.order_programs WHERE scope_id=%s',
                              (scope_id(s.scope),)).fetchall()==before
