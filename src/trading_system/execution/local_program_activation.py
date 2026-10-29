@@ -6,6 +6,7 @@ owner audit IDs, callbacks and dataclass construction alone grant nothing.
 """
 from dataclasses import dataclass
 from decimal import Decimal,localcontext,Inexact,Rounded
+from datetime import timedelta
 from typing import Literal
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload,utc_timestamp
@@ -42,6 +43,10 @@ def _materials(bundle,activation_id,transaction_id,now,expires):
     """Deterministic semantic derivation, called only after SQL source checks."""
     a=bundle.archive;p=a.compilation;allocation=a.allocation;unit=a.target_facts.unit_binding
     original=p.original_program
+    ceiling=min(map(utc_timestamp,(bundle.intent.valid_until,a.assessment.expires_at,a.budget_facts.valid_until,
+        a.target_facts.valid_until,unit.valid_until,a.risk_terms.submission_deadline,
+        *(x.reservation.expires_at for x in bundle.reservations))))
+    require(utc_timestamp(now)<utc_timestamp(expires)<=ceiling,'LOCAL_AUTHORITY_WINDOW_UNBOUND')
     require(original.template in ('TWAP','VP') and original.execution_mode in ('LOCAL_SYNTHETIC','PAPER_MODEL'),
         'LOCAL_ALGORITHM_REQUIRED')
     require(len(p.nodes)==len(allocation.nodes)==1 and allocation.nodes[0].phase=='ALGORITHM_ENVELOPE',
@@ -117,10 +122,12 @@ def _materials(bundle,activation_id,transaction_id,now,expires):
     return record,(prepared.state,bound.state,active.state)
 
 
-def _source_bundle(tx,intent_id,transaction_id):
-    row=tx.execute('SELECT payload,transaction_id FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
+def _source_bundle(tx,intent_id,transaction_id,physical_transaction=None):
+    row=tx.execute('SELECT payload,transaction_id,xmin::text FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
         (scope_id(tx.scope),BUNDLE_PREFIX+intent_id)).fetchone()
-    require(row is not None and row[1]==transaction_id,'LOCAL_FINANCIAL_SOURCE_REQUIRED')
+    require(row is not None and row[1]==transaction_id and (physical_transaction is None or row[2]==physical_transaction),
+        'LOCAL_FINANCIAL_SOURCE_REQUIRED')
+    physical_transaction=row[2]
     bundle=decode(ProgramFinancialBundle,row[0]);a=bundle.archive
     source,intake=read_program_source(tx,bundle.intent.source.intake_record_id)
     require(digest(source)==digest(a.source) and intake.intent_id==intent_id
@@ -129,14 +136,18 @@ def _source_bundle(tx,intent_id,transaction_id):
     require(digest(financial_intent_from_assessment_archive(a))==digest(bundle.intent)
         and digest(financial_risk_basis_from_assessment_archive(bundle.intent,a))==digest(bundle.basis)
         and digest(bundle.decision)==digest(a.assessment),'LOCAL_FINANCIAL_REPLAY_MISMATCH')
-    intentrow=tx.execute('SELECT payload,transaction_id FROM ledger.intents WHERE scope_id=%s AND record_id=%s AND sequence=1',
+    intentrow=tx.execute('SELECT payload,transaction_id,xmin::text FROM ledger.intents WHERE scope_id=%s AND record_id=%s AND sequence=1',
         (scope_id(tx.scope),intent_id)).fetchone()
-    require(intentrow is not None and intentrow[1]==transaction_id and canonical_hash(intentrow[0])==digest(bundle.intent),
+    require(intentrow is not None and intentrow[1]==transaction_id and intentrow[2]==physical_transaction
+        and canonical_hash(intentrow[0])==digest(bundle.intent),
         'LOCAL_FINANCIAL_INTENT_MISMATCH')
-    rows=tx.execute('SELECT record_id,payload,transaction_id FROM ledger.reservations WHERE scope_id=%s AND sequence=1 '
+    rows=tx.execute('SELECT record_id,payload,transaction_id,xmin::text FROM ledger.reservations WHERE scope_id=%s AND sequence=1 '
         "AND payload->>'intent_id'=%s",(scope_id(tx.scope),intent_id)).fetchall()
     require({r[0]:canonical_hash(r[1]) for r in rows}=={p.reservation.reservation_id:digest(p.reservation) for p in bundle.reservations}
-        and all(r[2]==transaction_id for r in rows),'LOCAL_FINANCIAL_FUNDING_MISMATCH')
+        and all(r[2]==transaction_id and r[3]==physical_transaction for r in rows),'LOCAL_FINANCIAL_FUNDING_MISMATCH')
+    from trading_system.risk.reservation_repository import ReservationRepository
+    require(all(p==ReservationRepository.initial(p.reservation) for p in bundle.reservations),
+        'LOCAL_INITIAL_FINANCIAL_PROJECTION_REQUIRED')
     return bundle
 
 
@@ -182,12 +193,12 @@ def activate_local_program(tx,bundle,*,load_clock=None):
 
 
 def read_local_activation(tx,activation_id):
-    row=tx.execute('SELECT payload,transaction_id FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
+    row=tx.execute('SELECT payload,transaction_id,xmin::text FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
         (scope_id(tx.scope),ACTIVATION_PREFIX+activation_id)).fetchone()
     if row is None:return None
     record=decode(ProgrammeActivation,row[0])
     require(record.activation_id==activation_id and record.financial_transaction_id==row[1], 'LOCAL_ACTIVATION_IDENTITY_MISMATCH')
-    bundle=_source_bundle(tx,record.financial_intent_id,row[1])
+    bundle=_source_bundle(tx,record.financial_intent_id,row[1],row[2])
     with localcontext() as arithmetic:
         arithmetic.prec=256;arithmetic.traps[Inexact]=True;arithmetic.traps[Rounded]=True
         derived,states=_materials(bundle,activation_id,row[1],record.activated_at,record.authority.submission_valid_until)
@@ -197,13 +208,21 @@ def read_local_activation(tx,activation_id):
         and attachment.command_ids==() and attachment.admission_transaction_id==row[1],'LOCAL_ACTIVATION_ATTACHMENT_REQUIRED')
     program=OrderProgramRepository(tx).program(record.authority.program_id)
     require(program==bundle.archive.compilation.original_program,'LOCAL_ACTIVATION_PROGRAM_MISMATCH')
+    def same_physical(table,key):
+        physical=tx.execute('SELECT xmin::text,transaction_id FROM ledger.'+table+' WHERE scope_id=%s AND record_id=%s '
+            'ORDER BY sequence',(scope_id(tx.scope),key)).fetchall()
+        require(len(physical)==1 and physical[0]==(row[2],row[1]),'LOCAL_PHYSICAL_ATTACHMENT_MISMATCH')
+    same_physical('audit_events',ATTACHMENT_PREFIX+record.financial_intent_id)
+    same_physical('order_programs',program.program_id)
     for proof in derived.proofs:
         require(tx._latest('audit_events',PROOF_PREFIX+proof.proof_id,LifecycleProofV3)==proof,'LOCAL_PROOF_ARCHIVE_MISMATCH')
+        same_physical('audit_events',PROOF_PREFIX+proof.proof_id)
     for reservation_id in record.authority.reservation_ids:
         require(tx._latest('order_funding_links',reservation_id,FundingLink)==FundingLink(program_id=program.program_id,
             reservation_id=reservation_id,intent_id=record.financial_intent_id),'LOCAL_FUNDING_LINK_MISMATCH')
-    stored=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s ORDER BY sequence',
+        same_physical('order_funding_links',reservation_id)
+    stored=tx.execute('SELECT payload,xmin::text,transaction_id FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s ORDER BY sequence',
         (scope_id(tx.scope),STATE_PREFIX+activation_id)).fetchall()
-    require(len(stored)>=3 and all(canonical_hash(r[0])==digest(s) for r,s in zip(stored,states)),
+    require(len(stored)>=3 and all(canonical_hash(r[0])==digest(s) and r[1:]==(row[2],row[1]) for r,s in zip(stored,states)),
         'LOCAL_LIFECYCLE_ARCHIVE_MISMATCH')
     return record

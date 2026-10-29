@@ -132,3 +132,20 @@ def test_unknown_local_pool_blocks_entire_collateral_group_and_preserves_origina
     # authority; expiry and owner transfer cannot renew or discard its duty.
     with c.owner.transaction(c.scope) as tx:
         assert read_local_activation(tx,receipt.activation_id)==record
+
+
+def test_copying_the_original_transaction_uuid_cannot_forge_physical_attachment(database):
+    from trading_system.execution.local_program_activation import _materials,read_local_activation
+    from trading_system.storage.local_programs import ACTIVATION_PREFIX
+    from trading_system.storage.models import encode
+    c=real_case(database,template='TWAP',mode='LOCAL_SYNTHETIC')
+    bundle=c.service._transaction(lambda tx:c.service._reserve_program(tx,c.key,(),load_inputs=c.load,
+        load_qualification=c.qualify,load_clock=lambda tx:c.c.facts.inputs.clock))
+    old_id=bundle.archive.target_facts.transaction_id
+    activation_id='local-program:'+bundle.intent.intent_id
+    forged,_=_materials(bundle,activation_id,old_id,c.c.facts.inputs.clock.utc_now,bundle.reservations[0].reservation.expires_at)
+    with c.owner.transaction(c.scope) as tx:
+        tx.execute('INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) VALUES(%s,%s,1,%s::jsonb,%s)',
+            (scope_id(c.scope),ACTIVATION_PREFIX+activation_id,encode(forged),old_id))
+        with pytest.raises(ValueError,match='LOCAL_FINANCIAL_SOURCE_REQUIRED'):
+            read_local_activation(tx,activation_id)
