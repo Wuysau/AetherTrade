@@ -37,12 +37,13 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True):
+def real_case(dsn,*,qualified=True,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
     import test_program_risk_assessment as risk_module
     import test_program_target_allocation as target_module
+    import test_program_exposure as exposure_module
     original_inputs=risk_module.inputs;suffix=uuid4().hex
     def scoped_inputs(product):
         p,r,c,k=original_inputs(product);scope=replace(k['scope'],venue_account_id='isolated-'+suffix)
@@ -53,8 +54,8 @@ def real_case(dsn,*,qualified=True):
         k={**k,'scope':scope,'profile':replace(k['profile'],scope=scope),
             'expected_capabilities_hash':VersionedOrderCodec().hash('order-capability-snapshot',c)}
         return p,r,c,k
-    with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs):
-        c=risk_module.risk_case()
+    with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs),patch.object(exposure_module,'inputs',scoped_inputs):
+        c=risk_module.risk_case(**risk_options)
     group='program-group-'+suffix
     tf=replace(c.facts.target_facts,collateral_group_id=group)
     budget=replace(c.facts.budget_facts,collateral_group_id=group)
