@@ -187,12 +187,15 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
     model=engine._matching_model
     require(type(model) is PaperMatchingModel,'PAPER_EXPLICIT_MATCHING_MODEL_REQUIRED')
     with owner.guard(lease):
+        consumed=boundary.consume(permit,lease)
+        require(type(consumed) is VenueCreationRequest and digest(consumed)==digest(request),'PAPER_CONSUMED_REQUEST_CHANGED')
         # Read exact archived execution economics through the real repository.
         # No open business transaction crosses into the simulated venue.
         with boundary.uow.transaction(engine.scope) as tx:
             repo=ProgramCommandRepository(tx,**boundary.readers)
-            original=repo.write(write.command_id);bundle=repo._bundle(write.intent_id)
-            require(original is not None and original.state=='MAY_HAVE_SENT' and repo.request(write.command_id)==request,
+            bundle=repo._bundle(write.intent_id)
+            original=tx._latest('order_writes_v2',write.command_id,ApplicationWriteV3)
+            require(original is not None and original.state=='MAY_HAVE_SENT' and original.request_hash==digest(request),
                 'PAPER_COMMITTED_MAY_REQUIRED')
         plan=bundle.archive.compilation
         require(plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 and len(request.assigned_ids.members)==1,
@@ -200,7 +203,8 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
         node=plan.nodes[0];order=node.original.order
         require(node.order_type in ('LIMIT','LIMIT_MAKER') and order.price.kind=='FIXED_LIMIT' and order.trigger.kind=='NONE'
             and order.iceberg_quantity is None and order.stp=='NONE' and order.routing=='STANDARD'
-            and order.tif.kind in ('GTC','IOC','FOK','GTX'),'PAPER_EXECUTION_SEMANTICS_STAGE_REQUIRED')
+            and (order.tif.kind in ('GTC','IOC','FOK','GTX') or node.order_type=='LIMIT_MAKER' and order.tif.kind=='NONE'),
+            'PAPER_EXECUTION_SEMANTICS_STAGE_REQUIRED')
         require(order.quantity.kind=='BASE_QUANTITY','PAPER_NATIVE_QUANTITY_REQUIRED')
         qty=number(order.quantity.value);client=request.assigned_ids.members[0].client_id
         with localcontext() as arithmetic:
@@ -212,12 +216,13 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
         terms={'scope':domain_payload(engine.scope),'client_id':client,'node_id':node.original.node_id,
             'namespace':request.namespace.value,'quantity':order.quantity.value,'quantity_step':bundle.archive.rules.quantity_step,
             'side':order.side,'order_type':node.order_type,'limit_price':order.price.value,'post_only':order.post_only,
-            'tif':order.tif.kind,'multiplier':node.quantity_multiplier,'quote_asset':bundle.archive.rules.quote_asset,
+            'tif':'GTC' if node.order_type=='LIMIT_MAKER' else order.tif.kind,'multiplier':node.quantity_multiplier,'quote_asset':bundle.archive.rules.quote_asset,
             'quote_fee_rate':model.quote_fee_rate,'model':domain_payload(model),'request':domain_payload(request),
             'write':domain_payload(original),'rules':domain_payload(bundle.archive.rules),'compilation':domain_payload(plan)}
-        consumed=boundary.consume(permit,lease)
-        require(type(consumed) is VenueCreationRequest and digest(consumed)==digest(request),'PAPER_CONSUMED_REQUEST_CHANGED')
         with owner.guard(lease):
+            clock=engine._clock()
+            require(clock.clock_health=='HEALTHY' and utc_timestamp(clock.utc_now)<utc_timestamp(permit.expires_at)
+                and clock.monotonic_ns<permit.deadline_monotonic_ns,'PAPER_CONSUMED_PERMIT_EXPIRED')
             with engine._connect() as db:
                 key=market_key(engine.scope.product,engine.scope.instrument_uid)
                 db.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(key,))

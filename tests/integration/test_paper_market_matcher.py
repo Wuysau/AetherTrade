@@ -38,10 +38,10 @@ def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None):
     def transform(p):
         n=p.program.nodes[0]
         return replace(p,program=replace(p.program,nodes=(replace(n,order=replace(n.order,
-            tif=TimeInForceSpec(kind=tif,expires_at=None),post_only=post_only)),)))
+            tif=TimeInForceSpec(kind='NONE' if post_only else tif,expires_at=None),post_only=post_only)),)))
     c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex)
     c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
-    c.gate=boundary(c);c.lease=lease(c);c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
+    c.gate=boundary(c);c.lease=lease(c);c.permit=None
     def unavailable(*args):raise ValueError('legacy guard never authorizes V3')
     c.engine=PaperEngine(c.scope,dsn=venue.runtime_dsn,event_dsn=venue.event_dsn,authority_guard=unavailable,
         owner_strategy_id=c.bundle.intent.owner_strategy_id,quantity_unit=c.bundle.intent.unit.native_unit,
@@ -62,6 +62,7 @@ def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None):
 
 
 def submit(c):
+    if c.permit is None:c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
     with c.owner.session(c.lease.shard):
         return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
 
@@ -122,6 +123,7 @@ def test_post_only_rejects_crossing_without_fabricated_fill(database,venue,tmp_p
 def test_fake_or_reused_permit_and_runtime_market_mutation_are_denied(database,venue,tmp_path):
     import psycopg
     c=case(database,venue,tmp_path)
+    c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
     with c.owner.session(c.lease.shard):
         with pytest.raises((ValueError,psycopg.Error)):
             c.engine.submit_creation(c.write,c.request,replace(c.permit,token='forged'),boundary=c.gate,lease=c.lease,owner=c.owner)
