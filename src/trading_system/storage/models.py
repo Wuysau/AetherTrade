@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import fields, is_dataclass
 from decimal import Decimal
 from enum import Enum
-from functools import wraps
+from functools import wraps,lru_cache
 import json
 from typing import get_args, get_origin, get_type_hints, Literal, Union
 from types import UnionType
@@ -43,6 +43,12 @@ def atomic_write(method):
 
 def encode(record: object) -> str:
     return canonical_json(domain_payload(record))
+
+
+@lru_cache(maxsize=256)
+def _record_metadata(cls):
+    """Immutable Python contract metadata; no payload, authority or risk facts."""
+    return get_type_hints(cls),frozenset(f.name for f in fields(cls))
 
 
 def decode(cls, payload):
@@ -91,8 +97,8 @@ def decode(cls, payload):
         if isinstance(kind, type) and issubclass(kind, Enum):
             return kind(value)
         if is_dataclass(kind):
-            hints = get_type_hints(kind)
-            if set(value) != {f.name for f in fields(kind)}:
+            hints,names = _record_metadata(kind)
+            if set(value) != names:
                 raise ValueError('stored record fields differ from contract')
             return kind(**{k: restore(hints[k], v) for k, v in value.items()})
         if kind in (str, bool, int) and type(value) is not kind:
