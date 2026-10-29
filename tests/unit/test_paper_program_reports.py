@@ -1,5 +1,6 @@
 """Native economics are source facts, not a Spot q*price assumption or permit."""
 from decimal import Decimal as D,localcontext
+from hashlib import sha256
 
 import pytest
 
@@ -61,3 +62,30 @@ def test_ambient_decimal_precision_does_not_erase_native_economic_facts():
 @pytest.mark.parametrize('quantity',[t.Quantity(value=D('3'),unit='BASE'),t.Quantity(value=D('0'),unit='CONTRACT')])
 def test_invalid_native_unit_or_empty_fill_is_not_a_normalized_fill(quantity):
     with pytest.raises(ValueError):normalize(quantity=quantity)
+
+
+def test_missing_host_readers_return_no_verified_facts_or_financial_permissions():
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+    scope=t.ScopeKey(environment=t.Environment.PAPER,venue_account_id='account',product=t.Product.SPOT,
+        instrument_uid='instrument',venue_leg='BOTH')
+    result=PaperProgramReportVerifier(None,scope).verify('original-command')
+    assert result.status=='BLOCKED' and not result.source_verified and not result.fills and not result.orders
+    assert not result.execution_authorized and not result.funds_release_authorized
+    assert 'QUERY_ORIGINAL_IDS' in result.retained_duties
+
+
+def test_verifier_rejects_external_environments_before_any_reader_is_called():
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+    scope=t.ScopeKey(environment=t.Environment.LIVE,venue_account_id='account',product=t.Product.SPOT,
+        instrument_uid='instrument',venue_leg='BOTH')
+    with pytest.raises(ValueError,match='PAPER_ONLY'):
+        PaperProgramReportVerifier(None,scope)
+
+
+@pytest.mark.parametrize('constant',['NaN','Infinity','-Infinity'])
+def test_raw_source_is_strict_json_even_in_unrecognized_fields(constant):
+    from trading_system.execution.paper_program_reports import _raw_object
+    raw='{"source":"PAPER_MARKET_REPLAY_SYNTHETIC","extra":'+constant+'}'
+    ref=t.EvidenceRef(id='raw',hash=sha256(raw.encode()).hexdigest(),environment=t.Environment.PAPER,
+        source='PAPER_MARKET_REPLAY_SYNTHETIC',visible_at='2026-10-28T10:00:00Z')
+    with pytest.raises(ValueError):_raw_object(raw,ref)
