@@ -197,7 +197,7 @@ def _compile_program_target(plan,book,facts):
             and normalization.price.value.is_finite() and normalization.price.value>0,'TARGET_NORMALIZATION_PRICE_MISMATCH')
         _evidence(normalization.evidence,scope,now)
         require(time_key(now)<time_key(normalization.valid_until),'TARGET_NORMALIZATION_PRICE_EXPIRED')
-        limits={n.original.order.price.value for n in initial if n.original.order.price.kind=='FIXED_LIMIT'}
+        limits={D(n.original.order.price.value) for n in initial if n.original.order.price.kind=='FIXED_LIMIT'}
         if limits:
             require(len(limits)==1 and all(n.original.order.price.kind=='FIXED_LIMIT' for n in initial),
                 'MULTI_PRICE_TARGET_NORMALIZATION_UNSUPPORTED')

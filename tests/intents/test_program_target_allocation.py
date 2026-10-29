@@ -301,3 +301,27 @@ def test_pending_leg_cannot_silently_define_a_larger_or_different_future_target(
     _,r,c,k=inputs();plan=compile_order_program(proposal,r,c,**k);book,facts=scenario(plan,r)
     result=compile_program_target(plan,book,facts)
     assert code in result.blockers and not result.requests
+
+
+def test_quote_batch_equal_numeric_limits_preserve_different_wire_representations():
+    old,_=plan_for(target='2',template='BATCH',product=t.Product.USD_M_PERP)
+    nodes=tuple(replace(node,order=replace(node.order,price=replace(node.order.price,value=value)))
+        for node,value in zip(old.original_program.nodes,('81490.0','81490.00')))
+    proposal=replace(old.original_proposal,target_sizing='QUOTE_NOTIONAL',target_value='162980',
+        program=replace(old.original_program,nodes=nodes))
+    _,rules,caps,kwargs=inputs(t.Product.USD_M_PERP)
+    plan=compile_order_program(proposal,rules,caps,**kwargs)
+    before=canonical_hash(domain_payload(plan));book,facts=scenario(plan,rules)
+    result=compile_program_target(plan,book,facts)
+    assert not result.blockers and result.delta.target.value==D(2)
+    assert sum(node.ledger_quantity.value for node in result.nodes)==D(2)
+    assert tuple(node.original.order.price.value for node in plan.nodes)==('81490.0','81490.00')
+    assert tuple(next(p.value for p in node.parameters if p.name=='price') for node in plan.nodes)==('81490.0','81490.00')
+    assert canonical_hash(domain_payload(plan))==before
+    assert result.compilation_hash==before and result.requests[0].original==plan.requests[0]
+    different=replace(nodes[1],order=replace(nodes[1].order,price=replace(nodes[1].order.price,value='81491.00')))
+    different_proposal=replace(proposal,program=replace(proposal.program,nodes=(nodes[0],different)))
+    different_plan=compile_order_program(different_proposal,rules,caps,**kwargs)
+    book,facts=scenario(different_plan,rules)
+    with pytest.raises(ProposalRejected,match='MULTI_PRICE_TARGET_NORMALIZATION_UNSUPPORTED'):
+        compile_program_target(different_plan,book,facts)
