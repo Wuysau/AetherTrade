@@ -99,7 +99,10 @@ def project_proposal(proposal: OrderProposal, policy: ExecutionPolicy) -> Decisi
     require(type(policy) is ExecutionPolicy, 'EXECUTION_POLICY_REQUIRED')
     p = proposal.program
     require(proposal.action == 'SET_TARGET' and p is not None and p.template == 'ATOMIC', 'ATOMIC_TARGET_REQUIRED')
-    o = p.nodes[0].order
+    node = p.nodes[0]
+    require(node.role == 'ENTRY' and node.child_origin == 'APPLICATION_GENERATED_CHILD',
+            'NODE_COMPILER_NOT_IMPLEMENTED')
+    o = node.order
     require(p.execution_mode == 'PAPER_MODEL', 'PAPER_MODEL_REQUIRED')
     require(o.side == 'BUY' and proposal.target_side == 'LONG' and o.price.kind == 'FIXED_LIMIT'
             and o.trigger.kind == 'NONE', 'ORDER_COMPILER_NOT_IMPLEMENTED')

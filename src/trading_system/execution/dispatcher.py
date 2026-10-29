@@ -80,9 +80,13 @@ class CommandDispatcher:
         repo = CommandRepository(tx)
         intent = repo.validate_binding(command)
         from trading_system.intents.order_program_ingress import (
-            COMMAND_PREFIX, OrderProgramCommandBinding, validate_program_command,
+            COMMAND_PREFIX, OrderProgramCommandBinding, ProgramAdmission, validate_program_command,
         )
         program = tx._latest('audit_events', COMMAND_PREFIX + command.command_id, OrderProgramCommandBinding)
+        if program is None and tx._latest('audit_events', 'order-program-admission:' + intent.intent_id, ProgramAdmission) is not None:
+            # Follow-on/replan/protection builders must bind the full v2 program
+            # too; absence of a sidecar must never select the legacy path.
+            raise DispatchDenied('PROGRAM_COMMAND_BINDING_REQUIRED')
         if program is not None:
             if self.load_program_facts is None or self.load_program_qualification is None:
                 raise DispatchDenied('PROGRAM_DISPATCH_NOT_CONFIGURED')
