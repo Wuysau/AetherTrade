@@ -1,0 +1,18 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+________ test_rounded_remaining_dust_does_not_appear_fully_allocatable ________
+tests\intents\test_program_target_allocation.py:335: in test_rounded_remaining_dust_does_not_appear_fully_allocatable
+    assert result.blockers==('TARGET_PRECISION_RESIDUAL_UNRESOLVED',)
+E   AssertionError: assert () == ('TARGET_PREC..._UNRESOLVED',)
+E
+E     Right contains one more item: 'TARGET_PRECISION_RESIDUAL_UNRESOLVED'
+E     Use -v to get more diff
+_________ test_exact_grid_remaining_still_allocates_without_residual __________
+tests\intents\test_program_target_allocation.py:352: in test_exact_grid_remaining_still_allocates_without_residual
+    assert result.target_residual==t.Quantity(value=D(0),unit='BASE')
+           ^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'ProgramTargetAllocation' object has no attribute 'target_residual'
+=========================== short test summary info ===========================
+FAILED tests/intents/test_program_target_allocation.py::test_rounded_remaining_dust_does_not_appear_fully_allocatable
+FAILED tests/intents/test_program_target_allocation.py::test_exact_grid_remaining_still_allocates_without_residual
+2 failed in 0.42s
