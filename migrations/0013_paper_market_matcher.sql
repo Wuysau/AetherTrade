@@ -52,6 +52,7 @@ DECLARE market_id text; book record; ord record; level record; need numeric; ava
  resulting_status text; reason text; fee_amount numeric; fee_vector jsonb; original_side text; opposite_side text;
  activity_at timestamptz;execution_at timestamptz;envelope_min numeric;envelope_max numeric;envelope_gross numeric;
  spent_gross numeric;spent_fee numeric;fee_ceiling numeric;best_price numeric;gross_candidate numeric;fee_candidate numeric;
+ preflight_need numeric;preflight_gross numeric;preflight_ok boolean;
 BEGIN
  SELECT market_key,(terms->'accepted_clock'->>'utc_now')::timestamptz INTO market_id,activity_at FROM public.paper_order_terms WHERE scope_key=p_scope AND client_id=p_client;
  IF market_id IS NULL THEN RAISE EXCEPTION 'original accepted PAPER terms required'; END IF;
@@ -100,11 +101,26 @@ BEGIN
    WHERE market_key=market_id AND side=opposite_side AND available>0
    AND CASE WHEN original_side='BUY' THEN price<=limit_price ELSE price>=limit_price END
    AND (envelope_min IS NULL OR price>=envelope_min) AND (envelope_max IS NULL OR price<=envelope_max);
+  preflight_ok=true;
+  IF ord.terms->>'tif'='FOK' THEN
+   preflight_need=need;preflight_gross=spent_gross;
+   FOR level IN SELECT * FROM public.paper_market_levels WHERE market_key=market_id AND side=opposite_side AND available>0
+    AND CASE WHEN original_side='BUY' THEN price<=limit_price ELSE price>=limit_price END
+    AND (envelope_min IS NULL OR price>=envelope_min) AND (envelope_max IS NULL OR price<=envelope_max)
+    ORDER BY CASE WHEN original_side='BUY' THEN price ELSE -price END FOR UPDATE LOOP
+    EXIT WHEN preflight_need<=0;
+    take_quantity=trunc(least(preflight_need,level.available)/(ord.terms->>'quantity_step')::numeric)*(ord.terms->>'quantity_step')::numeric;
+    preflight_gross=preflight_gross+take_quantity*level.price*(ord.terms->>'multiplier')::numeric;
+    preflight_need=preflight_need-take_quantity;
+   END LOOP;
+   preflight_ok=preflight_need=0 AND preflight_gross<=envelope_gross
+    AND preflight_gross*(ord.terms->>'quote_fee_rate')::numeric<=fee_ceiling;
+  END IF;
   IF ord.revision=1 AND ((ord.terms->>'post_only')::boolean OR ord.terms->>'tif'='GTX') AND available_total>0 THEN
    resulting_status='REJECTED';reason='POST_ONLY_WOULD_TAKE';
   ELSIF best_price IS NOT NULL AND ((envelope_min IS NOT NULL AND best_price<envelope_min) OR (envelope_max IS NOT NULL AND best_price>envelope_max)) THEN
    resulting_status='EXPIRED';reason='EXECUTION_PRICE_ENVELOPE_VIOLATION';
-  ELSIF ord.terms->>'tif'='FOK' AND available_total<need THEN
+  ELSIF ord.terms->>'tif'='FOK' AND (available_total<need OR NOT preflight_ok) THEN
    -- Preflight before touching any level, fill or consumption record.
    resulting_status='EXPIRED';reason='FOK_INSUFFICIENT_VISIBLE_DEPTH';
   ELSE
