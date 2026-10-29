@@ -1,0 +1,36 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+__ test_original_ready_identity_read_does_not_create_a_case_command_or_permit __
+tests/integration/test_original_creation_recovery_postgres.py:21: in test_original_ready_identity_read_does_not_create_a_case_command_or_permit
+    recovered=read(c,w.command_id)
+              ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_original_creation_recovery_postgres.py:14: in read
+    from trading_system.recovery.original_creation import read_original_creation
+E   ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+____ test_original_may_and_unknown_survive_later_reservation_version[False] ____
+tests/integration/test_original_creation_recovery_postgres.py:46: in test_original_may_and_unknown_survive_later_reservation_version
+    recovered=read(c,w.command_id)
+              ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_original_creation_recovery_postgres.py:14: in read
+    from trading_system.recovery.original_creation import read_original_creation
+E   ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+____ test_original_may_and_unknown_survive_later_reservation_version[True] _____
+tests/integration/test_original_creation_recovery_postgres.py:46: in test_original_may_and_unknown_survive_later_reservation_version
+    recovered=read(c,w.command_id)
+              ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_original_creation_recovery_postgres.py:14: in read
+    from trading_system.recovery.original_creation import read_original_creation
+E   ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+_______ test_reader_never_falls_back_to_another_scope_or_mints_a_new_id ________
+tests/integration/test_original_creation_recovery_postgres.py:61: in test_reader_never_falls_back_to_another_scope_or_mints_a_new_id
+    assert read(other,w.command_id) is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_original_creation_recovery_postgres.py:14: in read
+    from trading_system.recovery.original_creation import read_original_creation
+E   ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'
+=========================== short test summary info ============================
+FAILED tests/integration/test_original_creation_recovery_postgres.py::test_original_ready_identity_read_does_not_create_a_case_command_or_permit
+FAILED tests/integration/test_original_creation_recovery_postgres.py::test_original_may_and_unknown_survive_later_reservation_version[False]
+FAILED tests/integration/test_original_creation_recovery_postgres.py::test_original_may_and_unknown_survive_later_reservation_version[True]
+FAILED tests/integration/test_original_creation_recovery_postgres.py::test_reader_never_falls_back_to_another_scope_or_mints_a_new_id
+4 failed in 22.87s

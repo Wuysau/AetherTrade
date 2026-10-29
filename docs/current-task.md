@@ -1,5 +1,52 @@
 # Current task
 
+## OP_C_CURRENT_INTEGRATION_CHECKPOINT — 2026-10-29
+
+Sole binance-orders writer remains integration_next. Parent root owns OP-E in a
+separate tree; activation_fresh owns OP-D binance-opd-matcher; observability_fresh
+owns OP-F binance-opf-observability. Main checkout/archive remain untouched. Goal
+stays ACTIVE, with all46 targets/56 cases and complete OP-C→D/E/F→G in scope.
+
+Current root code5866ddc includes full typed financial kernel, actual request/
+outbox/MAY/single-use consume, real internal TWAP/VP SUM activation, physical SQL
+bindings/funding links, cross-family identity serialization, read-only management/
+query/original-ID recovery, new explicit value-band source/compiler and shared
+scope/fee/position-envelope components. Interval facts/risk/archive/financial
+admission, full matcher/host accounting, management write outcomes and full API/UI
+integration remain unfinished. No production rich-order readers/transport or
+native/Testnet/LIVE qualification is registered.
+
+The genuine local-pool optimization bypass was reproduced on463c9b3:8 PG pass,
+2 DID NOT RAISE failures at mark and consume, with actual zero-asset shared-group
+local and external exits. Fix97b7710 restores a once-per-transaction local registry
+read; fixed diagnostic70545 is TERMINAL exit0,10 PG pass,0fail/error/skip. Earlier
+4e01 fixture RED stopped before that intended assertion and is retained separately.
+
+Full aff4aa8 job73508 is TERMINAL exit1:34 PG suites,958pass/0fail/1error/0skip;
+program-commands exceeded300s without complete JUnit. Ordinary Python3294pass/
+560 explicit environmental skips/96deselected. It predates current optimizations.
+All raw artifacts/maps are preserved; do not promote it to current green.
+
+New fixed5866ddc full combined PG+Python gate is RUNNING exec45760, timeout5400,
+fresh private Docker. Do not restart it on observation timeout. It covers current
+local guard, request/funding/identity fixes, metadata optimization and reviewed
+original creation recovery. Final results are pending and remain source-specific.
+Root has no other live test jobs; all earlier handles are terminal.
+
+Immutable metadata cache9928147 passed406 selected tests. Direct20-iteration bundle
+decode+canonical-equality microbenchmark improved0.502s→0.270s with both decoders
+using the current shared validator. Only code-owned metadata is cached; no current
+facts or authority. Raw profile/comparison artifacts are in op-c-metadata-performance.
+
+Next: finish authentic interval allocation/risk/financial pipeline using the
+qualified matcher's enforced internal execution envelope, without fake scalar
+goals or altering native quote amounts. Continue actual ProgramCommandDispatcher
+and same-ledger accounting; parent owns trusted PAPER report normalization in a
+new module, preserving native fills and explicit unit/multiplier bridge. OP-D
+must finish timestamp/hash/quote-normalization/SELL-bound/deadline review fixes
+and freeze0013 before serial integration. OP-F keeps qualified state separate
+from catalog vocabulary and receipt separate from executed fills.
+
 ## OP_C_INTEGRATION_NEXT_SOLE_WRITER — 2026-10-29
 
 Parent root delegated sole write ownership of this binance-orders worktree to
