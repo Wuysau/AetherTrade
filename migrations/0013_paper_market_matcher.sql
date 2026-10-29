@@ -134,5 +134,7 @@ ALTER FUNCTION public.paper_match_order(text,text) OWNER TO paper_matcher_define
 REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
 GRANT SELECT,UPDATE ON public.paper_engine_orders,public.paper_market_levels TO paper_matcher_definer;
 GRANT SELECT ON public.paper_order_terms,public.paper_market_books,public.paper_market_inputs TO paper_matcher_definer;
+-- Row-lock privilege only; the NOLOGIN function owner has no exposed book writer.
+GRANT UPDATE(sequence) ON public.paper_market_books TO paper_matcher_definer;
 GRANT INSERT ON public.paper_engine_events,public.paper_market_consumptions TO paper_matcher_definer;
 COMMIT;

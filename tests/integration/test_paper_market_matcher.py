@@ -127,6 +127,10 @@ def test_fake_or_reused_permit_and_runtime_market_mutation_are_denied(database,v
     with c.owner.session(c.lease.shard):
         with pytest.raises((ValueError,psycopg.Error)):
             c.engine.submit_creation(c.write,c.request,replace(c.permit,token='forged'),boundary=c.gate,lease=c.lease,owner=c.owner)
+    assert c.engine.query_creation(c.write.command_id) is None
+    # The protected wall-clock TTL continues elapsing during the failed proof;
+    # exercise successful single consumption with a freshly admitted command.
+    c=case(database,venue,tmp_path)
     submit(c)
     with pytest.raises((ValueError,psycopg.Error)):submit(c)
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
