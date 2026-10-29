@@ -18,7 +18,8 @@ from trading_system.storage.application_writes import application_write_obligati
 def database(isolated_postgres):
     import psycopg
     with psycopg.connect(isolated_postgres) as db:
-        for name in ('0006_proposal_intake_role.sql','0008_order_program_records.sql','0010_order_program_intake.sql',
+        for name in ('0006_proposal_intake_role.sql','0008_order_program_records.sql','0009_order_program_closure.sql',
+            '0010_order_program_intake.sql','0011_order_program_financial_credit_guard.sql',
             '0012_program_command_boundary.sql'):
             db.execute((ROOT/'migrations'/name).read_text(encoding='utf-8'))
     return isolated_postgres
@@ -348,3 +349,22 @@ def test_one_financial_plan_request_cannot_be_appended_twice_under_distinct_comm
     with c.owner.transaction(c.scope) as tx:
         assert tx.intents.get(c.record.intent_id) is None
         assert tx.reservations.for_intent(c.record.intent_id)==()
+
+@pytest.mark.parametrize('path',['repository','raw_sql'])
+def test_external_program_hold_cannot_gain_unauthorized_reflection_credit(database,path):
+    import psycopg
+    from trading_system.risk.reservation_repository import ReservationRepository,balance_watermark
+    from trading_system.storage.models import MissingEvidence
+    c=real_case(database);w,r,b=c.service._transaction(lambda tx:attach(c,tx))
+    expected=MissingEvidence if path=='repository' else psycopg.errors.CheckViolation
+    with pytest.raises(expected):
+        with c.owner.transaction(c.scope) as tx:
+            previous=ReservationRepository(tx).get(b.reservations[0].reservation.reservation_id)
+            book=tx.projections.book(c.scope)
+            changed=replace(previous,sequence=1,reflected=previous.held,reservation=replace(previous.reservation,
+                state=t.ReservationState.VENUE_REFLECTED,reflected_amount=previous.held,
+                evidence_watermark=balance_watermark(book,book.evidence[0])))
+            if path=='repository':ReservationRepository(tx).save(changed)
+            else:tx._append('audit_events','ip07:reservation:'+previous.reservation.reservation_id,changed,0)
+    with c.owner.transaction(c.scope) as tx:
+        assert ReservationRepository(tx).get(b.reservations[0].reservation.reservation_id)==b.reservations[0]

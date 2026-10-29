@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
     ('program-commands', '03', 'tests/integration/test_program_commands_postgres.py'),
     ('program-command-semantic-identity', '03', 'tests/integration/test_program_commands_postgres.py::test_one_financial_plan_request_cannot_be_appended_twice_under_distinct_command_ids'),
+    ('program-command-credit', '03', 'tests/integration/test_program_commands_postgres.py::test_external_program_hold_cannot_gain_unauthorized_reflection_credit'),
     ('program-financial-admission', '03', 'tests/integration/test_program_financial_admission.py'),
     ('assessment-archive', '03', 'tests/integration/test_assessment_archive_ledger.py'),
     ('program-financial-ledger', '03', 'tests/integration/test_program_financial_ledger.py'),
