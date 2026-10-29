@@ -43,6 +43,18 @@ def digest(value):
     return canonical_hash(domain_payload(value))
 
 
+def _scope_facts(archive):
+    if type(archive) is ProgramFinancialAssessmentArchive:return archive.target_facts
+    from trading_system.intents.quote_assessment_archive import QuoteAssessmentArchiveV1
+    require(type(archive) is QuoteAssessmentArchiveV1,'ASSESSMENT_ARCHIVE_TYPE_REQUIRED')
+    return archive.risk_facts.target_facts.scope_facts
+
+
+def _bundle_type_valid(bundle):
+    from .quote_financial_admission import QuoteProgramFinancialBundleV1
+    return type(bundle) in (ProgramFinancialBundle,QuoteProgramFinancialBundleV1)
+
+
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramFinancialInputs:
     archive:ProgramFinancialAssessmentArchive
@@ -105,7 +117,7 @@ class ProgramFinancialAttachment:
 def current_program_bundle_witness(tx,bundle):
     """Read only the actual successful SAME-transaction kernel invocation."""
     witnesses=getattr(tx,'_program_financial_witnesses',None)
-    require(tx.active and type(bundle) is ProgramFinancialBundle and type(witnesses) is dict,
+    require(tx.active and _bundle_type_valid(bundle) and type(witnesses) is dict,
         'PROGRAM_FINANCIAL_WITNESS_REQUIRED')
     witness=witnesses.get(bundle.intent.intent_id)
     require(type(witness) is _ProgramFinancialWitness and witness.transaction_id==tx.transaction_id
@@ -117,7 +129,7 @@ def current_program_bundle_witness(tx,bundle):
     require(row is not None and row[1]==tx.transaction_id and canonical_hash(row[0])==witness.bundle_hash,
         'PROGRAM_FINANCIAL_BUNDLE_SOURCE_MISMATCH')
     require(digest(tx.intents.get(bundle.intent.intent_id))==digest(bundle.intent)
-        and bundle.archive.target_facts.transaction_id==tx.transaction_id
+        and _scope_facts(bundle.archive).transaction_id==tx.transaction_id
         and bundle.intent.scope==tx.scope and bundle.intent.collateral_group_id==tx.group_id,
         'PROGRAM_FINANCIAL_BUNDLE_SOURCE_MISMATCH')
     source,record=read_program_source(tx,bundle.intent.source.intake_record_id)
@@ -171,7 +183,10 @@ def claim_program_attachment(tx,bundle,*,mode,command_ids):
     return _AttachmentWriter(tx).claim(bundle,mode=mode,command_ids=command_ids)
 
 
-def validate_current_inputs(tx,source,intake,book,inputs,clock):
+def validate_current_inputs(tx,source,intake,book,inputs,clock,load_execution_bounds=None):
+    from .quote_financial_admission import QuoteFinancialInputsV1,validate_current_quote_inputs
+    if type(inputs) is QuoteFinancialInputsV1:
+        return validate_current_quote_inputs(tx,source,intake,book,inputs,clock,load_execution_bounds)
     require(type(inputs) is ProgramFinancialInputs,'PROGRAM_FINANCIAL_INPUTS_REQUIRED')
     a=inputs.archive
     require(type(a) is ProgramFinancialAssessmentArchive,'ASSESSMENT_ARCHIVE_TYPE_REQUIRED')
@@ -214,7 +229,8 @@ def validate_current_inputs(tx,source,intake,book,inputs,clock):
     return intent,basis
 
 
-def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qualification,load_action_proof,load_clock):
+def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qualification,load_action_proof,load_clock,
+                     load_execution_bounds=None):
     """Private SAME-UoW writer. No success receipt or transport authority.
 
     command_ids are already assigned immutable request identities; the enclosing
@@ -235,8 +251,11 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     require(not collateral.rejection_codes,','.join(collateral.rejection_codes))
     book=collateral.book
     inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
-    intent,basis=validate_current_inputs(tx,source,intake,book,inputs,clock)
-    a=inputs.archive
+    intent,basis=validate_current_inputs(tx,source,intake,book,inputs,clock,load_execution_bounds)
+    a=inputs.archive;sf=_scope_facts(a)
+    from .quote_financial_admission import (QuoteFinancialInputsV1,QuoteProgramFinancialBundleV1,
+        validate_current_quote_bounds)
+    quote=type(inputs) is QuoteFinancialInputsV1
     require(a.capabilities.transport=='PAPER' and a.capabilities.qualification=='PAPER_VERIFIED',
         'PROGRAM_QUALIFICATION_REQUIRED')
     require((intent.owner_strategy_id,intent.ownership_epoch,intent.risk_policy_revision)==(
@@ -251,10 +270,22 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     persisted_ids={p.reservation.reservation_id for p in repo.group()}
     external_ids={p.reservation.reservation_id for p in book.reservations
         if p.reservation.reservation_id not in persisted_ids}
+    if quote:
+        # Group cash holds remain in the financial book. Quantity belongs only
+        # to this physical scope or its original same-account external snapshot.
+        original=tx.projections.book(tx.scope)
+        external_ids={p.reservation.reservation_id for p in original.reservations
+            if p.reservation.reservation_id not in persisted_ids
+                and p.reservation.venue_account_id==tx.scope.venue_account_id}
+        expected_ids=tuple(p.reservation.reservation_id for p in book.reservations
+            if p.reservation.reservation_id in local_ids|external_ids)
+        require(a.risk_facts.target_facts.quantity_reservation_ids==expected_ids,
+            'QUOTE_CURRENT_QUANTITY_RESERVATION_MAP_CHANGED')
     pending=target_obligations(tx,intent,book,tuple(p for p in collateral.holds
         if p.reservation.reservation_id in local_ids|external_ids),now)
-    require(digest(pending)==digest(a.target_facts.inputs.pending),'PROGRAM_CURRENT_QUANTITY_OBLIGATIONS_CHANGED')
-    require(digest(a.budget_facts.reservations)==digest(collateral.holds),
+    require(digest(pending)==digest(sf.inputs.pending),'PROGRAM_CURRENT_QUANTITY_OBLIGATIONS_CHANGED')
+    archived_holds=inputs.reconciled_holds if quote else a.budget_facts.reservations
+    require(digest(archived_holds)==digest(collateral.holds),
         'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
     proof=load_qualification(tx,a,clock) if load_qualification else None
     require(type(proof) is ProgramFinancialQualification and proof.scope==tx.scope
@@ -287,6 +318,7 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     require(window.poll(expires) is not None,'EXPIRED_OR_UNBOUND_CLOCK')
     require(digest(current_fence(tx,source.context))==digest(fence),'STALE_REVISION')
     require(digest(tx.projections.book(tx.scope))==original_book_hash,'PROGRAM_CURRENT_BOOK_CHANGED')
+    if quote:validate_current_quote_bounds(tx,source,intake,book,clock,a,load_execution_bounds)
     tx.intents.append(intent)
     tx._append('audit_events',ARCHIVE_PREFIX+intent.intent_id,a,0)
     tx._append('audit_events',BASIS_PREFIX+intent.intent_id,basis,0)
@@ -309,7 +341,8 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
             raised_at=reading)
         tx.risk_locks.append(lock,0)
         tx._append('audit_events','program-residual-duty:'+intent.intent_id,residual,0)
-    bundle=ProgramFinancialBundle(intent=intent,basis=basis,archive=a,decision=a.assessment,
+    bundle_type=QuoteProgramFinancialBundleV1 if quote else ProgramFinancialBundle
+    bundle=bundle_type(intent=intent,basis=basis,archive=a,decision=a.assessment,
         reservations=tuple(projections))
     tx._append('audit_events',BUNDLE_PREFIX+intent.intent_id,bundle,0)
     witnesses=getattr(tx,'_program_financial_witnesses',None)

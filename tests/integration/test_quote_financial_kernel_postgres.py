@@ -47,7 +47,8 @@ def quote_case(database):
         expected_instrument_ref=p.instrument_ref,allow_round_down=True)
     ingress=GenericProgramIngress(c.intake,scope,lambda *args:facts,clock=lambda:c.c.facts.inputs.clock.utc_now)
     source,record=ingress.accept(p,context)
-    q.terms=replace(q.terms,decision_id=record.intent_id,scope=scope,authorization_id=context.authorization_id,
+    q.terms=replace(q.terms,source=replace(q.terms.source,hash=q.plan.proposal_hash),
+        decision_id=record.intent_id,scope=scope,authorization_id=context.authorization_id,
         owner_strategy_id=s.owner.owner_strategy_id,ownership_epoch=s.owner.ownership_epoch,policy_revision=s.owner.policy_revision,
         collateral_group_id=s.collateral_group_id,basis_fingerprint=q.book.basis_fingerprint,snapshot_id=context.snapshot_ref.id)
     q.policy=c.c.policy

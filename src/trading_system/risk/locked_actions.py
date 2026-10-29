@@ -82,7 +82,10 @@ class LockedActionVerifier:
             from .reduction import validate_bounded_reduction
             from trading_system.contracts.program_financial import ProgramFinancialIntent
             from trading_system.intents.program_assessment_archive import ProgramFinancialAssessmentArchive
-            if type(intent) is not ProgramFinancialIntent or type(archive) is not ProgramFinancialAssessmentArchive:
+            from trading_system.contracts.quote_financial import QuoteFinancialIntentV1
+            from trading_system.intents.quote_assessment_archive import QuoteAssessmentArchiveV1
+            quote=type(intent) is QuoteFinancialIntentV1 and type(archive) is QuoteAssessmentArchiveV1
+            if not quote and (type(intent) is not ProgramFinancialIntent or type(archive) is not ProgramFinancialAssessmentArchive):
                 return None
             if book is None:book=tx.projections.book(tx.scope)
             coverage=book.coverage
@@ -97,6 +100,9 @@ class LockedActionVerifier:
             validity=min([utc_timestamp(intent.valid_until)]+[utc_timestamp(e.visible_at)
                 +timedelta(seconds=self.maximum_age_seconds) for e in book.evidence])
             if not locks:return validity.isoformat() if utc_timestamp(now)<validity else None
+            # A primary band adjustment cannot impersonate the separately
+            # versioned bounded emergency/protective EXIT proof.
+            if quote:return None
             allowed=ACTIONS[t.RiskPermission.NORMAL]
             for lock in locks:
                 if (lock.state!='ACTIVE' or lock.cause in {'ORDER_OUTCOME_UNKNOWN','RESERVATION_COMMAND_UNKNOWN'}

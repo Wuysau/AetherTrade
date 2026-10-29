@@ -156,7 +156,7 @@ class ReservationService:
         return self._reserve(tx, intent, expected, accepted=accepted)
 
     def _reserve_program(self,tx,intake_record_id,command_ids,*,load_inputs,
-                         load_qualification=None,load_action_proof=None,load_clock=None):
+                         load_qualification=None,load_action_proof=None,load_clock=None,load_execution_bounds=None):
         """Private program branch; caller attaches writes in this SAME tx.
 
         The original public reserve/reserve_proposal legacy routes are unchanged.
@@ -164,7 +164,7 @@ class ReservationService:
         """
         from .program_financial_admission import reserve_program
         return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
-            load_qualification,load_action_proof,load_clock)
+            load_qualification,load_action_proof,load_clock,load_execution_bounds)
 
     def _transaction(self, operation):
         for attempt in range(self.maximum_attempts):

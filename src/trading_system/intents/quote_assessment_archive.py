@@ -37,6 +37,15 @@ class QuoteAssessmentArchiveV1:
     @property
     def execution_authorized(self)->Literal[False]:return False
 
+    @property
+    def capabilities(self):return self.risk_facts.target_facts.capabilities
+
+    @property
+    def profile(self):return self.risk_facts.target_facts.profile
+
+    @property
+    def rules(self):return self.risk_facts.target_facts.scope_facts.rules
+
 
 def replay_quote_assessment(archive):
     require(type(archive) is QuoteAssessmentArchiveV1 and archive.contract_version=='2026-10-30'
