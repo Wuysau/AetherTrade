@@ -1,5 +1,29 @@
 # Current task
 
+## OP_E_ATOMIC_FOUNDATION_VERIFIED_NEXT_SOURCE_APPROVAL — 2026-10-30
+
+Accounting tree parent/root still sole writer. ActualTask1 implemented7d5f4e9;
+fixednew4PG+old37PG passed0fail/error/skip. IntentionalmissingAPI RED1faf83c
+0pass4fail retained; scope-beforearchiveIO extraction regression1RED→1GREEN.
+Sharedpublic methods retain all originalvalidation/dedup/correction/event/fees/
+outbox and commit semantics. Evidence publication1583322 includes50 rawfiles;
+all50 checked against originalruntime,copy and actualCOMMITTED blob SHA.
+No parentlivejobs; source/financial qualification not inferred from IP12 inputs.
+
+Next actualTask2 needs protected SOURCE approval0016 before any ownerbalance
+credit. Root approved dedicatedNOLOGIN sourceverifier, no memberships/closure/
+controlgrants, narrowfixedpathSECDEF. ActualProgramReportVerifier outsideUOW;
+sourceapprovalTX commits BEFORE ownerpostingTX (no nested cross-role mutex).
+Approval binds exactfill/unit/fees/economics/raw/allrivals/acceptedcontext/
+originalconsumption, neverbalancetotals/orderauthority. Raw/discrepancy approval
+cannot grant certaincashcredit. Ownercannotmintapproval by auditJSON; readers
+rederive approveddeltas once against actualnativefill/source/protectedcommand.
+Draft0016 onlyTHIS accountingtree for rootserialreview; existing0012bytes intact.
+Then programmeapply atomicfacts/postings/book/risks and mixedlegacyrefresh
+without oldq*priceassumption/secondcashledger. Full46/56 and C/D/E/F/G ACTIVE.
+Root integration_next owns rootC/host; activation_fresh advancedSIM0014;
+reports_fresh controllednativeadapter, no newspawn and no LIVE/paid/accountcalls.
+
 ## OP_E_ACTUAL_PROGRAM_ACCOUNTING_PARENT — 2026-10-30
 
 Parent/root solely owns THIS new binance-ope-program-accounting worktree/branch
