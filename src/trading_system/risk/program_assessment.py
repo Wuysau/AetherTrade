@@ -27,6 +27,7 @@ from .policy_checks import (exact_risk_arithmetic,account_policy_codes,protectio
 from .valuation import Valuation,nonnegative
 from .asset_capacity import amounts
 from .exposure import ExposureCalculator,ExposureMark,PendingExposure,ProposedExposure,WorkingExposure
+from trading_system.intents.semantic_validation import on_grid
 
 D=Decimal
 
@@ -427,7 +428,8 @@ def _protection(inputs,terms,plan,a,book,facts):
         require(proof.scope==terms.scope and proof.owner_strategy_id==terms.owner_strategy_id
             and proof.ownership_epoch==terms.ownership_epoch and proof.program_hash==plan.program_hash
             and proof.allocation_hash==digest(a) and proof.book_hash==digest(book)
-            and proof.maximum_quantity.unit==terms.target.unit and proof.maximum_quantity.value>=terms.target.value
+            and proof.maximum_quantity.unit==terms.target.unit
+            and proof.maximum_quantity.value>=max(terms.target.value,a.delta.actual.value.copy_abs())
             and proof.stop_price.value==terms.stop_price and proof.stop_price.currency==inputs.instrument.quote_currency
             and proof.stop_trigger==terms.stop_trigger and set(proof.node_ids)=={n.original.node_id for n in plan.nodes}
             and _valid_refs(proof.duty_refs,terms.scope,now) and set(proof.duty_refs)<=set(facts.evidence)
@@ -468,6 +470,7 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
         capital_assets[asset]=capital_assets.get(asset,D(0))-fee
         require(capital_assets[asset]>=0,'PROGRAM_RISK_FEE_RESERVATION_UNBOUND')
     capital=value(capital_assets)
+    _stop_validity(inputs,terms,plan,a,facts)
     report,initial=_portfolio(inputs,terms,plan,a,e,book,facts,bounds,valuation)
     protection_orders=_protection(inputs,terms,plan,a,book,facts)
     require(facts.maximum_live_orders>=len(plan.nodes)+sum(b.maximum_live_children for b in bounds.values())+protection_orders,
@@ -475,7 +478,12 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
     quote=inputs.instrument.quote_currency;mult=inputs.multiplier
     per_order=[];loss_quote=D(0)
     current_mark=next(m for m in inputs.marks if m.scope==terms.scope)
-    if not reducing and a.delta.actual.value:
+    if terms.target.value and reducing:
+        # A reduction leaves physical inventory at risk. Fees-only applies to a
+        # genuinely flat target, never to a still-open long/short residual.
+        adverse=current_mark.price.value-terms.stop_price if a.delta.target.value>0 else terms.stop_price-current_mark.price.value
+        loss_quote=terms.target.value*mult*(adverse+current_mark.price.value*facts.entry_slippage_bps/10000)
+    elif not reducing and a.delta.actual.value:
         require(terms.stop_price is not None and (terms.stop_price<current_mark.price.value
             if a.delta.actual.value>0 else terms.stop_price>current_mark.price.value),'INVALID_STOP')
         adverse=current_mark.price.value-terms.stop_price if a.delta.actual.value>0 else terms.stop_price-current_mark.price.value
@@ -519,3 +527,27 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
         financial_coverage=book.coverage,evidence=book.evidence)
     codes.extend(metric_binding_codes(terms,metrics,book,facts.market.ref,inputs.clock))
     return metrics
+
+
+def _stop_validity(inputs,terms,plan,a,facts):
+    if terms.target.value==0:return
+    stop=terms.stop_price;spec=inputs.instrument
+    require(isinstance(stop,D) and stop.is_finite() and stop>0 and on_grid(stop,spec.tick_size.value)
+        and facts.profile.price.contains(stop),'INVALID_STOP')
+    require(terms.stop_trigger in facts.allowed_stop_triggers,'STOP_TRIGGER_UNVERIFIED')
+    if terms.protection_policy=='NATIVE_REQUIRED':
+        if terms.scope.product==t.Product.SPOT:
+            native={'LAST':'LAST'}.get(terms.stop_trigger);capability='SPOT-STOP_LOSS';order_type='STOP_LOSS'
+        elif terms.scope.product==t.Product.USD_M_PERP:
+            native={'LAST':'CONTRACT_PRICE','MARK':'MARK_PRICE'}.get(terms.stop_trigger)
+            capability='USDM-STOP_MARKET';order_type='STOP_MARKET'
+        else:native=None;capability=None;order_type=None
+        require(native is not None and capability in facts.capabilities.capability_ids
+            and order_type in facts.profile.allowed_order_types,
+            'NATIVE_STOP_TRIGGER_UNSUPPORTED')
+    else:
+        require(terms.scope.product!=t.Product.USD_M_PERP and terms.stop_trigger in ('LAST','BID_ASK'),
+            'HOSTED_STOP_TRIGGER_UNSUPPORTED')
+    if a.delta.actual.value:
+        mark=next((m for m in inputs.marks if m.scope==terms.scope),None)
+        require(mark is not None and (stop<mark.price.value if a.delta.target.value>0 else stop>mark.price.value),'INVALID_STOP')
