@@ -81,6 +81,7 @@ class FieldName(StrEnum):
     QUANTITY = 'quantity'
     QUOTE_ORDER_QTY = 'quoteOrderQty'
     NOTIONAL = 'notional'
+    QUOTE_ASSET = 'quoteAsset'
     PRICE = 'price'
     STOP_PRICE = 'stopPrice'
     TRIGGER_PRICE = 'triggerPrice'
@@ -373,7 +374,7 @@ def _compile_node(node, program, rules, profile, allow_round_down, now):
     elif product == t.Product.USD_M_PERP:
         _usdm_fields(o, order_type, profile, rules, parameters, now)
     else:
-        _equity_fields(o, quantity, profile, parameters)
+        _equity_fields(o, quantity, profile, rules, parameters)
     if o.side == 'SELL' and o.price.kind == 'FIXED_LIMIT' and profile.execution_price_envelope is not None:
         require(Decimal(profile.execution_price_envelope.maximum) >= Decimal(o.price.value),
             'SELL_LIMIT_EXCEEDS_EXECUTION_UPPER_BOUND')
@@ -525,7 +526,7 @@ def _usdm_fields(o, order_type, profile, rules, parameters, now):
     parameters.append(_p(FieldName.STP, o.stp))
 
 
-def _equity_fields(o, quantity, profile, parameters):
+def _equity_fields(o, quantity, profile, rules, parameters):
     require(o.tokenize is False, 'REAL_EQUITY_REQUIRED')
     require(o.trigger.kind == 'NONE' and o.price.kind in ('MARKET', 'FIXED_LIMIT')
             and not o.post_only and o.iceberg_quantity is None and o.stp == 'NONE' and o.routing == 'STANDARD', 'EQUITY_MODIFIER_UNSUPPORTED')
@@ -542,6 +543,9 @@ def _equity_fields(o, quantity, profile, parameters):
             require(o.trading_session in ('EXTENDED', '24H'), 'FRACTIONAL_GTC_SESSION')
         parameters.append(_p(FieldName.TRADING_SESSION, o.trading_session))
     parameters.append(_p(FieldName.TOKENIZE, False))
+    # The venue defaults to USDC. The ledger's explicit quote asset must travel
+    # with the request; leaving it implicit could debit a different currency.
+    parameters.append(_p(FieldName.QUOTE_ASSET, rules.quote_asset))
 
 
 def _list_legs(program, nodes):
