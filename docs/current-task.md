@@ -1,5 +1,20 @@
 # Current task
 
+## OP_E_PARENT_MANAGEMENT_SLICE — 2026-10-29
+
+This independent binance-ope-management worktree is owned by parent/root only.
+Base8555201, functional496fcfd+2f1085c; root integration_next still solely writes
+binance-orders. Unsigned management adaptation and archived original-ID query
+observations implemented; actual218 component passes, no skips. Raw RED/GREEN,
+interrupted resource RED and verified copy manifest in
+`docs/evidence/binance-orders/op-e-management/`; boundaries in
+`docs/orders/OP-E-MANAGEMENT-ADAPTER.md`. Independent integrator review pending.
+No financial/native execution qualification; all46/56 targets retained and full
+OP-C/D/E/F/G goal remains ACTIVE. Do not merge public/main or enable TESTNET/LIVE.
+Command peer is fixing proven funding links/TTL repeated immutable replay and
+reviewing raw cross-table identity race. OPD peer implements actual isolated
+market matcher in binance-opd-matcher. This entry does not release root writer.
+
 ## OP_C_INTEGRATION_NEXT_SOLE_WRITER — 2026-10-29
 
 Parent root delegated sole write ownership of this binance-orders worktree to

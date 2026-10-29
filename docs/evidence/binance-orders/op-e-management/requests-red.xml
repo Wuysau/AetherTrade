@@ -1,0 +1,649 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="30" skipped="0" tests="30" time="0.669" timestamp="2026-10-29T17:21:22.572673+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.intents.test_management_requests" name="test_query_preserves_original_unknown_identity_and_service[BINANCE_SPOT_ORDINARY]" time="0.009"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.SPOT_ORDINARY: 'BINANCE_SPOT_ORDINARY'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_query_preserves_original_unknown_identity_and_service(namespace):
+        plan,k=setup(namespace)
+&gt;       requests=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_query_preserves_original_unknown_identity_and_service[BINANCE_SPOT_ORDER_LIST]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.SPOT_LIST: 'BINANCE_SPOT_ORDER_LIST'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_query_preserves_original_unknown_identity_and_service(namespace):
+        plan,k=setup(namespace)
+&gt;       requests=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_query_preserves_original_unknown_identity_and_service[BINANCE_USD_M_ORDINARY]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.USD_M_ORDINARY: 'BINANCE_USD_M_ORDINARY'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_query_preserves_original_unknown_identity_and_service(namespace):
+        plan,k=setup(namespace)
+&gt;       requests=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_query_preserves_original_unknown_identity_and_service[BINANCE_USD_M_CONDITIONAL_ALGO]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.USD_M_CONDITIONAL: 'BINANCE_USD_M_CONDITIONAL_ALGO'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_query_preserves_original_unknown_identity_and_service(namespace):
+        plan,k=setup(namespace)
+&gt;       requests=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_query_preserves_original_unknown_identity_and_service[BINANCE_SPOT_EXECUTION_ALGO]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.SPOT_EXECUTION: 'BINANCE_SPOT_EXECUTION_ALGO'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_query_preserves_original_unknown_identity_and_service(namespace):
+        plan,k=setup(namespace)
+&gt;       requests=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N', 'PAGINATION_AND_EXACT_ORIGINAL_ID_FILTER'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_query_preserves_original_unknown_identity_and_service[BINANCE_USD_M_EXECUTION_ALGO]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.USD_M_EXECUTION: 'BINANCE_USD_M_EXECUTION_ALGO'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_query_preserves_original_unknown_identity_and_service(namespace):
+        plan,k=setup(namespace)
+&gt;       requests=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N', 'PAGINATION_AND_EXACT_ORIGINAL_ID_FILTER'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_query_preserves_original_unknown_identity_and_service[BINANCE_REAL_EQUITY]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.EQUITY: 'BINANCE_REAL_EQUITY'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_query_preserves_original_unknown_identity_and_service(namespace):
+        plan,k=setup(namespace)
+&gt;       requests=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_cancel_retains_exact_owned_id_without_sending_or_releasing[BINANCE_SPOT_ORDINARY]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.SPOT_ORDINARY: 'BINANCE_SPOT_ORDINARY'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_cancel_retains_exact_owned_id_without_sending_or_releasing(namespace):
+        plan,k=setup(namespace,ManagementKind.CANCEL)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.CANCEL: 'CANCEL'&gt;, new_quantity=None, new...ICATION', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_cancel_retains_exact_owned_id_without_sending_or_releasing[BINANCE_SPOT_ORDER_LIST]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.SPOT_LIST: 'BINANCE_SPOT_ORDER_LIST'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_cancel_retains_exact_owned_id_without_sending_or_releasing(namespace):
+        plan,k=setup(namespace,ManagementKind.CANCEL)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.CANCEL: 'CANCEL'&gt;, new_quantity=None, new...ICATION', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_cancel_retains_exact_owned_id_without_sending_or_releasing[BINANCE_USD_M_ORDINARY]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.USD_M_ORDINARY: 'BINANCE_USD_M_ORDINARY'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_cancel_retains_exact_owned_id_without_sending_or_releasing(namespace):
+        plan,k=setup(namespace,ManagementKind.CANCEL)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.CANCEL: 'CANCEL'&gt;, new_quantity=None, new...ICATION', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_cancel_retains_exact_owned_id_without_sending_or_releasing[BINANCE_USD_M_CONDITIONAL_ALGO]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.USD_M_CONDITIONAL: 'BINANCE_USD_M_CONDITIONAL_ALGO'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_cancel_retains_exact_owned_id_without_sending_or_releasing(namespace):
+        plan,k=setup(namespace,ManagementKind.CANCEL)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.CANCEL: 'CANCEL'&gt;, new_quantity=None, new...ICATION', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_cancel_retains_exact_owned_id_without_sending_or_releasing[BINANCE_SPOT_EXECUTION_ALGO]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.SPOT_EXECUTION: 'BINANCE_SPOT_EXECUTION_ALGO'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_cancel_retains_exact_owned_id_without_sending_or_releasing(namespace):
+        plan,k=setup(namespace,ManagementKind.CANCEL)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.CANCEL: 'CANCEL'&gt;, new_quantity=None, new...ICATION', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_cancel_retains_exact_owned_id_without_sending_or_releasing[BINANCE_USD_M_EXECUTION_ALGO]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.USD_M_EXECUTION: 'BINANCE_USD_M_EXECUTION_ALGO'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_cancel_retains_exact_owned_id_without_sending_or_releasing(namespace):
+        plan,k=setup(namespace,ManagementKind.CANCEL)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.CANCEL: 'CANCEL'&gt;, new_quantity=None, new...ICATION', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_cancel_retains_exact_owned_id_without_sending_or_releasing[BINANCE_REAL_EQUITY]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.EQUITY: 'BINANCE_REAL_EQUITY'&gt;
+
+    @pytest.mark.parametrize('namespace',list(Namespace))
+    def test_cancel_retains_exact_owned_id_without_sending_or_releasing(namespace):
+        plan,k=setup(namespace,ManagementKind.CANCEL)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.CANCEL: 'CANCEL'&gt;, new_quantity=None, new...ICATION', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_every_management_parameter_survives_to_adapter[BINANCE_SPOT_ORDINARY-KEEP_PRIORITY]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.SPOT_ORDINARY: 'BINANCE_SPOT_ORDINARY'&gt;
+kind = &lt;ManagementKind.KEEP_PRIORITY: 'KEEP_PRIORITY'&gt;
+
+    @pytest.mark.parametrize('namespace,kind',[
+        (Namespace.SPOT_ORDINARY,ManagementKind.KEEP_PRIORITY),
+        (Namespace.USD_M_ORDINARY,ManagementKind.MODIFY_LIMIT),
+        (Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE),
+    ])
+    def test_every_management_parameter_survives_to_adapter(namespace,kind):
+        plan,k=setup(namespace,kind)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.KEEP_PRIORITY: 'KEEP_PRIORITY'&gt;, new_quan...FICATION', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='RETAINED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_every_management_parameter_survives_to_adapter[BINANCE_USD_M_ORDINARY-MODIFY_LIMIT]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.USD_M_ORDINARY: 'BINANCE_USD_M_ORDINARY'&gt;
+kind = &lt;ManagementKind.MODIFY_LIMIT: 'MODIFY_LIMIT'&gt;
+
+    @pytest.mark.parametrize('namespace,kind',[
+        (Namespace.SPOT_ORDINARY,ManagementKind.KEEP_PRIORITY),
+        (Namespace.USD_M_ORDINARY,ManagementKind.MODIFY_LIMIT),
+        (Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE),
+    ])
+    def test_every_management_parameter_survives_to_adapter(namespace,kind):
+        plan,k=setup(namespace,kind)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.MODIFY_LIMIT: 'MODIFY_LIMIT'&gt;, new_quanti..._REORDER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='REQUEUED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_every_management_parameter_survives_to_adapter[BINANCE_SPOT_ORDINARY-CANCEL_REPLACE]" time="0.020"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">namespace = &lt;Namespace.SPOT_ORDINARY: 'BINANCE_SPOT_ORDINARY'&gt;
+kind = &lt;ManagementKind.CANCEL_REPLACE: 'CANCEL_REPLACE'&gt;
+
+    @pytest.mark.parametrize('namespace,kind',[
+        (Namespace.SPOT_ORDINARY,ManagementKind.KEEP_PRIORITY),
+        (Namespace.USD_M_ORDINARY,ManagementKind.MODIFY_LIMIT),
+        (Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE),
+    ])
+    def test_every_management_parameter_survives_to_adapter(namespace,kind):
+        plan,k=setup(namespace,kind)
+&gt;       request,=materialize(plan,**k)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.CANCEL_REPLACE: 'CANCEL_REPLACE'&gt;, new_qu...NSE_VERIFICATION', 'UNKNOWN_QUERY_ORIGINAL_IDS'), priority_effect='REPLACED', independent_cancel_replace_outcomes=True)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_caller_cannot_substitute_route_parameters_or_compilation_claims[method]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'method'
+
+    @pytest.mark.parametrize('mutation',['method','endpoint','namespace','parameters','instruction_hash','target_hash','priority'])
+    def test_caller_cannot_substitute_route_parameters_or_compilation_claims(mutation):
+        from trading_system.intents.order_management_compilation import ManagementEndpoint,ManagementParameter,ManagementField
+        plan,k=setup()
+        request=plan.requests[0]
+        if mutation=='method':plan=replace(plan,requests=(replace(request,method='DELETE'),))
+        if mutation=='endpoint':plan=replace(plan,requests=(replace(request,endpoint=ManagementEndpoint.USD_M_ORDER),))
+        if mutation=='namespace':plan=replace(plan,requests=(replace(request,namespace=Namespace.USD_M_ORDINARY),))
+        if mutation=='parameters':plan=replace(plan,requests=(replace(request,parameters=(ManagementParameter(
+            name=ManagementField.ORIGINAL_CLIENT_ID,value='unrelated-client'),)),))
+        if mutation=='instruction_hash':plan=replace(plan,instruction_hash='a'*64)
+        if mutation=='target_hash':plan=replace(plan,target_hash='a'*64)
+        if mutation=='priority':plan=replace(plan,priority_effect='RETAINED')
+        with pytest.raises(ValueError,match='MANAGEMENT_COMPILATION_CHANGED'):
+&gt;           materialize(plan,**k)
+
+tests\intents\test_management_requests.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_caller_cannot_substitute_route_parameters_or_compilation_claims[endpoint]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'endpoint'
+
+    @pytest.mark.parametrize('mutation',['method','endpoint','namespace','parameters','instruction_hash','target_hash','priority'])
+    def test_caller_cannot_substitute_route_parameters_or_compilation_claims(mutation):
+        from trading_system.intents.order_management_compilation import ManagementEndpoint,ManagementParameter,ManagementField
+        plan,k=setup()
+        request=plan.requests[0]
+        if mutation=='method':plan=replace(plan,requests=(replace(request,method='DELETE'),))
+        if mutation=='endpoint':plan=replace(plan,requests=(replace(request,endpoint=ManagementEndpoint.USD_M_ORDER),))
+        if mutation=='namespace':plan=replace(plan,requests=(replace(request,namespace=Namespace.USD_M_ORDINARY),))
+        if mutation=='parameters':plan=replace(plan,requests=(replace(request,parameters=(ManagementParameter(
+            name=ManagementField.ORIGINAL_CLIENT_ID,value='unrelated-client'),)),))
+        if mutation=='instruction_hash':plan=replace(plan,instruction_hash='a'*64)
+        if mutation=='target_hash':plan=replace(plan,target_hash='a'*64)
+        if mutation=='priority':plan=replace(plan,priority_effect='RETAINED')
+        with pytest.raises(ValueError,match='MANAGEMENT_COMPILATION_CHANGED'):
+&gt;           materialize(plan,**k)
+
+tests\intents\test_management_requests.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_caller_cannot_substitute_route_parameters_or_compilation_claims[namespace]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'namespace'
+
+    @pytest.mark.parametrize('mutation',['method','endpoint','namespace','parameters','instruction_hash','target_hash','priority'])
+    def test_caller_cannot_substitute_route_parameters_or_compilation_claims(mutation):
+        from trading_system.intents.order_management_compilation import ManagementEndpoint,ManagementParameter,ManagementField
+        plan,k=setup()
+        request=plan.requests[0]
+        if mutation=='method':plan=replace(plan,requests=(replace(request,method='DELETE'),))
+        if mutation=='endpoint':plan=replace(plan,requests=(replace(request,endpoint=ManagementEndpoint.USD_M_ORDER),))
+        if mutation=='namespace':plan=replace(plan,requests=(replace(request,namespace=Namespace.USD_M_ORDINARY),))
+        if mutation=='parameters':plan=replace(plan,requests=(replace(request,parameters=(ManagementParameter(
+            name=ManagementField.ORIGINAL_CLIENT_ID,value='unrelated-client'),)),))
+        if mutation=='instruction_hash':plan=replace(plan,instruction_hash='a'*64)
+        if mutation=='target_hash':plan=replace(plan,target_hash='a'*64)
+        if mutation=='priority':plan=replace(plan,priority_effect='RETAINED')
+        with pytest.raises(ValueError,match='MANAGEMENT_COMPILATION_CHANGED'):
+&gt;           materialize(plan,**k)
+
+tests\intents\test_management_requests.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_caller_cannot_substitute_route_parameters_or_compilation_claims[parameters]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'parameters'
+
+    @pytest.mark.parametrize('mutation',['method','endpoint','namespace','parameters','instruction_hash','target_hash','priority'])
+    def test_caller_cannot_substitute_route_parameters_or_compilation_claims(mutation):
+        from trading_system.intents.order_management_compilation import ManagementEndpoint,ManagementParameter,ManagementField
+        plan,k=setup()
+        request=plan.requests[0]
+        if mutation=='method':plan=replace(plan,requests=(replace(request,method='DELETE'),))
+        if mutation=='endpoint':plan=replace(plan,requests=(replace(request,endpoint=ManagementEndpoint.USD_M_ORDER),))
+        if mutation=='namespace':plan=replace(plan,requests=(replace(request,namespace=Namespace.USD_M_ORDINARY),))
+        if mutation=='parameters':plan=replace(plan,requests=(replace(request,parameters=(ManagementParameter(
+            name=ManagementField.ORIGINAL_CLIENT_ID,value='unrelated-client'),)),))
+        if mutation=='instruction_hash':plan=replace(plan,instruction_hash='a'*64)
+        if mutation=='target_hash':plan=replace(plan,target_hash='a'*64)
+        if mutation=='priority':plan=replace(plan,priority_effect='RETAINED')
+        with pytest.raises(ValueError,match='MANAGEMENT_COMPILATION_CHANGED'):
+&gt;           materialize(plan,**k)
+
+tests\intents\test_management_requests.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_caller_cannot_substitute_route_parameters_or_compilation_claims[instruction_hash]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'instruction_hash'
+
+    @pytest.mark.parametrize('mutation',['method','endpoint','namespace','parameters','instruction_hash','target_hash','priority'])
+    def test_caller_cannot_substitute_route_parameters_or_compilation_claims(mutation):
+        from trading_system.intents.order_management_compilation import ManagementEndpoint,ManagementParameter,ManagementField
+        plan,k=setup()
+        request=plan.requests[0]
+        if mutation=='method':plan=replace(plan,requests=(replace(request,method='DELETE'),))
+        if mutation=='endpoint':plan=replace(plan,requests=(replace(request,endpoint=ManagementEndpoint.USD_M_ORDER),))
+        if mutation=='namespace':plan=replace(plan,requests=(replace(request,namespace=Namespace.USD_M_ORDINARY),))
+        if mutation=='parameters':plan=replace(plan,requests=(replace(request,parameters=(ManagementParameter(
+            name=ManagementField.ORIGINAL_CLIENT_ID,value='unrelated-client'),)),))
+        if mutation=='instruction_hash':plan=replace(plan,instruction_hash='a'*64)
+        if mutation=='target_hash':plan=replace(plan,target_hash='a'*64)
+        if mutation=='priority':plan=replace(plan,priority_effect='RETAINED')
+        with pytest.raises(ValueError,match='MANAGEMENT_COMPILATION_CHANGED'):
+&gt;           materialize(plan,**k)
+
+tests\intents\test_management_requests.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_caller_cannot_substitute_route_parameters_or_compilation_claims[target_hash]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'target_hash'
+
+    @pytest.mark.parametrize('mutation',['method','endpoint','namespace','parameters','instruction_hash','target_hash','priority'])
+    def test_caller_cannot_substitute_route_parameters_or_compilation_claims(mutation):
+        from trading_system.intents.order_management_compilation import ManagementEndpoint,ManagementParameter,ManagementField
+        plan,k=setup()
+        request=plan.requests[0]
+        if mutation=='method':plan=replace(plan,requests=(replace(request,method='DELETE'),))
+        if mutation=='endpoint':plan=replace(plan,requests=(replace(request,endpoint=ManagementEndpoint.USD_M_ORDER),))
+        if mutation=='namespace':plan=replace(plan,requests=(replace(request,namespace=Namespace.USD_M_ORDINARY),))
+        if mutation=='parameters':plan=replace(plan,requests=(replace(request,parameters=(ManagementParameter(
+            name=ManagementField.ORIGINAL_CLIENT_ID,value='unrelated-client'),)),))
+        if mutation=='instruction_hash':plan=replace(plan,instruction_hash='a'*64)
+        if mutation=='target_hash':plan=replace(plan,target_hash='a'*64)
+        if mutation=='priority':plan=replace(plan,priority_effect='RETAINED')
+        with pytest.raises(ValueError,match='MANAGEMENT_COMPILATION_CHANGED'):
+&gt;           materialize(plan,**k)
+
+tests\intents\test_management_requests.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_caller_cannot_substitute_route_parameters_or_compilation_claims[priority]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'priority'
+
+    @pytest.mark.parametrize('mutation',['method','endpoint','namespace','parameters','instruction_hash','target_hash','priority'])
+    def test_caller_cannot_substitute_route_parameters_or_compilation_claims(mutation):
+        from trading_system.intents.order_management_compilation import ManagementEndpoint,ManagementParameter,ManagementField
+        plan,k=setup()
+        request=plan.requests[0]
+        if mutation=='method':plan=replace(plan,requests=(replace(request,method='DELETE'),))
+        if mutation=='endpoint':plan=replace(plan,requests=(replace(request,endpoint=ManagementEndpoint.USD_M_ORDER),))
+        if mutation=='namespace':plan=replace(plan,requests=(replace(request,namespace=Namespace.USD_M_ORDINARY),))
+        if mutation=='parameters':plan=replace(plan,requests=(replace(request,parameters=(ManagementParameter(
+            name=ManagementField.ORIGINAL_CLIENT_ID,value='unrelated-client'),)),))
+        if mutation=='instruction_hash':plan=replace(plan,instruction_hash='a'*64)
+        if mutation=='target_hash':plan=replace(plan,target_hash='a'*64)
+        if mutation=='priority':plan=replace(plan,priority_effect='RETAINED')
+        with pytest.raises(ValueError,match='MANAGEMENT_COMPILATION_CHANGED'):
+&gt;           materialize(plan,**k)
+
+tests\intents\test_management_requests.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...ON_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='RETAINED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_current_independent_facts_are_required[identity]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'identity'
+
+    @pytest.mark.parametrize('mutation',['identity','owner','epoch','stale','profile'])
+    def test_current_independent_facts_are_required(mutation):
+        plan,k=setup()
+        if mutation=='identity':k['current_target']=replace(k['current_target'],client_id='another-client')
+        if mutation=='owner':k['current_target']=replace(k['current_target'],owner_strategy_id='another-owner')
+        if mutation=='epoch':k['current_target']=replace(k['current_target'],execution_epoch=99)
+        if mutation=='stale':k['now']=k['current_target'].valid_until
+        if mutation=='profile':k['profile']=replace(k['profile'],venue_symbol='UNRELATED')
+&gt;       with pytest.raises(ValueError):materialize(plan,**k)
+                                       ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_current_independent_facts_are_required[owner]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'owner'
+
+    @pytest.mark.parametrize('mutation',['identity','owner','epoch','stale','profile'])
+    def test_current_independent_facts_are_required(mutation):
+        plan,k=setup()
+        if mutation=='identity':k['current_target']=replace(k['current_target'],client_id='another-client')
+        if mutation=='owner':k['current_target']=replace(k['current_target'],owner_strategy_id='another-owner')
+        if mutation=='epoch':k['current_target']=replace(k['current_target'],execution_epoch=99)
+        if mutation=='stale':k['now']=k['current_target'].valid_until
+        if mutation=='profile':k['profile']=replace(k['profile'],venue_symbol='UNRELATED')
+&gt;       with pytest.raises(ValueError):materialize(plan,**k)
+                                       ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_current_independent_facts_are_required[epoch]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'epoch'
+
+    @pytest.mark.parametrize('mutation',['identity','owner','epoch','stale','profile'])
+    def test_current_independent_facts_are_required(mutation):
+        plan,k=setup()
+        if mutation=='identity':k['current_target']=replace(k['current_target'],client_id='another-client')
+        if mutation=='owner':k['current_target']=replace(k['current_target'],owner_strategy_id='another-owner')
+        if mutation=='epoch':k['current_target']=replace(k['current_target'],execution_epoch=99)
+        if mutation=='stale':k['now']=k['current_target'].valid_until
+        if mutation=='profile':k['profile']=replace(k['profile'],venue_symbol='UNRELATED')
+&gt;       with pytest.raises(ValueError):materialize(plan,**k)
+                                       ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_current_independent_facts_are_required[stale]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'stale'
+
+    @pytest.mark.parametrize('mutation',['identity','owner','epoch','stale','profile'])
+    def test_current_independent_facts_are_required(mutation):
+        plan,k=setup()
+        if mutation=='identity':k['current_target']=replace(k['current_target'],client_id='another-client')
+        if mutation=='owner':k['current_target']=replace(k['current_target'],owner_strategy_id='another-owner')
+        if mutation=='epoch':k['current_target']=replace(k['current_target'],execution_epoch=99)
+        if mutation=='stale':k['now']=k['current_target'].valid_until
+        if mutation=='profile':k['profile']=replace(k['profile'],venue_symbol='UNRELATED')
+&gt;       with pytest.raises(ValueError):materialize(plan,**k)
+                                       ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T11:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_current_independent_facts_are_required[profile]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">mutation = 'profile'
+
+    @pytest.mark.parametrize('mutation',['identity','owner','epoch','stale','profile'])
+    def test_current_independent_facts_are_required(mutation):
+        plan,k=setup()
+        if mutation=='identity':k['current_target']=replace(k['current_target'],client_id='another-client')
+        if mutation=='owner':k['current_target']=replace(k['current_target'],owner_strategy_id='another-owner')
+        if mutation=='epoch':k['current_target']=replace(k['current_target'],execution_epoch=99)
+        if mutation=='stale':k['now']=k['current_target'].valid_until
+        if mutation=='profile':k['profile']=replace(k['profile'],venue_symbol='UNRELATED')
+&gt;       with pytest.raises(ValueError):materialize(plan,**k)
+                                       ^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_management_requests.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.QUERY: 'QUERY'&gt;, new_quantity=None, new_p...N_OWNER', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase><testcase classname="tests.intents.test_management_requests" name="test_unknown_command_cannot_be_materialized_as_a_fresh_management_write" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.management_requests'">def test_unknown_command_cannot_be_materialized_as_a_fresh_management_write():
+        plan,k=setup(kind=ManagementKind.CANCEL)
+        plan=replace(plan,command=replace(plan.command,state='UNKNOWN'))
+        with pytest.raises(ValueError,match='MANAGEMENT_COMMAND_BINDING_MISMATCH'):
+&gt;           materialize(plan,**k)
+
+tests\intents\test_management_requests.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plan = ManagementCompilation(instruction=ManagementInstruction(kind=&lt;ManagementKind.CANCEL: 'CANCEL'&gt;, new_quantity=None, new...ICATION', 'ORIGINAL_ID_RESPONSE_VERIFICATION'), priority_effect='UNCHANGED', independent_cancel_replace_outcomes=False)
+kwargs = {'current_target': OwnedTargetSnapshot(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isol...ment_uid='paper:BTCUSDT', venue_leg='BOTH'), 'now': '2026-10-28T10:00:00Z', 'expected_owner_strategy_id': 'owner', ...}
+
+    def materialize(plan,**kwargs):
+&gt;       from trading_system.execution.management_requests import materialize_management
+E       ModuleNotFoundError: No module named 'trading_system.execution.management_requests'
+
+tests\intents\test_management_requests.py:40: ModuleNotFoundError</failure></testcase></testsuite></testsuites>

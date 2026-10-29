@@ -1,0 +1,32 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_ test_caller_cannot_remove_history_endpoint_from_the_expected_scan[BINANCE_SPOT_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...E439EBA0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-337/test_caller_cannot_remove_hist0'))
+
+    def test_caller_cannot_remove_history_endpoint_from_the_expected_scan(reader):
+        from trading_system.engine.nautilus.order_query import resolve_original_query
+        requests,bridge,path=reader
+        page=archive(reader,rows=[])
+>       with pytest.raises(ValueError,match='QUERY_ENDPOINT_SET_REQUIRED'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\intents\test_order_query.py:91: Failed
+_ test_caller_cannot_remove_history_endpoint_from_the_expected_scan[BINANCE_USD_M_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...E44BF750>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-337/test_caller_cannot_remove_hist1'))
+
+    def test_caller_cannot_remove_history_endpoint_from_the_expected_scan(reader):
+        from trading_system.engine.nautilus.order_query import resolve_original_query
+        requests,bridge,path=reader
+        page=archive(reader,rows=[])
+>       with pytest.raises(ValueError,match='QUERY_ENDPOINT_SET_REQUIRED'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\intents\test_order_query.py:91: Failed
+=========================== short test summary info ===========================
+FAILED tests/intents/test_order_query.py::test_caller_cannot_remove_history_endpoint_from_the_expected_scan[BINANCE_SPOT_EXECUTION_ALGO]
+FAILED tests/intents/test_order_query.py::test_caller_cannot_remove_history_endpoint_from_the_expected_scan[BINANCE_USD_M_EXECUTION_ALGO]
+2 failed, 45 deselected in 0.51s
