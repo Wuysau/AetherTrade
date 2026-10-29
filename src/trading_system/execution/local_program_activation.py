@@ -6,7 +6,6 @@ owner audit IDs, callbacks and dataclass construction alone grant nothing.
 """
 from dataclasses import dataclass
 from decimal import Decimal,localcontext,Inexact,Rounded
-from datetime import timedelta
 from typing import Literal
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload,utc_timestamp
@@ -185,6 +184,15 @@ class _ActivationWriter:
         for index,state in enumerate(states):tx._append('audit_events',STATE_PREFIX+activation_id,state,index)
         tx._append('audit_events',ACTIVATION_PREFIX+activation_id,record,0)
         require(read_local_activation(tx,activation_id)==record,'LOCAL_ACTIVATION_ATTACHMENT_FAILED')
+        # Source replay is bounded work but still consumes time. Poll again
+        # after physical attachment and before returning to the outer commit
+        # barrier; an expired activation must roll back its financial writes.
+        current=current_program_bundle_witness(tx,bundle)
+        final_clock=load_clock(tx)
+        require(final_clock is not None and final_clock.clock_health=='HEALTHY'
+            and type(final_clock.monotonic_ns) is int and final_clock.monotonic_ns>=clock.monotonic_ns
+            and utc_timestamp(clock.utc_now)<=utc_timestamp(final_clock.utc_now)<utc_timestamp(current.expires_at),
+            'LOCAL_CURRENT_CLOCK_REQUIRED')
         return LocalActivationReceipt(activation_id=activation_id,financial_intent_id=record.financial_intent_id,bundle_hash=record.bundle_hash)
 
 
