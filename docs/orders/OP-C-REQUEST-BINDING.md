@@ -43,3 +43,13 @@ Creation binding tests26 passed together with equity quote cases; current broad
 contracts/intents/unit1258 passed. Raw scalar values, booleans, IDs, endpoints and
 batch items roundtrip without credentials, signing timestamps or HTTP transport.
 Independent review is pending; SQL/permit/adapter integration remains unfinished.
+
+Independent review then reproduced two unsigned-binding defects: coherent
+request/ID hashes could retain another command's generated IDs, and Equity wire
+quoteAsset could disagree with the node/wallet currency. Two actual RED cases
+failed before correction. The frozen2026-10-29 assignment is now checked against
+the original durable command identity, and Equity wire quote must match the
+compiled notional asset plus independently supplied wallet selection. Stored
+IDs are never replaced on recovery.28 request/quote cases pass after correction.
+These are integrity guards; actual financial/source qualification remains the
+execution owner's responsibility before any MAY boundary or transport.

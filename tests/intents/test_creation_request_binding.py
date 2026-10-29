@@ -131,3 +131,22 @@ def test_unsigned_request_roundtrip_keeps_every_field_and_identity():
     restored=decode(VenueCreationRequest,encode(request))
     assert restored==request and restored.form_parameters()==request.form_parameters()
     assert verify_creation(restored,plan,profile,ids)==verify_creation(request,plan,profile,ids)
+
+
+def test_equity_wire_quote_cannot_disagree_with_reserved_wallet_currency():
+    from trading_system.intents.program_compilation import FieldName
+    plan,profile=ordinary(t.Product.US_EQUITY);r=plan.requests[0]
+    changed=replace(plan,requests=(replace(r,parameters=tuple(replace(p,value='OTHER_QUOTE')
+        if p.name==FieldName.QUOTE_ASSET else p for p in r.parameters)),))
+    selection=EquityWalletSelection(scope=plan.scope,profile_hash=plan.profile_hash,
+        quote_asset=plan.nodes[0].notional_asset,wallet='MAIN',evidence=profile.evidence[0],valid_until=profile.valid_until)
+    with pytest.raises(ValueError,match='CREATION_QUOTE_ASSET_BINDING_MISMATCH'):
+        materialize_creation(changed,0,profile,assign_client_ids(changed,0,'currency-command'),
+            wallet_selection=selection,now=profile.as_of)
+
+
+def test_generated_client_ids_cannot_be_rebound_to_a_different_durable_command():
+    plan,profile=ordinary();original=assign_client_ids(plan,0,'original-command')
+    reassigned=replace(original,command_id='different-command')
+    with pytest.raises(ValueError,match='CREATION_CLIENT_ASSIGNMENT_CHANGED'):
+        materialize_creation(plan,0,profile,reassigned)

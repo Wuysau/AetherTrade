@@ -149,6 +149,9 @@ def materialize_creation(plan,index,profile,ids,*,wallet_selection=None,now=None
     require(type(ids) is AssignedClientIds and ids.compilation_hash==digest(plan) and ids.request_index==index,
         'CREATION_ID_BINDING_CHANGED')
     require(type(ids.command_id) is str and bool(ids.command_id),'CREATION_COMMAND_ID_REQUIRED')
+    # The 2026-10-29 assignment scheme is frozen. This verifies stored identity
+    # provenance; recovery never replaces those IDs or creates a new attempt.
+    require(ids==assign_client_ids(plan,index,ids.command_id),'CREATION_CLIENT_ASSIGNMENT_CHANGED')
     values=tuple(m.client_id for m in ids.members)+((ids.parent_client_id,) if ids.parent_client_id is not None else ())
     require(values and len(set(values))==len(values)
         and all(type(v) is str and re.fullmatch('[A-Za-z0-9_-]{32}',v) for v in values),
@@ -164,6 +167,9 @@ def materialize_creation(plan,index,profile,ids,*,wallet_selection=None,now=None
     if request.operation!=Operation.BATCH:
         require(tuple(f.value for f in fields if f.name=='symbol')==(profile.venue_symbol,),
             'CREATION_SYMBOL_PROFILE_MISMATCH')
+    if request.namespace==Namespace.EQUITY:
+        require(len(nodes)==1 and tuple(f.value for f in fields if f.name=='quoteAsset')==(nodes[0].notional_asset,),
+            'CREATION_QUOTE_ASSET_BINDING_MISMATCH')
     if request.operation==Operation.BATCH:
         require(request.namespace==Namespace.USD_M_ORDINARY and not fields,'BATCH_ROUTE_FIELDS_INVALID')
         batch=tuple(BatchOrderFields(node_id=n.original.node_id,fields=_append(
