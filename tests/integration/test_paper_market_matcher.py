@@ -366,7 +366,8 @@ def test_disabled_actual_source_fence_after_consume_blocks_sim_side_effect(datab
 
 def test_equity_session_is_explicitly_unqualified_until_real_v2_calendar(database,venue,tmp_path):
     c=case(database,venue,tmp_path,product=t.Product.US_EQUITY,actual='1',target='0',quantity='1',side='SELL',
-        financial_capacity=(t.Money(currency='USD',amount=D('1000000')),t.Money(currency='AAPL',amount=D('10'))))
+        financial_capacity=(t.Money(currency='USD',amount=D('1000000')),t.Money(currency='AAPL',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USD',amount=D(0)),t.Money(currency='AAPL',amount=D(0))))
     assert c.request.scope.product==t.Product.US_EQUITY
     assert c.bundle.archive.compilation.nodes[0].original.order.trading_session=='24H'
     with pytest.raises(ValueError,match='PAPER_EQUITY_SESSION_MODEL_REQUIRED'):submit(c)

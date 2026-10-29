@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,financial_capacity=None,**risk_options):
+def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,financial_capacity=None,financial_buffer=None,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -128,7 +128,7 @@ def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,n
             protection=tuple(replace(p,allocation_hash=digest(c.allocation),book_hash=digest(book)) for p in c.facts.protection))
         a=replace(archive_from_case(c),source=actual_source)
         return ProgramFinancialInputs(archive=a,authorization=binding,group_capacity=capacity,
-            strategy_capacity=capacity,buffer=(t.Money(currency='USDT',amount=D(0)),))
+            strategy_capacity=capacity,buffer=financial_buffer if financial_buffer is not None else (t.Money(currency='USDT',amount=D(0)),))
     def qualify(tx,a,clock):
         return ProgramFinancialQualification(scope=scope,compilation_hash=digest(a.compilation),
             capabilities_hash=a.compilation.capabilities_hash,rules_hash=a.compilation.rules_hash,
