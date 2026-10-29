@@ -110,3 +110,39 @@ def test_public_local_attachment_failure_rolls_back_actual_activation_and_financ
         assert tx.intents.get(c.record.intent_id) is None
         assert tx.reservations.for_intent(c.record.intent_id)==()
         assert local.read_local_activation(tx,'local-program:'+c.record.intent_id) is None
+
+
+@pytest.mark.parametrize('phase',['mark','consume'])
+def test_real_zero_asset_local_unknown_cannot_be_bypassed_by_external_current_boundary(database,phase):
+    from trading_system.contracts import types as t
+    from trading_system.execution.local_program_activation import read_local_activation
+    from trading_system.storage.local_programs import STATE_PREFIX
+    from trading_system.risk.reservation_repository import ReservationRepository
+    from trading_system.risk.program_exposure import derive_program_exposure
+    from integration.test_program_commands_postgres import boundary
+    c=real_case(database);external=public_service(c).admit(c.record.proposal,c.record.context,c.c.plan)
+    command_id=external.attachment.command_ids[0]
+    local=real_case(database,collateral_group_id=c.c.terms.collateral_group_id,
+        template='TWAP',mode='LOCAL_SYNTHETIC',product=t.Product.USD_M_PERP,
+        actual='1',target='0',quantity='1',side='SELL',reduce_only=True)
+    # The actual current source reader includes the existing external hold;
+    # rebuild real exposure/assessment rather than injecting an ALLOW.
+    with local.owner.transaction(local.scope) as tx:holds=ReservationRepository(tx).group()
+    budget=replace(local.c.facts.budget_facts,reservations=holds)
+    local.c.facts=replace(local.c.facts,budget_facts=budget)
+    local.c.exposure=derive_program_exposure(local.c.plan,budget,now=local.c.facts.inputs.clock.utc_now)
+    receipt=public_service(local).admit(local.record.proposal,local.record.context,local.c.plan)
+    with local.owner.transaction(local.scope) as tx:
+        record=read_local_activation(tx,receipt.attachment.activation_id)
+        assert tx.reservations.for_intent(local.record.intent_id)==()
+    gate=boundary(c)
+    permit=gate.mark_may_have_sent(command_id,lease(c)) if phase=='consume' else None
+    with local.owner.transaction(local.scope) as tx:
+        tx._append('audit_events',STATE_PREFIX+record.activation_id,
+            replace(record.state,sequence=4,status='SUBMIT_UNKNOWN'),3)
+    with pytest.raises(ValueError,match='LOCAL_PROGRAM'):
+        if phase=='mark':gate.mark_may_have_sent(command_id,lease(c))
+        else:gate.consume(permit,lease(c))
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchone()==(0,)

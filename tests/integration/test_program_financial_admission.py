@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,**risk_options):
+def real_case(dsn,*,qualified=True,collateral_group_id=None,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -56,7 +56,7 @@ def real_case(dsn,*,qualified=True,**risk_options):
         return p,r,c,k
     with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs),patch.object(exposure_module,'inputs',scoped_inputs):
         c=risk_module.risk_case(**risk_options)
-    group='program-group-'+suffix
+    group=collateral_group_id or 'program-group-'+suffix
     tf=replace(c.facts.target_facts,collateral_group_id=group)
     budget=replace(c.facts.budget_facts,collateral_group_id=group)
     c.terms=replace(c.terms,collateral_group_id=group);c.policy=replace(c.policy,collateral_group_id=group)
@@ -80,7 +80,7 @@ def real_case(dsn,*,qualified=True,**risk_options):
         return UnitOfWork(connect)
     owner,intake=role_uow('ledger_owner'),role_uow('ledger_intake')
     with psycopg.connect(dsn) as db:
-        db.execute('INSERT INTO ledger.collateral_mutex VALUES(%s,%s)',(scope.environment.value,group))
+        db.execute('INSERT INTO ledger.collateral_mutex VALUES(%s,%s) ON CONFLICT DO NOTHING',(scope.environment.value,group))
         db.execute('INSERT INTO ledger.account_bindings VALUES(%s,%s,%s,%s,NULL)',
             (scope.environment.value,scope.venue_account_id,scope.product.value,group))
         db.execute('INSERT INTO ledger.active_owners VALUES(%s,%s,%s,%s,%s,%s,%s,%s)',
