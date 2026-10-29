@@ -28,6 +28,8 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('order-closure', '03', 'tests/integration/test_order_program_closure.py'),
+    ('order-financial-credit', '03', 'tests/integration/test_order_program_financial_credit.py'),
     ('order-admission', '07', 'tests/integration/test_order_program_admission.py'),
     ('order-programs', '03', 'tests/integration/test_order_programs.py'),
     ('ledger', '03', 'tests/integration/test_ledger_transactions.py'),

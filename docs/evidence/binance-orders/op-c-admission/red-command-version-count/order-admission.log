@@ -1,0 +1,13 @@
+..F.......                                                               [100%]
+=================================== FAILURES ===================================
+________ test_distinct_target_cannot_duplicate_working_or_unknown[True] ________
+tests/integration/test_order_program_admission.py:146: in test_distinct_target_cannot_duplicate_working_or_unknown
+    assert c.count('commands') == c.count('intents') == 1
+E   AssertionError: assert 2 == 1
+E    +  where 2 = count('commands')
+E    +    where count = <integration.support_ip_07.ReservationCase object at 0x7e01cdd3de50>.count
+E    +  and   1 = count('intents')
+E    +    where count = <integration.support_ip_07.ReservationCase object at 0x7e01cdd3de50>.count
+=========================== short test summary info ============================
+FAILED tests/integration/test_order_program_admission.py::test_distinct_target_cannot_duplicate_working_or_unknown[True]
+1 failed, 9 passed in 2.56s
