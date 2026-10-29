@@ -303,3 +303,33 @@ def test_v3_unknown_cannot_regress_to_ready_or_local_terminal(database):
                 'VALUES(%s,%s,4,%s::jsonb,%s)',(scope_id(c.scope),w.command_id,canonical_json(false_terminal),tx.transaction_id))
     with c.owner.transaction(c.scope) as tx:
         assert application_write_obligations(tx)[0].current.state=='UNKNOWN'
+
+def test_migration_preserves_actual_v2_history_hash_and_legacy_unknown(database):
+    from integration.support_ip_03 import LedgerScenario
+    from unit.test_application_write_reader import write_case
+    from trading_system.storage.order_programs import OrderProgramRepository
+    from trading_system.contracts.order_codec import VersionedOrderCodec
+    from trading_system.storage.models import MissingEvidence
+    s=LedgerScenario(database)
+    with s.uow.transaction(s.scope) as tx:
+        s.write_bundle(tx)
+        tx.commands.mark_may_have_sent(tx,s.command.command_id,'DURABLE_READY')
+    w,p=write_case(s.scope,'legacy-v2-'+uuid4().hex)
+    w=replace(w,owner_strategy_id=s.intent.owner_strategy_id)
+    original_hash=VersionedOrderCodec().hash('application-write',w)
+    with s.uow.transaction(s.scope) as tx:
+        old=OrderProgramRepository(tx);old.save_program(p);old.create_write(w)
+    old_lease=t.OwnerLease(shard=t.ExecutionShard(environment=s.scope.environment,venue_account_id=s.scope.venue_account_id,
+        product=s.scope.product,node_id='isolated-old-owner',execution_epoch=1),instance_id='old-instance',
+        expires_at='2099-01-01T00:00:00Z',deadline_monotonic_ns=10**18)
+    with pytest.raises(MissingEvidence,match='ORDER_COMPILER_RISK_ADMISSION_NOT_IMPLEMENTED'):
+        with s.uow.transaction(s.scope) as tx:OrderProgramRepository(tx).mark_may_have_sent(w.command_id,old_lease)
+    with s.uow.transaction(s.scope) as tx:
+        tx._append('order_writes_v2',w.command_id,replace(w,state='MAY_HAVE_SENT',durable_record_ref='original-v2-boundary'),1)
+    with s.uow.transaction(s.scope) as tx:
+        legacy=tx.commands.get(s.command.command_id)
+        assert legacy.state=='MAY_HAVE_SENT' and legacy.payload_hash==s.command.payload_hash
+        assert legacy.venue_client_order_id==s.command.venue_client_order_id
+        obligation,=application_write_obligations(tx)
+        assert obligation.unresolved and obligation.original==w
+        assert VersionedOrderCodec().hash('application-write',obligation.original)==original_hash
