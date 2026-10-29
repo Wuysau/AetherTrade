@@ -30,3 +30,20 @@ A red case reproduced0.080 rather than0.049 on a0.001 synthetic step for4000 at
 81490; after correction294 target/compiler/wire tests pass. This is not a new
 execution path or automatic migration of old accepted/UNKNOWN records. Existing
 absolute intents keep their original values and hashes.
+
+## Capability feature derivation — 2026-10-29
+
+intents/order_features.py derives requested capability IDs from typed programs
+for Spot, USD-M and real Equity. It distinguishes conditional type aliases,
+trailing units, native list/execution algorithms, modifiers, quantity, TIF and
+execution price rules. It grants no qualification or order authority. Spot
+trailing PERCENT and market post-only were reproduced red then rejected; six
+feature tests plus target/compiler regressions total80 passes.
+
+Atomic admission integration is delegated to agent /root/opc_atomic_admission
+in TradingHandoff/AutoDispatchWorktrees/binance-opc-admission, branch
+codex/binance-opc-admission, starting91ec059. It owns new ingress/admission
+sidecar modules and minimal transactional ProposalIngress/dispatcher hooks.
+Root owns feature derivation. Do not duplicate that agent's changes; review and
+integrate its commit, then run actual isolated PostgreSQL admission tests.
+Persistent goal remains active through OP-G.
