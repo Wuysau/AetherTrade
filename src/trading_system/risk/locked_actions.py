@@ -105,6 +105,12 @@ class LockedActionVerifier:
             allowed &= ACTIONS.get(lock.permission, frozenset())
         if not allowed & {'EXIT', 'MANAGE'} or self.read_proof is None:
             return None
+        from trading_system.storage.application_writes import application_write_obligations
+        # No approved quantity allocation/resolution exists for program writes.
+        # They cannot share reducible quantity with a legacy queued reduction,
+        # even when the two command namespaces happen to use the same text ID.
+        if application_write_obligations(tx, scope_only=True):
+            return None
         # A second queued reduction could otherwise spend the same reducible
         # position before either command has produced a working-order event.
         queued = tx.execute(
