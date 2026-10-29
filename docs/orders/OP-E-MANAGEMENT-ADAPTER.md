@@ -54,6 +54,15 @@ It includes new management/query, old management, exact Nautilus candidate guard
 and existing native bridge/archive tests. Raw output/JUnit/resource metadata and
 SHA256 copy maps are in `docs/evidence/binance-orders/op-e-management/`.
 
+Independent integrator review of496fcfd/2f1085c found no confirmed blocking issue
+within this unsigned/read-only scope. Its successful-envelope evidence request
+was followed up against all seven official query response sections; factual
+notes are retained in `query-envelope-review.json`. This remains documentation
+evidence, not authenticated packet or native qualification. A further three
+position-leg counterexamples failed before correction; mismatched USD-M legs now
+yield CONFLICT and unproven legs INCOMPLETE. Latest regression **221 passed**,
+exit0,3.82 seconds, with no skips.
+
 One initial test collection error from reusing sibling fixtures was observed in
 the tool transcript before relocating the new test to `tests/intents`. Its file
 was superseded before the41-case RED; no original raw-file preservation is

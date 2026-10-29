@@ -3,12 +3,12 @@
 ## OP_E_PARENT_MANAGEMENT_SLICE — 2026-10-29
 
 This independent binance-ope-management worktree is owned by parent/root only.
-Base8555201, functional496fcfd+2f1085c; root integration_next still solely writes
+Base8555201, functional496fcfd+2f1085c+08de5e7; root integration_next still solely writes
 binance-orders. Unsigned management adaptation and archived original-ID query
-observations implemented; actual218 component passes, no skips. Raw RED/GREEN,
+observations implemented; actual221 component passes, no skips. Raw RED/GREEN,
 interrupted resource RED and verified copy manifest in
 `docs/evidence/binance-orders/op-e-management/`; boundaries in
-`docs/orders/OP-E-MANAGEMENT-ADAPTER.md`. Independent integrator review pending.
+`docs/orders/OP-E-MANAGEMENT-ADAPTER.md`. Independent initial-slice review found no confirmed blocking issue; followup leg fix passed.
 No financial/native execution qualification; all46/56 targets retained and full
 OP-C/D/E/F/G goal remains ACTIVE. Do not merge public/main or enable TESTNET/LIVE.
 Command peer is fixing proven funding links/TTL repeated immutable replay and
