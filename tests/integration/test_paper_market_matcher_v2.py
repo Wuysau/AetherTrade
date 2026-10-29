@@ -116,7 +116,8 @@ def test_primary_peg_latches_placement_price_without_rewriting_native_spec(datab
     matcher.apply_market_event(snapshot);submit(c)
     report=c.engine.query_creation(c.write.command_id)
     assert not report.fills and report.orders[0].runtime.effective_limit==D('81488')
-    moved=replace(event(c,sequence=2,ask='81488',quantity='.4'),bids=(DepthLevel(price='81487',quantity='1'),))
+    moved=replace(event(c,sequence=2,ask='81500',quantity='.4'),bids=(DepthLevel(price='81487',quantity='1'),),
+        asks=(DepthLevel(price='81488',quantity='.4'),))
     matcher.apply_market_event(moved);report=c.engine.query_creation(c.write.command_id)
     assert report.filled_quantity==D('.4') and report.orders[0].runtime.effective_limit==D('81488')
     assert report.accepted_contexts[0].terms.spec.price.kind=='PEG' and all(f.name!='price' for f in c.request.fields)
@@ -141,3 +142,15 @@ def test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority(da
     with c.service.uow.transaction(c.scope) as tx:
         hold=ReservationRepository(tx).get(c.bundle.reservations[0].reservation.reservation_id)
         assert hold.held==c.bundle.reservations[0].held
+
+
+def test_terminal_v2_order_is_not_reactivated_by_later_reference_or_depth(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher
+    c=advanced_case(database,venue_v2,tmp_path,tif='NONE',order_transform=market_order);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,quantity='1'));submit(c)
+    before=c.engine.query_creation(c.write.command_id)
+    assert before.status=='FILLED'
+    matcher.apply_market_event(reference(c,2,'LAST','83000'))
+    after=c.engine.query_creation(c.write.command_id)
+    assert after.status=='FILLED' and after.filled_quantity==1 and not after.orders[0].runtime.active
+    assert after.orders[0].lifecycle_revision==before.orders[0].lifecycle_revision
