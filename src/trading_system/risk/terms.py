@@ -114,7 +114,9 @@ ProgramExposure alone lacks the independent fields required here.
 
 def metrics_completeness(metrics)->tuple[str,...]:
     """Only missing/invalid reasons, never an authorization or permit."""
-    if type(metrics) is not RiskMetrics:return ('RISK_METRICS_REQUIRED',)
+    from .reduction import ReductionRiskMetrics,reduction_metric_shape_valid
+    reduction=type(metrics) is ReductionRiskMetrics
+    if type(metrics) is not RiskMetrics and not reduction:return ('RISK_METRICS_REQUIRED',)
     missing=[]
     def need(condition,name):
         if not condition:missing.append('RISK_METRIC_MISSING:'+name)
@@ -130,7 +132,9 @@ def metrics_completeness(metrics)->tuple[str,...]:
     currency=report.gross.currency if type(report) is t.ExposureReport and _valid_money(report.gross) else None
     for name,field in (('ORDER_NOTIONAL','maximum_order_notional'),('PLANNED_LOSS','planned_loss'),
         ('FEES','fees'),('FUNDING','funding'),('CAPITAL','capital')):
-        value=getattr(metrics,field);need(_valid_money(value) and (currency is None or value.currency==currency),name)
+        value=getattr(metrics,field)
+        unknown_reduction_loss=reduction and field=='planned_loss' and value is None and reduction_metric_shape_valid(metrics)
+        need(unknown_reduction_loss or (_valid_money(value) and (currency is None or value.currency==currency)),name)
     need(type(metrics.required_assets) is tuple and all(_valid_money(v) for v in metrics.required_assets)
         and len({v.currency for v in metrics.required_assets})==len(metrics.required_assets),'REQUIRED_ASSETS')
     need(type(report) is t.ExposureReport and _valid_money(report.gross)
@@ -139,7 +143,7 @@ def metrics_completeness(metrics)->tuple[str,...]:
         and currency is not None and report.net.currency==currency
         and report.net.amount.copy_abs()<=report.gross.amount,'NET_EXPOSURE')
     need(_valid_groups(metrics.related_groups,report),'RELATED_GROUPS')
-    need(metrics.protection_complete is True,'PROTECTION')
+    need(reduction_metric_shape_valid(metrics) if reduction else metrics.protection_complete is True,'PROTECTION')
     need(type(metrics.holding_horizon_seconds) is int and metrics.holding_horizon_seconds>0,'HOLDING_HORIZON')
     need(type(metrics.open_position_count) is int and metrics.open_position_count>=0
         and type(metrics.active_order_count) is int and metrics.active_order_count>=0,'COUNTS')
@@ -204,6 +208,7 @@ require reviewed scenario, protection and funding derivation before its use.
     except (TypeError,ValueError):codes.append('RISK_FACTS_EXPIRED_OR_UNBOUND')
     currency=metrics.exposure.gross.currency
     if (metrics.exposure.net.currency!=currency or metrics.exposure.net.amount.copy_abs()>metrics.exposure.gross.amount
-        or any(getattr(metrics,name).currency!=currency for name in ('maximum_order_notional','planned_loss','fees','funding','capital'))):
+        or any(getattr(metrics,name).currency!=currency for name in ('maximum_order_notional','planned_loss','fees','funding','capital')
+            if getattr(metrics,name) is not None)):
         codes.append('RISK_METRIC_CURRENCY_OR_EXPOSURE_INVALID')
     return tuple(codes)
