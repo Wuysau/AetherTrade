@@ -1,0 +1,10 @@
+....F..........                                                          [100%]
+=================================== FAILURES ===================================
+_ test_activation_failure_rolls_back_financial_bundle_and_lifecycle[expired_during_activation] _
+tests/integration/test_local_program_activation.py:67: in test_activation_failure_rolls_back_financial_bundle_and_lifecycle
+    with pytest.raises((ValueError,OSError)):admit(c,fault=fault)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE any of (ValueError, OSError)
+=========================== short test summary info ============================
+FAILED tests/integration/test_local_program_activation.py::test_activation_failure_rolls_back_financial_bundle_and_lifecycle[expired_during_activation]
+1 failed, 14 passed in 19.46s
