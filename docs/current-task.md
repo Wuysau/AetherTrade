@@ -29,6 +29,20 @@ public attachment/replay/dispatch remain NOT_RUN. Current composition references
 their agreed APIs and does not fabricate successful attachment implementations.
 Staged local lists remain an explicit active integration gap; scope is retained.
 
+Fixedb7e0dd5 freshPGdiagnostic41678 is TERMINALexit0:16passed,0failure/error/skip
+(12priorfinancial +4publicnegativecomposition). Originalartifacts preserved
+byte-identically in docs/evidence/binance-orders/op-c-generic-admission/b7e,
+withSHA256copymap. Positivepublicattachment/outbox/activation/dispatch still
+NOT_RUN. Commandfresh nowowns SAMEbinance-opc-program-commandstree at5405b0e,
+oldpin_native_buildreleased it; actualrepo/0012was honestlynotyetimplemented.
+Activationpeercontinues own local-activationtree. Rootsolewriter unchanged.
+
+Nativequoteinterval actualsemantics draft is OP-C-QUOTE-INTERVAL-PLAN.md, awaiting
+parentreview;9puremathREDcases observedmissingintervalmodule. Newsource semantics
+must distinguish absolutequotegoal, remainingquoteusage andimmutable request,
+unconditionalnofill/partialinterval plusqualifiedprice/fee/lot/overshootproofs.
+No scalarquantityorcurrentpubliccontracts have been silently reinterpreted.
+
 ## OP_C_IMPLEMENTATION_COHORT_HANDOFF_TO_PARENT — 2026-10-29
 
 integration_lead completed its concrete root implementation cohort and now
