@@ -198,7 +198,9 @@ class ProgramCommandRepository:
             'VALUES(%s,%s,%s,1,%s,%s)',('program-ready:'+write.command_id,scope_id(write.scope),write.command_id,
                 'PROGRAM_COMMAND_READY',self.tx.transaction_id))
         final_clock,_=self._clock_lease(write)
-        require(utc_timestamp(final_clock.utc_now)<utc_timestamp(witness.expires_at),'PROGRAM_BUNDLE_WITNESS_EXPIRED')
+        require(final_clock.monotonic_ns>=initial_clock.monotonic_ns
+            and utc_timestamp(initial_clock.utc_now)<=utc_timestamp(final_clock.utc_now)<utc_timestamp(witness.expires_at),
+            'PROGRAM_BUNDLE_WITNESS_EXPIRED')
         return expected
 
     def _current(self,write,expected_lease):
@@ -220,6 +222,25 @@ class ProgramCommandRepository:
         clock,lease=self._clock_lease(write);now=utc_timestamp(clock.utc_now)
         require(type(expected_lease) is t.OwnerLease and digest(lease)==digest(expected_lease),'PROGRAM_LEASE_CHANGED')
         bundle=self._bundle(write.intent_id);source,intake=read_program_source(self.tx,bundle.intent.source.intake_record_id)
+        from trading_system.risk.program_financial_admission import ProgramFinancialAttachment,ATTACHMENT_PREFIX
+        attachment=self.tx._latest('audit_events',ATTACHMENT_PREFIX+write.intent_id,ProgramFinancialAttachment)
+        require(attachment is not None and attachment.mode=='EXTERNAL_REQUESTS'
+            and attachment.intent_id==write.intent_id and attachment.bundle_hash==digest(bundle),
+            'PROGRAM_COMPLETE_ATTACHMENT_REQUIRED')
+        physical=self.tx.execute('SELECT record_id,transaction_id,payload,xmin::text FROM ledger.order_writes_v2 '
+            "WHERE scope_id=%s AND sequence=1 AND payload->>'intent_id'=%s",
+            (scope_id(write.scope),write.intent_id)).fetchall()
+        physical_attachment=self.tx.execute('SELECT xmin::text FROM ledger.audit_events WHERE scope_id=%s '
+            'AND record_id=%s AND sequence=1',(scope_id(write.scope),ATTACHMENT_PREFIX+write.intent_id)).fetchone()
+        require(len(physical)==len(attachment.command_ids) and {cid for cid,_,_,_ in physical}==set(attachment.command_ids)
+            and all(tid==attachment.admission_transaction_id and xmin==physical_attachment[0]
+                for _,tid,_,xmin in physical),'PROGRAM_COMPLETE_ATTACHMENT_REQUIRED')
+        for cid,_,payload,_ in physical:
+            original=VersionedOrderCodec().decode('application-write',payload)
+            require(type(original) is ApplicationWriteV3 and original.intent_id==write.intent_id
+                and original.scope==write.scope and original.compilation_hash==write.compilation_hash,
+                'PROGRAM_COMPLETE_ATTACHMENT_REQUIRED')
+            validate_stored_program_binding(self.tx,original,self.write(cid))
         require(digest(source)==digest(bundle.intent.source),'PROGRAM_SOURCE_CHANGED')
         fence=current_fence(self.tx,source.context)
         book=self.tx.projections.book(self.tx.scope)

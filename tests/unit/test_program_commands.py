@@ -33,3 +33,11 @@ def test_creation_rejects_mutated_complete_binding(change):
     if change=='archive':b=replace(b,archive=replace(b.archive,intent_id='replacement'))
     if change=='epoch':w=replace(w,execution_epoch=5)
     with pytest.raises(ValueError):validate_creation_binding(w,r,binding,b)
+
+def test_staged_external_creation_requires_genuine_activation_and_stage_admission():
+    from trading_system.execution.program_commands import build_creation_write
+    a=actual_archive(template='OTO',mode='LOCAL_SYNTHETIC');i=financial_intent_from_assessment_archive(a)
+    b=ProgramFinancialBundle(intent=i,basis=financial_risk_basis_from_assessment_archive(i,a),archive=a,decision=a.assessment,reservations=())
+    r=materialize_creation(a.compilation,1,a.profile,assign_client_ids(a.compilation,1,'staged-command'))
+    with pytest.raises(ValueError,match='PROGRAM_STAGED_REQUEST_NOT_ADMITTED'):
+        build_creation_write(r,b,execution_epoch=1)
