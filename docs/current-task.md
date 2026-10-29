@@ -26,9 +26,14 @@ and hardcodesq*price+.001fee; refreshwouldoverwrite/ignore genericfills. Must
 prove mixedlegacy/newrefresh integration throughminimalsharedbinding. t.Cashflow
 classification permits EXTERNAL/INTERNAL/FEE/FUNDING/DIVIDEND; risk.pnl INTERNAL
 requires equal/opposite samecurrency pairs. Parent requested root ruling for
-tradeprincipal classification (proposed versioned auditperfillpostings+book,
-not fictitious capitalflows/secondcash total). Wait for that concrete ruling;
-independentwork can inspectactualschemas/readers and writeTDDplan.
+tradeprincipal classification. Root has now ruled: immutable versioned perfill
+assetPOSTING deltas in SAME audit_events + existing BookSnapshot balances;
+cashflows retain actualFEE/FUNDING/etc and no doublecountfee. Any spendablecredit
+reader must validate postings against actualfill/nativebridge/raw/protected
+consumption, never arbitraryownerauditJSON. Legacyrefresh must consume the same
+authenticatedgeneric deltas or failclosed preservingnewbook, never overwrite via
+legacy-only_cash. Minimal oldpaper_runtime adapter allowed for serialintegration.
+No guessed futuresprincipal/PnL/funding/FX/flat/release/completecoverage.
 
 Read existingexecution/fills.py/evidence.py/storage/events.py/uow.py and actual
 ManagedPosition/BookSnapshot/Cashflow contracts beforewriting. Fullgoal ACTIVE
