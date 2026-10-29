@@ -1,5 +1,22 @@
 # Current task
 
+## CONTINUOUS_GOAL_ACTIVE — 2026-10-29
+
+User asked that subsequent tasks proceed automatically. A persistent thread goal
+now tracks OP-C through OP-G, with approved ADR, all46 targets and56 cases.
+Continue without routine stage approvals; keep PAPER-only/no paid product model
+calls/no real accounts/LIVE/Testnet disabled and honest evidence boundaries.
+
+Latest OP-C change fixes the existing IntentCompiler binding path: quote-notional
+LIMIT targets now normalize with their declared limit price rather than market
+ask/bid. Red regression reproduced0.080 vs expected0.049 with synthetic step0.001
+for4000/81490/81330. Target/compiler/wire regressions294 passed. Original stored
+intents/UNKNOWN payloads are never re-normalized or rewritten. Risk/reservation
+and dispatcher integration remains the next step, with full native capabilities
+still not qualified. The thread goal, not the PAPER strategy scheduler, drives
+automatic engineering continuation.
+
+
 ## OP_B_VERIFIED_OP_C_STARTED — 2026-10-29
 
 Worktree binance-orders / codex/binance-order-capabilities. OP-B source d5074c9

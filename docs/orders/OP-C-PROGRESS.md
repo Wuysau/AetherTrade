@@ -20,3 +20,13 @@ transaction; distinguish native parent and local child command plans, exact
 fees/assets/quantity semantics and group exposure. Then provide reviewed closure
 proof for linked parent holds (currently conservative release guard), adapter
 capability checks and durable permit dispatch. No runtime entry guard was removed.
+
+## Existing binder correction — 2026-10-29
+
+The original IntentCompiler/validate_proposal path now sizes QUOTE_NOTIONAL LIMIT
+targets using the declared limit price, while MARKET keeps snapshot ask/bid.
+This reuses the existing integer-ratio/grid helper and preserves entry/stop terms.
+A red case reproduced0.080 rather than0.049 on a0.001 synthetic step for4000 at
+81490; after correction294 target/compiler/wire tests pass. This is not a new
+execution path or automatic migration of old accepted/UNKNOWN records. Existing
+absolute intents keep their original values and hashes.

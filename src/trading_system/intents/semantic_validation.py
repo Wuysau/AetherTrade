@@ -161,11 +161,16 @@ def validate_proposal(proposal: DecisionProposal, context: t.DecisionContext,
     value = (Decimal(facts.previous_intent.target_quantity) if proposal.action != 'SET_TARGET'
              else Decimal(proposal.target.value))
     if proposal.action == 'SET_TARGET' and proposal.target.sizing == 'QUOTE_NOTIONAL' and value:
-        price = snapshot.quote.ask if proposal.target.side == 'LONG' else snapshot.quote.bid
-        require(price is not None and price.currency == spec.quote_currency, 'CONVERSION_PRICE_REQUIRED')
+        if proposal.entry.order_preference == 'LIMIT':
+            require(proposal.entry.limit_price is not None, 'CONVERSION_PRICE_REQUIRED')
+            conversion_price = Decimal(proposal.entry.limit_price)
+        else:
+            price = snapshot.quote.ask if proposal.target.side == 'LONG' else snapshot.quote.bid
+            require(price is not None and price.currency == spec.quote_currency, 'CONVERSION_PRICE_REQUIRED')
+            conversion_price = price.value
         # Perpetual multiplier is absent from this contract; never assume one.
         require(spec.product != t.Product.USD_M_PERP, 'CONTRACT_MULTIPLIER_REQUIRED')
-        value = quantity_from_notional(value, price.value, spec.quantity_step.value,
+        value = quantity_from_notional(value, conversion_price, spec.quantity_step.value,
                                        facts.allow_round_down)
     quantity = (value if proposal.action != 'SET_TARGET' else
                 quantity_on_grid(value, spec.quantity_step.value, facts.allow_round_down))

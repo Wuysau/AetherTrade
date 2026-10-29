@@ -517,3 +517,14 @@ def test_cash_short_and_perpetual_quote_conversion_are_rejected(target_case):
     case = make_case(t.Product.USD_M_PERP)
     with pytest.raises(ProposalRejected, match='CONTRACT_MULTIPLIER_REQUIRED'):
         case.bind(replace(case.proposal, target=replace(case.proposal.target, sizing='QUOTE_NOTIONAL', value='500')))
+
+
+def test_quote_notional_limit_uses_limit_price_in_existing_intent_binder(target_case):
+    case=target_case
+    case.binding=replace(case.binding,allow_round_down=True)
+    proposal=replace(case.proposal,target=replace(case.proposal.target,sizing='QUOTE_NOTIONAL',value='4000'),entry=replace(case.proposal.entry,order_preference='LIMIT',limit_price='81490'),exit_plan=replace(case.proposal.exit_plan,stop_price='81330'))
+    intent=case.bind(proposal)
+    expected=quantity_from_notional(D('4000'),D('81490'),case.binding.instrument.quantity_step.value,True)
+    assert D(intent.target_quantity)==expected
+    assert intent.execution.limit_price=='81490' and intent.execution.order_preference=='LIMIT'
+    assert intent.exit_plan.stop_price=='81330'
