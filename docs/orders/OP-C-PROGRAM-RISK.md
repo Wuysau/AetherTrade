@@ -45,6 +45,10 @@ Even mathematical ALLOW has execution_authorized=False. Actual and contingent
 write admission must recheck owner/risk/price rules at execution. Existing OCO,
 quote-order-quantity and residual blockers remain explicit; all46 goals remain.
 
-This is in active verification. Source-integrated PostgreSQL and broader negative
-tests will be reported in the evidence handoff; these unit fixtures do not count
-as full ORD or venue acceptance. TESTNET/LIVE and account/model calls stay off.
+Reviewed source d92dfda passed264 targeted and1273 unit/intents/contracts tests.
+Its actual isolated PostgreSQL gate passed904 safety cases across26 suites with
+zero failures/errors/skips. Source-bound raw evidence and exact commands are in
+docs/evidence/binance-orders/op-c-program-risk/. These are local mathematical and
+transactional proofs, not full ORD/native qualification. Actual current fact and
+proof readers, the financial bundle and execution-owner/permit integrations
+remain separate required work. TESTNET/LIVE and account/model calls stay off.
