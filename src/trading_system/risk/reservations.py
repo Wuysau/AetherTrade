@@ -23,6 +23,7 @@ from .reservation_repository import ReservationRepository, merge_holds, balance_
 from .locked_actions import LockedActionVerifier
 from .target_guard import TargetBasis, target_obligations
 from .asset_capacity import amounts, CapacityInputs, check_capacity
+from .admission_clock import AdmissionWindow
 from trading_system.intents.semantic_validation import ProposalRejected
 from trading_system.intents.target_compiler import TargetInputs, compile_locked
 
@@ -78,6 +79,15 @@ class ReleasedBalanceAttestation:
 def complete(coverage, scope):
     return (coverage.scope == scope and coverage.query_succeeded and coverage.supported
             and coverage.pagination_complete and not coverage.missing)
+
+
+@dataclass(frozen=True, kw_only=True)
+class PreparedCollateral:
+    """Current reconciled collateral facts, never financial approval."""
+    book: t.BookSnapshot
+    holds: tuple[t.ReservationProjection, ...]
+    released_proof: ReleasedBalanceAttestation | None
+    rejection_codes: tuple[str, ...] = ()
 
 
 class ReservationService:
@@ -161,48 +171,17 @@ class ReservationService:
                 # New transaction, book, holds, authority and risk calculation.
         raise AssertionError('unreachable')
 
-    def _reserve(self, tx, intent, expected, *, accepted=None):
+    def _prepare_collateral(self, tx, book) -> PreparedCollateral:
+        """One shared read/verification path under the existing group mutex.
+
+        The existing released-balance verifier recognizes legacy command
+        proofs only. A program cannot acquire credit by supplying a new record
+        kind to that verifier; a qualified version-aware proof remains required.
+        This helper performs no release, reservation, command or permit write.
+        """
         repo = ReservationRepository(tx)
-        started_ns = self.monotonic_clock()
-        reading = self.clock()
-        now = utc_timestamp(reading)
-        started_at = now
-        # Lock management before reading any target, authority or book facts.
-        owner = tx.execute('SELECT owner_strategy_id,ownership_epoch,policy_revision FROM ledger.active_owners '
-            'WHERE environment=%s AND account_id=%s AND product=%s AND instrument_uid=%s AND venue_leg=%s FOR UPDATE',
-            (*account_key(self.scope), self.scope.instrument_uid, self.scope.venue_leg)).fetchone()
-        book = tx.projections.book(self.scope)
-        deny = lambda *codes: t.ReservationOutcome(accepted=False, reservations=(),
-            book_sequence=book.sequence, rejection_codes=tuple(codes))
-        if intent.collateral_group_id != tx.group_id:
-            raise ScopeMismatch('collateral group mismatch')
-        existing = repo.existing(intent)
-        if existing is not None:
-            risk = tx._latest('audit_events', 'ip07:risk:' + intent.intent_id, t.RiskDecision)
-            if risk is None or risk.verdict != 'ALLOW':
-                raise MissingEvidence('existing intent lacks an IP-07 atomic bundle')
-            first_commands = repo.first_commands(intent.intent_id)
-            if (len(first_commands) != 1 or first_commands[0].state != 'DURABLE_READY'
-                    or amounts(risk.reserved_assets) != amounts(tuple(t.Money(
-                    currency=p.reservation.asset, amount=p.reservation.amount) for p in existing))
-                    or any(first_commands[0].command_id not in p.reservation.command_refs or any(
-                        (command := tx.commands.get(cid)) is None or command.intent_id != intent.intent_id
-                        for cid in p.reservation.command_refs) for p in existing)):
-                raise MissingEvidence('existing intent has an incomplete atomic bundle')
-            basis = tx._latest('audit_events', 'ip07:target-basis:' + first_commands[0].command_id, TargetBasis)
-            if basis is None or basis.command_id != first_commands[0].command_id:
-                raise MissingEvidence('existing intent lacks its atomic target basis')
-            # Replay reports the original atomic receipt. Current hold states
-            # are separate projections and cannot renew this sendable intent.
-            original = tuple(repo.initial(r) for r in tx.reservations.for_intent(intent.intent_id))
-            return t.ReservationOutcome(accepted=True, reservations=original,
-                book_sequence=basis.book_sequence, rejection_codes=())
-        if owner != (intent.owner_strategy_id, intent.ownership_epoch, intent.risk_policy_revision):
-            return deny('STALE_OWNER')
-        if book.sequence != expected or book.basis_fingerprint != intent.basis_fingerprint:
-            return deny('REPLAN_REQUIRED:STALE_BOOK')
-        if not complete(book.coverage, self.scope) or not book.evidence:
-            return deny('BOOK_INCOMPLETE')
+        deny = lambda *codes: PreparedCollateral(book=book, holds=(),
+            released_proof=None, rejection_codes=tuple(codes))
         originals = repo.group()
         group = merge_holds(originals, book)
         released_proof = None
@@ -288,6 +267,54 @@ class ReservationService:
                     or p.reflected > p.held or p.held > r.amount or p.release_pending > p.held):
                 return deny('INVALID_RESERVATION')
         book = replace(book, reservations=group)
+        return PreparedCollateral(book=book, holds=group, released_proof=released_proof)
+
+    def _reserve(self, tx, intent, expected, *, accepted=None):
+        repo = ReservationRepository(tx)
+        started_ns = self.monotonic_clock()
+        reading = self.clock()
+        now = utc_timestamp(reading)
+        started_at = now
+        # Lock management before reading any target, authority or book facts.
+        owner = tx.execute('SELECT owner_strategy_id,ownership_epoch,policy_revision FROM ledger.active_owners '
+            'WHERE environment=%s AND account_id=%s AND product=%s AND instrument_uid=%s AND venue_leg=%s FOR UPDATE',
+            (*account_key(self.scope), self.scope.instrument_uid, self.scope.venue_leg)).fetchone()
+        book = tx.projections.book(self.scope)
+        deny = lambda *codes: t.ReservationOutcome(accepted=False, reservations=(),
+            book_sequence=book.sequence, rejection_codes=tuple(codes))
+        if intent.collateral_group_id != tx.group_id:
+            raise ScopeMismatch('collateral group mismatch')
+        existing = repo.existing(intent)
+        if existing is not None:
+            risk = tx._latest('audit_events', 'ip07:risk:' + intent.intent_id, t.RiskDecision)
+            if risk is None or risk.verdict != 'ALLOW':
+                raise MissingEvidence('existing intent lacks an IP-07 atomic bundle')
+            first_commands = repo.first_commands(intent.intent_id)
+            if (len(first_commands) != 1 or first_commands[0].state != 'DURABLE_READY'
+                    or amounts(risk.reserved_assets) != amounts(tuple(t.Money(
+                    currency=p.reservation.asset, amount=p.reservation.amount) for p in existing))
+                    or any(first_commands[0].command_id not in p.reservation.command_refs or any(
+                        (command := tx.commands.get(cid)) is None or command.intent_id != intent.intent_id
+                        for cid in p.reservation.command_refs) for p in existing)):
+                raise MissingEvidence('existing intent has an incomplete atomic bundle')
+            basis = tx._latest('audit_events', 'ip07:target-basis:' + first_commands[0].command_id, TargetBasis)
+            if basis is None or basis.command_id != first_commands[0].command_id:
+                raise MissingEvidence('existing intent lacks its atomic target basis')
+            # Replay reports the original atomic receipt. Current hold states
+            # are separate projections and cannot renew this sendable intent.
+            original = tuple(repo.initial(r) for r in tx.reservations.for_intent(intent.intent_id))
+            return t.ReservationOutcome(accepted=True, reservations=original,
+                book_sequence=basis.book_sequence, rejection_codes=())
+        if owner != (intent.owner_strategy_id, intent.ownership_epoch, intent.risk_policy_revision):
+            return deny('STALE_OWNER')
+        if book.sequence != expected or book.basis_fingerprint != intent.basis_fingerprint:
+            return deny('REPLAN_REQUIRED:STALE_BOOK')
+        if not complete(book.coverage, self.scope) or not book.evidence:
+            return deny('BOOK_INCOMPLETE')
+        collateral = self._prepare_collateral(tx, book)
+        if collateral.rejection_codes:
+            return deny(*collateral.rejection_codes)
+        book, group, released_proof = collateral.book, collateral.holds, collateral.released_proof
         inputs = self.load_inputs(tx, intent, book)
         if type(started_ns) is not int or started_ns < 0:
             return deny('EXPIRED_OR_UNBOUND_CLOCK')
@@ -309,22 +336,11 @@ class ReservationService:
             return deny('ACTIVE_RISK_LOCK')
         expires = min(map(utc_timestamp, (action_until, intent.valid_until,
             intent.execution.entry_deadline, inputs.risk.expires_at)))
-        last_at, last_ns = started_at, started_ns
+        admission_window = AdmissionWindow(started_at=started_at, started_ns=started_ns,
+            wall_clock=self.clock, monotonic_clock=self.monotonic_clock)
 
         def current_time():
-            nonlocal last_at, last_ns
-            # Both clocks are trusted service readers, never intent fields.
-            # A backwards wall-clock step cannot extend the monotonic window.
-            duration = expires - started_at
-            deadline_ns = started_ns + ((duration.days * 86400 + duration.seconds) * 1_000_000_000
-                                       + duration.microseconds * 1000)
-            current_reading = self.clock()
-            current_at, current_ns = utc_timestamp(current_reading), self.monotonic_clock()
-            if (type(current_ns) is not int or not last_ns <= current_ns < deadline_ns
-                    or not last_at <= current_at < expires):
-                return None
-            last_at, last_ns = current_at, current_ns
-            return current_reading, current_at, current_ns
+            return admission_window.poll(expires)
 
         # Proof readers may be slow, including local database/archive reads.
         current = current_time()
