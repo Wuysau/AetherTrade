@@ -13,7 +13,7 @@ import psycopg
 from psycopg import sql
 from psycopg.types.json import Jsonb
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import canonical_hash,domain_payload,utc_timestamp
+from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload,utc_timestamp
 from trading_system.contracts.order_lifecycle_v3 import FeeV3
 from trading_system.contracts.order_lifecycle import AssetBudget
 from trading_system.contracts.application_write_v3 import ApplicationWriteV3
@@ -180,6 +180,7 @@ class PaperDepthState:
 class PaperMarketInput:
     event:PaperMarketEvent
     event_hash:str
+    raw_payload_json:str
     before_levels:tuple[PaperDepthState,...]
     observed_clock:t.ClockReading
 
@@ -221,6 +222,7 @@ class PaperMarketFill:
     market_hash:str
     occurred_at:str
     evidence:t.EvidenceRef
+    raw_payload_json:str
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -409,15 +411,19 @@ def query_creation(engine,command_id):
             'PAPER_REQUEST_QUERY_BINDING_CHANGED')
         rows=db.execute('SELECT o.*,t.terms FROM public.paper_engine_orders o JOIN public.paper_order_terms t '
             'USING(scope_key,client_id) WHERE o.scope_key=%s AND o.client_id=%s',(engine._scope_key,command['target_client_id'])).fetchall()
-        orders=[];fills=[];contexts=[]
+        orders=[];fills=[];contexts=[];raw_total=0
         for row in rows:
             terms=row['terms'];remaining=Decimal(0) if row['lifecycle'] in ('FILLED','CANCELED','EXPIRED','REJECTED') else row['quantity']-row['filled']
             contexts.append(_accepted_context(terms,request))
             orders.append(PaperMatchedOrder(client_id=row['client_id'],venue_order_id=row['order_id'],node_id=terms['node_id'],namespace=terms['namespace'],
                 status=row['lifecycle'],quantity=row['quantity'],filled_quantity=row['filled'],remaining_quantity=remaining,quantity_unit=row['quantity_unit']))
-            for event in db.execute('SELECT * FROM public.paper_engine_events WHERE scope_key=%s AND client_id=%s AND fill_delta>0 '
-                    'ORDER BY occurred_at,event_id',(engine._scope_key,row['client_id'])).fetchall():
+            events=db.execute('SELECT * FROM public.paper_engine_events WHERE scope_key=%s AND client_id=%s AND fill_delta>0 '
+                    'ORDER BY occurred_at,event_id LIMIT 4097',(engine._scope_key,row['client_id'])).fetchall()
+            require(len(events)<=4096,'PAPER_FILL_EVIDENCE_BOUND_EXCEEDED')
+            for event in events:
                 payload=event['payload'];require(payload.get('record_kind')=='PAPER_MARKET_FILL','PAPER_MARKET_SOURCE_REQUIRED')
+                raw=canonical_json(payload);size=len(raw.encode('utf-8'));raw_total+=size
+                require(size<=1048576 and raw_total<=16777216,'PAPER_RAW_EVIDENCE_BOUND_EXCEEDED')
                 source=db.execute('SELECT c.quantity,c.price,i.payload_hash FROM public.paper_market_consumptions c '
                     'JOIN public.paper_market_inputs i USING(market_key,event_id) WHERE c.scope_key=%s AND c.client_id=%s AND c.fill_id=%s',
                     (engine._scope_key,row['client_id'],event['event_id'])).fetchone()
@@ -427,7 +433,8 @@ def query_creation(engine,command_id):
                     namespace=terms['namespace'],quantity=event['fill_delta'],quantity_unit=row['quantity_unit'],
                     price=event['price'],price_asset=row['price_currency'],gross_notional=Decimal(payload['gross_notional']),
                     fees=tuple(decode(FeeV3,f) for f in payload['fees']),market_event_id=payload['market_event_id'],market_hash=payload['market_hash'],
-                    occurred_at=event['occurred_at'].isoformat(),evidence=_evidence(event['event_id'],payload,event['occurred_at'].isoformat())))
+                    occurred_at=event['occurred_at'].isoformat(),evidence=_evidence(event['event_id'],payload,event['occurred_at'].isoformat()),
+                    raw_payload_json=raw))
             require(sum((f.quantity for f in fills if f.client_id==row['client_id']),Decimal(0))==row['filled'],
                 'PAPER_FILL_SOURCE_INCOMPLETE')
         payload={'request':domain_payload(request),'orders':[domain_payload(o) for o in orders],'fills':[domain_payload(f) for f in fills],
@@ -453,7 +460,8 @@ def query_market_evidence(engine,command_id):
         inputs=[];consumptions=[]
         for row in event_rows:
             event=decode(PaperMarketEvent,row['payload']);require(digest(event)==row['payload_hash'],'PAPER_MARKET_ARCHIVE_HASH_CHANGED')
-            inputs.append(PaperMarketInput(event=event,event_hash=row['payload_hash'],before_levels=tuple(
+            raw=canonical_json(row['payload']);require(len(raw.encode('utf-8'))<=1048576,'PAPER_MARKET_RAW_EVIDENCE_BOUND_EXCEEDED')
+            inputs.append(PaperMarketInput(event=event,event_hash=row['payload_hash'],raw_payload_json=raw,before_levels=tuple(
                 decode(PaperDepthState,level) for level in row['before_levels']),observed_clock=decode(t.ClockReading,row['observed_clock'])))
             rows=db.execute('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price,quantity '
                 'FROM public.paper_market_consumptions WHERE market_key=%s AND event_id=%s ORDER BY fill_id LIMIT 100001',
