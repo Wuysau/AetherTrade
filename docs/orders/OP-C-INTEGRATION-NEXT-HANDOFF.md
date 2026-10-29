@@ -1,12 +1,15 @@
 # Root integration continuation handoff
 
-Prepared2026-10-30. SOLE writer is still integration_next until parent explicitly
-reassigns it; this document alone does not release ownership or pause the goal.
+Prepared2026-10-30. Parent APPROVED WRITE RELEASE; integration_next explicitly
+RELEASES binance-orders write ownership at this checkpoint. Successor PENDING
+parent assignment. Integration_next retains ONLY READ-ONLY exec57061 job ownership
+until terminal; no further root file writes. No agent should concurrently poll or
+restart that job. This is a context handoff, never a goal pause/completion.
 Main/archive untouched. Full46 capabilities/56 cases and OP-C→D/E/F→G ACTIVE.
 
 ## Current source and jobs
 
-Root branch codex/binance-order-capabilities. Product source1aab295 plus docs5685efb
+Root branch codex/binance-order-capabilities. Product source1aab295 plus checkpoint2763f3c
 contains actual quote financial kernel and PUBLIC request/outbox attachment,
 actual owner-held program dispatcher, matcher0013 + source/write precision fixes,
 trusted report verifier and scoped OP-F API/CLI/UI/model research. No rich-order
@@ -31,13 +34,18 @@ All other root handles mentioned below are TERMINAL; never restart them:
 - fixd6eaed069334:8PG pass,5031c1cda0f1 evidence committed.
 - dispatcher4905fea39464:5 missing-module RED; fixeb7c8f371042:5PG pass,
   d92c3aa1a337/1347a34f5b40 evidence committed.
-- shared consumed guard2dde8f672303:14PG pass,86c479091259 evidence NOT COPIED yet.
-- public quote649dc2459262:3 missing-port RED,0f6e89ba6562 NOT COPIED yet.
-- public quote1aab29518864:3PG pass,953db907bcd0 NOT COPIED yet.
+- shared consumed guard2dde8f672303:14PG pass,86c479091259 evidence committed.
+- public quote649dc2459262:3 missing-port RED,0f6e89ba6562 evidence committed.
+- public quote1aab29518864:3PG pass,953db907bcd0 evidence committed.
 -1713 contracts/intents/unit at0cfc032; later quote attachment44 focused pass.
 - OP-F restored reviewedb0 source:532 server pass/56 mandatory-environment cases
   deselected; web119 pass/typecheck/build exit0. npm ci installed local ignored
   web/node_modules. Source-specific peer evidence retained; no paid calls.
+
+All192 quote/dispatcher/guard/matcher copy-map artifacts independently compared
+to CURRENT committed blobs with0 mismatch. Earlier173 report and95 historical
+full artifacts also verified. Copy new57061 final artifacts after terminal only;
+the read-only old writer reports exact result/path and new writer owns any copying.
 
 ## Actual quote financial/public path
 

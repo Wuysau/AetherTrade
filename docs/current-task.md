@@ -2,7 +2,10 @@
 
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
-SOLE binance-orders writer is integration_next. Parent root owns independent
+ROOT WRITE OWNERSHIP RELEASED by integration_next at this checkpoint; successor
+PENDING explicit parent assignment. Integration_next remains the SOLE READ-ONLY
+owner of existing exec57061 until its terminal result and will not edit root files
+after this release. No other agent should poll/restart that handle. Parent owns independent
 same-ledger accounting work; activation_fresh owns OP-D matcher; reports_fresh
 owns controlled native adapter/consumed-current guard. Main/archive untouched.
 Goal ACTIVE: all46 capabilities/56 cases, complete OP-C→D/E/F→G remain required.
@@ -64,10 +67,13 @@ and rolls back after a genuine physical append failure. No quote MAY/consume or 
 claimed; additive0015/current quote dispatch proof remains required. Later code
 does not upgrade the older fixed0a55692 full gate.
 
-Detailed fresh-context continuation is OP-C-INTEGRATION-NEXT-HANDOFF.md. Sole
-writer integration_next has NOT released ownership merely by writing it; parent
-must explicitly reassign. Goal remains ACTIVE and the original full gate57061
-continues on its existing handle.
+Detailed fresh-context continuation is OP-C-INTEGRATION-NEXT-HANDOFF.md. Parent
+approved this WRITE RELEASE after the checkpoint. Goal remains ACTIVE; parent
+assigns a fresh root writer while integration_next owns only the original live
+57061 job. Root2dde/quote1aa diagnostic artifacts are committed and all192 quote/
+dispatcher/guard/matcher copy-map files match CURRENT git blobs. Late native-peer
+logical permit expiry/deadline mutation audit is RUNNING, not a confirmed result;
+fresh writer must review it before promoting consumed-guard protocol closure.
 
 Next: full expanded PG+Python gate; actual public interval durable attachment,
 trusted MARKET enforcement and fee/dust residual persistence. Parent implements

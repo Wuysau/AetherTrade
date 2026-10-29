@@ -2,8 +2,10 @@
 
 Latest engineering2026-10-29: ACTIVE full Binance46-target/56-case OP-C→D/E/F→G
 continuation. Implementation tree is TradingHandoff/AutoDispatchWorktrees/binance-orders;
-sole writer integration_next, parent coordinates/reviews (and may own separate
-OP-E tree). Actual shared typed financial/request/local activation integration is
+root write ownership is RELEASED by integration_next at the2026-10-30 checkpoint;
+successor awaits explicit parent assignment. Integration_next retains only the
+original57061 read-only test job until terminal. Parent owns separate accounting;
+OP-D and controlled native work continue in their isolated trees. Actual integration is
 under verification, with native quote interval financial and later work pending.
 Authoritative live engineering checkpoint: docs/current-task.md top sections.
 Older completed PAPER/operational states below are preserved historical scope;
