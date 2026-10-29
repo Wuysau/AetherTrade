@@ -69,6 +69,33 @@ def test_execution_policy_requires_explicit_finite_cap(slippage):
         ExecutionPolicy(policy_id='policy', revision=1, maximum_entry_slippage_bps=slippage)
 
 
+def test_subclass_version_cannot_enter_a_v2_only_sidecar():
+    from dataclasses import fields
+    from trading_system.contracts.order_program import OrderProposal
+    class NewVersion(OrderProposal):
+        pass
+    p, _, _, _ = fixture()
+    values = {f.name: getattr(p, f.name) for f in fields(p)}
+    values['contract_version'] = '2026-10-29'
+    p = NewVersion(**values)
+    with pytest.raises(ProposalRejected, match='ORDER_PROPOSAL_VERSION_UNSUPPORTED'):
+        project_proposal(p, ExecutionPolicy(policy_id='policy', revision=1, maximum_entry_slippage_bps='0'))
+
+
+def test_public_reservation_guard_cannot_be_disabled_by_request():
+    from trading_system.risk.reservations import ReservationService
+    from trading_system.contracts import types as t
+    tx = SimpleNamespace(_latest=lambda *args: object(),
+        projections=SimpleNamespace(book=lambda scope: SimpleNamespace(sequence=7)))
+    service = ReservationService(None, t.ScopeKey(environment=t.Environment.PAPER,
+        venue_account_id='test', product=t.Product.SPOT, instrument_uid='test', venue_leg='BOTH'),
+        None, clock=lambda: NOW)
+    intent = SimpleNamespace(intent_id='program-intent')
+    result = service._reserve_legacy(tx, intent, 1)
+    assert not result.accepted and result.rejection_codes == ('PROGRAM_ADMISSION_REQUIRED',)
+    assert result.book_sequence == 7
+
+
 def admission_case():
     case = make_case()
     p, r, c, _ = fixture()

@@ -112,7 +112,7 @@ class ReservationService:
                 or intent.product != self.scope.product or intent.instrument_uid != self.scope.instrument_uid
                 or intent.venue_leg != self.scope.venue_leg):
             raise ScopeMismatch('intent scope mismatch')
-        return self._transaction(lambda tx: self._reserve(tx, intent, expected_book_sequence))
+        return self._transaction(lambda tx: self._reserve_legacy(tx, intent, expected_book_sequence))
 
     def reserve_proposal(self, intent_id: str) -> t.ReservationOutcome:
         """Revalidate one immutable durable intake; a receipt ID is no permit.
@@ -136,9 +136,23 @@ class ReservationService:
             intent = accepted_intent(record)
             if intent.intent_id != intent_id or record.receipt.status != t.IntentState.VALIDATING:
                 raise MissingEvidence('proposal intent binding mismatch')
-            return self._reserve(tx, intent, record.book_sequence, accepted=record)
+            return self._reserve_legacy(tx, intent, record.book_sequence, accepted=record)
 
         return self._transaction(operation)
+
+    def _reserve_legacy(self, tx, intent, expected, *, accepted=None):
+        """Public legacy entry points cannot bypass v2 program validation.
+
+        OrderProgramIngress alone composes validated v2 inputs with _reserve in
+        the same real transaction. No request flag can exempt this boundary.
+        Its immutable ProgramIntake is saved before reservation input loading.
+        """
+        from trading_system.intents.order_program_ingress import ProgramIntake
+        if tx._latest('audit_events', 'order-program-intake:' + intent.intent_id, ProgramIntake) is not None:
+            return t.ReservationOutcome(accepted=False, reservations=(),
+                book_sequence=tx.projections.book(self.scope).sequence,
+                rejection_codes=('PROGRAM_ADMISSION_REQUIRED',))
+        return self._reserve(tx, intent, expected, accepted=accepted)
 
     def _transaction(self, operation):
         for attempt in range(self.maximum_attempts):
