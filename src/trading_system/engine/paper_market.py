@@ -4,7 +4,7 @@ This module never reserves business cash or constructs a permit. Inputs are
 depth, not requested fills. The SQL reducer alone computes visible-liquidity
 execution; runtime cannot supply execution quantities or mutate market sources.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass,replace
 from decimal import Decimal,localcontext,Inexact,Rounded
 from pathlib import Path
 from typing import Literal
@@ -197,6 +197,8 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
             original=tx._latest('order_writes_v2',write.command_id,ApplicationWriteV3)
             require(original is not None and original.state=='MAY_HAVE_SENT' and original.request_hash==digest(request),
                 'PAPER_COMMITTED_MAY_REQUIRED')
+            require(digest(replace(write,state=original.state))==digest(original)
+                and original.intent_id==bundle.intent.intent_id,'PAPER_ORIGINAL_WRITE_CHANGED')
         plan=bundle.archive.compilation
         require(plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 and len(request.assigned_ids.members)==1,
             'PAPER_PROGRAM_MATCHER_STAGE_REQUIRED')
