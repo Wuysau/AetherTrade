@@ -153,7 +153,11 @@ def test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified(database,v
     finally:codec.close()
     assert result.source_verified,result.discrepancies
     assert result.orders[0].lifecycle_state==t.OrderLifecycle.EXPIRED
-    assert result.fills[0].fill.price.value==D('81489.5')
+    # The protected minimum is81490: lower fractional depth is observed but
+    # must expire this IOC without manufacturing a cheaper fill.
+    assert not result.fills and json.loads(raw)['observed_best_price']==81489.5
+    assert disposition.reason=='EXECUTION_ENVELOPE_REQUIRES_RECONCILIATION'
+    assert not result.funds_release_authorized
 
 
 @pytest.mark.parametrize('fault',['gross','fees','cumulative','remaining','overfill','missing_fees'])

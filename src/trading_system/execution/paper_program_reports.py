@@ -144,6 +144,7 @@ class PaperProgramReportVerifier:
     def _result(self,command_id,status,codes=(),*,report=None,market=None,refs=(),fills=(),orders=(),verified=False):
         duties=('QUERY_ORIGINAL_IDS','RESERVATION_RECONCILIATION_REQUIRED','ACCOUNT_HISTORY_NOT_VERIFIED')
         if fills:duties+=('PROTECTION_RECHECK_REQUIRED','OWNERSHIP_ALLOCATION_RECONCILIATION_REQUIRED')
+        if any(not f.fees_known for f in fills):duties+=('FEE_RECONCILIATION_REQUIRED',)
         if codes:duties+=('SOURCE_OR_ECONOMIC_RECONCILIATION_REQUIRED',)
         return PaperProgramVerification(command_id=command_id,status=status,source_verified=verified,
             fills=fills,orders=orders,raw_refs=refs,discrepancies=tuple(dict.fromkeys(codes)),retained_duties=duties,
@@ -197,19 +198,23 @@ class PaperProgramReportVerifier:
             if report is None:return self._result(command_id,'NOT_OBSERVED',('PAPER_QUERY_ORIGINAL_IDS_REQUIRED',))
             market=self.engine.query_market_evidence(command_id)
             clock=self.engine._clock()
-            _check(type(clock) is t.ClockReading and clock.clock_health=='HEALTHY','PAPER_SOURCE_CLOCK_REQUIRED')
+            _check(type(clock) is t.ClockReading,'PAPER_SOURCE_CLOCK_REQUIRED')
             _check(type(report) is PaperCreationReport and type(market) is PaperMarketEvidence,'PAPER_SOURCE_TYPES_REQUIRED')
+            # Retain received raw bytes before parsing, shape, hash or health
+            # checks. The complete DTO snapshots also retain malformed fields.
+            for item in (*report.fills,*report.dispositions,*market.inputs):
+                raw=getattr(item,'raw_payload_json',None)
+                if type(raw) is str:refs.append(self._archive(raw.encode('utf-8'),clock))
             refs.append(self._archive(domain_payload(report),clock))
             refs.append(self._archive(domain_payload(market),clock))
-            for item in (*report.fills,*report.dispositions):
-                refs.append(self._archive(item.raw_payload_json.encode('utf-8'),clock))
-            for item in market.inputs:refs.append(self._archive(item.raw_payload_json.encode('utf-8'),clock))
+            _check(clock.clock_health=='HEALTHY' and type(clock.monotonic_ns) is int and clock.monotonic_ns>=0,
+                'PAPER_SOURCE_CLOCK_REQUIRED')
             fills,orders,codes=self._normalize(original,bundle,consumption,assessment,report,market,clock,refs)
             return self._result(command_id,'DISCREPANCY' if codes else 'VERIFIED',codes,
                 report=report,market=market,refs=tuple(refs),fills=fills,orders=orders,verified=True)
         except _SourceError as error:
             return self._result(command_id,'BLOCKED',(str(error),),report=report,market=market,refs=tuple(refs))
-        except (ValueError,TypeError,KeyError,ArithmeticError,StopIteration):
+        except (ValueError,TypeError,AttributeError,KeyError,ArithmeticError,StopIteration):
             return self._result(command_id,'BLOCKED',('PAPER_SOURCE_SHAPE_OR_ECONOMICS_INVALID',),
                 report=report,market=market,refs=tuple(refs))
 
@@ -326,23 +331,30 @@ class PaperProgramReportVerifier:
                 economic.append('FILL_FEE_MODEL_DISCREPANCY')
             # Empty explicit PAPER fees plus the proven zero-rate model mean
             # known zero, whereas FillLedger's empty fee tuple means unknown.
-            ledger_fees=economics.fees or (t.Money(amount=Decimal(0),currency=assessment.rules.quote_asset),)
+            fees_known=bool(economics.fees) or Decimal(accepted.model.quote_fee_rate)==0
+            if not fees_known:economic.append('FILL_FEES_UNKNOWN')
+            ledger_fees=economics.fees
+            if not ledger_fees and fees_known:ledger_fees=(t.Money(amount=Decimal(0),currency=assessment.rules.quote_asset),)
             ref=next(r for r in refs if r.hash==fill.evidence.hash)
             fact=t.Fill(fill_id='paper-program:'+canonical_hash(dict(scope=domain_payload(self.scope),native_trade_id=fill.fill_id)),
                 venue='BINANCE',scope=self.scope,native_trade_id=fill.fill_id,order=identity,quantity=economics.native_quantity,
                 price=economics.venue_price,fees=ledger_fees,occurred_at=fill.occurred_at,correction_of=None,evidence=ref)
-            normalized.append(NormalizedPaperFill(fill=fact,side=spec.side,economics=economics,raw=fill,fees_known=True))
-        _check(total==order.filled_quantity,'PAPER_CUMULATIVE_FILL_SOURCE_CHANGED')
-        _check(order.status!='FILLED' or total>=order.quantity,'PAPER_FILLED_QUANTITY_CHANGED')
+            normalized.append(NormalizedPaperFill(fill=fact,side=spec.side,economics=economics,raw=fill,fees_known=fees_known))
+        # Source-linked raw fills and venue totals remain distinct observed
+        # facts when their economics disagree. Neither is silently replaced.
+        if total!=order.filled_quantity:economic.append('ORDER_CUMULATIVE_FILL_MISMATCH')
+        if order.status=='FILLED' and total<order.quantity:economic.append('ORDER_FILLED_QUANTITY_MISMATCH')
         if order.quantity!=Decimal(node.quantity.value):economic.append('ORDER_ORIGINAL_QUANTITY_MISMATCH')
         if total>order.quantity:economic.append('ORDER_OVERFILLED')
+        if total>Decimal(node.quantity.value):economic.append('ORDER_AUTHORIZED_QUANTITY_EXCEEDED')
         if gross_total>Decimal(envelope.maximum_gross_notional):economic.append('PROGRAM_GROSS_ENVELOPE_EXCEEDED')
         if any(value>ceilings.get(asset,Decimal(0)) for asset,value in fee_totals.items()):economic.append('PROGRAM_FEE_ENVELOPE_EXCEEDED')
         terminal=order.status in ('FILLED','CANCELED','EXPIRED','REJECTED')
         with localcontext() as arithmetic:
             arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
             expected_remaining=Decimal(0) if terminal else order.quantity-order.filled_quantity
-        _check(order.remaining_quantity==expected_remaining and expected_remaining>=0,'PAPER_REMAINING_SOURCE_CHANGED')
+        if order.remaining_quantity!=expected_remaining or expected_remaining<0:
+            economic.append('ORDER_REMAINING_QUANTITY_MISMATCH')
         _check(len({d.event_id for d in report.dispositions})==len(report.dispositions),'PAPER_DISPOSITION_DUPLICATED')
         for disposition in report.dispositions:
             raw=_raw_object(disposition.raw_payload_json,disposition.evidence)
