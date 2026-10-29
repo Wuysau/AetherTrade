@@ -80,6 +80,27 @@ Source7+compiler3 observedRED, currentselected55/59checksGREEN. This isonlysourc
 compiler/math, notintervalallocation/risk/financialadmission/nativequalification.
 Actualnewintervalfinancialpipeline/walletlocation/fee-dust andOP-D/E/F/G continue.
 
+Rootactualcode nowincludescommandsemanticuniqueindex+externalSAMEtxFundingLink
+andphysicalSQLhold/intent/program guards (0abd→fbe9d2d,5a75→96a9610), wallet
+independentreader/defaultfunding-location blocker, oldV2/UNKNOWN regressions.
+47f06 timingfixturefix integrated4eed5e4 keepsfulldiagnosticassertions AFTER
+shortpermitconsume; noTTLwidening. Latestpeer52PGstillpending; olderPGresults
+stay source-specific. Sourcebeforethesefixesaff4full73508 stillRUNNING through
+runtime/regression suites; public8+attachment3 alreadyactualGREEN, nofullclaim.
+
+SharedTargetCompiler nowhas pureTargetScopeTerms/read_scope_terms withoutfake
+scalar target. Existing scalarcompilecalls SAME extracted validation/position/
+working/pending reader; oldnormalization/conflict/grid stages remainunchanged.
+Exactactualfee dust andeachsigned/UNKNOWN obligation preserved. FiveRED tests→
+133focusedGREEN; currentcombinedcontracts/intents/unit1528passed0skip exit0.
+Details OP-C-SHARED-TARGET-SCOPE.md. Newintervalallocation/risk/financial source
+facts, authenticexecution-bound proof andfee/dust duties remainnextactualwork.
+
+ParentownsOP-E management/query adapter in separatebinance-ope-management tree;
+activation_fresh nowownsOP-D newbinance-opd-matcher basedaff4aa8. Reserved0013
+PAPER_SIM-only market matcher migration; no sharedledgerDDL allocatedtoit.
+Rootintegration_nextstillsolebinance-orders writer; all46/56/OP-D/E/F/G active.
+
 ## OP_C_IMPLEMENTATION_COHORT_HANDOFF_TO_PARENT — 2026-10-29
 
 integration_lead completed its concrete root implementation cohort and now

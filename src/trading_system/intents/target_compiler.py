@@ -72,6 +72,46 @@ adapter must prove any native-unit bridge before calling the common engine.
         time_key(self.valid_until);time_key(self.submission_deadline)
 
 
+@dataclass(frozen=True,kw_only=True)
+class TargetScopeTerms:
+    """Scope/ownership inputs without a fabricated scalar position target."""
+    scope:t.ScopeKey
+    venue:str
+    owner_strategy_id:str
+    ownership_epoch:int
+    collateral_group_id:str
+    basis_fingerprint:str
+    target_side:Literal['LONG','SHORT','FLAT']
+    unit:Literal['BASE','CONTRACT','SHARE']
+    valid_until:str
+    submission_deadline:str
+
+    def __post_init__(self):
+        require(self.target_side in ('LONG','SHORT','FLAT') and self.unit in ('BASE','CONTRACT','SHARE'),
+            'TARGET_SCOPE_TERMS_REQUIRED')
+        time_key(self.valid_until);time_key(self.submission_deadline)
+
+
+@dataclass(frozen=True,kw_only=True)
+class TargetQuantityObligation:
+    source_kind:Literal['ACTIVE_ORDER','PENDING']
+    source_id:str
+    signed_quantity:t.Quantity
+    uncertain:bool
+
+
+@dataclass(frozen=True,kw_only=True)
+class TargetScopeState:
+    actual:t.Quantity
+    working:t.Quantity
+    orders:tuple[t.OwnedOrderRef,...]
+    signed_orders:tuple[Decimal,...]
+    obligations:tuple[TargetQuantityObligation,...]
+
+    @property
+    def execution_authorized(self)->Literal[False]:return False
+
+
 def legacy_target_terms(intent: TradeIntent) -> TargetTerms:
     """Validate the unchanged legacy wire before exposing its economic terms."""
     ContractCodec().encode(intent)
@@ -119,7 +159,20 @@ class TargetCompiler:
                            - min(v.as_tuple().exponent for v in values) + len(str(len(values))) + 8)
             return self._compile(terms, book)
 
-    def _compile(self, intent, book):
+    def read_scope_terms(self,terms,book):
+        require(type(terms) is TargetScopeTerms,'TARGET_SCOPE_TERMS_REQUIRED')
+        values=[self.inputs.instrument.quantity_step.value,self.inputs.instrument.minimum_quantity.value,
+            *(p.actual_quantity.value for p in book.positions),*(p.leaves_quantity.value for p in book.active_orders),
+            *(p.signed_quantity.value for p in self.inputs.pending)]
+        with localcontext() as ctx:
+            ctx.prec=max(80,max(v.adjusted() for v in values)
+                -min(v.as_tuple().exponent for v in values)+len(str(len(values)))+8)
+            self._validate_scope(terms,book,terms.unit)
+            require(book.scope.product==t.Product.USD_M_PERP or terms.target_side!='SHORT','CASH_SHORT')
+            require(book.scope.venue_leg=='BOTH' or terms.target_side in (book.scope.venue_leg,'FLAT'),'LEG_MISMATCH')
+            return self._read_scope_quantities(terms,book,terms.unit)
+
+    def _validate_scope(self,intent,book,unit):
         f, scope = self.inputs, book.scope
         require(scope.environment != t.Environment.LIVE, 'LIVE_DISABLED')
         require(intent.scope == scope, 'INTENT_SCOPE_MISMATCH')
@@ -139,16 +192,13 @@ class TargetCompiler:
         require(f.session.instrument_uid == scope.instrument_uid and f.session.state == 'OPEN'
                 and f.session.evidence.environment == scope.environment
                 and time_key(f.session.observed_at) <= time_key(f.clock.utc_now), 'SESSION_NOT_OPEN')
-        unit = intent.target.unit
         require(unit == spec.quantity_step.unit == spec.minimum_quantity.unit
                 and unit == {t.Product.SPOT: 'BASE', t.Product.USD_M_PERP: 'CONTRACT',
                              t.Product.US_EQUITY: 'SHARE'}[scope.product], 'QUANTITY_UNIT_MISMATCH')
         require(spec.minimum_quantity.value > 0, 'INVALID_INSTRUMENT_RULE')
-        magnitude = quantity_on_grid(intent.target.value, spec.quantity_step.value,
-                                     f.allow_round_down and intent.action == 'SET_TARGET')
-        require(scope.product == t.Product.USD_M_PERP or intent.target_side != 'SHORT', 'CASH_SHORT')
-        require(scope.venue_leg == 'BOTH' or intent.target_side in (scope.venue_leg, 'FLAT'), 'LEG_MISMATCH')
-        target = magnitude * (-1 if intent.target_side == 'SHORT' else 1)
+
+    def _read_scope_quantities(self,intent,book,unit):
+        f,scope=self.inputs,book.scope
         positions = [p for p in book.positions if p.scope == scope]
         require(len(positions) <= 1, 'AMBIGUOUS_POSITION')
         actual = Decimal(0)
@@ -164,6 +214,7 @@ class TargetCompiler:
         require(len(sides) == len(f.order_sides), 'DUPLICATE_ORDER_SIDE')
         working = Decimal(0)
         orders, signed_orders, seen = [], [], set()
+        obligations = []
         for projection in book.active_orders:
             order = projection.order
             if order.identity.scope != scope:
@@ -185,6 +236,8 @@ class TargetCompiler:
                 working += signed
                 orders.append(order)
                 signed_orders.append(signed)
+                obligations.append(TargetQuantityObligation(source_kind="ACTIVE_ORDER",source_id=identifier,
+                    signed_quantity=t.Quantity(value=signed,unit=unit),uncertain=projection.command_certainty=="UNKNOWN"))
         require(len({p.reservation.reservation_id for p in book.reservations}) == len(book.reservations),
                 'DUPLICATE_RESERVATION')
         for p in book.reservations:
@@ -215,7 +268,24 @@ class TargetCompiler:
                 working += pending.signed_quantity.value
                 if pending.signed_quantity.value:
                     signed_orders.append(pending.signed_quantity.value)
+                    obligations.append(TargetQuantityObligation(source_kind="PENDING",source_id=pending.intent_id,
+                        signed_quantity=pending.signed_quantity,uncertain=True))
         require(mapped == set(reservations), 'RESERVATION_QUANTITY_REQUIRED')
+        return TargetScopeState(actual=t.Quantity(value=actual,unit=unit),working=t.Quantity(value=working,unit=unit),
+            orders=tuple(orders),signed_orders=tuple(signed_orders),obligations=tuple(obligations))
+
+    def _compile(self, intent, book):
+        f,scope=self.inputs,book.scope
+        unit=intent.target.unit;spec=f.instrument
+        self._validate_scope(intent,book,unit)
+        magnitude = quantity_on_grid(intent.target.value, spec.quantity_step.value,
+                                     f.allow_round_down and intent.action == 'SET_TARGET')
+        require(scope.product == t.Product.USD_M_PERP or intent.target_side != 'SHORT', 'CASH_SHORT')
+        require(scope.venue_leg == 'BOTH' or intent.target_side in (scope.venue_leg, 'FLAT'), 'LEG_MISMATCH')
+        target = magnitude * (-1 if intent.target_side == 'SHORT' else 1)
+        scope_state=self._read_scope_quantities(intent,book,unit)
+        actual,working=scope_state.actual.value,scope_state.working.value
+        orders,signed_orders=scope_state.orders,scope_state.signed_orders
         quantity = lambda value: t.Quantity(value=value, unit=unit)
         if intent.action != 'SET_TARGET':
             return t.DeltaPlan(scope=scope, target=quantity(target), actual=quantity(actual),
