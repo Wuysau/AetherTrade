@@ -1,0 +1,839 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF                                [100%]
+================================== FAILURES ===================================
+_ test_exact_original_id_query_retains_raw_and_fee_fields_without_ownership[BINANCE_SPOT_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1D9C2BA0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_exact_original_id_query_r0'))
+
+    def test_exact_original_id_query_retains_raw_and_fee_fields_without_ownership(reader):
+>       pages=(archive(reader),archive(reader,1,rows=[],size=100))
+               ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1D9C2BA0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_exact_original_id_query_r0'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_exact_original_id_query_retains_raw_and_fee_fields_without_ownership[BINANCE_USD_M_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DADEC10>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_exact_original_id_query_r1'))
+
+    def test_exact_original_id_query_retains_raw_and_fee_fields_without_ownership(reader):
+>       pages=(archive(reader),archive(reader,1,rows=[],size=100))
+               ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DADEC10>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_exact_original_id_query_r1'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_history_uses_real_page_controls_and_consumes_each_page_once[BINANCE_SPOT_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DADF750>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_history_uses_real_page_co0'))
+
+    def test_history_uses_real_page_controls_and_consumes_each_page_once(reader):
+>       from trading_system.engine.nautilus.order_query import query_page_request
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:61: ModuleNotFoundError
+_ test_history_uses_real_page_controls_and_consumes_each_page_once[BINANCE_USD_M_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB80B00>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_history_uses_real_page_co1'))
+
+    def test_history_uses_real_page_controls_and_consumes_each_page_once(reader):
+>       from trading_system.engine.nautilus.order_query import query_page_request
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:61: ModuleNotFoundError
+_ test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_SPOT_EXECUTION_ALGO-missing_history] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB81480>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping0'))
+case = 'missing_history'
+
+    @pytest.mark.parametrize('case',['missing_history','gap','wrong_total','overlapping_rows'])
+    def test_incomplete_or_overlapping_scan_never_means_not_sent(reader,case):
+>       first=archive(reader,rows=[])
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB81480>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping0'))
+index = 0, rows = [], total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_SPOT_EXECUTION_ALGO-gap] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DA8F2F0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping1'))
+case = 'gap'
+
+    @pytest.mark.parametrize('case',['missing_history','gap','wrong_total','overlapping_rows'])
+    def test_incomplete_or_overlapping_scan_never_means_not_sent(reader,case):
+>       first=archive(reader,rows=[])
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DA8F2F0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping1'))
+index = 0, rows = [], total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_SPOT_EXECUTION_ALGO-wrong_total] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1D889AE0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping2'))
+case = 'wrong_total'
+
+    @pytest.mark.parametrize('case',['missing_history','gap','wrong_total','overlapping_rows'])
+    def test_incomplete_or_overlapping_scan_never_means_not_sent(reader,case):
+>       first=archive(reader,rows=[])
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1D889AE0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping2'))
+index = 0, rows = [], total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_SPOT_EXECUTION_ALGO-overlapping_rows] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1D88A250>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping3'))
+case = 'overlapping_rows'
+
+    @pytest.mark.parametrize('case',['missing_history','gap','wrong_total','overlapping_rows'])
+    def test_incomplete_or_overlapping_scan_never_means_not_sent(reader,case):
+>       first=archive(reader,rows=[])
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1D88A250>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping3'))
+index = 0, rows = [], total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_USD_M_EXECUTION_ALGO-missing_history] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBB1E50>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping4'))
+case = 'missing_history'
+
+    @pytest.mark.parametrize('case',['missing_history','gap','wrong_total','overlapping_rows'])
+    def test_incomplete_or_overlapping_scan_never_means_not_sent(reader,case):
+>       first=archive(reader,rows=[])
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBB1E50>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping4'))
+index = 0, rows = [], total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_USD_M_EXECUTION_ALGO-gap] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBB2C50>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping5'))
+case = 'gap'
+
+    @pytest.mark.parametrize('case',['missing_history','gap','wrong_total','overlapping_rows'])
+    def test_incomplete_or_overlapping_scan_never_means_not_sent(reader,case):
+>       first=archive(reader,rows=[])
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBB2C50>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping5'))
+index = 0, rows = [], total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_USD_M_EXECUTION_ALGO-wrong_total] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBEE120>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping6'))
+case = 'wrong_total'
+
+    @pytest.mark.parametrize('case',['missing_history','gap','wrong_total','overlapping_rows'])
+    def test_incomplete_or_overlapping_scan_never_means_not_sent(reader,case):
+>       first=archive(reader,rows=[])
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBEE120>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping6'))
+index = 0, rows = [], total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_USD_M_EXECUTION_ALGO-overlapping_rows] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBEF020>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping7'))
+case = 'overlapping_rows'
+
+    @pytest.mark.parametrize('case',['missing_history','gap','wrong_total','overlapping_rows'])
+    def test_incomplete_or_overlapping_scan_never_means_not_sent(reader,case):
+>       first=archive(reader,rows=[])
+              ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBEF020>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_incomplete_or_overlapping7'))
+index = 0, rows = [], total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_complete_not_found_does_not_release_or_allow_resubmission[BINANCE_SPOT_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB1E270>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_complete_not_found_does_n0'))
+
+    def test_complete_not_found_does_not_release_or_allow_resubmission(reader):
+>       result=resolve(reader,(archive(reader,rows=[row('other',9)]),archive(reader,1,rows=[],size=100)))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB1E270>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_complete_not_found_does_n0'))
+index = 0
+rows = [{'algoId': 9, 'clientAlgoId': 'other', 'symbol': 'BTCUSDT', 'algoStatus': 'WORKING', ...}]
+total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_complete_not_found_does_not_release_or_allow_resubmission[BINANCE_USD_M_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB1E5F0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_complete_not_found_does_n1'))
+
+    def test_complete_not_found_does_not_release_or_allow_resubmission(reader):
+>       result=resolve(reader,(archive(reader,rows=[row('other',9)]),archive(reader,1,rows=[],size=100)))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB1E5F0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_complete_not_found_does_n1'))
+index = 0
+rows = [{'algoId': 9, 'clientAlgoId': 'other', 'symbol': 'BTCUSDT', 'algoStatus': 'WORKING', ...}]
+total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_conflicting_original_mother_ids_are_not_merged[BINANCE_SPOT_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB518B0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_conflicting_original_moth0'))
+
+    def test_conflicting_original_mother_ids_are_not_merged(reader):
+>       result=resolve(reader,(archive(reader,rows=[row(),row(venue=456)]),archive(reader,1,rows=[],size=100)))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB518B0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_conflicting_original_moth0'))
+index = 0
+rows = [{'algoId': 123, 'clientAlgoId': 'original-client', 'symbol': 'BTCUSDT', 'algoStatus': 'WORKING', ...}, {'algoId': 456, 'clientAlgoId': 'original-client', 'symbol': 'BTCUSDT', 'algoStatus': 'WORKING', ...}]
+total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_conflicting_original_mother_ids_are_not_merged[BINANCE_USD_M_EXECUTION_ALGO] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB72810>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_conflicting_original_moth1'))
+
+    def test_conflicting_original_mother_ids_are_not_merged(reader):
+>       result=resolve(reader,(archive(reader,rows=[row(),row(venue=456)]),archive(reader,1,rows=[],size=100)))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB72810>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_conflicting_original_moth1'))
+index = 0
+rows = [{'algoId': 123, 'clientAlgoId': 'original-client', 'symbol': 'BTCUSDT', 'algoStatus': 'WORKING', ...}, {'algoId': 456, 'clientAlgoId': 'original-client', 'symbol': 'BTCUSDT', 'algoStatus': 'WORKING', ...}]
+total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-account] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB72E10>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc0'))
+change = 'account'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB72E10>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc0'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-namespace] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC4C260>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc1'))
+change = 'namespace'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC4C260>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc1'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-request] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC4DBD0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc2'))
+change = 'request'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC4DBD0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc2'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-source] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBA67B0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc3'))
+change = 'source'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBA67B0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc3'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-scan] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBA6F30>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc4'))
+change = 'scan'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DBA6F30>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc4'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-tamper_raw] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC2D0A0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc5'))
+change = 'tamper_raw'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC2D0A0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc5'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-tamper_rows] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB8F1D0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc6'))
+change = 'tamper_rows'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB8F1D0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc6'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-account] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB8EA50>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc7'))
+change = 'account'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DB8EA50>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc7'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-namespace] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC0D860>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc8'))
+change = 'namespace'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC0D860>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc8'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-request] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC0DF60>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc9'))
+change = 'request'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC0DF60>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc9'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-source] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...DB6C8F0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc10'))
+change = 'source'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...DB6C8F0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc10'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-scan] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...DC6C530>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc11'))
+change = 'scan'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...DC6C530>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc11'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-tamper_raw] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...DC6C410>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc12'))
+change = 'tamper_raw'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...DC6C410>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc12'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-tamper_rows] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...DC6C950>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc13'))
+change = 'tamper_rows'
+
+    @pytest.mark.parametrize('change',['account','namespace','request','source','scan','tamper_raw','tamper_rows'])
+    def test_independent_scope_and_archived_page_binding_are_required(reader,change):
+>       first=archive(reader)
+              ^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...DC6C950>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_independent_scope_and_arc13'))
+index = 0, rows = None, total = None, page = 1, size = None, payload = None
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_SPOT_EXECUTION_ALGO-{invalid] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6D0D0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived0'))
+payload = b'{invalid'
+
+    @pytest.mark.parametrize('payload',[b'{invalid',b'{"total":0,"total":1,"orders":[]}',b'{"code":-1007,"msg":"timeout"}'])
+    def test_query_errors_are_archived_before_decoding_and_never_not_found(reader,payload):
+>       with pytest.raises(ValueError):archive(reader,payload=payload)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6D0D0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived0'))
+index = 0, rows = None, total = None, page = 1, size = None
+payload = b'{invalid'
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_SPOT_EXECUTION_ALGO-{"total":0,"total":1,"orders":[]}] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6D4F0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived1'))
+payload = b'{"total":0,"total":1,"orders":[]}'
+
+    @pytest.mark.parametrize('payload',[b'{invalid',b'{"total":0,"total":1,"orders":[]}',b'{"code":-1007,"msg":"timeout"}'])
+    def test_query_errors_are_archived_before_decoding_and_never_not_found(reader,payload):
+>       with pytest.raises(ValueError):archive(reader,payload=payload)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6D4F0>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived1'))
+index = 0, rows = None, total = None, page = 1, size = None
+payload = b'{"total":0,"total":1,"orders":[]}'
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_SPOT_EXECUTION_ALGO-{"code":-1007,"msg":"timeout"}] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6D430>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived2'))
+payload = b'{"code":-1007,"msg":"timeout"}'
+
+    @pytest.mark.parametrize('payload',[b'{invalid',b'{"total":0,"total":1,"orders":[]}',b'{"code":-1007,"msg":"timeout"}'])
+    def test_query_errors_are_archived_before_decoding_and_never_not_found(reader,payload):
+>       with pytest.raises(ValueError):archive(reader,payload=payload)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6D430>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived2'))
+index = 0, rows = None, total = None, page = 1, size = None
+payload = b'{"code":-1007,"msg":"timeout"}'
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_USD_M_EXECUTION_ALGO-{invalid] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6D850>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived3'))
+payload = b'{invalid'
+
+    @pytest.mark.parametrize('payload',[b'{invalid',b'{"total":0,"total":1,"orders":[]}',b'{"code":-1007,"msg":"timeout"}'])
+    def test_query_errors_are_archived_before_decoding_and_never_not_found(reader,payload):
+>       with pytest.raises(ValueError):archive(reader,payload=payload)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6D850>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived3'))
+index = 0, rows = None, total = None, page = 1, size = None
+payload = b'{invalid'
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_USD_M_EXECUTION_ALGO-{"total":0,"total":1,"orders":[]}] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6DC70>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived4'))
+payload = b'{"total":0,"total":1,"orders":[]}'
+
+    @pytest.mark.parametrize('payload',[b'{invalid',b'{"total":0,"total":1,"orders":[]}',b'{"code":-1007,"msg":"timeout"}'])
+    def test_query_errors_are_archived_before_decoding_and_never_not_found(reader,payload):
+>       with pytest.raises(ValueError):archive(reader,payload=payload)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6DC70>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived4'))
+index = 0, rows = None, total = None, page = 1, size = None
+payload = b'{"total":0,"total":1,"orders":[]}'
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_USD_M_EXECUTION_ALGO-{"code":-1007,"msg":"timeout"}] _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6E090>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived5'))
+payload = b'{"code":-1007,"msg":"timeout"}'
+
+    @pytest.mark.parametrize('payload',[b'{invalid',b'{"total":0,"total":1,"orders":[]}',b'{"code":-1007,"msg":"timeout"}'])
+    def test_query_errors_are_archived_before_decoding_and_never_not_found(reader,payload):
+>       with pytest.raises(ValueError):archive(reader,payload=payload)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\intents\test_order_query.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reader = ((VenueManagementRequest(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated', product...1DC6E090>, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_query_errors_are_archived5'))
+index = 0, rows = None, total = None, page = 1, size = None
+payload = b'{"code":-1007,"msg":"timeout"}'
+
+    def archive(reader,index=0,rows=None,total=None,page=1,size=None,payload=None):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:33: ModuleNotFoundError
+_ test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_SPOT_ORDINARY] _
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_single_original_identity_0')
+namespace = <Namespace.SPOT_ORDINARY: 'BINANCE_SPOT_ORDINARY'>
+
+    @pytest.mark.parametrize('namespace',[n for n in Namespace if n not in (
+        Namespace.SPOT_EXECUTION,Namespace.USD_M_EXECUTION)])
+    def test_single_original_identity_queries_use_product_specific_identity_fields(tmp_path,namespace):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page,resolve_original_query
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:115: ModuleNotFoundError
+_ test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_SPOT_ORDER_LIST] _
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_single_original_identity_1')
+namespace = <Namespace.SPOT_LIST: 'BINANCE_SPOT_ORDER_LIST'>
+
+    @pytest.mark.parametrize('namespace',[n for n in Namespace if n not in (
+        Namespace.SPOT_EXECUTION,Namespace.USD_M_EXECUTION)])
+    def test_single_original_identity_queries_use_product_specific_identity_fields(tmp_path,namespace):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page,resolve_original_query
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:115: ModuleNotFoundError
+_ test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_USD_M_ORDINARY] _
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_single_original_identity_2')
+namespace = <Namespace.USD_M_ORDINARY: 'BINANCE_USD_M_ORDINARY'>
+
+    @pytest.mark.parametrize('namespace',[n for n in Namespace if n not in (
+        Namespace.SPOT_EXECUTION,Namespace.USD_M_EXECUTION)])
+    def test_single_original_identity_queries_use_product_specific_identity_fields(tmp_path,namespace):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page,resolve_original_query
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:115: ModuleNotFoundError
+_ test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_USD_M_CONDITIONAL_ALGO] _
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_single_original_identity_3')
+namespace = <Namespace.USD_M_CONDITIONAL: 'BINANCE_USD_M_CONDITIONAL_ALGO'>
+
+    @pytest.mark.parametrize('namespace',[n for n in Namespace if n not in (
+        Namespace.SPOT_EXECUTION,Namespace.USD_M_EXECUTION)])
+    def test_single_original_identity_queries_use_product_specific_identity_fields(tmp_path,namespace):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page,resolve_original_query
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:115: ModuleNotFoundError
+_ test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_REAL_EQUITY] _
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-333/test_single_original_identity_4')
+namespace = <Namespace.EQUITY: 'BINANCE_REAL_EQUITY'>
+
+    @pytest.mark.parametrize('namespace',[n for n in Namespace if n not in (
+        Namespace.SPOT_EXECUTION,Namespace.USD_M_EXECUTION)])
+    def test_single_original_identity_queries_use_product_specific_identity_fields(tmp_path,namespace):
+>       from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page,resolve_original_query
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.order_query'
+
+tests\intents\test_order_query.py:115: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tests/intents/test_order_query.py::test_exact_original_id_query_retains_raw_and_fee_fields_without_ownership[BINANCE_SPOT_EXECUTION_ALGO]
+FAILED tests/intents/test_order_query.py::test_exact_original_id_query_retains_raw_and_fee_fields_without_ownership[BINANCE_USD_M_EXECUTION_ALGO]
+FAILED tests/intents/test_order_query.py::test_history_uses_real_page_controls_and_consumes_each_page_once[BINANCE_SPOT_EXECUTION_ALGO]
+FAILED tests/intents/test_order_query.py::test_history_uses_real_page_controls_and_consumes_each_page_once[BINANCE_USD_M_EXECUTION_ALGO]
+FAILED tests/intents/test_order_query.py::test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_SPOT_EXECUTION_ALGO-missing_history]
+FAILED tests/intents/test_order_query.py::test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_SPOT_EXECUTION_ALGO-gap]
+FAILED tests/intents/test_order_query.py::test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_SPOT_EXECUTION_ALGO-wrong_total]
+FAILED tests/intents/test_order_query.py::test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_SPOT_EXECUTION_ALGO-overlapping_rows]
+FAILED tests/intents/test_order_query.py::test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_USD_M_EXECUTION_ALGO-missing_history]
+FAILED tests/intents/test_order_query.py::test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_USD_M_EXECUTION_ALGO-gap]
+FAILED tests/intents/test_order_query.py::test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_USD_M_EXECUTION_ALGO-wrong_total]
+FAILED tests/intents/test_order_query.py::test_incomplete_or_overlapping_scan_never_means_not_sent[BINANCE_USD_M_EXECUTION_ALGO-overlapping_rows]
+FAILED tests/intents/test_order_query.py::test_complete_not_found_does_not_release_or_allow_resubmission[BINANCE_SPOT_EXECUTION_ALGO]
+FAILED tests/intents/test_order_query.py::test_complete_not_found_does_not_release_or_allow_resubmission[BINANCE_USD_M_EXECUTION_ALGO]
+FAILED tests/intents/test_order_query.py::test_conflicting_original_mother_ids_are_not_merged[BINANCE_SPOT_EXECUTION_ALGO]
+FAILED tests/intents/test_order_query.py::test_conflicting_original_mother_ids_are_not_merged[BINANCE_USD_M_EXECUTION_ALGO]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-account]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-namespace]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-request]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-source]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-scan]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-tamper_raw]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_SPOT_EXECUTION_ALGO-tamper_rows]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-account]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-namespace]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-request]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-source]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-scan]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-tamper_raw]
+FAILED tests/intents/test_order_query.py::test_independent_scope_and_archived_page_binding_are_required[BINANCE_USD_M_EXECUTION_ALGO-tamper_rows]
+FAILED tests/intents/test_order_query.py::test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_SPOT_EXECUTION_ALGO-{invalid]
+FAILED tests/intents/test_order_query.py::test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_SPOT_EXECUTION_ALGO-{"total":0,"total":1,"orders":[]}]
+FAILED tests/intents/test_order_query.py::test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_SPOT_EXECUTION_ALGO-{"code":-1007,"msg":"timeout"}]
+FAILED tests/intents/test_order_query.py::test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_USD_M_EXECUTION_ALGO-{invalid]
+FAILED tests/intents/test_order_query.py::test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_USD_M_EXECUTION_ALGO-{"total":0,"total":1,"orders":[]}]
+FAILED tests/intents/test_order_query.py::test_query_errors_are_archived_before_decoding_and_never_not_found[BINANCE_USD_M_EXECUTION_ALGO-{"code":-1007,"msg":"timeout"}]
+FAILED tests/intents/test_order_query.py::test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_SPOT_ORDINARY]
+FAILED tests/intents/test_order_query.py::test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_SPOT_ORDER_LIST]
+FAILED tests/intents/test_order_query.py::test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_USD_M_ORDINARY]
+FAILED tests/intents/test_order_query.py::test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_USD_M_CONDITIONAL_ALGO]
+FAILED tests/intents/test_order_query.py::test_single_original_identity_queries_use_product_specific_identity_fields[BINANCE_REAL_EQUITY]
+41 failed in 1.67s

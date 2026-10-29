@@ -1,0 +1,82 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_ test_futures_response_cannot_claim_a_different_or_unproven_position_leg[LONG-CONFLICT] _
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-340/test_futures_response_cannot_c0')
+position_side = 'LONG', expected = 'CONFLICT'
+
+    @pytest.mark.parametrize('position_side,expected',[('LONG','CONFLICT'),('SHORT','CONFLICT'),(None,'INCOMPLETE')])
+    def test_futures_response_cannot_claim_a_different_or_unproven_position_leg(tmp_path,position_side,expected):
+        plan,k=setup(Namespace.USD_M_EXECUTION)
+        requests=materialize(plan,**k)
+        codec=VenueIdCodec(k['scope'])
+        try:
+            reader=(requests,NativeEventBridge(codec,tmp_path),tmp_path)
+            from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+            r=row()
+            if position_side is not None:r['positionSide']=position_side
+            first=archive_query_page(json.dumps(dict(total=1,orders=[r])).encode(),
+                request=query_page_request(requests[0]),scan_id='scan-one',bridge=reader[1],source=SOURCE,received_at=NOW)
+            result=resolve(reader,(first,archive(reader,1,rows=[],size=100)))
+>           assert result.status==expected and not result.ownership_established
+E           AssertionError: assert ('MATCHED' == 'CONFLICT'
+E             
+E             - CONFLICT
+E             + MATCHED)
+
+tests\intents\test_order_query.py:147: AssertionError
+_ test_futures_response_cannot_claim_a_different_or_unproven_position_leg[SHORT-CONFLICT] _
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-340/test_futures_response_cannot_c1')
+position_side = 'SHORT', expected = 'CONFLICT'
+
+    @pytest.mark.parametrize('position_side,expected',[('LONG','CONFLICT'),('SHORT','CONFLICT'),(None,'INCOMPLETE')])
+    def test_futures_response_cannot_claim_a_different_or_unproven_position_leg(tmp_path,position_side,expected):
+        plan,k=setup(Namespace.USD_M_EXECUTION)
+        requests=materialize(plan,**k)
+        codec=VenueIdCodec(k['scope'])
+        try:
+            reader=(requests,NativeEventBridge(codec,tmp_path),tmp_path)
+            from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+            r=row()
+            if position_side is not None:r['positionSide']=position_side
+            first=archive_query_page(json.dumps(dict(total=1,orders=[r])).encode(),
+                request=query_page_request(requests[0]),scan_id='scan-one',bridge=reader[1],source=SOURCE,received_at=NOW)
+            result=resolve(reader,(first,archive(reader,1,rows=[],size=100)))
+>           assert result.status==expected and not result.ownership_established
+E           AssertionError: assert ('MATCHED' == 'CONFLICT'
+E             
+E             - CONFLICT
+E             + MATCHED)
+
+tests\intents\test_order_query.py:147: AssertionError
+_ test_futures_response_cannot_claim_a_different_or_unproven_position_leg[None-INCOMPLETE] _
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-340/test_futures_response_cannot_c2')
+position_side = None, expected = 'INCOMPLETE'
+
+    @pytest.mark.parametrize('position_side,expected',[('LONG','CONFLICT'),('SHORT','CONFLICT'),(None,'INCOMPLETE')])
+    def test_futures_response_cannot_claim_a_different_or_unproven_position_leg(tmp_path,position_side,expected):
+        plan,k=setup(Namespace.USD_M_EXECUTION)
+        requests=materialize(plan,**k)
+        codec=VenueIdCodec(k['scope'])
+        try:
+            reader=(requests,NativeEventBridge(codec,tmp_path),tmp_path)
+            from trading_system.engine.nautilus.order_query import query_page_request,archive_query_page
+            r=row()
+            if position_side is not None:r['positionSide']=position_side
+            first=archive_query_page(json.dumps(dict(total=1,orders=[r])).encode(),
+                request=query_page_request(requests[0]),scan_id='scan-one',bridge=reader[1],source=SOURCE,received_at=NOW)
+            result=resolve(reader,(first,archive(reader,1,rows=[],size=100)))
+>           assert result.status==expected and not result.ownership_established
+E           AssertionError: assert ('MATCHED' == 'INCOMPLETE'
+E             
+E             - INCOMPLETE
+E             + MATCHED)
+
+tests\intents\test_order_query.py:147: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/intents/test_order_query.py::test_futures_response_cannot_claim_a_different_or_unproven_position_leg[LONG-CONFLICT]
+FAILED tests/intents/test_order_query.py::test_futures_response_cannot_claim_a_different_or_unproven_position_leg[SHORT-CONFLICT]
+FAILED tests/intents/test_order_query.py::test_futures_response_cannot_claim_a_different_or_unproven_position_leg[None-INCOMPLETE]
+3 failed, 47 deselected in 0.46s
