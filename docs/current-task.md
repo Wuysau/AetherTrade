@@ -47,7 +47,10 @@ side binding13bf1e3 fixes genuine same-scope side swaps in both risk adapters;
 aggregate working net alone is insufficient. Fixed5866ddc full checkpoint remains
 35 mandatory PG suites/1020 pass/0fail/error/skip and ordinary3411 pass/574
 environmental skips/96deselected, all artifacts committed. It predates D/F/quote.
-All listed old handles are TERMINAL. New expanded fixed combined gate remains due.
+All listed old handles are TERMINAL. New fixed0a55692 expanded full gate is RUNNING
+exec57061:42 mandatory PG suites plus ordinary Python, timeout5400, fresh private
+Docker with explicit immutable offline dependency image. Do not restart this
+handle on observation timeout. It remains source-specific and has no result yet.
 
 Next: full expanded PG+Python gate; actual public interval durable attachment,
 trusted MARKET enforcement and fee/dust residual persistence. Parent implements
