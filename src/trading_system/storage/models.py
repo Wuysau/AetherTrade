@@ -11,7 +11,7 @@ from types import UnionType
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import domain_payload, canonical_json, canonical_hash
-from trading_system.contracts.wire import ContractCodec, ExecutionCommand, TradeIntent
+from trading_system.contracts.wire import ContractCodec, ExecutionCommand, TradeIntent, DecisionProposal, RiskPolicy
 
 
 class SequenceConflict(ValueError):
@@ -49,6 +49,9 @@ def decode(cls, payload):
     """Restore only an explicitly requested contract type; never import stored names."""
     if isinstance(payload, str):
         payload = json.loads(payload)
+    from trading_system.contracts.ledger_intents import LedgerIntentRecord, LedgerIntentCodec
+    if cls is LedgerIntentRecord:
+        return LedgerIntentCodec().decode(payload)
     if cls in (ExecutionCommand, TradeIntent):
         return ContractCodec().decode(
             'execution-command' if cls is ExecutionCommand else 'trade-intent', payload)
@@ -58,6 +61,10 @@ def decode(cls, payload):
             if kind is type(None) or type(None) in get_args(kind):
                 return None
             raise ValueError('null for non-null stored field')
+        wire_kinds={DecisionProposal:'decision-proposal',TradeIntent:'trade-intent',
+                    ExecutionCommand:'execution-command',RiskPolicy:'risk-policy'}
+        if kind in wire_kinds:
+            return ContractCodec().decode(wire_kinds[kind],value)
         origin = get_origin(kind)
         if origin in (Union, UnionType):
             for option in get_args(kind):

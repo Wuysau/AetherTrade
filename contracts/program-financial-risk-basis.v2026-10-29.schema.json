@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-29"
+      ]
+    },
+    "record_kind": {
+      "enum": [
+        "PROGRAM_FINANCIAL_RISK_BASIS"
+      ]
+    },
+    "intent_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "venue_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "product": {
+          "enum": [
+            "SPOT",
+            "USD_M_PERP",
+            "US_EQUITY"
+          ]
+        },
+        "instrument_uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue_leg": {
+          "enum": [
+            "BOTH",
+            "LONG",
+            "SHORT"
+          ]
+        }
+      },
+      "required": [
+        "environment",
+        "venue_account_id",
+        "product",
+        "instrument_uid",
+        "venue_leg"
+      ],
+      "additionalProperties": false
+    },
+    "intent_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "book_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "allocation_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "terms_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "metrics_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "risk_facts_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "policy_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "archive_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "incremental_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string",
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "contract_version",
+    "record_kind",
+    "intent_id",
+    "scope",
+    "intent_hash",
+    "source_hash",
+    "book_hash",
+    "allocation_hash",
+    "terms_hash",
+    "metrics_hash",
+    "risk_facts_hash",
+    "policy_hash",
+    "archive_hash",
+    "incremental_requirements"
+  ],
+  "additionalProperties": false
+}

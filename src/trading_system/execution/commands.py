@@ -92,7 +92,8 @@ class CommandRepository(LedgerCommands):
         if canonical_hash(body['canonical_payload']) != command.payload_hash:
             raise ValueError('command payload hash mismatch')
         scope = self.tx.scope
-        intent = self.tx._latest('intents', command.intent_id, TradeIntent)
+        from trading_system.storage.uow import IntentRepository
+        intent = IntentRepository(self.tx).get_legacy(command.intent_id)
         if (scope.environment not in (t.Environment.PAPER, t.Environment.RESEARCH)
                 or intent is None or command.environment != scope.environment
                 or command.venue_account_id != scope.venue_account_id

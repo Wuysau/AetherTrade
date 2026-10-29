@@ -222,7 +222,7 @@ def validate_program_transition(previous:OrderProposal,candidate:OrderProposal):
     if any(getattr(previous,k)!=getattr(candidate,k) for k in protected):raise ValueError('HOLD/UPDATE_EXIT changes protected responsibility')
 
 
-def schema_for(cls):
+def schema_for(cls, *, allow_decimal=False):
     """Deterministic public schema generator, with no arbitrary runtime class loading."""
     from dataclasses import is_dataclass
     from trading_system.contracts.types import ScopeKey
@@ -238,6 +238,7 @@ def schema_for(cls):
         if kind is str:return {'type':'string','minLength':1,'maxLength':256}
         if kind is int:return {'type':'integer','minimum':0}
         if kind is bool:return {'type':'boolean'}
+        if allow_decimal and kind is Decimal:return {'type':'string','pattern':r'^-?(0|[1-9][0-9]*)(\.[0-9]+)?$'}
         if kind is type(None):return {'type':'null'}
         raise TypeError('Unregistered schema type')
     return {'$schema':'https://json-schema.org/draft/2020-12/schema',**shape(cls)}

@@ -1,0 +1,10 @@
+.F.......                                                                [100%]
+=================================== FAILURES ===================================
+_________________ test_generic_record_rejects_noncurrent_owner _________________
+tests/integration/test_program_financial_ledger.py:70: in test_generic_record_rejects_noncurrent_owner
+    with pytest.raises((ScopeMismatch,MissingEvidence),match='owner|OWNER'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE any of (ScopeMismatch, MissingEvidence)
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_financial_ledger.py::test_generic_record_rejects_noncurrent_owner
+1 failed, 8 passed in 11.98s

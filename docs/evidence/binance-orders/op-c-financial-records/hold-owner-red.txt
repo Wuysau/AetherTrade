@@ -1,0 +1,10 @@
+.........F                                                               [100%]
+=================================== FAILURES ===================================
+________ test_generic_hold_cannot_be_created_after_owner_epoch_changes _________
+tests/integration/test_program_financial_ledger.py:165: in test_generic_hold_cannot_be_created_after_owner_epoch_changes
+    with pytest.raises(ScopeMismatch,match='owner|OWNER'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ScopeMismatch
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_financial_ledger.py::test_generic_hold_cannot_be_created_after_owner_epoch_changes
+1 failed, 9 passed in 9.96s
