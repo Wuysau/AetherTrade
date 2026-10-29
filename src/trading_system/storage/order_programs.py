@@ -9,8 +9,7 @@ from datetime import datetime,timezone,timedelta
 from decimal import Decimal,localcontext,Inexact,Rounded
 from time import monotonic_ns
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import canonical_hash,domain_payload,utc_timestamp
-from trading_system.contracts.order_program import OrderProgram,OrderProgramCodec
+from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload,utc_timestamp
 from trading_system.contracts.order_lifecycle import (ParentAuthority,ChildObservation,ProgramState,
     ObservationEvidence,ApplicationWrite,ParentObservation,IngestionResult,apply_child_observation,restrict,TERMINAL,apply_parent_observation)
 from trading_system.contracts.wire import TradeIntent,ContractCodec
@@ -47,6 +46,14 @@ class ObservationDisposition:
     event_key:str
     restriction:str|None
 
+
+def _validate_program_budget(payload):
+    # Keep the pre-existing v2 storage/codec size bound. Explicit version
+    # dispatch must not silently widen old safety constraints to the new codec's
+    # one-MiB envelope. V3 retains the bound enforced by its versioned codec.
+    if payload.get('contract_version')=='2026-10-28' and len(canonical_json(payload).encode())>131072:
+        raise ValueError('Program budget exceeded')
+
 class OrderProgramRepository:
     def __init__(self,tx,*,verify_parent=None,verify_ingress=None,clock=None):
         self.tx=tx
@@ -57,14 +64,23 @@ class OrderProgramRepository:
 
     def program(self,program_id):
         row=self.tx.execute('SELECT payload FROM ledger.order_programs WHERE scope_id=%s AND record_id=%s',(scope_id(self.tx.scope),program_id)).fetchone()
-        return None if row is None else OrderProgramCodec().decode(row[0])
+        if row is None:return None
+        program=VersionedOrderCodec().decode('order-program',row[0])
+        _validate_program_budget(row[0])
+        return program
 
     def binding(self,program_id):return self.tx._latest('order_program_bindings',program_id,ParentAuthority)
     def state(self,program_id):return self.tx._latest('order_program_states',program_id,ProgramState)
 
+    def _lifecycle_version_error(self,program_id):
+        program=self.program(program_id)
+        if program is None:return 'PARENT_PROGRAM_MISSING'
+        if program.contract_version!='2026-10-28':return 'PARENT_LIFECYCLE_VERSION_NOT_IMPLEMENTED'
+        return None
+
     @atomic_write
     def save_program(self,program):
-        OrderProgramCodec().encode(program)
+        _validate_program_budget(VersionedOrderCodec().encode('order-program',program))
         previous=self.program(program.program_id)
         if previous is not None:
             if previous!=program:raise ValueError('Program identity reused with different content')
@@ -108,7 +124,7 @@ class OrderProgramRepository:
         self.tx.require_scope(command.scope)
         if command.origin not in ('APPLICATION_ACTION','APPLICATION_GENERATED_CHILD'):raise ValueError('Observation is not a write')
         program=self.program(command.program_id)
-        if program is None or OrderProgramCodec().hash(program)!=command.canonical_program_hash:raise MissingEvidence('Program hash binding required')
+        if program is None or VersionedOrderCodec().hash('order-program',program)!=command.canonical_program_hash:raise MissingEvidence('Program hash binding required')
         if command.origin=='APPLICATION_GENERATED_CHILD' and self.write(command.parent_command_id) is None:raise MissingEvidence('Application parent command missing')
         owner=self._owner()
         if owner is None or owner!=(command.owner_strategy_id,command.ownership_epoch,command.policy_revision):raise MissingEvidence('Current owner required')
@@ -134,7 +150,12 @@ class OrderProgramRepository:
         VersionedOrderCodec().encode('parent-authority',authority)
         self.tx.require_scope(authority.scope)
         program=self.program(authority.program_id)
-        if program is None or program.execution_mode!='VENUE_NATIVE' or OrderProgramCodec().hash(program)!=authority.program_hash:raise MissingEvidence('Native parent program required')
+        if program is None:raise MissingEvidence('Native parent program required')
+        # V3 storage/command hashes are readable but do not extend v2 lifecycle
+        # authority. Units, multipliers and complete allocation need their own
+        # reviewed authority revision before native parent/child admission.
+        if program.contract_version!='2026-10-28':raise MissingEvidence('PARENT_LIFECYCLE_VERSION_NOT_IMPLEMENTED')
+        if program.execution_mode!='VENUE_NATIVE' or VersionedOrderCodec().hash('order-program',program)!=authority.program_hash:raise MissingEvidence('Native parent program required')
         command=self.write(authority.parent_command_id)
         if (command is None or command.state!='MAY_HAVE_SENT' or command.operation!='SUBMIT_PROGRAM'
             or command.program_id!=authority.program_id or command.canonical_program_hash!=authority.program_hash
@@ -201,13 +222,17 @@ class OrderProgramRepository:
             if previous.observation!=event:return self._restrict(authority,state,'EVENT_CONTENT_CONFLICT',event,evidence)
         else:
             self.tx._append('order_source_observations',event_key,ObservationEvidence(observation=event,evidence=evidence,verified_at=self.clock()),0)
-        disposition_key=canonical_hash(dict(program_id=program_id,event_key=event_key))
-        disposition=self.tx._latest('order_observation_dispositions',disposition_key,ObservationDisposition)
-        if disposition is not None:return IngestionResult(state=state,restriction=disposition.restriction or (state.restriction_codes[-1] if state.status=='RECONCILIATION_REQUIRED' else None),duplicate=True)
-        # Archived source does not imply it was applied to this parent.
+        # Keep authentic historical V3 reports and original IDs, but never run
+        # them through the incomplete V2 units/allocation reducer. This guard
+        # also applies to events previously seen under an imported binding.
         if (event.scope!=authority.scope or event.parent_client_id!=authority.parent_client_id
             or event.parent_venue_id!=authority.parent_venue_id or event.namespace!=authority.namespace):
             return self._restrict(authority,state,'PARENT_LINK_UNVERIFIED',event,evidence)
+        version_error=self._lifecycle_version_error(program_id)
+        if version_error:return self._restrict(authority,state,version_error,event,evidence)
+        disposition_key=canonical_hash(dict(program_id=program_id,event_key=event_key))
+        disposition=self.tx._latest('order_observation_dispositions',disposition_key,ObservationDisposition)
+        if disposition is not None:return IngestionResult(state=state,restriction=disposition.restriction or (state.restriction_codes[-1] if state.status=='RECONCILIATION_REQUIRED' else None),duplicate=True)
         if not self._funding(authority):return self._restrict(authority,state,'PARENT_FUNDING_OR_OWNER_CHANGED',event,evidence)
         child_key=canonical_hash(dict(venue=event.venue,namespace=event.child_namespace,child_id=event.child_order_id))
         link=self.tx._latest('order_child_links',child_key,ChildLink)
@@ -246,9 +271,13 @@ class OrderProgramRepository:
         previous=self.tx._latest('audit_events',key,ParentObservation)
         if previous is not None:
             if previous!=event:return self._restrict(authority,state,'EVENT_CONTENT_CONFLICT',event,evidence)
+        else:
+            self.tx._append('audit_events',key,event,0)
+            self.tx._append('audit_events','parent-proof:'+key,evidence,0)
+        version_error=self._lifecycle_version_error(program_id)
+        if version_error:return self._restrict(authority,state,version_error,event,evidence)
+        if previous is not None:
             return IngestionResult(state=state,restriction=state.restriction_codes[-1] if state.status=='RECONCILIATION_REQUIRED' else None,duplicate=True)
-        self.tx._append('audit_events',key,event,0)
-        self.tx._append('audit_events','parent-proof:'+key,evidence,0)
         result=apply_parent_observation(authority,state,event)
         if result.restriction:
             self._save_restriction(authority,result,event,evidence)
