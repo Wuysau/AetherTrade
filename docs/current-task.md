@@ -1,5 +1,41 @@
 # Current task
 
+## OP_E_ACTUAL_PROGRAM_ACCOUNTING_PARENT — 2026-10-30
+
+Parent/root solely owns THIS new binance-ope-program-accounting worktree/branch
+codex/binance-ope-program-accounting, fixedbase986c6d0. Root integration_next
+alone writes binance-orders and delegated actual same-ledger accounting; parent
+must not edit root or shared schemas. OldOPF remains trackedcleanb0d5445 with
+private.playwright-cli untracked; read/model/evidence-review boundedcohort done,
+not fullOPF. Root approved its source/review, actual531ordinary/56mandatoryPG,
+54expiry/model focused. No parent jobs currentlylive.
+
+Next task: execution/program_accounting.py plus minimal in-tx extractions in
+existingFillLedger/EvidenceIngestor (publicmethods preserved). Verifier IO/raw
+fsync outsidebusinessTX, then inside samecollaterallock reread original/protected
+consumption/currentowner/book/unit. Native t.Fill quantity/venueprice staysraw;
+actualperasset fees and FinancialUnit ratio/bothmultipliers used. Sourceverified
+is not economiccoverage/ownership/permission. Valid raw fills survive economics
+mismatch/unknownfees, but risk/reconciliation locks/duties remain; nofakecash/FLAT/
+history/protection/reservationrelease, noovershootcap, nolegacyTradeIntentshim.
+USD-M principal must not be debited asSpot; cost/PnL/margin/funding need actualtyped
+sources else unresolved. Equity wallet CARD/MAIN remains separatelyunproved.
+
+Actual codefacts: existingUnifiedPaperRuntime._cash joins ONLYlegacy.commands
+and hardcodesq*price+.001fee; refreshwouldoverwrite/ignore genericfills. Must
+prove mixedlegacy/newrefresh integration throughminimalsharedbinding. t.Cashflow
+classification permits EXTERNAL/INTERNAL/FEE/FUNDING/DIVIDEND; risk.pnl INTERNAL
+requires equal/opposite samecurrency pairs. Parent requested root ruling for
+tradeprincipal classification (proposed versioned auditperfillpostings+book,
+not fictitious capitalflows/secondcash total). Wait for that concrete ruling;
+independentwork can inspectactualschemas/readers and writeTDDplan.
+
+Read existingexecution/fills.py/evidence.py/storage/events.py/uow.py and actual
+ManagedPosition/BookSnapshot/Cashflow contracts beforewriting. Fullgoal ACTIVE
+throughC/D/E/F/G with all46/56 unchanged. No new agents unless user/skill explicitly
+permits; existing3agents continue currentauthorizedwork. NoLIVE/TESTNET/accounts/
+paidmodels/main/archive changes, no oldjob restarts or data/worktree cleanup.
+
 ## OP_C_CURRENT_INTEGRATION_CHECKPOINT — 2026-10-29
 
 Sole binance-orders writer remains integration_next. Parent root coordinates and
