@@ -2,6 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "child_namespace": {
+      "enum": [
+        "ORDINARY"
+      ]
+    },
     "contract_version": {
       "enum": [
         "2026-10-28"
@@ -197,6 +202,7 @@
     }
   },
   "required": [
+    "child_namespace",
     "contract_version",
     "origin",
     "observation_id",

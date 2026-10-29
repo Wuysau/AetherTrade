@@ -1,5 +1,26 @@
 # Current task
 
+## OP_B_ACTIVE — resumed 2026-10-29
+
+User resumed the paused OP-B implementation. Work continues in binance-orders
+worktree on codex/binance-order-capabilities. Approved ADR unchanged. Native target
+Windows1.231.0 pinned; new versioned contracts/storage are being verified. Initial
+PG diagnostic10 passed/1 failed (fixture expected rollback-only context incorrectly);
+fixture corrected without weakening assertions. Final integrated verification pending.
+The pause checkpoint below and OP-B-PAUSE.md are historical.
+
+
+## PAUSED_BY_USER — OP-B — 2026-10-28
+
+User explicitly requested: save task state after the current tool call and pause.
+Implementation worktree remains `TradingHandoff/AutoDispatchWorktrees/binance-orders`
+on `codex/binance-order-capabilities`, HEAD `e8cb1d1`. All uncommitted source,
+new schemas, migration and tests are preserved in place. See the authoritative
+[OP-B pause checkpoint](orders/OP-B-PAUSE.md) for completed work, actual tests,
+review findings and unverified code. No further work/tests/OP-C until resumed.
+The ADR is approved; this is a user-requested pause, not an approval blocker.
+
+
 ## BINANCE_ORDERS_OP_A_REVIEWED — 2026-10-28
 
 Worktree: TradingHandoff/AutoDispatchWorktrees/binance-orders; branch

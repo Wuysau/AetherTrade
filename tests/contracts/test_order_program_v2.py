@@ -37,3 +37,24 @@ def test_original_schema_bytes_unchanged():
 def test_list_templates_cannot_be_single_unrelated_order(template):
     value=example();value['template']=template
     with pytest.raises(ValueError):OrderProgramCodec().decode(value)
+
+
+def test_proposal_retains_user_limit_and_stop_without_reinterpreting_old_wire():
+    from trading_system.contracts.order_codec import VersionedOrderCodec
+    p=dict(contract_version='2026-10-28',proposal_id='new-proposal',instrument_ref='paper:BTCUSDT',action='SET_TARGET',target_side='LONG',target_sizing='QUOTE_NOTIONAL',target_value='4000',requested_leverage=1,program=example(),protection_policy='NATIVE_REQUIRED',exit_plan=dict(stop_price='81330.00',stop_trigger='LAST',review_due_at='2026-10-28T11:00:00Z',maximum_holding_seconds=3600,thesis_invalidation='Fixture stop'),valid_until='2026-10-28T10:00:30Z',evidence_refs=['fixture'],summary='4000 LIMIT 81490 STOP 81330 fixture')
+    codec=VersionedOrderCodec();r=codec.decode('order-proposal',p)
+    assert codec.encode('order-proposal',r)==p
+    assert r.program.nodes[0].order.price.value=='81490.00' and r.exit_plan.stop_price=='81330.00'
+
+
+def test_explicit_version_dispatch_preserves_legacy_unknown_hash():
+    from trading_system.contracts.order_codec import VersionedOrderCodec
+    from trading_system.contracts.wire import ContractCodec
+    original=json.loads(Path('tests/fixtures/contracts/examples/execution-command.paper.json').read_text())
+    original.update(state='UNKNOWN')
+    old=ContractCodec();new=VersionedOrderCodec()
+    record=new.decode('execution-command',original)
+    assert new.encode('execution-command',record)==original
+    assert new.hash('execution-command',record)==old.hash(record)
+    bad=dict(original,contract_version='2026-10-28')
+    with pytest.raises(ValueError):new.decode('execution-command',bad)

@@ -12,7 +12,7 @@ from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,domain_payload,utc_timestamp
 from trading_system.contracts.order_program import OrderProgram,OrderProgramCodec
 from trading_system.contracts.order_lifecycle import (ParentAuthority,ChildObservation,ProgramState,
-    ObservationEvidence,ApplicationWrite,IngestionResult,apply_child_observation,restrict)
+    ObservationEvidence,ApplicationWrite,ParentObservation,IngestionResult,apply_child_observation,restrict,TERMINAL)
 from trading_system.contracts.wire import TradeIntent,ContractCodec
 from trading_system.risk.reservation_repository import ReservationRepository
 from trading_system.contracts.order_codec import VersionedOrderCodec
@@ -30,7 +30,7 @@ class ChildLink:
 class ReconciliationCase:
     program_id:str
     reason:str
-    observation:ChildObservation|None
+    observation:ChildObservation|ParentObservation|None
     evidence:t.EvidenceRef|None
     original_parent_id:str
     recorded_at:str
@@ -138,7 +138,8 @@ class OrderProgramRepository:
         command=self.write(authority.parent_command_id)
         if (command is None or command.state!='MAY_HAVE_SENT' or command.operation!='SUBMIT_PROGRAM'
             or command.program_id!=authority.program_id or command.canonical_program_hash!=authority.program_hash
-            or command.ownership_epoch!=authority.ownership_epoch):raise MissingEvidence('Original durable parent command required')
+            or command.ownership_epoch!=authority.ownership_epoch or command.owner_strategy_id!=authority.owner_strategy_id
+            or command.venue_client_id!=authority.parent_client_id or command.service_namespace!=authority.namespace):raise MissingEvidence('Original durable parent command required')
         if self.verify_parent(authority) is not True:raise MissingEvidence('Trusted parent authorization/receipt required')
         # Imported parent evidence must bind the original durable identity; it is
         # never permission to synthesize/resend a command during migration.
@@ -198,11 +199,11 @@ class OrderProgramRepository:
             or event.parent_venue_id!=authority.parent_venue_id or event.namespace!=authority.namespace):
             return self._restrict(authority,state,'PARENT_LINK_UNVERIFIED',event,evidence)
         if not self._funding(authority):return self._restrict(authority,state,'PARENT_FUNDING_OR_OWNER_CHANGED',event,evidence)
-        child_key=canonical_hash(dict(venue=event.venue,namespace=event.namespace,child_id=event.child_order_id))
+        child_key=canonical_hash(dict(venue=event.venue,namespace=event.child_namespace,child_id=event.child_order_id))
         link=self.tx._latest('order_child_links',child_key,ChildLink)
         if link is not None and link.program_id!=program_id:return self._restrict(authority,state,'CHILD_PARENT_CONFLICT',event,evidence)
         for fill in event.fills:
-            trade_key=canonical_hash(dict(venue=event.venue,namespace=event.namespace,trade_id=fill.native_trade_id))
+            trade_key=canonical_hash(dict(venue=event.venue,namespace=event.child_namespace,trade_id=fill.native_trade_id))
             trade_link=self.tx._latest('order_trade_links',trade_key,ChildLink)
             if trade_link is not None and (trade_link.program_id!=program_id or trade_link.child_order_id!=event.child_order_id):return self._restrict(authority,state,'TRADE_PARENT_CONFLICT',event,evidence)
         result=apply_child_observation(authority,state,event)
@@ -210,10 +211,45 @@ class OrderProgramRepository:
         if result.restriction:
             self._save_restriction(authority,result,event,evidence)
             return result
-        accepted=ChildLink(program_id=program_id,parent_venue_id=event.parent_venue_id,child_order_id=event.child_order_id,namespace=event.namespace,evidence_id=evidence.id)
+        accepted=ChildLink(program_id=program_id,parent_venue_id=event.parent_venue_id,child_order_id=event.child_order_id,namespace=event.child_namespace,evidence_id=evidence.id)
         if link is None:self.tx._append('order_child_links',child_key,accepted,0)
         for fill in event.fills:
-            trade_key=canonical_hash(dict(venue=event.venue,namespace=event.namespace,trade_id=fill.native_trade_id))
+            trade_key=canonical_hash(dict(venue=event.venue,namespace=event.child_namespace,trade_id=fill.native_trade_id))
             if self.tx._latest('order_trade_links',trade_key,ChildLink) is None:self.tx._append('order_trade_links',trade_key,accepted,0)
         self.tx._append('order_program_states',program_id,result.state,state.sequence)
         return result
+
+
+    @atomic_write
+    def observe_parent(self,program_id,event,evidence):
+        VersionedOrderCodec().encode('parent-observation',event)
+        authority=self.binding(program_id);state=self.state(program_id)
+        if authority is None or state is None:raise MissingEvidence('Parent binding required')
+        if (event.scope!=authority.scope or event.namespace!=authority.namespace or event.venue!=authority.venue
+            or event.parent_venue_id!=authority.parent_venue_id or event.parent_client_id!=authority.parent_client_id):
+            return self._restrict(authority,state,'PARENT_LINK_UNVERIFIED',event,evidence)
+        if (evidence.environment!=self.tx.scope.environment or evidence.hash!=canonical_hash(domain_payload(event))
+            or evidence.source not in ('PAPER_MODEL_EVENT','BINANCE_USER_DATA','BINANCE_ORDER_QUERY')
+            or not utc_timestamp(event.occurred_at)<=utc_timestamp(evidence.visible_at)<=utc_timestamp(self.clock())
+            or self.verify_ingress(event,evidence) is not True):return self._restrict(authority,state,'SOURCE_UNVERIFIED',event,evidence)
+        key='parent-observation:'+canonical_hash(dict(program=program_id,event=event.observation_id))
+        previous=self.tx._latest('audit_events',key,ParentObservation)
+        if previous is not None:
+            if previous!=event:return self._restrict(authority,state,'EVENT_CONTENT_CONFLICT',event,evidence)
+            return IngestionResult(state=state,restriction=None,duplicate=True)
+        self.tx._append('audit_events',key,event,0)
+        self.tx._append('audit_events','parent-proof:'+key,evidence,0)
+        if state.status=='RECONCILIATION_REQUIRED':return self._restrict(authority,state,'PARENT_REVIEW_REQUIRED',event,evidence)
+        if event.status in ('SUBMIT_UNKNOWN','CANCEL_UNKNOWN'):return self._restrict(authority,state,'PARENT_STATE_UNKNOWN',event,evidence)
+        if state.status in ('STOPPED','COMPLETED') and event.status not in ('STOPPED','COMPLETED'):return self._restrict(authority,state,'PARENT_STATE_REGRESSION',event,evidence)
+        with localcontext() as precision:
+            precision.prec=256
+            filled=sum((Decimal(c.cumulative_quantity) for c in state.children),Decimal(0))
+            remaining=sum((Decimal(c.quantity)-Decimal(c.cumulative_quantity) for c in state.children if c.status not in TERMINAL),Decimal(0))
+            if filled!=Decimal(event.cumulative_quantity):return self._restrict(authority,state,'CHILD_EVIDENCE_INCOMPLETE',event,evidence)
+            if filled+remaining+Decimal(event.unallocated_quantity)>Decimal(authority.maximum_quantity):return self._restrict(authority,state,'PARENT_QUANTITY_EXCEEDED',event,evidence)
+            if event.status in ('STOPPED','COMPLETED') and Decimal(event.unallocated_quantity)!=0:return self._restrict(authority,state,'PARENT_STOP_UNVERIFIED',event,evidence)
+            if event.status=='COMPLETED' and any(c.status not in TERMINAL for c in state.children):return self._restrict(authority,state,'CHILDREN_STILL_OPEN',event,evidence)
+        updated=replace(state,sequence=state.sequence+1,status=event.status,unallocated_quantity=event.unallocated_quantity)
+        self.tx._append('order_program_states',program_id,updated,state.sequence)
+        return IngestionResult(state=updated,restriction=None)

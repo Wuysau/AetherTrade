@@ -73,6 +73,7 @@ class ChildFill:
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ChildObservation:
+    child_namespace:Literal['ORDINARY']='ORDINARY'
     contract_version:Literal['2026-10-28']
     origin:Literal['VENUE_GENERATED_CHILD']
     observation_id:str
@@ -166,7 +167,7 @@ def _apply_child_observation(authority:ParentAuthority,state:ProgramState,event:
         return restrict(state,'PARENT_STATE_UNKNOWN')
     if state.status=='CANCEL_PENDING':return restrict(state,'PARENT_CANCEL_RACE')
     if event.side not in authority.allowed_child_sides:return restrict(state,'CHILD_SIDE_NOT_AUTHORIZED')
-    if Decimal(state.unallocated_quantity)+sum((Decimal(c.quantity) for c in state.children),Decimal(0))>Decimal(authority.maximum_quantity):return restrict(state,'PARENT_STATE_BUDGET_MISMATCH')
+    if Decimal(state.unallocated_quantity)+sum((Decimal(c.cumulative_quantity)+(Decimal(c.quantity)-Decimal(c.cumulative_quantity) if c.status not in TERMINAL else 0) for c in state.children),Decimal(0))>Decimal(authority.maximum_quantity):return restrict(state,'PARENT_STATE_BUDGET_MISMATCH')
     old=next((c for c in state.children if c.child_order_id==event.child_order_id),None)
     quantity=amount(event.quantity);cumulative=amount(event.cumulative_quantity,zero=True)
     if cumulative>quantity:return restrict(state,'CHILD_OVERFILL')
@@ -207,6 +208,7 @@ def _apply_child_observation(authority:ParentAuthority,state:ProgramState,event:
     if filled_notional+possible*Decimal(authority.maximum_price)+fees.get(authority.quote_asset,Decimal(0))>Decimal(authority.maximum_notional):
         return restrict(state,'PARENT_NOTIONAL_EXCEEDED')
     net=Decimal(authority.starting_position_quantity)+sum(((1 if c.side=='BUY' else -1)*Decimal(c.cumulative_quantity) for c in children),Decimal(0))-fees.get(authority.base_asset,Decimal(0))
+    if authority.scope.product in (t.Product.SPOT,t.Product.US_EQUITY) and net<0:return restrict(state,'CASH_NEGATIVE_EXPOSURE')
     protected=abs(net)
     result=replace(state,sequence=state.sequence+1,unallocated_quantity=format(unallocated,'f'),children=children,
         observation_ids=(*state.observation_ids,event.observation_id),protection_quantity=format(protected,'f'))
@@ -216,6 +218,8 @@ def _apply_child_observation(authority:ParentAuthority,state:ProgramState,event:
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ApplicationWrite:
+    venue_client_id:str
+    service_namespace:Namespace
     owner_strategy_id:str
     contract_version:Literal['2026-10-28']
     command_id:str
@@ -252,3 +256,21 @@ def require_write_authority(command:ApplicationWrite,permit:t.DurablePermit,leas
     if (shard.environment!=command.scope.environment or shard.venue_account_id!=command.scope.venue_account_id
         or shard.product!=command.scope.product or shard.execution_epoch!=command.execution_epoch or utc_timestamp(now)>=utc_timestamp(lease.expires_at)
         or deadline_monotonic_ns>=lease.deadline_monotonic_ns):raise ValueError('EXECUTION_OWNER_REQUIRED')
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class ParentObservation:
+    contract_version:Literal['2026-10-28']
+    observation_id:str
+    scope:t.ScopeKey
+    venue:str
+    namespace:Namespace
+    parent_client_id:str
+    parent_venue_id:str
+    status:Literal['ACTIVE','SUBMIT_UNKNOWN','CANCEL_PENDING','CANCEL_UNKNOWN','STOPPED','COMPLETED']
+    unallocated_quantity:str
+    cumulative_quantity:str
+    occurred_at:str
+    def __post_init__(self):
+        for x in (self.observation_id,self.parent_client_id,self.parent_venue_id):identifier(x)
+        amount(self.unallocated_quantity,zero=True);amount(self.cumulative_quantity,zero=True);utc_timestamp(self.occurred_at)

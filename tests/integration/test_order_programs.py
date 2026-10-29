@@ -33,7 +33,7 @@ def scenario(order_db):
  s.authority=replace(authority(),scope=s.scope,program_id=s.program.program_id,program_hash=OrderProgramCodec().hash(s.program),parent_command_id='program-parent',owner_strategy_id=s.intent.owner_strategy_id,ownership_epoch=s.intent.ownership_epoch,authorization_id=s.intent.authorization_id,funding_intent_id=s.intent.intent_id,reservation_ids=(s.reservation.reservation_id,))
  with s.uow.transaction(s.scope) as tx:
   r=repo(tx);r.save_program(s.program)
-  cmd=ApplicationWrite(owner_strategy_id=s.intent.owner_strategy_id,contract_version='2026-10-28',command_id=s.authority.parent_command_id,program_id=s.program.program_id,scope=s.scope,origin='APPLICATION_ACTION',operation='SUBMIT_PROGRAM',parent_command_id=None,target_venue_id=None,canonical_program_hash=s.authority.program_hash,ownership_epoch=s.intent.ownership_epoch,execution_epoch=1,policy_revision=s.intent.risk_policy_revision,durable_record_ref='pending',state='DURABLE_READY',created_at=NOW)
+  cmd=ApplicationWrite(venue_client_id=s.authority.parent_client_id,service_namespace=s.authority.namespace,owner_strategy_id=s.intent.owner_strategy_id,contract_version='2026-10-28',command_id=s.authority.parent_command_id,program_id=s.program.program_id,scope=s.scope,origin='APPLICATION_ACTION',operation='SUBMIT_PROGRAM',parent_command_id=None,target_venue_id=None,canonical_program_hash=s.authority.program_hash,ownership_epoch=s.intent.ownership_epoch,execution_epoch=1,policy_revision=s.intent.risk_policy_revision,durable_record_ref='pending',state='DURABLE_READY',created_at=NOW)
   r.create_write(cmd)
   # Explicit migration fixture for a pre-existing durable parent; no platform
   # send or fake fill. OP-B issuing a permit remains disabled pending OP-C.
@@ -50,7 +50,7 @@ def test_migration_preserves_old_command_hash_and_unknown_recovery(scenario):
   old=tx.commands.get(s.command.command_id)
   assert old==s.command and old.payload_hash==s.command.payload_hash
   p=tx.commands.mark_may_have_sent(tx,old.command_id,'DURABLE_READY')
- with s.uow.transaction(s.scope) as tx:
+ with pytest.raises(RuntimeError,match='rollback-only'), s.uow.transaction(s.scope) as tx:
   restored=tx.commands.get(s.command.command_id)
   assert restored.state=='MAY_HAVE_SENT' and restored.venue_client_order_id==old.venue_client_order_id
   assert restored.payload_hash==old.payload_hash
@@ -118,3 +118,38 @@ def test_missing_origin_is_rejected_by_database(scenario):
  with pytest.raises(Exception):
   with s.connect_owner() as c:
    c.execute("INSERT INTO ledger.order_writes_v2(scope_id,record_id,sequence,payload,transaction_id) VALUES(%s,'bad-origin',1,%s::jsonb,'test')",(scope_id(s.scope),json.dumps(dict(contract_version='2026-10-28',state='DURABLE_READY'))))
+
+
+def test_linked_parent_reservation_cannot_be_released_by_ordinary_order_path(scenario):
+ from trading_system.risk.reservation_repository import ReservationRepository
+ s=scenario
+ with pytest.raises(MissingEvidence,match='PROGRAM_RESERVATION_REQUIRES_RECONCILIATION'):
+  with s.uow.transaction(s.scope) as tx:
+   r=ReservationRepository(tx);p=r.get(s.reservation.reservation_id)
+   r.save(replace(p,held=Decimal(0),sequence=p.sequence+1))
+
+
+def test_parent_unknown_is_archived_and_children_are_quarantined(scenario):
+ from trading_system.contracts.order_lifecycle import ParentObservation
+ s=scenario;a=s.authority
+ e=ParentObservation(contract_version='2026-10-28',observation_id='parent-unknown',scope=s.scope,venue=a.venue,namespace=a.namespace,parent_client_id=a.parent_client_id,parent_venue_id=a.parent_venue_id,status='CANCEL_UNKNOWN',unallocated_quantity='10',cumulative_quantity='0',occurred_at=NOW)
+ with s.uow.transaction(s.scope) as tx:assert repo(tx).observe_parent(s.program.program_id,e,proof(e)).restriction=='PARENT_STATE_UNKNOWN'
+ child=observation(s)
+ with s.uow.transaction(s.scope) as tx:
+  result=repo(tx).ingest(s.program.program_id,child,proof(child))
+  assert result.restriction=='PARENT_STATE_UNKNOWN' and not result.state.children
+
+
+def test_new_incident_has_new_risk_lock_identity(scenario):
+ s=scenario
+ for n in range(2):
+  e=observation(s,observation_id='incident'+str(n),parent_venue_id='wrong')
+  with s.uow.transaction(s.scope) as tx:repo(tx).ingest(s.program.program_id,e,proof(e))
+ with s.uow.transaction(s.scope) as tx:
+  assert len(tx.risk_locks.applicable(s.scope))==2
+
+
+def test_default_parent_verifier_never_accepts_metadata_alone(scenario):
+ s=scenario
+ with pytest.raises(MissingEvidence,match='Trusted parent'):
+  with s.uow.transaction(s.scope) as tx:OrderProgramRepository(tx,clock=lambda:NOW).bind_parent(s.authority)

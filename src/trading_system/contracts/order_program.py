@@ -13,6 +13,7 @@ import json
 from jsonschema import Draft202012Validator, FormatChecker
 from .canonical import canonical_hash, canonical_json, domain_payload, decimal_string, utc_timestamp
 from .resources import contract_path
+from .wire import DecisionProposalExitPlan
 
 VERSION='2026-10-28'
 
@@ -197,7 +198,7 @@ class OrderProposal:
     requested_leverage:int
     program:OrderProgram|None
     protection_policy:Literal['NATIVE_REQUIRED','HOSTED_ALLOWED_CASH_ONLY']
-    maximum_holding_seconds:int
+    exit_plan:DecisionProposalExitPlan
     valid_until:str
     evidence_refs:tuple[str,...]
     summary:str
@@ -205,7 +206,7 @@ class OrderProposal:
         identifier(self.proposal_id);identifier(self.instrument_ref)
         quantity=amount(self.target_value,zero=True)
         if (self.target_side=='FLAT')!=(quantity==0):raise ValueError('Target side/value mismatch')
-        if self.requested_leverage<1 or self.maximum_holding_seconds<1:raise ValueError('Explicit positive limits required')
+        if self.requested_leverage<1 or self.exit_plan.maximum_holding_seconds<1:raise ValueError('Explicit positive limits required')
         utc_timestamp(self.valid_until)
         if not self.evidence_refs:raise ValueError('Evidence references required')
         if self.program is not None and (self.program.instrument_ref!=self.instrument_ref or utc_timestamp(self.program.submit_valid_until)>utc_timestamp(self.valid_until)):raise ValueError('Program/proposal binding mismatch')
@@ -215,8 +216,9 @@ class OrderProposal:
 def validate_program_transition(previous:OrderProposal,candidate:OrderProposal):
     if previous.instrument_ref!=candidate.instrument_ref:raise ValueError('Instrument mismatch')
     protected=('target_side','target_sizing','target_value')
-    if candidate.action=='HOLD':protected+=('program','protection_policy','maximum_holding_seconds','requested_leverage','valid_until')
-    elif candidate.action!='UPDATE_EXIT':return
+    if candidate.action=='HOLD':protected+=('program','protection_policy','exit_plan','requested_leverage','valid_until')
+    elif candidate.action=='UPDATE_EXIT':protected+=('program','requested_leverage')
+    else:return
     if any(getattr(previous,k)!=getattr(candidate,k) for k in protected):raise ValueError('HOLD/UPDATE_EXIT changes protected responsibility')
 
 

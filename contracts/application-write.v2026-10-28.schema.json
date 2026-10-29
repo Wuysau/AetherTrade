@@ -2,6 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "venue_client_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "service_namespace": {
+      "enum": [
+        "ORDINARY",
+        "ORDER_LIST",
+        "CONDITIONAL_ALGO",
+        "EXECUTION_ALGO"
+      ]
+    },
     "owner_strategy_id": {
       "type": "string",
       "minLength": 1,
@@ -147,6 +160,8 @@
     }
   },
   "required": [
+    "venue_client_id",
+    "service_namespace",
     "owner_strategy_id",
     "contract_version",
     "command_id",

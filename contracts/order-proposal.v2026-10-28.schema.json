@@ -624,9 +624,51 @@
         "HOSTED_ALLOWED_CASH_ONLY"
       ]
     },
-    "maximum_holding_seconds": {
-      "type": "integer",
-      "minimum": 0
+    "exit_plan": {
+      "type": "object",
+      "properties": {
+        "stop_price": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop_trigger": {
+          "enum": [
+            "LAST",
+            "MARK",
+            "BID_ASK"
+          ]
+        },
+        "review_due_at": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "maximum_holding_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "thesis_invalidation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "stop_price",
+        "stop_trigger",
+        "review_due_at",
+        "maximum_holding_seconds",
+        "thesis_invalidation"
+      ],
+      "additionalProperties": false
     },
     "valid_until": {
       "type": "string",
@@ -658,7 +700,7 @@
     "requested_leverage",
     "program",
     "protection_policy",
-    "maximum_holding_seconds",
+    "exit_plan",
     "valid_until",
     "evidence_refs",
     "summary"

@@ -5,10 +5,10 @@ from .canonical import canonical_json,canonical_hash,domain_payload
 from .resources import contract_path
 from .wire import ContractCodec
 from .order_program import OrderProgram,AtomicOrderSpec,OrderProposal,OrderProgramCodec
-from .order_lifecycle import ParentAuthority,ChildObservation,ProgramState,ApplicationWrite
+from .order_lifecycle import ParentAuthority,ChildObservation,ProgramState,ApplicationWrite,ParentObservation
 from .order_snapshots import OrderCapabilitySnapshot,OrderRuleSnapshot
 
-KINDS={'order-proposal':OrderProposal,'order-program':OrderProgram,'atomic-order':AtomicOrderSpec,'parent-authority':ParentAuthority,
+KINDS={'order-proposal':OrderProposal,'order-program':OrderProgram,'atomic-order':AtomicOrderSpec,'parent-authority':ParentAuthority,'parent-observation':ParentObservation,
        'child-observation':ChildObservation,'program-state':ProgramState,'application-write':ApplicationWrite,
        'order-capability-snapshot':OrderCapabilitySnapshot,'order-rule-snapshot':OrderRuleSnapshot}
 LEGACY={'decision-proposal','trade-intent','execution-command','risk-policy'}

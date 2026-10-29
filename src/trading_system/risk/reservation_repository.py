@@ -64,6 +64,15 @@ class ReservationRepository:
 
     @atomic_write
     def save(self, projection):
+        # OP-B parent funding cannot be recycled by an ordinary-order release.
+        # OP-C/G must supply a reviewed parent/child closure proof before this
+        # conservative hold can be reduced; creation rows remain unchanged.
+        if self.tx.execute("SELECT to_regclass('ledger.order_funding_links')").fetchone()[0] is not None:
+            current=self.get(projection.reservation.reservation_id)
+            if projection.held < current.held and self.tx.execute(
+                'SELECT 1 FROM ledger.order_funding_links WHERE scope_id=%s AND record_id=%s',
+                (scope_id(self.tx.scope),projection.reservation.reservation_id)).fetchone():
+                raise MissingEvidence('PROGRAM_RESERVATION_REQUIRES_RECONCILIATION')
         self.tx._append('audit_events', 'ip07:reservation:' + projection.reservation.reservation_id,
                         projection, projection.sequence - 1)
 
