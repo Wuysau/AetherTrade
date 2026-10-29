@@ -1,0 +1,101 @@
+{
+  "commit": "56f7cbb545838a4a0468addc58ce9dd4e08dc0f3",
+  "scope": "LOCAL_PAPER_FRESH_PER_MODULE_DATABASES",
+  "steps": [
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=56f7cbb545838a4a0468addc58ce9dd4e08dc0f3",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "program-financial-admission",
+        "--evidence-dir",
+        "/handoff/evidence/regressions"
+      ],
+      "exit_code": 0,
+      "log": "regression-program-financial-admission.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=56f7cbb545838a4a0468addc58ce9dd4e08dc0f3",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "application-write-obligations",
+        "--evidence-dir",
+        "/handoff/evidence/regressions"
+      ],
+      "exit_code": 0,
+      "log": "regression-application-write-obligations.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=56f7cbb545838a4a0468addc58ce9dd4e08dc0f3",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "order-financial-credit",
+        "--evidence-dir",
+        "/handoff/evidence/regressions"
+      ],
+      "exit_code": 0,
+      "log": "regression-order-financial-credit.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=56f7cbb545838a4a0468addc58ce9dd4e08dc0f3",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "order-closure",
+        "--evidence-dir",
+        "/handoff/evidence/regressions"
+      ],
+      "exit_code": 0,
+      "log": "regression-order-closure.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=56f7cbb545838a4a0468addc58ce9dd4e08dc0f3",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "order-programs",
+        "--evidence-dir",
+        "/handoff/evidence/regressions"
+      ],
+      "exit_code": 0,
+      "log": "regression-order-programs.txt"
+    }
+  ]
+}

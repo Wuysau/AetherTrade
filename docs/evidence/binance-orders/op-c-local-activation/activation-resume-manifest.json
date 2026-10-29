@@ -1,0 +1,76 @@
+{
+  "commit": "56f7cbb545838a4a0468addc58ce9dd4e08dc0f3",
+  "scope": "LOCAL_PAPER_FRESH_DATABASE_IN_EXISTING_ISOLATED_TEST_CLUSTER",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opc-local-activation\\.runtime\\paper-qualification-e2f3364172f6\\source-latest.bundle",
+        "HEAD",
+        "56f7cbb545838a4a0468addc58ce9dd4e08dc0f3"
+      ],
+      "exit_code": 0,
+      "log": "latest-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-e2f3364172f6"
+      ],
+      "exit_code": 0,
+      "log": "dependency-runner-resume.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-latest.bundle",
+        "56f7cbb545838a4a0468addc58ce9dd4e08dc0f3"
+      ],
+      "exit_code": 0,
+      "log": "latest-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "56f7cbb545838a4a0468addc58ce9dd4e08dc0f3"
+      ],
+      "exit_code": 0,
+      "log": "latest-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=56f7cbb545838a4a0468addc58ce9dd4e08dc0f3",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "local-program-activation",
+        "--evidence-dir",
+        "/handoff/evidence/final"
+      ],
+      "exit_code": 0,
+      "log": "activation-final.txt"
+    }
+  ]
+}
