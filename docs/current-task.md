@@ -6,9 +6,10 @@ Root delegated THIS worktree solely to reports_fresh; parent reviews only.
 Latest exact source1d0106e:20PG passed0fail/error/skip168.66s, plus169related
 checks0fail/error/skip20.07s. Includes real forked verifier process restart,
 exact archive/facts replay and no ledger posting. Root independently reviewed
-read6e8 and full report corrections without blocking findings; final test review
-is pending. All report jobs are terminal; no restart/poll is needed.
-Final evidence copy/SHA/committed-blob verification is being prepared. Source
+read6e8, full report/liquidity corrections, final restart test and integration
+contract without blocking findings. All report jobs are terminal; no restart/poll
+is needed. Evidence7a485dd and proof1f5e5ef preserve173raw files from10terminal
+runs and verify original==copy==actual committed blob bytes for every file. Source
 verification never grants ownership, aggregate validity, permission or release;
 discrepant raw projections enter root risk/reconciliation with existing guards.
 OP-E-REPORT-INTEGRATION.md documents the concrete same-ledger consumption API.

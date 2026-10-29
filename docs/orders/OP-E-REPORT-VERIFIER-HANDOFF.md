@@ -9,6 +9,10 @@ failure148.94s. Fixed78055fa19PG passed0failure/error/skip145.75s. New test-only
 0failure/error/skip168.66s. Related169checks at1d0106e passed20.07s. All jobs are
 terminal; no report job needs polling or restarting. Final evidence lives under
 docs/evidence/binance-orders/op-e-report-verifier with source/SHA maps.
+Root final read-only review passed the bounded slice, including restart test
+and API contract. The fork proof uses the frozen fixture clock and is not a
+native/deployment kill-recovery qualification. Evidence7a485dd/proof1f5e5ef
+certify all173 raw source/copy/committed blob bytes; no unfinished job remains.
 
 Read API now preserves actual row.revision, SQL payload::text and ORIGINAL stored
 payload_hash for fills/dispositions, with Decimal JSON parsing and exact query
@@ -23,6 +27,8 @@ discrepant observations require risk/reconciliation before existing projection.
 
 Full parent goal remains ACTIVE through C/D/E/F/G,46 capabilities and56 acceptance
 cases. This report slice is not complete or qualified. Main/archive stay untouched.
+
+## Historical checkpoint before reports_fresh took ownership
 
 ## Ownership and current source
 
