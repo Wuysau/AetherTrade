@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="5" time="1.005" timestamp="2026-10-29T02:18:47.399443+00:00" hostname="06da835dd4eb"><testcase classname="tests.integration.test_order_program_admission" name="test_program_admission_persists_exact_fields_and_replays_original" time="0.290"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table proposals">tests/integration/test_order_program_admission.py:98: in test_program_admission_persists_exact_fields_and_replays_original
+    result = ingress.admit(p, context, compiled)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/order_program_ingress.py:217: in admit
+    receipt = ProposalIngress(self.uow, self.scope, load, on_accept=accepted, on_replay=replay).accept(projected, context)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/ingress.py:194: in accept
+    tx._append('proposals', key, record, 0)
+src/trading_system/storage/uow.py:71: in _append
+    self.execute(f'INSERT INTO ledger.{table} '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table proposals</failure></testcase><testcase classname="tests.integration.test_order_program_admission" name="test_distinct_target_cannot_duplicate_working_or_unknown[False]" time="0.091"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table proposals">tests/integration/test_order_program_admission.py:121: in test_distinct_target_cannot_duplicate_working_or_unknown
+    first = ingress.admit(p, context, compiled)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/order_program_ingress.py:217: in admit
+    receipt = ProposalIngress(self.uow, self.scope, load, on_accept=accepted, on_replay=replay).accept(projected, context)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/ingress.py:194: in accept
+    tx._append('proposals', key, record, 0)
+src/trading_system/storage/uow.py:71: in _append
+    self.execute(f'INSERT INTO ledger.{table} '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table proposals</failure></testcase><testcase classname="tests.integration.test_order_program_admission" name="test_distinct_target_cannot_duplicate_working_or_unknown[True]" time="0.097"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table proposals">tests/integration/test_order_program_admission.py:121: in test_distinct_target_cannot_duplicate_working_or_unknown
+    first = ingress.admit(p, context, compiled)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/order_program_ingress.py:217: in admit
+    receipt = ProposalIngress(self.uow, self.scope, load, on_accept=accepted, on_replay=replay).accept(projected, context)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/ingress.py:194: in accept
+    tx._append('proposals', key, record, 0)
+src/trading_system/storage/uow.py:71: in _append
+    self.execute(f'INSERT INTO ledger.{table} '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table proposals</failure></testcase><testcase classname="tests.integration.test_order_program_admission" name="test_budget_denial_never_persists_command_or_funding" time="0.081"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table proposals">tests/integration/test_order_program_admission.py:139: in test_budget_denial_never_persists_command_or_funding
+    result = ingress.admit(p, context, compiled)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/order_program_ingress.py:217: in admit
+    receipt = ProposalIngress(self.uow, self.scope, load, on_accept=accepted, on_replay=replay).accept(projected, context)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/ingress.py:194: in accept
+    tx._append('proposals', key, record, 0)
+src/trading_system/storage/uow.py:71: in _append
+    self.execute(f'INSERT INTO ledger.{table} '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table proposals</failure></testcase><testcase classname="tests.integration.test_order_program_admission" name="test_tif_command_mismatch_rolls_back_entire_intake" time="0.079"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table proposals">tests/integration/test_order_program_admission.py:153: in test_tif_command_mismatch_rolls_back_entire_intake
+    result = ingress.admit(p, context, compiled)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/order_program_ingress.py:217: in admit
+    receipt = ProposalIngress(self.uow, self.scope, load, on_accept=accepted, on_replay=replay).accept(projected, context)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/ingress.py:194: in accept
+    tx._append('proposals', key, record, 0)
+src/trading_system/storage/uow.py:71: in _append
+    self.execute(f'INSERT INTO ledger.{table} '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table proposals</failure></testcase></testsuite></testsuites>

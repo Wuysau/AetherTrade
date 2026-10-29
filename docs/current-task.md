@@ -12,7 +12,9 @@ proposals. Root now owns correction: separate bounded intake commit, additive001
 source table, fresh owner revalidation+atomic existing IP07 financial bundle.
 Independent review reproduced owner-side intent rebinding and source-only legacy
 dispatch fallback; retained RED regressions and fixed both. Unit regression876
-passed. Fresh real PostgreSQL admission run is next; no venue qualification claim.
+passed. Fresh real PostgreSQL admission at3fd6011 passed10/0failed/0skipped;
+role failure and command-history-count RED evidence retained in
+docs/evidence/binance-orders/op-c-admission. No venue qualification claim.
 See orders/OP-C-INTAKE-MIGRATION.md for recovery and compatibility.
 
 Parallel ownership: pin_native_build owns pure program exposure in binance-opc-exposure;
