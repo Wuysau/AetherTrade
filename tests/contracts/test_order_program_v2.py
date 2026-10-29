@@ -58,3 +58,13 @@ def test_explicit_version_dispatch_preserves_legacy_unknown_hash():
     assert new.hash('execution-command',record)==old.hash(record)
     bad=dict(original,contract_version='2026-10-28')
     with pytest.raises(ValueError):new.decode('execution-command',bad)
+
+
+def test_new_public_and_packaged_schema_mirrors_match_types():
+    from trading_system.contracts.order_codec import KINDS
+    from trading_system.contracts.order_program import schema_for
+    for kind,cls in KINDS.items():
+        name=f'{kind}.v2026-10-28.schema.json'
+        public=Path('contracts',name).read_bytes()
+        assert public==Path('src/trading_system/schemas',name).read_bytes()
+        assert json.loads(public)==schema_for(cls)
