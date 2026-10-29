@@ -6,6 +6,7 @@ explicit; native generated children are observations and are never resubmitted.
 There is no network transport, credential, signer or arbitrary route here.
 """
 from dataclasses import dataclass, replace
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, localcontext
 from enum import StrEnum
 from typing import Literal
@@ -269,7 +270,9 @@ def _validate_bindings(proposal, rules, capabilities, profile, scope, now,
     codec.encode('order-rule-snapshot', rules)
     codec.encode('order-capability-snapshot', capabilities)
     require(scope.environment in (t.Environment.PAPER, t.Environment.RESEARCH), 'ENVIRONMENT_DISABLED')
-    require(proposal.instrument_ref == expected_instrument_ref == scope.instrument_uid, 'INSTRUMENT_REFERENCE_MISMATCH')
+    # instrument_ref is a server-resolved catalog handle. The trusted profile
+    # and snapshots bind the native instrument UID through their exact scope.
+    require(proposal.instrument_ref == expected_instrument_ref, 'INSTRUMENT_REFERENCE_MISMATCH')
     require(rules.scope == capabilities.scope == profile.scope == scope, 'SCOPE_MISMATCH')
     require(capabilities.adapter_build_digest == expected_build_digest, 'ADAPTER_BUILD_CHANGED')
     require(profile.adapter_build_digest == expected_build_digest, 'PRODUCT_RULE_BUILD_CHANGED')
@@ -465,10 +468,15 @@ def _usdm_fields(o, order_type, profile, rules, parameters, now):
         require(u.rpi_eligible, 'RPI_ACCOUNT_NOT_ELIGIBLE')
     if o.tif.kind == 'GTD':
         expiry = utc_timestamp(o.tif.expires_at)
-        require(expiry.timestamp() == int(expiry.timestamp()), 'GTD_REQUIRES_WHOLE_SECONDS')
-        require(expiry.timestamp() > utc_timestamp(now).timestamp() + 600
-                and int(expiry.timestamp()) * 1000 < 253402300799000, 'INVALID_GTD_DEADLINE')
-        parameters.append(_p(FieldName.GOOD_TILL_DATE, int(expiry.timestamp()) * 1000))
+        fraction = o.tif.expires_at.removesuffix('Z').removesuffix('+00:00').partition('.')[2]
+        # Check the original text too: datetime truncates sub-microsecond digits
+        # and float epoch seconds can erase even microseconds near year9999.
+        require(not fraction or set(fraction) <= {'0'}, 'GTD_REQUIRES_WHOLE_SECONDS')
+        epoch_delta = expiry - datetime(1970, 1, 1, tzinfo=timezone.utc)
+        expiry_ms = epoch_delta.days * 86400000 + epoch_delta.seconds * 1000
+        require(expiry > utc_timestamp(now) + timedelta(seconds=600)
+                and expiry_ms < 253402300799000, 'INVALID_GTD_DEADLINE')
+        parameters.append(_p(FieldName.GOOD_TILL_DATE, expiry_ms))
     if o.trigger.kind != 'NONE':
         require(o.trigger.source in ('CONTRACT_PRICE', 'MARK_PRICE'), 'USDM_TRIGGER_SOURCE_UNSUPPORTED')
         parameters.extend((_p(FieldName.ALGO_TYPE, 'CONDITIONAL'), _p(FieldName.WORKING_TYPE, o.trigger.source)))
