@@ -118,19 +118,17 @@ def test_real_zero_asset_local_unknown_cannot_be_bypassed_by_external_current_bo
     from trading_system.execution.local_program_activation import read_local_activation
     from trading_system.storage.local_programs import STATE_PREFIX
     from trading_system.risk.reservation_repository import ReservationRepository
-    from trading_system.risk.program_exposure import derive_program_exposure
     from integration.test_program_commands_postgres import boundary
-    c=real_case(database);external=public_service(c).admit(c.record.proposal,c.record.context,c.c.plan)
+    c=real_case(database,product=t.Product.USD_M_PERP,actual='1',target='0',quantity='1',side='SELL',reduce_only=True)
+    external=public_service(c).admit(c.record.proposal,c.record.context,c.c.plan)
     command_id=external.attachment.command_ids[0]
     local=real_case(database,collateral_group_id=c.c.terms.collateral_group_id,
         template='TWAP',mode='LOCAL_SYNTHETIC',product=t.Product.USD_M_PERP,
         actual='1',target='0',quantity='1',side='SELL',reduce_only=True)
-    # The actual current source reader includes the existing external hold;
-    # rebuild real exposure/assessment rather than injecting an ALLOW.
+    # Both actual risk-assessed exits have zero new asset requirements. Their
+    # quantity duties remain despite the absence of cash reservations.
     with local.owner.transaction(local.scope) as tx:holds=ReservationRepository(tx).group()
-    budget=replace(local.c.facts.budget_facts,reservations=holds)
-    local.c.facts=replace(local.c.facts,budget_facts=budget)
-    local.c.exposure=derive_program_exposure(local.c.plan,budget,now=local.c.facts.inputs.clock.utc_now)
+    assert holds==()
     receipt=public_service(local).admit(local.record.proposal,local.record.context,local.c.plan)
     with local.owner.transaction(local.scope) as tx:
         record=read_local_activation(tx,receipt.attachment.activation_id)
