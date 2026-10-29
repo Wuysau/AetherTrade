@@ -156,7 +156,7 @@ def test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified(database,v
     # The protected minimum is81490: lower fractional depth is observed but
     # must expire this IOC without manufacturing a cheaper fill.
     assert not result.fills and json.loads(raw)['observed_best_price']==81489.5
-    assert disposition.reason=='EXECUTION_ENVELOPE_REQUIRES_RECONCILIATION'
+    assert disposition.reason=='EXECUTION_PRICE_ENVELOPE_VIOLATION'
     assert not result.funds_release_authorized
 
 
