@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,collateral_group_id=None,**risk_options):
+def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -47,6 +47,11 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,**risk_options):
     original_inputs=risk_module.inputs;suffix=uuid4().hex
     def scoped_inputs(product):
         p,r,c,k=original_inputs(product);scope=replace(k['scope'],venue_account_id='isolated-'+suffix)
+        if instrument_uid is not None:
+            scope=replace(scope,instrument_uid=instrument_uid)
+            p=replace(p,instrument_ref=instrument_uid,program=replace(p.program,instrument_ref=instrument_uid))
+            k={**k,'expected_instrument_ref':instrument_uid}
+        if proposal_transform is not None:p=proposal_transform(p)
         qualification_ref=t.EvidenceRef(id='isolated-qualification-fixture',hash='c'*64,
             environment=scope.environment,source='SYNTHETIC_QUALIFICATION_FIXTURE_NOT_NATIVE',visible_at=r.as_of)
         r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN',
@@ -54,8 +59,19 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,**risk_options):
         k={**k,'scope':scope,'profile':replace(k['profile'],scope=scope),
             'expected_capabilities_hash':VersionedOrderCodec().hash('order-capability-snapshot',c)}
         return p,r,c,k
-    with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs),patch.object(exposure_module,'inputs',scoped_inputs):
+    original_plan_for=risk_module.plan_for
+    def selected_plan(**options):
+        if not preserve_quote_limit:return original_plan_for(**options)
+        from trading_system.intents.program_compilation import compile_order_program
+        p,r,c,k=scoped_inputs(options.get('product',t.Product.SPOT))
+        return compile_order_program(p,r,c,**k),r
+    with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs),patch.object(exposure_module,'inputs',scoped_inputs),patch.object(risk_module,'plan_for',selected_plan):
         c=risk_module.risk_case(**risk_options)
+    if node_fees is not None:
+        c.facts=replace(c.facts,budget_facts=replace(c.facts.budget_facts,node_facts=tuple(
+            replace(row,fees=node_fees) for row in c.facts.budget_facts.node_facts)),
+            node_bounds=tuple(replace(row,execution_fees=node_fees) for row in c.facts.node_bounds),
+            inputs=replace(c.facts.inputs,fee_reserve=tuple(f.amount for f in node_fees)))
     group=collateral_group_id or 'program-group-'+suffix
     tf=replace(c.facts.target_facts,collateral_group_id=group)
     budget=replace(c.facts.budget_facts,collateral_group_id=group)
