@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-29"
+      ]
+    },
+    "binding_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "authority_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "venue_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "product": {
+          "enum": [
+            "SPOT",
+            "USD_M_PERP",
+            "US_EQUITY"
+          ]
+        },
+        "instrument_uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue_leg": {
+          "enum": [
+            "BOTH",
+            "LONG",
+            "SHORT"
+          ]
+        }
+      },
+      "required": [
+        "environment",
+        "venue_account_id",
+        "product",
+        "instrument_uid",
+        "venue_leg"
+      ],
+      "additionalProperties": false
+    },
+    "venue": {
+      "enum": [
+        "BINANCE"
+      ]
+    },
+    "namespace": {
+      "enum": [
+        "ORDINARY",
+        "ORDER_LIST",
+        "CONDITIONAL_ALGO",
+        "EXECUTION_ALGO"
+      ]
+    },
+    "binding_kind": {
+      "enum": [
+        "VENUE_ACCEPTANCE",
+        "LOCAL_PROGRAM_ACTIVATION"
+      ]
+    },
+    "parent_command_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "parent_client_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "parent_venue_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "bound_at": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_evidence": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "hash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "visible_at": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "id",
+        "hash",
+        "environment",
+        "source",
+        "visible_at"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "contract_version",
+    "binding_id",
+    "authority_hash",
+    "scope",
+    "venue",
+    "namespace",
+    "binding_kind",
+    "parent_command_id",
+    "parent_client_id",
+    "parent_venue_id",
+    "bound_at",
+    "source_evidence"
+  ],
+  "additionalProperties": false
+}
