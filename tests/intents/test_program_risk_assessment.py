@@ -28,10 +28,11 @@ def digest(value):return canonical_hash(domain_payload(value))
 
 
 def risk_case(*,template='ATOMIC',mode='VENUE_NATIVE',product=t.Product.SPOT,actual='0',target='1',quantity='1',side='BUY',
-              stop=None,target_side=None,conditional=False,close_all=False,working='0',pending=()):
+              stop=None,stop_trigger=None,target_side=None,conditional=False,close_all=False,working='0',pending=()):
     plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
     _,_,caps,k=inputs(product);profile=k['profile'];p=plan.original_proposal
     if stop is not None:p=replace(p,exit_plan=replace(p.exit_plan,stop_price=stop))
+    if stop_trigger is not None:p=replace(p,exit_plan=replace(p.exit_plan,stop_trigger=stop_trigger))
     if target_side is not None:p=replace(p,target_side=target_side)
     if conditional or close_all:
         p=change(p,price=order_price(),tif=TimeInForceSpec(kind='NONE',expires_at=None),
@@ -109,7 +110,8 @@ def risk_case(*,template='ATOMIC',mode='VENUE_NATIVE',product=t.Product.SPOT,act
         program_hash=plan.program_hash,allocation_hash=digest(allocation),book_hash=digest(book),
         origin='HOSTED_CASH_DUTY' if product==t.Product.US_EQUITY else 'NATIVE_PER_FILL_DUTY',
         phases=('PARTIAL_FILL','FULL_FILL','RECEIPT_NET','RETAINED_POSITION'),node_ids=tuple(n.original.node_id for n in plan.nodes),
-        maximum_quantity=terms.target,stop_price=price(str(terms.stop_price),quote),stop_trigger=terms.stop_trigger,
+        maximum_quantity=t.Quantity(value=max(terms.target.value,D(actual).copy_abs()),unit=terms.target.unit),
+        stop_price=price(str(terms.stop_price),quote),stop_trigger=terms.stop_trigger,
         duty_refs=(evidence,),valid_until=END,maximum_live_orders=1)
     facts=ProgramRiskFacts(inputs=current,market=market,authorization=t.AuthorizationDecision(allowed=True,
         authorization_id=terms.authorization_id,rejection_codes=(),evidence=book.evidence),target_facts=target_facts,budget_facts=budget,
@@ -122,7 +124,7 @@ def risk_case(*,template='ATOMIC',mode='VENUE_NATIVE',product=t.Product.SPOT,act
             service_namespace='ORDINARY',canonical_command_refs=prior.command_refs,original_command_refs=prior.command_refs,
             minimum_price=price('81400',quote),maximum_price=price('81490',quote),evidence_refs=(evidence.id,)) for prior in pending),
         additional_exit_fees=(),
-        protection=(coverage,),allowed_stop_triggers=('LAST','MARK_PRICE','CONTRACT_PRICE'),maximum_live_orders=len(plan.nodes)
+        protection=(coverage,),allowed_stop_triggers=('LAST','MARK','BID_ASK'),maximum_live_orders=len(plan.nodes)
             +sum(n.maximum_live_children for n in nodes)+1,
         holding_horizon_seconds=terms.maximum_holding_seconds,entry_slippage_bps=D(2000),evidence=book.evidence,as_of=NOW,valid_until=END)
     policy=replace(policy,protection_policy=p.protection_policy)
@@ -363,3 +365,40 @@ def test_quote_funding_and_exit_fee_costs_are_reserved_once_and_bound_to_horizon
     assert result.metrics.capital.amount==81490 and result.metrics.fees.amount==5 and result.metrics.funding.amount==4
     c.facts=replace(c.facts,inputs=replace(c.facts.inputs,funding_reserve=()))
     assert 'PROGRAM_RISK_FUNDING_BOUND_MISMATCH' in assess(c).rejection_codes
+
+
+def test_partial_reduction_retains_real_stop_risk_for_the_physical_residual_position():
+    c=risk_case(actual='2',target='1',quantity='1',side='SELL')
+    result=assess(c)
+    assert result.verdict=='ALLOW',result.rejection_codes
+    assert result.metrics.planned_loss.amount>0
+    assert result.metrics.planned_loss.amount==D('16458')
+
+
+@pytest.mark.parametrize('kwargs',[
+    dict(actual='2',target='1',quantity='1',side='SELL',stop='90000'),
+    dict(stop='81330.005'),dict(actual='1',target='.6',quantity='.4',side='SELL',stop='81330.005'),
+])
+def test_invalid_residual_or_off_tick_stops_cannot_become_zero_protected_risk(kwargs):
+    result=assess(risk_case(**kwargs))
+    assert result.verdict=='DENY' and 'INVALID_STOP' in result.rejection_codes
+
+
+@pytest.mark.parametrize('source',['MARK','BID_ASK'])
+def test_native_spot_cannot_qualify_an_uncompilable_unified_stop_trigger(source):
+    result=assess(risk_case(stop_trigger=source))
+    assert result.verdict=='DENY' and 'NATIVE_STOP_TRIGGER_UNSUPPORTED' in result.rejection_codes
+
+
+def test_native_futures_mark_and_spot_last_have_explicit_distinct_trigger_support():
+    assert assess(risk_case()).verdict=='ALLOW'
+    c=risk_case(product=t.Product.USD_M_PERP,stop_trigger='MARK')
+    result=assess(c)
+    assert result.verdict=='ALLOW',result.rejection_codes
+    assert c.terms.stop_trigger=='MARK'
+
+
+def test_full_flat_retains_fee_only_loss_without_claiming_a_remaining_position():
+    result=assess(risk_case(actual='1',target='0',quantity='1',side='SELL',stop='90000'))
+    assert result.verdict=='ALLOW',result.rejection_codes
+    assert result.metrics.planned_loss.amount==0
