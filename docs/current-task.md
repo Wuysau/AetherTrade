@@ -1,5 +1,19 @@
 # Current task
 
+## OP_C_INTEGRATION_LEAD_SOLE_WRITER — 2026-10-29
+
+Root delegated sole write ownership of this binance-orders worktree to
+integration_lead at HEAD830dcca. Parent root reads/coordinates only while this
+cohort is active; do not edit/commit this worktree concurrently. Native peer owns
+binance-opc-program-commands; financial peer owns binance-opc-financial-records.
+V3 command plan approved within ADR: full typed request/private identities,
+same owner/UoW/outbox, current typed proofs/default-deny, commit-before-single-use
+permit, old V2 bytes/recovery retained. No production reader/transport enabled.
+Lead implements actual same-core program financial admission/intake and internal
+local activation, integrates tested archive/command commits, then continues full
+OP-D/E/F/G. All46targets/56cases retained; goal ACTIVE, no new permissions needed.
+Latest full gate remains historical0bd6932; current integration needs a fresh gate.
+
 ## OP_C_STRUCTURAL_REQUEST_GUARDS_AND_COMMAND_WORK — 2026-10-29
 
 Rootd4f3cf5 fixes two additional independently reproduced unsignedrequestdefects:

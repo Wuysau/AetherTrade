@@ -28,6 +28,8 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('program-financial-admission', '03', 'tests/integration/test_program_financial_admission.py'),
+    ('assessment-archive', '03', 'tests/integration/test_assessment_archive_ledger.py'),
     ('program-financial-ledger', '03', 'tests/integration/test_program_financial_ledger.py'),
     ('capacity-precision', '07', 'tests/integration/test_capacity_precision.py'),
     ('application-write-obligations', '03', 'tests/integration/test_application_write_obligations.py'),

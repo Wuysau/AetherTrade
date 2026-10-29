@@ -155,6 +155,17 @@ class ReservationService:
                 rejection_codes=('PROGRAM_ADMISSION_REQUIRED',))
         return self._reserve(tx, intent, expected, accepted=accepted)
 
+    def _reserve_program(self,tx,intake_record_id,command_ids,*,load_inputs,
+                         load_qualification=None,load_action_proof=None,load_clock=None):
+        """Private program branch; caller attaches writes in this SAME tx.
+
+        The original public reserve/reserve_proposal legacy routes are unchanged.
+        No standalone program success receipt or permit is issued here.
+        """
+        from .program_financial_admission import reserve_program
+        return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+            load_qualification,load_action_proof,load_clock)
+
     def _transaction(self, operation):
         for attempt in range(self.maximum_attempts):
             try:
