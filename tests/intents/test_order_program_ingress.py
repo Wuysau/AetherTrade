@@ -54,6 +54,15 @@ def test_unsupported_modifier_never_silently_disappears(change):
         project_proposal(proposal, ExecutionPolicy(policy_id='policy', revision=1, maximum_entry_slippage_bps='0'))
 
 
+@pytest.mark.parametrize('role', ['PENDING', 'LEG', 'ALGORITHM_PARENT'])
+def test_atomic_nonentry_node_is_not_reinterpreted_as_immediate_entry(role):
+    proposal, _, _, _ = fixture()
+    node = replace(proposal.program.nodes[0], role=role)
+    proposal = replace(proposal, program=replace(proposal.program, nodes=(node,)))
+    with pytest.raises(ProposalRejected, match='NODE_COMPILER_NOT_IMPLEMENTED'):
+        project_proposal(proposal, ExecutionPolicy(policy_id='policy', revision=1, maximum_entry_slippage_bps='0'))
+
+
 @pytest.mark.parametrize('slippage', ['NaN', '-1', 'Infinity', '10001'])
 def test_execution_policy_requires_explicit_finite_cap(slippage):
     with pytest.raises(ValueError):
@@ -173,6 +182,17 @@ def test_dispatch_without_program_readers_fails_before_mark(monkeypatch):
     monkeypatch.setattr(CommandRepository, 'validate_binding', lambda *args: intent)
     dispatcher = CommandDispatcher(None, tx.scope)
     with pytest.raises(DispatchDenied, match='PROGRAM_DISPATCH_NOT_CONFIGURED'):
+        dispatcher._check(tx, command, None)
+
+
+def test_followon_command_cannot_drop_original_program_binding(monkeypatch):
+    from trading_system.execution.commands import CommandRepository
+    from trading_system.execution.dispatcher import CommandDispatcher, DispatchDenied
+    tx, command, intent, facts, proof, sidecar = command_case()
+    tx._latest = lambda table, key, cls: None if key.startswith('order-program-command:') else object()
+    monkeypatch.setattr(CommandRepository, 'validate_binding', lambda *args: intent)
+    dispatcher = CommandDispatcher(None, tx.scope)
+    with pytest.raises(DispatchDenied, match='PROGRAM_COMMAND_BINDING_REQUIRED'):
         dispatcher._check(tx, command, None)
 
 
