@@ -26,7 +26,8 @@ aggregate projections. Raw cumulative/leaves/overfill/fees remain uncapped;
 discrepant observations require risk/reconciliation before existing projection.
 
 Full parent goal remains ACTIVE through C/D/E/F/G,46 capabilities and56 acceptance
-cases. This report slice is not complete or qualified. Main/archive stay untouched.
+cases. The bounded V1 source slice has the source-specific evidence above;
+advanced interfaces and full OP-E remain unqualified. Main/archive stay untouched.
 
 ## Historical checkpoint before reports_fresh took ownership
 
