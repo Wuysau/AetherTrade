@@ -1,5 +1,24 @@
 # Current task
 
+## OP_C_CURRENT_DIAGNOSTIC_GREEN — 2026-10-29
+
+Current sourcebdbd9b0 fixed diagnostic80618 TERMINAL exit0:12 actual isolated PG
+passes, zero failures/errors/skips. Exact artifact, qualification claims, healthy
+clock, final fence, capacity, expiry and injected real PostgreSQL commit-failure
+checks passed. Evidence44f0fa4238bc; byte-identical copies/logs/JUnit/manifests and
+verified SHA256 maps in docs/evidence/binance-orders/op-c-fin-kernel/bdb.
+All root gate handles81820/86745/80618 are TERMINAL; nothing needs restart.
+Full fixedb6b2dbb gate remains924PG/30suites and3231ordinary passes, source-specific
+before latest followups; current full combined after command/activation remains due.
+
+Source root is clean except current evidence/docs cohort until its commit.
+integration_lead still sole root writer, parent only reads/coordinates.
+Command peer independently owns V3/0012; local activation peer's plan approved
+and implementing SAME-bundle/internal SUM activation/source-derived proofs/held
+pool+unknown obligations with no fabricated venue mother. Integrate their actual
+tested commits before public generic admission and fresh full gate. No pause or
+completion: goal remains ACTIVE and full46/56 plus OP-D/E/F/G retained.
+
 ## OP_C_FINANCIAL_FIXED_SOURCE_GATE_AND_CURRENT_DIAGNOSTIC — 2026-10-29
 
 Root sourcebdbd9b0, docs latesta4f4bb4. Sole writer integration_lead remains

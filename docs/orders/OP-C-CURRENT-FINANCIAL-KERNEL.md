@@ -68,3 +68,12 @@ bdbd9b0 fixed-source diagnostic remains pending; guards were not weakened.
 Byte-identical fullb6 and299RED logs, JUnit, manifests and SHA256 maps are retained
 under `docs/evidence/binance-orders/op-c-fin-kernel/` (b6 and299-red). These are
 engineering evidence with declared synthetic provenance, not native readiness.
+
+The corrected fixedbdbd9b0 diagnostic completed12 actual PostgreSQL cases, zero
+failures/errors/skips. It includes current qualification artifacts, denied
+unqualified claims/missing or unhealthy clocks, final deployment fence changes,
+expiry while reading facts, capacity denial, attachment rollback and an injected
+real database commit failure. Its raw source-bound artifacts are in the same
+evidence directory under `bdb`; all three artifact hash maps were reverified.
+This proves the private financial kernel component, with no command or permit
+issued. Final combined qualification remains due after the active integrations.
