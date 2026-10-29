@@ -106,11 +106,16 @@ def test_actual_may_commits_before_short_permit_consumes_once(database):
     c=real_case(database);w,r,b=c.service._transaction(lambda tx:attach(c,tx))
     gate=boundary(c);permit=gate.mark_may_have_sent(w.command_id,lease(c))
     with c.owner.transaction(c.scope) as tx:
-        assert repo(tx,c).write(w.command_id).state=='MAY_HAVE_SENT'
-        assert application_write_obligations(tx)[0].unresolved
+        assert tx.execute("SELECT payload->>'state' FROM ledger.order_writes_v2 WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1",
+            (scope_id(c.scope),w.command_id)).fetchone()==('MAY_HAVE_SENT',)
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
             (scope_id(c.scope),)).fetchone()==(0,)
     assert gate.consume(permit,lease(c))==r
+    # Full historical risk replay is intentionally after the short token is
+    # consumed; diagnostic reads must not spend its <=5 second I/O budget.
+    with c.owner.transaction(c.scope) as tx:
+        assert repo(tx,c).write(w.command_id).state=='MAY_HAVE_SENT'
+        assert application_write_obligations(tx)[0].unresolved
     with pytest.raises((ValueError,psycopg.Error)):gate.consume(permit,lease(c))
     with pytest.raises(ValueError,match='NO_RETRY'):gate.mark_may_have_sent(w.command_id,lease(c))
 
