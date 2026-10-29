@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 VERSION = "0.1.0"
 
 
-def create_app(settings: Settings | None = None, *, quote_provider=None, model_client=None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, quote_provider=None, model_client=None, order_observer=None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = Store(settings.database_url)
     market_config = MarketConfigService(store, settings.model_key_path)
@@ -184,6 +184,11 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
         if not secrets.compare_digest(provided.encode(), session["csrf_token"].encode()):
             raise ApiError("CSRF_REJECTED", "安全令牌无效，请刷新页面后重试。", 403)
         return session
+
+    from .order_observation import install_order_observation_routes, observer_for_runtime
+    app.state.order_observer = order_observer or observer_for_runtime(store.execution)
+    install_order_observation_routes(app, authenticated=authenticated,
+                                    observer=lambda: app.state.order_observer)
 
     async def reconfigure_market():
         nonlocal refresh_failed
