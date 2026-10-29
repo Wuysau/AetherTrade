@@ -36,6 +36,8 @@ CREATE TABLE ledger.program_client_identities(
  environment text NOT NULL,account_id text NOT NULL,product text NOT NULL,service_namespace text NOT NULL,
  client_id text NOT NULL,scope_id text NOT NULL,command_id text NOT NULL,
  PRIMARY KEY(environment,account_id,product,service_namespace,client_id));
+CREATE UNIQUE INDEX program_request_semantic_identity ON ledger.program_request_bindings
+ (scope_id,(payload->>'intent_id'),(payload#>>'{request,request_index}'));
 CREATE TABLE ledger.program_dispatch_marks(
  scope_id text NOT NULL,command_id text NOT NULL,write_payload jsonb NOT NULL,context jsonb NOT NULL,
  token_hash text NOT NULL UNIQUE,expires_at timestamptz NOT NULL,
