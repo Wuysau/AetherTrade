@@ -30,7 +30,7 @@ def venue(database):
     return roles
 
 
-def case(database,venue,tmp_path,*,tif='GTC',post_only=False):
+def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None):
     from trading_system.engine.paper import PaperEngine
     from trading_system.engine.paper_market import PaperMatchingModel
     from trading_system.runtime.execution_owner import ExecutionOwner
@@ -39,7 +39,7 @@ def case(database,venue,tmp_path,*,tif='GTC',post_only=False):
         n=p.program.nodes[0]
         return replace(p,program=replace(p.program,nodes=(replace(n,order=replace(n.order,
             tif=TimeInForceSpec(kind=tif,expires_at=None),post_only=post_only)),)))
-    c=real_case(database,proposal_transform=transform)
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex)
     c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
     c.gate=boundary(c);c.lease=lease(c);c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
     def unavailable(*args):raise ValueError('legacy guard never authorizes V3')
@@ -76,7 +76,8 @@ def event(c,*,sequence=1,ask='81490',quantity='.4',kind='DEPTH_SNAPSHOT',event_i
 
 def test_actual_v3_acceptance_shared_depth_partial_limit_restart_and_replay(database,venue,tmp_path):
     from trading_system.engine.paper_market import PaperMatcher
-    a=case(database,venue,tmp_path);b=case(database,venue,tmp_path)
+    market='shared-depth-'+uuid4().hex
+    a=case(database,venue,tmp_path,market=market);b=case(database,venue,tmp_path,market=market)
     submit(a);submit(b)
     matcher=PaperMatcher(a.engine)
     first=event(a,ask='81500',quantity='1')
