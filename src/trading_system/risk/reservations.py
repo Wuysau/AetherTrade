@@ -147,8 +147,9 @@ class ReservationService:
         the same real transaction. No request flag can exempt this boundary.
         Its immutable ProgramIntake is saved before reservation input loading.
         """
-        from trading_system.intents.order_program_ingress import ProgramIntake
-        if tx._latest('audit_events', 'order-program-intake:' + intent.intent_id, ProgramIntake) is not None:
+        from trading_system.intents.order_program_ingress import ProgramIntake, trusted_program_intake
+        if (tx._latest('audit_events', 'order-program-intake:' + intent.intent_id, ProgramIntake) is not None
+                or trusted_program_intake(tx,intent.intent_id) is not None):
             return t.ReservationOutcome(accepted=False, reservations=(),
                 book_sequence=tx.projections.book(self.scope).sequence,
                 rejection_codes=('PROGRAM_ADMISSION_REQUIRED',))

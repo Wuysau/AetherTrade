@@ -1,5 +1,27 @@
 # Current task
 
+## OP_C_ROLE_BOUNDARY_FIX — 2026-10-29
+
+Active checkout binance-orders/codex/binance-order-capabilities, persistent goal
+continues OP-C through OP-G. Generic lossless creation/management compilers,
+explicit futures quantity units/multipliers, v3 VP contracts and reviewed closure
+were integrated through3f9fdfd. These plans do not authorize execution.
+
+Actual PG admission probe ca3984c failed5/5 because execution owner cannot write
+proposals. Root now owns correction: separate bounded intake commit, additive0010
+source table, fresh owner revalidation+atomic existing IP07 financial bundle.
+Independent review reproduced owner-side intent rebinding and source-only legacy
+dispatch fallback; retained RED regressions and fixed both. Unit regression876
+passed. Fresh real PostgreSQL admission run is next; no venue qualification claim.
+See orders/OP-C-INTAKE-MIGRATION.md for recovery and compatibility.
+
+Parallel ownership: pin_native_build owns pure program exposure in binance-opc-exposure;
+admission_review took over closure-credit additive0011/test evidence in
+binance-opc-programs after prior agent capacity error. Root owns integration and
+actual combined PAPER/PG gate. Do not duplicate their work or modify main checkout.
+Full46 capabilities retained; full56-case matrix remains honest, not promoted by
+compiler/unit tests. No runtime scheduler, account or paid model calls performed.
+
 ## CONTINUOUS_GOAL_ACTIVE — 2026-10-29
 
 User asked that subsequent tasks proceed automatically. A persistent thread goal

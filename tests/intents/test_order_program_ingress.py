@@ -9,13 +9,32 @@ from trading_system.contracts.wire import ContractCodec
 from trading_system.intents.order_program_ingress import (
     ExecutionPolicy, project_proposal, AdmissionInputs, PaperQualification,
     validate_compilation, OrderProgramIngress,
-    OrderProgramCommandBinding, validate_program_command,
+    OrderProgramCommandBinding, validate_program_command, ProgramIntake,
 )
 from trading_system.intents.order_program_compiler import compile_atomic_target
 from trading_system.intents.ingress import IngressInputs
 from trading_system.contracts.canonical import canonical_hash, domain_payload
 from unit.support_ip_09 import make_case, MemoryLedger, NOW, BEFORE, END
 from trading_system.intents.semantic_validation import ProposalRejected
+
+
+class ProgramMemoryLedger(MemoryLedger):
+    """Two sequential orchestration phases only; PG tests prove role isolation."""
+    def execute(self, sql, params=()):
+        if 'to_regclass' in sql:
+            return SimpleNamespace(fetchone=lambda: ('ledger.order_program_intakes',))
+        if 'FROM ledger.proposals' in sql:
+            from trading_system.storage.models import encode
+            rows = [(encode(record),) for (table, _), (_, record) in self.records.items()
+                    if table == 'proposals' and record.receipt.intent_id == params[1]]
+            return SimpleNamespace(fetchall=lambda: rows)
+        return super().execute(sql,params)
+
+
+def memory_owner_transaction(ledger,operation):
+    with ledger.transaction(ledger.scope) as tx:
+        result=operation(tx)
+    return result
 
 
 def test_projection_preserves_original_price_stop_target_and_deadlines():
@@ -167,10 +186,10 @@ def test_qualified_fixture_reuses_legacy_intent_compiler_exactly():
 
 def test_qualification_failure_rolls_back_intake_and_fence():
     case, p, compiled, facts, proof = admission_case()
-    ledger = MemoryLedger(case)
+    ledger = ProgramMemoryLedger(case)
     reservations = SimpleNamespace(uow=ledger, scope=case.book.scope)
     service = OrderProgramIngress(ledger, case.book.scope, lambda *args: facts, reservations,
-        execution_policy=facts.execution_policy)
+        intake_uow=SimpleNamespace(transaction=ledger.transaction), execution_policy=facts.execution_policy)
     before = ledger.records.copy()
     result = service.admit(p, case.context, compiled)
     assert result.receipt.status == 'REJECTED'
@@ -181,7 +200,7 @@ def test_qualification_failure_rolls_back_intake_and_fence():
 def command_case():
     import json
     from pathlib import Path
-    from trading_system.intents.ingress import IntentCompiler
+    from trading_system.intents.ingress import IntentCompiler, AcceptedProposal
     from trading_system.execution.commands import command_hash
     case, p, compiled, facts, proof = admission_case()
     intent = IntentCompiler(case.binding).bind(project_proposal(p, facts.execution_policy), case.context, case.book)
@@ -194,7 +213,23 @@ def command_case():
     sidecar = OrderProgramCommandBinding(command_id=command.command_id, command_hash=command_hash(command),
         intent_hash=codec.hash(intent), compilation=compiled, rules=facts.rules, capabilities=facts.capabilities,
         execution_policy=facts.execution_policy)
-    tx = SimpleNamespace(scope=case.book.scope, _latest=lambda *args: sidecar)
+    intake=ProgramIntake(proposal_hash=compiled.proposal_hash,
+        context_hash=canonical_hash(domain_payload(case.context)),compilation=compiled,
+        execution_policy=facts.execution_policy)
+    from trading_system.intents.target_compiler import TargetCompiler
+    from trading_system.contracts.canonical import canonical_json
+    from trading_system.contracts import types as t
+    from trading_system.storage.models import encode
+    record=AcceptedProposal(proposal_hash=ContractCodec().hash(project_proposal(p,facts.execution_policy)),
+        context_hash=intake.context_hash,proposal_json=canonical_json(codec.encode(project_proposal(p,facts.execution_policy))),
+        intent_json=canonical_json(codec.encode(intent)),plan=TargetCompiler(case.target).compile(intent,case.book),
+        receipt=t.ProposalReceipt(receipt_id='receipt',status=t.IntentState.VALIDATING,
+            reason='RISK_VALIDATION_REQUIRED',existing_result_ref=None,intent_id=intent.intent_id),
+        book_sequence=case.book.sequence,instrument=case.binding.instrument,context=case.context)
+    tx = SimpleNamespace(scope=case.book.scope,
+        execute=lambda *args: SimpleNamespace(fetchone=lambda: ('ledger.order_program_intakes',),
+            fetchall=lambda:[(encode(record),)]),
+        _latest=lambda table,*args: intake if table=='order_program_intakes' else sidecar)
     return tx, command, intent, facts, proof, sidecar
 
 
@@ -212,6 +247,48 @@ def test_dispatch_revalidates_actual_qualification_and_exact_tif():
     changed = replace(command, canonical_payload=replace(command.canonical_payload, time_in_force='FOK'))
     with pytest.raises(ProposalRejected, match='PROGRAM_COMMAND_BINDING_MISMATCH'):
         validate_program_command(tx, changed, intent, lambda *args: facts, lambda *args: proof)
+
+
+def test_owner_authored_sidecar_cannot_substitute_for_intake_provenance():
+    tx,command,intent,facts,proof,sidecar=command_case()
+    tx._latest=lambda table,*args: None if table=='order_program_intakes' else sidecar
+    with pytest.raises(ProposalRejected,match='PROGRAM_SOURCE_BINDING_MISMATCH'):
+        validate_program_command(tx,command,intent,lambda *args:facts,lambda *args:proof)
+
+
+def test_owner_authored_sidecar_cannot_rebind_a_changed_intent_body():
+    from trading_system.execution.commands import command_hash
+    tx,command,intent,facts,proof,sidecar=command_case()
+    changed=replace(intent,target_quantity='4.900')
+    changed_sidecar=replace(sidecar,intent_hash=ContractCodec().hash(changed))
+    original=tx._latest
+    tx._latest=lambda table,*args:changed_sidecar if table=='audit_events' else original(table,*args)
+    assert changed_sidecar.command_hash==command_hash(command)
+    with pytest.raises(ProposalRejected,match='PROGRAM_SOURCE_BINDING_MISMATCH'):
+        validate_program_command(tx,command,changed,lambda *args:facts,lambda *args:proof)
+
+
+@pytest.mark.parametrize('origin',['order_program_intakes','order-program-intake:'])
+def test_followon_without_admission_marker_cannot_drop_source_ancestry(origin,monkeypatch):
+    from trading_system.execution.commands import CommandRepository
+    from trading_system.execution.dispatcher import CommandDispatcher,DispatchDenied
+    tx,command,intent,_,_,_=command_case()
+    def latest(table,key,cls):
+        return object() if (table==origin or key.startswith(origin)) else None
+    tx._latest=latest
+    monkeypatch.setattr(CommandRepository,'validate_binding',lambda *args:intent)
+    def legacy(*args):
+        raise AssertionError('legacy loader reached for a program-backed intent')
+    dispatcher=CommandDispatcher(None,tx.scope,load_facts=legacy)
+    with pytest.raises(DispatchDenied,match='PROGRAM_COMMAND_BINDING_REQUIRED'):
+        dispatcher._check(tx,command,None)
+
+
+def test_old_database_keeps_recovery_readable_but_cannot_authorize_program_send():
+    tx,command,intent,facts,proof,sidecar=command_case()
+    tx.execute=lambda *args:SimpleNamespace(fetchone=lambda:(None,))
+    with pytest.raises(ProposalRejected,match='PROGRAM_SOURCE_BINDING_MISMATCH'):
+        validate_program_command(tx,command,intent,lambda *args:facts,lambda *args:proof)
 
 
 def test_dispatch_without_program_readers_fails_before_mark(monkeypatch):
@@ -239,7 +316,7 @@ def intake_with_denial(monkeypatch):
     from trading_system.contracts import types as t
     from trading_system.storage.order_programs import OrderProgramRepository
     case, p, compiled, facts, proof = admission_case()
-    ledger = MemoryLedger(case)
+    ledger = ProgramMemoryLedger(case)
     calls = []
     def deny(tx, intent, sequence, *, accepted):
         from trading_system.intents.order_program_ingress import program_intake
@@ -252,8 +329,10 @@ def intake_with_denial(monkeypatch):
     def save(repo, program):
         repo.tx._append('order_programs', program.program_id, program, 0)
     monkeypatch.setattr(OrderProgramRepository, 'save_program', save)
-    reservations = SimpleNamespace(uow=ledger, scope=case.book.scope, _reserve=deny)
+    reservations = SimpleNamespace(uow=ledger, scope=case.book.scope, _reserve=deny,
+        _transaction=lambda op:memory_owner_transaction(ledger,op))
     service = OrderProgramIngress(ledger, case.book.scope, lambda *args: facts, reservations,
+        intake_uow=SimpleNamespace(transaction=ledger.transaction),
         execution_policy=facts.execution_policy, load_qualification=lambda *args: proof)
     return ledger, service, case, p, compiled, calls
 

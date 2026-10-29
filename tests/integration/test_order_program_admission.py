@@ -35,6 +35,7 @@ def program_database(ip07_database):
     from integration.support_ip_03 import ROOT
     with psycopg.connect(ip07_database) as conn:
         conn.execute((ROOT / 'migrations/0008_order_program_records.sql').read_text(encoding='utf-8'))
+        conn.execute((ROOT / 'migrations/0010_order_program_intake.sql').read_text(encoding='utf-8'))
     return ip07_database
 
 
@@ -91,8 +92,15 @@ def program_case(dsn):
             risk=replace(values.risk, intent_id=intent.intent_id))
 
     service = ReservationService(c.ledger.uow, scope, reserve_inputs, clock=lambda: NOW)
+    from trading_system.storage.uow import UnitOfWork
+    def connect_intake():
+        conn=c.ledger.connect_admin()
+        conn.execute('SET ROLE ledger_intake')
+        conn.commit()
+        return conn
     ingress = OrderProgramIngress(c.ledger.uow, scope, lambda *args: f, service,
-        execution_policy=f.execution_policy, load_qualification=lambda *args: proof)
+        intake_uow=UnitOfWork(connect_intake),execution_policy=f.execution_policy,
+        load_qualification=lambda *args: proof)
     return c, p, compiled, context, ingress, f, proof
 
 
@@ -146,7 +154,7 @@ def test_budget_denial_never_persists_command_or_funding(program_database):
     assert c.count('commands') == c.count('intents') == c.count('reservations') == 0
 
 
-def test_tif_command_mismatch_rolls_back_entire_intake(program_database):
+def test_tif_command_mismatch_preserves_intake_but_rolls_back_financial_bundle(program_database):
     c, p, compiled, context, ingress, _, _ = program_case(program_database)
     original = ingress.reservations.load_inputs
     def wrong(*args):
@@ -159,4 +167,100 @@ def test_tif_command_mismatch_rolls_back_entire_intake(program_database):
     assert result.receipt.reason == 'PROGRAM_TIF_MISMATCH'
     assert c.count('commands') == c.count('intents') == c.count('reservations') == 0
     with c.ledger.connect_admin() as conn:
-        assert conn.execute('SELECT count(*) FROM ledger.proposals WHERE scope_id=%s', (scope_id(c.scope),)).fetchone()[0] == 0
+        assert conn.execute('SELECT count(*) FROM ledger.proposals WHERE scope_id=%s', (scope_id(c.scope),)).fetchone()[0] == 1
+        assert conn.execute('SELECT count(*) FROM ledger.order_program_intakes WHERE scope_id=%s', (scope_id(c.scope),)).fetchone()[0] == 1
+
+
+def test_execution_owner_cannot_author_source_and_intake_cannot_author_command(program_database):
+    import psycopg
+    c,*_=program_case(program_database)
+    for role,table in [('ledger_owner','proposals'),('ledger_owner','order_program_intakes'),
+                       ('ledger_intake','commands'),('ledger_intake','intents'),('ledger_intake','reservations')]:
+        with c.ledger.connect_admin() as conn:
+            conn.execute('SET ROLE '+role)
+            assert conn.execute('SELECT current_user').fetchone()[0]==role
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                conn.execute('INSERT INTO ledger.'+table+' SELECT * FROM ledger.'+table+' WHERE false')
+            conn.rollback()
+
+
+def test_owner_phase_revalidates_rules_after_intake_commit(program_database):
+    c,p,compiled,context,ingress,facts,_=program_case(program_database)
+    calls=[]
+    def current(tx,*args):
+        role=tx.execute('SELECT current_user').fetchone()[0]
+        calls.append(role)
+        return replace(facts,expected_rule_revision=2) if role=='ledger_owner' else facts
+    ingress.load_inputs=current
+    result=ingress.admit(p,context,compiled)
+    assert result.receipt.status=='REJECTED' and result.reservation is None
+    assert calls==['ledger_intake','ledger_owner']
+    assert c.count('commands')==c.count('intents')==c.count('reservations')==0
+    with c.ledger.connect_admin() as conn:
+        assert conn.execute('SELECT count(*) FROM ledger.order_program_intakes WHERE scope_id=%s',
+                            (scope_id(c.scope),)).fetchone()[0]==1
+
+
+def test_owner_commit_failure_returns_no_receipt_and_retains_only_durable_intake(program_database,monkeypatch):
+    from trading_system.storage.uow import LedgerTx
+    c,p,compiled,context,ingress,_,_=program_case(program_database)
+    original=LedgerTx._commit
+    def fail_owner(tx):
+        if tx.execute('SELECT current_user').fetchone()[0]=='ledger_owner':
+            raise OSError('injected owner commit failure')
+        return original(tx)
+    monkeypatch.setattr(LedgerTx,'_commit',fail_owner)
+    with pytest.raises(OSError,match='injected owner commit failure'):
+        ingress.admit(p,context,compiled)
+    assert c.count('commands')==c.count('intents')==c.count('reservations')==0
+    with c.ledger.connect_admin() as conn:
+        assert conn.execute('SELECT count(*) FROM ledger.order_program_intakes WHERE scope_id=%s',
+                            (scope_id(c.scope),)).fetchone()[0]==1
+
+
+def test_owner_authored_sidecar_cannot_change_bounded_intake_intent(program_database):
+    from trading_system.intents.semantic_validation import ProposalRejected
+    from trading_system.risk.reservation_repository import ReservationRepository
+    c,p,compiled,context,ingress,facts,proof=program_case(program_database)
+    result=ingress.admit(p,context,compiled)
+    assert result.reservation.accepted
+    with c.ledger.uow.transaction(c.scope) as tx:
+        command=ReservationRepository(tx).first_commands(result.receipt.intent_id)[0]
+        intent=tx._latest('intents',result.receipt.intent_id,type(c.case.intent))
+        changed=replace(intent,target_quantity='4.900')
+        sidecar=tx._latest('audit_events',COMMAND_PREFIX+command.command_id,OrderProgramCommandBinding)
+        tx._append('audit_events',COMMAND_PREFIX+command.command_id,
+                   replace(sidecar,intent_hash=ContractCodec().hash(changed)),1)
+        with pytest.raises(ProposalRejected,match='PROGRAM_SOURCE_BINDING_MISMATCH'):
+            validate_program_command(tx,command,changed,lambda *args:facts,lambda *args:proof)
+    assert c.count('commands')==1
+
+
+def test_source_only_intake_cannot_select_legacy_dispatch(program_database,monkeypatch):
+    from trading_system.storage.uow import LedgerTx
+    from trading_system.intents.order_program_ingress import accepted_program_source
+    from trading_system.intents.ingress import accepted_intent
+    from trading_system.execution.dispatcher import CommandDispatcher,DispatchDenied
+    c,p,compiled,context,ingress,_,_=program_case(program_database)
+    original=LedgerTx._commit
+    def fail_owner(tx):
+        if tx.execute('SELECT current_user').fetchone()[0]=='ledger_owner':
+            raise OSError('owner phase stopped')
+        return original(tx)
+    with monkeypatch.context() as patch:
+        patch.setattr(LedgerTx,'_commit',fail_owner)
+        with pytest.raises(OSError,match='owner phase stopped'):
+            ingress.admit(p,context,compiled)
+    with c.ledger.uow.transaction(c.scope) as tx:
+        rows=tx.execute('SELECT record_id FROM ledger.order_program_intakes WHERE scope_id=%s',
+                        (scope_id(c.scope),)).fetchall()
+        assert len(rows)==1
+        intent=accepted_intent(accepted_program_source(tx,rows[0][0]))
+        assert tx._latest('audit_events','order-program-admission:'+intent.intent_id,object) is None
+        monkeypatch.setattr(CommandRepository,'validate_binding',lambda *args:intent)
+        def legacy(*args):
+            raise AssertionError('legacy facts loader reached for source-backed program')
+        dispatcher=CommandDispatcher(None,c.scope,load_facts=legacy)
+        with pytest.raises(DispatchDenied,match='PROGRAM_COMMAND_BINDING_REQUIRED'):
+            dispatcher._check(tx,c.command,None)
+    assert c.count('commands')==c.count('intents')==c.count('reservations')==0

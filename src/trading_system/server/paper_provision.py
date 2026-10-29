@@ -54,7 +54,9 @@ def provision(admin_dsn, *, initial_cash, journal_directory, isolated_paper=Fals
                      'migrations/0002_risk_resolution_authority.sql', 'migrations/0004_command_abort_guard.sql',
                      'migrations/0005_owner_cas_authority.sql', 'migrations/0006_proposal_intake_role.sql',
                      'migrations/0007_owner_controller_ddl_guard.sql',
-                     'migrations/0008_order_program_records.sql'):
+                     'migrations/0008_order_program_records.sql',
+                     'migrations/0009_order_program_closure.sql',
+                     'migrations/0010_order_program_intake.sql'):
             conn.execute((root / path).read_text(encoding='utf-8'))
         role, password = 'paper_console_' + suffix, secrets.token_urlsafe(32)
         conn.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE '
