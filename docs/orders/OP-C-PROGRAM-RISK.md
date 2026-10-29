@@ -22,6 +22,15 @@ must cover its executable ceiling at authorized leverage. Shared binding,
 account-mode, protection-policy, portfolio/group/count, capital and spendable
 predicates remain the same core used by legacy evaluation.
 
+Retained-position risk includes protected partial reductions: quantity remaining
+after the proposed reduction is not zero-risk. All nonflat specified stops use
+exact tick checks and explicit unified-to-native product support. Spot native
+supports unified LAST; futures MARK is explicitly MARK_PRICE and LAST is
+CONTRACT_PRICE. BID_ASK is never silently converted to native LAST. Flat targets
+need no fabricated new protective stop. Bounded unprotected emergency exits use
+the separate versioned contract in OP-C-BOUNDED-REDUCTION-RISK.md, retaining an
+explicit residual restriction rather than weakening normal completeness.
+
 Protection is derived from exact owner/book/allocation/quantity/phase-specific
 duty references and explicit live-order bounds. A bool cannot supply coverage;
 native full-fill-only exits cannot cover entry partial fills. Other working

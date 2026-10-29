@@ -28,12 +28,15 @@ def digest(value):return canonical_hash(domain_payload(value))
 
 
 def risk_case(*,template='ATOMIC',mode='VENUE_NATIVE',product=t.Product.SPOT,actual='0',target='1',quantity='1',side='BUY',
-              stop=None,stop_trigger=None,target_side=None,conditional=False,close_all=False,working='0',pending=()):
+              stop=None,stop_trigger=None,target_side=None,conditional=False,close_all=False,working='0',pending=(),
+              missing_stop=False,reduce_only=False):
     plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
     _,_,caps,k=inputs(product);profile=k['profile'];p=plan.original_proposal
     if stop is not None:p=replace(p,exit_plan=replace(p.exit_plan,stop_price=stop))
+    if missing_stop:p=replace(p,exit_plan=replace(p.exit_plan,stop_price=None))
     if stop_trigger is not None:p=replace(p,exit_plan=replace(p.exit_plan,stop_trigger=stop_trigger))
     if target_side is not None:p=replace(p,target_side=target_side)
+    if reduce_only:p=change(p,reduce_only=True)
     if conditional or close_all:
         p=change(p,price=order_price(),tif=TimeInForceSpec(kind='NONE',expires_at=None),
             trigger=trigger(source='MARK_PRICE' if product==t.Product.USD_M_PERP else 'LAST',price='83000' if side=='BUY' else '81330'))
@@ -87,7 +90,7 @@ def risk_case(*,template='ATOMIC',mode='VENUE_NATIVE',product=t.Product.SPOT,act
         policy_revision=target_facts.owner.policy_revision,collateral_group_id=target_facts.collateral_group_id,
         basis_fingerprint=book.basis_fingerprint,snapshot_id=market.ref.id,action=p.action,target_side=p.target_side,
         target=allocation.terms.target,requested_leverage=p.requested_leverage,maximum_planned_loss=money('50000',quote),
-        protection_policy=p.protection_policy,stop_price=D(p.exit_plan.stop_price),stop_trigger=p.exit_plan.stop_trigger,
+        protection_policy=p.protection_policy,stop_price=None if p.exit_plan.stop_price is None else D(p.exit_plan.stop_price),stop_trigger=p.exit_plan.stop_trigger,
         maximum_holding_seconds=p.exit_plan.maximum_holding_seconds,review_due_at=p.exit_plan.review_due_at,
         as_of=NOW,created_at=NOW,valid_until=allocation.terms.valid_until,submission_deadline=p.program.submit_valid_until)
     current=replace(base.inputs,intent_id=identifier,authorization_id=context.authorization_id,
@@ -106,7 +109,7 @@ def risk_case(*,template='ATOMIC',mode='VENUE_NATIVE',product=t.Product.SPOT,act
         maximum_capital='1000000',maximum_order_notional='1000000',
         maximum_planned_loss_per_intent='50000',maximum_total_planned_loss='100000',maximum_gross_exposure='1000000',
         maximum_net_exposure='1000000',maximum_entry_slippage_bps='2000',maximum_active_orders=20)
-    coverage=ProtectionCoverage(scope=book.scope,owner_strategy_id=terms.owner_strategy_id,ownership_epoch=terms.ownership_epoch,
+    coverage=None if terms.stop_price is None else ProtectionCoverage(scope=book.scope,owner_strategy_id=terms.owner_strategy_id,ownership_epoch=terms.ownership_epoch,
         program_hash=plan.program_hash,allocation_hash=digest(allocation),book_hash=digest(book),
         origin='HOSTED_CASH_DUTY' if product==t.Product.US_EQUITY else 'NATIVE_PER_FILL_DUTY',
         phases=('PARTIAL_FILL','FULL_FILL','RECEIPT_NET','RETAINED_POSITION'),node_ids=tuple(n.original.node_id for n in plan.nodes),
@@ -124,7 +127,7 @@ def risk_case(*,template='ATOMIC',mode='VENUE_NATIVE',product=t.Product.SPOT,act
             service_namespace='ORDINARY',canonical_command_refs=prior.command_refs,original_command_refs=prior.command_refs,
             minimum_price=price('81400',quote),maximum_price=price('81490',quote),evidence_refs=(evidence.id,)) for prior in pending),
         additional_exit_fees=(),
-        protection=(coverage,),allowed_stop_triggers=('LAST','MARK','BID_ASK'),maximum_live_orders=len(plan.nodes)
+        protection=() if coverage is None else (coverage,),allowed_stop_triggers=('LAST','MARK','BID_ASK'),maximum_live_orders=len(plan.nodes)
             +sum(n.maximum_live_children for n in nodes)+1,
         holding_horizon_seconds=terms.maximum_holding_seconds,entry_slippage_bps=D(2000),evidence=book.evidence,as_of=NOW,valid_until=END)
     policy=replace(policy,protection_policy=p.protection_policy)
@@ -402,3 +405,11 @@ def test_full_flat_retains_fee_only_loss_without_claiming_a_remaining_position()
     result=assess(risk_case(actual='1',target='0',quantity='1',side='SELL',stop='90000'))
     assert result.verdict=='ALLOW',result.rejection_codes
     assert result.metrics.planned_loss.amount==0
+
+
+def test_partial_short_reduction_keeps_positive_remaining_short_stop_risk():
+    c=risk_case(product=t.Product.USD_M_PERP,actual='-2',target='1',quantity='1',side='BUY',
+        target_side='SHORT',stop='92000',reduce_only=True)
+    result=assess(c)
+    assert result.verdict=='ALLOW',result.rejection_codes
+    assert result.metrics.planned_loss.amount==D('26808')
