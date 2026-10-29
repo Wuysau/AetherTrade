@@ -36,6 +36,11 @@ requested before DTO freeze: actual persisted venue_order_id; accepted clock;
 full canonical internal fill raw_payload_json with its real SHA. No guessed old
 payload location may be used. Wait for that concrete committed API before code.
 
+The independent FinancialUnit→raw fill economics bridge can be implemented first:
+it consumes only existing frozen FinancialUnit/Quantity/Price/Money, not a guessed
+producer DTO. This arithmetic is observation normalization and grants no source
+or financial authority. Report/source verification still waits for frozen APIs.
+
 ### Task 1: Trusted source binding and exact normalization
 
 Create `execution/paper_program_reports.py`. Public service constructor takes
