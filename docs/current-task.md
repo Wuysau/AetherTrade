@@ -1,5 +1,25 @@
 # Current task
 
+## OP_C_INTEGRATING_GENERIC_TARGETS — 2026-10-29
+
+Root integrated throughd7c761d: explicit version/legacy lifecycle containment,
+shared new/old command obligation hooks, exact program exposure including SELL
+ceiling correction, shared TargetTerms using original TargetCompiler arithmetic.
+Current contracts/intents/unit989 passed. Isolated fixed-source4b6b941 full gate
+also passed873 mandatory PG cases (24suites,zero skip), ordinary2650pass/427envskip/
+96deselected; it PRECEDES later generic changes and is not current-tree proof.
+Evidence: docs/evidence/binance-orders/op-c-integrated-baseline.
+
+Remaining root CI change registers two separate fresh-IP03 obligation suites.
+Next full integrated gate must include latest branch, not reuse baseline result.
+pin_native_build owns actual ProgramTargetAllocation after common terms5abfff5
+in binance-opc-exposure. admission_review owns read-side READY regression guard
+after2e6f844 in binance-opc-obligations. Source/version storage agent completed,
+ownPG32passed and integrated; no duplicate task needed. Common financial risk/
+bundle/dispatch and explicit unit/group lifecycle remain real implementation
+work per orders/OP-C-REMAINING-INTEGRATION.md. Goal remains active throughOP-G;
+no runtime/account/model calls or TESTNET/LIVE activation. Full46/56scope retained.
+
 ## OP_C_ROLE_BOUNDARY_FIX — 2026-10-29
 
 Active checkout binance-orders/codex/binance-order-capabilities, persistent goal
