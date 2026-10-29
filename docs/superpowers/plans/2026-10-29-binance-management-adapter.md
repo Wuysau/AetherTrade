@@ -29,16 +29,16 @@ Create `src/trading_system/execution/management_requests.py` and `tests/intents/
 
 Interface: `materialize_management(plan, *, current_target, rules, capabilities, profile, now, scope, expected_owner_strategy_id, expected_ownership_epoch, expected_execution_epoch, expected_policy_revision, expected_build_digest, expected_rule_revision, expected_capabilities_hash)` returns a tuple of typed `VenueManagementRequest`. It recompiles using these independent current facts and requires canonical equality with the complete supplied plan. Each result preserves the original command/target/program/plan hashes, namespace, HTTP method, endpoint and every parameter; `execution_authorized` and `funds_released` are always false.
 
-- [ ] Write RED cases for all seven namespaces, query UNKNOWN original IDs, cancel/keep-priority/modify/cancel-replace field retention, product/route/identity/hash/current-fact substitutions and no authority.
-- [ ] Observe failures, implement the adapter, then run new plus existing management regressions.
-- [ ] Commit reviewed scope; do not project V2 management writes into V3 creation commands.
+- [x] Write RED cases for all seven namespaces, query UNKNOWN original IDs, cancel/keep-priority/modify/cancel-replace field retention, product/route/identity/hash/current-fact substitutions and no authority.
+- [x] Observe30 failures, implement the adapter, then run61 new plus existing management regressions.
+- [x] Commit496fcfd; do not project V2 management writes into V3 creation commands. Final whole-slice review remains due.
 
 ### Task 2: Original-identity collection recovery
 
-Add a typed query-page/evidence interface and exact original-ID selection in `src/trading_system/engine/nautilus/order_query.py`; test in `tests/unit/test_order_query.py`. This interface consumes unsigned QUERY requests only. Independently provided scope/source/evidence/request hash and complete page sequence are mandatory. Matching uses original IDs and symbol, not price/side similarity. Contradictory or duplicate identities, missing pages and incomplete scans remain reconciliation-required. Preserve raw evidence references. Results grant neither ownership nor terminal/collateral authority.
+Add a typed query-page/evidence interface and exact original-ID selection in `src/trading_system/engine/nautilus/order_query.py`; test in `tests/intents/test_order_query.py` to reuse existing sibling compilation fixtures without import-path mutation. This interface consumes unsigned QUERY requests only. Independently provided scope/source/evidence/request hash and complete page sequence are mandatory. Matching uses original IDs and symbol, not price/side similarity. Contradictory or duplicate identities, missing pages and incomplete scans remain reconciliation-required. Preserve raw evidence references. Results grant neither ownership nor terminal/collateral authority.
 
-- [ ] Write and observe RED for matching exact original mother, unrelated rows, cross-scope/service replies, page gaps, repeated/conflicting rows, absent/not-found and write-response misuse.
-- [ ] Implement read-only recovery and run both new suites plus existing native-event/management tests.
+- [x] Write and observe41 RED cases for matching exact original mother, unrelated rows, cross-scope/service replies, page gaps, repeated/conflicting rows, absent/not-found and write-response misuse.
+- [x] Implement read-only recovery and run113 new/existing request, query, management and exact-build tests. Additional native-event regression and final evidence/review remain due.
 - [ ] Record actual commands/results, native and full ORD qualification gaps, then request fresh read-only review and integrate through the root owner.
 
 ## Evidence and rulings
@@ -48,3 +48,5 @@ Base8555201: existing management and exact Nautilus target guard tests **36 pass
 Official Binance Spot, USD-M and Equity catalog pages reread on2026-10-29. Older product URL shapes are unavailable; current catalog and `/en/docs/llms.txt` confirm separate ordinary/list/conditional/execution-algorithm/equity services. Download-schema links returned empty bodies and are not implementation evidence. Keep the exact locked Nautilus build boundary unchanged.
 
 Ruling: the user has approved the architecture and explicitly instructed continuing downstream implementation; no routine stage reapproval is required. This plan documents a bounded OP-E slice, not completion of OP-E or promotion of the56 acceptance cases.
+
+The oversized remote-total counterexample exposed a real allocation failure. Its owned pytest process was terminated after observing5,514,739,712 bytes working set; the resource RED and interrupted exit are retained. Completion now checks only received pages, without allocating/iterating to the claimed total. The unchanged10**50 total case passes. Endpoint-set omission separately produced2 RED failures before correction. Neither negative result is a native execution qualification.

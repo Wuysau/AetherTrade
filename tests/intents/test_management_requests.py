@@ -120,3 +120,24 @@ def test_unknown_command_cannot_be_materialized_as_a_fresh_management_write():
     plan=replace(plan,command=replace(plan.command,state='UNKNOWN'))
     with pytest.raises(ValueError,match='MANAGEMENT_COMMAND_BINDING_MISMATCH'):
         materialize(plan,**k)
+
+
+def test_verification_rejects_modified_materialized_request():
+    from trading_system.execution.management_requests import verify_management
+    from trading_system.intents.order_management_compilation import ManagementEndpoint
+    plan,k=setup(kind=ManagementKind.CANCEL)
+    request,=materialize(plan,**k)
+    assert verify_management(request,plan,**k)==digest(request)
+    with pytest.raises(ValueError,match='MANAGEMENT_REQUEST_CHANGED'):
+        verify_management(replace(request,endpoint=ManagementEndpoint.USD_M_ORDER),plan,**k)
+
+
+def test_replacement_cannot_hide_changes_inside_precompiled_parameters():
+    plan,k=setup(kind=ManagementKind.CANCEL_REPLACE)
+    replacement=plan.instruction.replacement
+    request=replacement.requests[0]
+    mutated=replace(replacement,requests=(replace(request,parameters=tuple(
+        replace(p,value='MARKET') if p.name.value=='type' else p for p in request.parameters)),))
+    plan=replace(plan,instruction=replace(plan.instruction,replacement=mutated))
+    with pytest.raises(ValueError,match='REPLACEMENT_COMPILATION_CHANGED'):
+        materialize(plan,**k)
