@@ -31,6 +31,7 @@ SUITES = (
     ('generic-program-admission', '03', 'tests/integration/test_generic_program_admission_postgres.py'),
     ('program-attachment', '03', 'tests/integration/test_program_attachment_postgres.py'),
     ('program-commands', '03', 'tests/integration/test_program_commands_postgres.py'),
+    ('local-program-activation', '03', 'tests/integration/test_local_program_activation.py'),
     ('program-financial-admission', '03', 'tests/integration/test_program_financial_admission.py'),
     ('assessment-archive', '03', 'tests/integration/test_assessment_archive_ledger.py'),
     ('program-financial-ledger', '03', 'tests/integration/test_program_financial_ledger.py'),
