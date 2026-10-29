@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,**risk_options):
+def real_case(dsn,*,qualified=True,proposal_transform=None,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -47,6 +47,7 @@ def real_case(dsn,*,qualified=True,**risk_options):
     original_inputs=risk_module.inputs;suffix=uuid4().hex
     def scoped_inputs(product):
         p,r,c,k=original_inputs(product);scope=replace(k['scope'],venue_account_id='isolated-'+suffix)
+        if proposal_transform is not None:p=proposal_transform(p)
         qualification_ref=t.EvidenceRef(id='isolated-qualification-fixture',hash='c'*64,
             environment=scope.environment,source='SYNTHETIC_QUALIFICATION_FIXTURE_NOT_NATIVE',visible_at=r.as_of)
         r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN',
