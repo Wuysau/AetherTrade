@@ -1,5 +1,12 @@
 # OP-C program commands — fresh-context implementation handoff
 
+Superseded implementation status: the fresh writer has now implemented the real
+repository,0012 protected boundary and current typed server checks. See
+[OP-C-PROGRAM-COMMANDS.md](OP-C-PROGRAM-COMMANDS.md) for source/API, qualifications,
+evidence and remaining transport/wallet-location boundaries. The paragraphs
+below preserve the original pre-implementation handoff; its "NOT IMPLEMENTED"
+list is historical, not the current source status. No parent goal was paused.
+
 Status: parent explicitly approved a fresh-context sole-writer handoff, NOT a goal pause. This worker releases this worktree after committing this file. Do not reset, recreate, fork or clean the checkout. No live PostgreSQL/container/process was started by this cohort.
 
 ## Exact workspace / implemented source
