@@ -26,3 +26,10 @@ it('uses read-only server pages at 10/20/50 and does not infer empty as flat',as
  expect(screen.getByRole('option',{name:'50'})).toBeTruthy();
  expect(fetcher.mock.calls.every(([,init])=>!init.method||init.method==='GET')).toBe(true);
 });
+// Retained proposal archives belong in the same authenticated detail, including
+// intake-only proposals that were never financially admitted.
+it('keeps original intake evidence visible without manufacturing an execution result',()=>{
+ render(<OrderProgramDetail detail={{...plan,intakes:[{record_id:'intake-original-hash',payload:{proposal:{proposal_id:'original-proposal'}}}]}}/>);
+ expect(screen.getByText('intake-original-hash')).toBeTruthy();
+ expect(screen.getByText('原始提案与决策上下文 · 1')).toBeTruthy();
+});

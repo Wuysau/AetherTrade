@@ -4,7 +4,7 @@ export type ProgramView = {
   template:string|null;execution_mode:string|null;execution_state:string;state_origin?:string;protection_status:string;
   children_complete:string|null;execution_authorized:false;payload:Record<string,unknown>;
   nodes:{node_id:string;role:string;child_origin:string;order:Record<string,unknown>}[];
-  records?:Record<string,ArchiveRecord[]>;state_observation?:Record<string,unknown>|null;
+  intakes?:ArchiveRecord[];records?:Record<string,ArchiveRecord[]>;state_observation?:Record<string,unknown>|null;
   capability?:{archived_snapshot:Record<string,unknown>|null;current_qualification:string;admission_blockers:string[]};
   rejection_reasons?:{code:string;stage:string}[];truncated?:Record<string,boolean>;
 };

@@ -34,6 +34,7 @@ export function OrderProgramDetail({detail}:{detail:ProgramView}) {
       {(detail.rejection_reasons??[]).map(reason=><p key={reason.code}>{reason.stage} · {reason.code}</p>)}
     </section>
     {Object.values(detail.truncated??{}).some(Boolean)&&<Alert error>关联记录超出读取上限，当前详情不完整；请通过账本审查继续核查。</Alert>}
+    <Archive records={detail.intakes??[]} title="原始提案与决策上下文"/>
     <Archive records={[...(records.financial??[]),...(records.reservations??[])]} title="资金、保护责任与接入证据"/>
     <Archive records={[...(records.bindings??[]),...(records.states??[]),...(records.local_states??[]),...(records.requests??[])]} title="母子关联与完整请求"/>
     <details className="program-archive"><summary>原始计划与内容摘要</summary><p>JSONB 规范内容 SHA256：<span className="program-id">{detail.canonical_payload_hash}</span></p><p className="field-help">原记录中的 hash 与 ID 保持原值；此摘要不会替代历史 hash。</p><pre>{JSON.stringify(detail.payload,null,2)}</pre></details>
