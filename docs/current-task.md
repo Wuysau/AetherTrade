@@ -1,5 +1,47 @@
 # Current task
 
+## OP_C_SCOPE_SAFE_EXPOSURE_INTEGRATED — 2026-10-29
+
+Root8fdfcf6 integrates8972f4e as412e21a and6791518 as8fdfcf6: SAME exposure
+calculator now supports typed pending/proposed quantities with physicalscope/
+sourcefamily/service-namespace identity, no dummy orders/intents; fullflat0 and
+retainedpartialinventory tests. ExistingRiskEvaluator uses shared ordered
+source/basis/evidence/instrument predicates. Rootcontracts/intents/unit1232pass
+exit0. This extends code after the latest full7d9deb7 gate915/28; a further full
+gate is due after semanticrisk/lifecycle integration, no nativequalification.
+
+Active owners/dependencies:
+
+- exposure_review / binance-opc-program-risk: actual ProgramRiskFacts and
+  ProgramRiskDecision classes in risk/program_assessment.py; evaluate_program
+  derivation WIP (29 positive/negative cases reported, not complete). Handles
+  atomic/conditional/partial/flat/native+localalgo/BATCH/fullfill+receipt stages;
+  adds holding-price scenarios, independentcost/horizon/count/protection proof.
+  Keep fixedBUY principal atlimit, SELL independentceiling, proper net/groups,
+  retainedinventory and pending effects; no cumulativebudget→portfolio shortcut.
+- admission_review / binance-opc-financial-records: cleanpublicrecords+TTLfix
+  alreadyrootintegrated. OWNdependencies now8972=dbf073f,79=e3a14d4,c71=2fd6893,
+  679=3095b75. NEW ProgramFinancialAssessmentArchive kind witharchive_revision1
+  beingimplemented separately; actual ProgramRiskFacts+Decision (DENYmetricsNone
+  legal), oldknown-contentarchive shape/hash/blockedconverter unchanged. New
+  codec replayscompile/target/exposure and onlyREALevaluate_program; missingmethod
+  returnsPROGRAM_RISK_ASSESSMENT_NOT_AVAILABLE, no callbackstub or claimedALLOW.
+  Scope/type source refinements may occur inassessor peer; coordinate API/commits.
+- pin_native_build / binance-opc-lifecycle-v3: additive1443f6c stillNOTrootpicked;
+  reducers/proofs/nativepairbootstrap/late-proof reconciliation/membership exact
+  mapping/fees and zero-asset OWNED_POSITION fundingbasis inprogress. Emptyasset
+  refs onlywithqualifiedclosingposition+explicitzerofees, no dummyreserve. No
+  state/reducer grant, release, extra nativechildsend or productioncontainment
+  removal. Preserve allV2bytes and originals/native namespaces.
+
+Rootnextactualintegration remains SAME-core generic financial bundle, new typed
+durable application writes/request bindings/permits/UNKNOWN recovery, localalgo
+activation (no fake native mother), then OP-D/E/F/G. CurrentOCO target grouping,
+nativequote quantity and positionfee/dust residual contracts remain true work,
+not removedtargets. All46/56scope stays. No liveprocessneedsrestart:63956,79224,
+71345 are TERMINALgreen historicalruns. No account/Testnet/live/productmodelcall.
+Goal ACTIVE, not complete or paused.
+
 ## OP_C_REGISTRY_FULL_GATE_GREEN — 2026-10-29
 
 Fullfixed7d9deb7 gate TERMINALexit0:915mandatoryPG/28suites,zero fail/error/skip;
