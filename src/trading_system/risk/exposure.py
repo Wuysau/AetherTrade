@@ -46,6 +46,7 @@ pending semantics. Host readers must authenticate exact command/quantity links.
     represented_order_ids:tuple[str,...]=()
     source_family:Literal['LEGACY_COMMAND','APPLICATION_WRITE']='LEGACY_COMMAND'
     service_namespace:Literal['ORDINARY','ORDER_LIST','CONDITIONAL_ALGO','EXECUTION_ALGO','EQUITY']='ORDINARY'
+    mark:ExposureMark|None=None
 
 
 @dataclass(frozen=True,kw_only=True)
@@ -57,13 +58,22 @@ class ProposedExposure:
     mark:ExposureMark
 
 
+@dataclass(frozen=True,kw_only=True)
+class WorkingExposure:
+    scope:t.ScopeKey
+    logical_client_order_id:str
+    side:Literal['BUY','SELL']
+    mark:ExposureMark
+
+
 class ExposureCalculator:
     def __init__(self, valuation: Valuation, marks: tuple[ExposureMark, ...],
                  orders: tuple[WorkingOrder, ...] = (),*,pending:tuple[PendingExposure,...]=(),
-                 proposed:tuple[ProposedExposure,...]=()):
+                 proposed:tuple[ProposedExposure,...]=(),working:tuple[WorkingExposure,...]=()):
         self.valuation, self.marks, self.orders = valuation, marks, orders
         self.pending=pending
         self.proposed=proposed
+        self.working=working
         if len({m.scope for m in marks}) != len(marks):
             raise ValueError('DUPLICATE_MARK')
         if len({o.logical_client_order_id for o in orders}) != len(orders):
@@ -147,9 +157,12 @@ class ExposureCalculator:
         if actual != delta.actual.value:
             missing.append('ACTUAL_QUANTITY_MISMATCH')
         working = D(0)
+        bounded={(w.scope,w.logical_client_order_id):w for w in self.working}
+        if len(bounded)!=len(self.working):missing.append('DUPLICATE_WORKING_EXPOSURE_BOUND')
         for order in book.active_orders:
             identity = order.order.identity
-            side = next((o.side for o in self.orders
+            bound=bounded.get((identity.scope,identity.logical_client_order_id))
+            side = bound.side if bound is not None else next((o.side for o in self.orders
                          if o.logical_client_order_id == identity.logical_client_order_id), None)
             if side not in ('BUY', 'SELL') or order.leaves_quantity.value < 0:
                 missing.append('WORKING_ORDER_EVIDENCE_MISSING')
@@ -157,7 +170,7 @@ class ExposureCalculator:
             signed = order.leaves_quantity.value * (1 if side == 'BUY' else -1)
             if identity.scope == delta.scope:
                 working += signed
-            add(identity.scope, t.Quantity(value=signed, unit=order.leaves_quantity.unit))
+            add(identity.scope, t.Quantity(value=signed, unit=order.leaves_quantity.unit),None if bound is None else bound.mark)
         seen_pending=set();seen_commands=set();represented=set()
         orders={(o.order.identity.scope,o.order.identity.logical_client_order_id):o for o in book.active_orders}
         for pending in self.pending:
@@ -188,7 +201,7 @@ class ExposureCalculator:
             if value.value==0:
                 missing.append('PENDING_EXPOSURE_QUANTITY_MISSING');continue
             if pending.scope==delta.scope:working+=value.value
-            add(pending.scope,value)
+            add(pending.scope,value,pending.mark)
         if working != delta.working.value:
             missing.append('WORKING_QUANTITY_MISMATCH')
         currency = self.valuation.currency
