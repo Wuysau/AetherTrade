@@ -9,6 +9,7 @@ from trading_system.contracts.wire import ContractCodec
 from trading_system.intents.order_program_ingress import (
     ExecutionPolicy, project_proposal, AdmissionInputs, PaperQualification,
     validate_compilation, OrderProgramIngress,
+    OrderProgramCommandBinding, validate_program_command,
 )
 from trading_system.intents.order_program_compiler import compile_atomic_target
 from trading_system.intents.ingress import IngressInputs
@@ -126,4 +127,103 @@ def test_qualification_failure_rolls_back_intake_and_fence():
     result = service.admit(p, case.context, compiled)
     assert result.receipt.status == 'REJECTED'
     assert result.receipt.reason == 'PAPER_QUALIFICATION_REQUIRED'
+    assert ledger.records == before
+
+
+def command_case():
+    import json
+    from pathlib import Path
+    from trading_system.intents.ingress import IntentCompiler
+    from trading_system.execution.commands import command_hash
+    case, p, compiled, facts, proof = admission_case()
+    intent = IntentCompiler(case.binding).bind(project_proposal(p, facts.execution_policy), case.context, case.book)
+    codec = ContractCodec()
+    command = codec.decode('execution-command', json.loads(Path('tests/fixtures/contracts/examples/execution-command.paper.json').read_text()))
+    payload = replace(command.canonical_payload, order_type='LIMIT', price='81490.00', side='BUY',
+        quantity=compiled.normalized_target_quantity, time_in_force='GTC')
+    command = replace(command, intent_id=intent.intent_id, canonical_payload=payload,
+        payload_hash=canonical_hash(domain_payload(payload)))
+    sidecar = OrderProgramCommandBinding(command_id=command.command_id, command_hash=command_hash(command),
+        intent_hash=codec.hash(intent), compilation=compiled, rules=facts.rules, capabilities=facts.capabilities,
+        execution_policy=facts.execution_policy)
+    tx = SimpleNamespace(scope=case.book.scope, _latest=lambda *args: sidecar)
+    return tx, command, intent, facts, proof, sidecar
+
+
+def test_binding_roundtrip_retains_entire_original_program():
+    from trading_system.storage.models import encode, decode
+    _, _, _, _, _, sidecar = command_case()
+    assert decode(OrderProgramCommandBinding, encode(sidecar)) == sidecar
+
+
+def test_dispatch_revalidates_actual_qualification_and_exact_tif():
+    tx, command, intent, facts, proof, sidecar = command_case()
+    assert validate_program_command(tx, command, intent, lambda *args: facts, lambda *args: proof) == sidecar
+    with pytest.raises(ProposalRejected, match='PAPER_QUALIFICATION_REQUIRED'):
+        validate_program_command(tx, command, intent, lambda *args: facts, None)
+    changed = replace(command, canonical_payload=replace(command.canonical_payload, time_in_force='FOK'))
+    with pytest.raises(ProposalRejected, match='PROGRAM_COMMAND_BINDING_MISMATCH'):
+        validate_program_command(tx, changed, intent, lambda *args: facts, lambda *args: proof)
+
+
+def test_dispatch_without_program_readers_fails_before_mark(monkeypatch):
+    from trading_system.execution.commands import CommandRepository
+    from trading_system.execution.dispatcher import CommandDispatcher, DispatchDenied
+    tx, command, intent, facts, proof, sidecar = command_case()
+    monkeypatch.setattr(CommandRepository, 'validate_binding', lambda *args: intent)
+    dispatcher = CommandDispatcher(None, tx.scope)
+    with pytest.raises(DispatchDenied, match='PROGRAM_DISPATCH_NOT_CONFIGURED'):
+        dispatcher._check(tx, command, None)
+
+
+def intake_with_denial(monkeypatch):
+    from trading_system.contracts import types as t
+    from trading_system.storage.order_programs import OrderProgramRepository
+    case, p, compiled, facts, proof = admission_case()
+    ledger = MemoryLedger(case)
+    calls = []
+    def deny(tx, intent, sequence, *, accepted):
+        assert tx is ledger and ledger.active
+        calls.append(intent)
+        return t.ReservationOutcome(accepted=False, reservations=(), book_sequence=sequence, rejection_codes=('BUDGET',))
+    def save(repo, program):
+        repo.tx._append('order_programs', program.program_id, program, 0)
+    monkeypatch.setattr(OrderProgramRepository, 'save_program', save)
+    reservations = SimpleNamespace(uow=ledger, scope=case.book.scope, _reserve=deny)
+    service = OrderProgramIngress(ledger, case.book.scope, lambda *args: facts, reservations,
+        execution_policy=facts.execution_policy, load_qualification=lambda *args: proof)
+    return ledger, service, case, p, compiled, calls
+
+
+def test_replay_returns_original_denial_without_new_admission(monkeypatch):
+    ledger, service, case, p, compiled, calls = intake_with_denial(monkeypatch)
+    first = service.admit(p, case.context, compiled)
+    assert not first.reservation.accepted
+    assert first.reservation.rejection_codes == ('BUDGET',)
+    before = ledger.records.copy()
+    replay = service.admit(p, case.context, compiled)
+    assert replay.reservation == first.reservation
+    assert replay.receipt.existing_result_ref == first.receipt.receipt_id
+    assert ledger.records == before and len(calls) == 1
+
+
+def test_same_legacy_projection_cannot_hide_changed_native_tif(monkeypatch):
+    ledger, service, case, p, compiled, calls = intake_with_denial(monkeypatch)
+    service.admit(p, case.context, compiled)
+    node = p.program.nodes[0]
+    changed = replace(p, program=replace(p.program, nodes=(replace(node,
+        order=replace(node.order, tif=replace(node.order.tif, kind='IOC'))),)))
+    changed_compilation = replace(compiled, original_proposal=changed, original_program=changed.program,
+        time_in_force='IOC')
+    result = service.admit(changed, case.context, changed_compilation)
+    assert result.receipt.reason == 'PROGRAM_REPLAY_CONFLICT'
+    assert result.reservation is None and len(calls) == 1
+
+
+def test_failed_outer_commit_cannot_return_any_admission_receipt(monkeypatch):
+    ledger, service, case, p, compiled, calls = intake_with_denial(monkeypatch)
+    before = ledger.records.copy()
+    ledger.fail_commit = True
+    with pytest.raises(OSError, match='injected commit failure'):
+        service.admit(p, case.context, compiled)
     assert ledger.records == before
