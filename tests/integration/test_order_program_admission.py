@@ -113,6 +113,8 @@ def test_program_admission_persists_exact_fields_and_replays_original(program_da
         assert intent.exit_plan.stop_price == '81330.00'
         assert decode(OrderProgramCommandBinding, encode(sidecar)) == sidecar
         validate_program_command(tx, command, intent, lambda *args: facts, lambda *args: proof)
+    assert ingress.reservations.reserve(intent, 1).rejection_codes == ('PROGRAM_ADMISSION_REQUIRED',)
+    assert ingress.reservations.reserve_proposal(intent.intent_id).rejection_codes == ('PROGRAM_ADMISSION_REQUIRED',)
     replay = ingress.admit(p, context, compiled)
     assert replay.reservation == result.reservation
     assert c.count('commands') == c.count('intents') == 1

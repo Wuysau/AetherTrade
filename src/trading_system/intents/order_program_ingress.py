@@ -103,6 +103,8 @@ class ProgramAdmissionReceipt:
 
 def project_proposal(proposal: OrderProposal, policy: ExecutionPolicy) -> DecisionProposal:
     """Lossless risk projection for the supported subset; sidecar retains TIF."""
+    require(type(proposal) is OrderProposal and proposal.contract_version == '2026-10-28',
+            'ORDER_PROPOSAL_VERSION_UNSUPPORTED')
     VersionedOrderCodec().encode('order-proposal', proposal)
     require(type(policy) is ExecutionPolicy, 'EXECUTION_POLICY_REQUIRED')
     p = proposal.program
