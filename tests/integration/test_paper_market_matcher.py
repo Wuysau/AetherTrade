@@ -121,6 +121,10 @@ def test_immediate_tif_uses_current_depth_without_fok_partial_consumption(databa
     submit(c)
     report=c.engine.query_creation(c.write.command_id)
     assert report.filled_quantity==D(expected) and report.status==status and report.remaining_quantity==0
+    assert report.dispositions and report.dispositions[-1].status=='EXPIRED'
+    from hashlib import sha256
+    assert sha256(report.dispositions[-1].raw_payload_json.encode()).hexdigest()==report.dispositions[-1].evidence.hash
+    assert len(c.engine.query_market_evidence(c.write.command_id).inputs)==1
     if tif=='FOK':
         following=case(database,venue,tmp_path,market=c.scope.instrument_uid)
         submit(following)
@@ -134,6 +138,8 @@ def test_post_only_rejects_crossing_without_fabricated_fill(database,venue,tmp_p
     submit(c)
     report=c.engine.query_creation(c.write.command_id)
     assert report.status=='REJECTED' and not report.fills
+    assert report.orders[0].venue_order_id and report.dispositions[-1].reason=='POST_ONLY_WOULD_TAKE'
+    assert len(c.engine.query_market_evidence(c.write.command_id).inputs)==1
 
 
 def test_fake_or_reused_permit_and_runtime_market_mutation_are_denied(database,venue,tmp_path):
