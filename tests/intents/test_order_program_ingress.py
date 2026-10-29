@@ -63,7 +63,7 @@ def test_atomic_nonentry_node_is_not_reinterpreted_as_immediate_entry(role):
         project_proposal(proposal, ExecutionPolicy(policy_id='policy', revision=1, maximum_entry_slippage_bps='0'))
 
 
-@pytest.mark.parametrize('slippage', ['NaN', '-1', 'Infinity', '10001'])
+@pytest.mark.parametrize('slippage', ['NaN', '-1', 'Infinity', '10001', '', '1e1', '+1'])
 def test_execution_policy_requires_explicit_finite_cap(slippage):
     with pytest.raises(ValueError):
         ExecutionPolicy(policy_id='policy', revision=1, maximum_entry_slippage_bps=slippage)
