@@ -23,6 +23,14 @@ under the existing transaction can establish that. No generic reader or entry
 point is installed here, and construction or empty local violations grant no
 financial authority.
 
+The validator independently checks finite Decimal amounts, currency identity,
+nonnegative liabilities, signed net bounds, distinct asset/group IDs and exact
+group-to-portfolio totals. It does not rely on successful dataclass construction
+as source evidence. Parent review probes reproduced NaN exceptions and malformed
+Infinity/group facts falsely appearing complete; retained RED cases now deny
+without raising or inventing zeros. Existing ExposureReport groups partition the
+portfolio; future overlapping correlation groups need an explicit new contract.
+
 The common functions in `risk/policy_checks.py` are called at the original
 locations in RiskEvaluator:
 
@@ -61,6 +69,11 @@ leverage6 REPLAN case retains every field and hash except its old downward-round
 diagnostic reservation, which increases one monetary ULP. The old golden record
 is preserved and the test explicitly documents this safety correction; no
 historical database row or stored hash is rewritten.
+
+An additional malformed-leverage0 golden was read from the exact9b28899 evaluator
+source. Its existing DivisionByZero diagnostic and full decision hash remain
+identical. Only actual Inexact/Rounded signals receive the new precision reason;
+other legacy arithmetic-input diagnostics keep their category.
 
 ## Remaining boundary
 
