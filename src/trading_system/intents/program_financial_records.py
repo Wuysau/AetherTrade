@@ -11,7 +11,7 @@ from decimal import Decimal
 from typing import Literal
 
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import canonical_hash, domain_payload
+from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp
 from trading_system.contracts.wire import RiskPolicy
 from trading_system.contracts.order_codec import VersionedOrderCodec
 from trading_system.contracts.order_snapshots import OrderRuleSnapshot, OrderCapabilitySnapshot
@@ -85,10 +85,20 @@ def validate_archive(archive):
     require(terms.action==original.action and terms.target_side==a.terms.target_side==original.target_side
         and terms.requested_leverage==original.requested_leverage
         and terms.submission_deadline==original.program.submit_valid_until
-        and terms.valid_until==original.valid_until
-        and a.terms.submission_deadline==terms.submission_deadline and a.terms.valid_until==terms.valid_until,
+        and a.terms.submission_deadline==terms.submission_deadline,
         'FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH')
     bridge=f.unit_binding
+    # Effective authority may be shorter than the immutable proposal. Bind the
+    # actual qualified windows, not an equality that rejects fresh short facts
+    # or a self-consistent allocation hash that hides a longer forged deadline.
+    target_deadlines=[original.valid_until,f.valid_until,bridge.valid_until,archive.rules.valid_until]
+    if f.normalization_price is not None:target_deadlines.append(f.normalization_price.valid_until)
+    target_ceiling=min(map(utc_timestamp,target_deadlines))
+    now=utc_timestamp(f.inputs.clock.utc_now);allocation_until=utc_timestamp(a.terms.valid_until)
+    require(now<allocation_until<=target_ceiling,'FINANCIAL_ARCHIVE_ALLOCATION_TTL_UNBOUND')
+    effective_ceiling=min(target_ceiling,allocation_until,*map(utc_timestamp,(
+        archive.capabilities.valid_until,archive.profile.valid_until,archive.budget_facts.valid_until,m.valid_until)))
+    require(now<utc_timestamp(terms.valid_until)<=effective_ceiling,'FINANCIAL_ARCHIVE_EFFECTIVE_TTL_UNBOUND')
     FinancialUnit(native_unit=bridge.native_unit,ledger_unit=bridge.ledger_unit,
         ledger_units_per_native_unit=bridge.ledger_units_per_native_unit,
         native_multiplier=bridge.native_multiplier,ledger_multiplier=bridge.ledger_multiplier)

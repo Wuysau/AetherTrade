@@ -31,9 +31,10 @@ no dummy risk-facts structure is introduced, and no generic financial ALLOW is
 implemented. Storage-only test DTOs deliberately carry unverified declarations
 and prove that they cannot obtain a legacy permit. They are not qualified trades.
 
-The full source responsibility is checked within known content: leverage,
-action, submission deadline and validity must match the original proposal and
-allocation. Three real negative probes reproduced acceptance of changed terms
+The source responsibility is checked within known content: leverage, action and
+submission deadline match the original proposal and allocation. Effective risk
+validity may narrow within the original and currently qualified fact windows.
+Three real negative probes reproduced acceptance of changed terms
 before correction; those RED logs are retained. Three further RED cases used
 self-consistent rewritten hashes to expose contradictory source side, unit
 multiplier and signed delta. The validator now checks those algebraic bindings
@@ -72,3 +73,24 @@ TDD covers V2/V3 strict restoration, unchanged existing schemas/legacy hashes,
 unknown versions/kinds, unit/scope/hash conflicts, immutable cross-kind IDs and
 same CapitalReservation/restart/rollback/roles on isolated PostgreSQL. Old
 commands require an actual legacy TradeIntent before their durable send boundary.
+
+## Effective TTL correction
+
+The actual target compiler narrows its allocation lifetime to the minimum of the
+original proposal, target facts, unit bridge, rule snapshot and any normalization
+price. Known-content validation now accepts a shorter effective RiskTerms TTL
+within that allocation and the other recorded qualification windows. It still
+requires a valid captured clock and never extends either the original source or
+qualification deadline. The original proposal/hash, exact submission deadline
+and venue TIF are retained; management responsibilities are not rewritten.
+
+Real compiler fixtures with20-second bridge/rule/fact validity against the same
+30-second proposal reproduced four unjustified content rejections. A fifth RED
+showed rewritten consistent hashes hiding an allocation extended beyond its
+bridge. The corrected focused suite passes40 cases, including stricter10-second
+risk TTL, expired/extended refusals and the unchanged missing-full-risk-facts
+converter block. Original and corrected validators produce identical hashes for
+existing V2 and V3 content records. Evidence is retained under
+`docs/evidence/binance-orders/op-c-financial-ttl/`. The old archive kind/revision
+and all schema bytes are unchanged; complete risk-facts archiving remains a
+separately versioned follow-up, not a silent upgrade of this content archive.
