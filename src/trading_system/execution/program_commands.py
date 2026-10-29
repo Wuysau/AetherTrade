@@ -424,3 +424,7 @@ class ProgramCommandBoundary:
         with self.uow.transaction(self.scope) as tx:
             request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
         return request
+
+    def recheck_consumed(self,permit,lease):
+        from .program_consumed_boundary import recheck_consumed
+        return recheck_consumed(self,permit,lease)

@@ -28,6 +28,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('program-consumed-boundary', '03', 'tests/integration/test_program_consumed_boundary_postgres.py'),
     ('order-observation', '03', 'tests/integration/test_order_observation_postgres.py'),
     ('order-observation-admission', '03', 'tests/integration/test_order_observation_admission_postgres.py'),
     ('program-model-handoff', '03', 'tests/integration/test_program_model_handoff_postgres.py'),
