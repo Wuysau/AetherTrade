@@ -140,16 +140,37 @@ class IntentRepository:
     def __init__(self, tx):
         self.tx = tx
 
+    def get(self,intent_id):
+        from trading_system.contracts.ledger_intents import LedgerIntentRecord,intent_identity
+        intent=self.tx._latest('intents',intent_id,LedgerIntentRecord)
+        if intent is not None:
+            identity=intent_identity(intent)
+            if identity.intent_id!=intent_id or identity.scope!=self.tx.scope:
+                raise ScopeMismatch('stored intent identity/scope mismatch')
+        return intent
+
+    def get_legacy(self,intent_id):
+        intent=self.get(intent_id)
+        if intent is not None and type(intent) is not TradeIntent:
+            raise MissingEvidence('LEGACY_TRADE_INTENT_REQUIRED')
+        return intent
+
     @atomic_write
-    def append(self, intent: TradeIntent, expected_sequence: int = 0):
+    def append(self, intent, expected_sequence: int = 0):
         if expected_sequence != 0:
             raise SequenceConflict('intents are immutable; create a superseding intent')
-        self.tx.require_scope(t.ScopeKey(environment=t.Environment(intent.environment),
-            venue_account_id=intent.venue_account_id, product=t.Product(intent.product),
-            instrument_uid=intent.instrument_uid, venue_leg=intent.venue_leg))
-        if intent.collateral_group_id != self.tx.group_id:
+        from trading_system.contracts.ledger_intents import intent_identity
+        identity=intent_identity(intent)
+        self.tx.require_scope(identity.scope)
+        if identity.collateral_group_id != self.tx.group_id:
             self.tx.failed = True
             raise ScopeMismatch('collateral group mismatch')
+        if type(intent) is not TradeIntent:
+            owner=self.tx.execute('SELECT owner_strategy_id,ownership_epoch,policy_revision FROM ledger.active_owners '
+                'WHERE environment=%s AND account_id=%s AND product=%s AND instrument_uid=%s AND venue_leg=%s FOR SHARE',
+                (*account_key(self.tx.scope),self.tx.scope.instrument_uid,self.tx.scope.venue_leg)).fetchone()
+            if owner!=(identity.owner_strategy_id,identity.ownership_epoch,identity.policy_revision):
+                raise ScopeMismatch('generic financial intent current owner/policy mismatch')
         self.tx._append('intents', intent.intent_id, intent, expected_sequence)
 
 
@@ -177,7 +198,7 @@ class CommandRepository:
     @atomic_write
     def append(self, command: ExecutionCommand, expected_sequence: int):
         scope = self.tx.scope
-        intent = self.tx._latest('intents', command.intent_id, TradeIntent)
+        intent = IntentRepository(self.tx).get_legacy(command.intent_id)
         if (intent is None or command.environment != scope.environment
                 or command.venue_account_id != scope.venue_account_id
                 or command.product != scope.product or command.instrument_uid != scope.instrument_uid):
@@ -218,7 +239,7 @@ class CommandRepository:
         if command is None or command.state != expected_state:
             tx.failed = True
             raise SequenceConflict('command is not eligible; UNKNOWN must reconcile')
-        intent = tx._latest('intents', command.intent_id, TradeIntent)
+        intent = IntentRepository(tx).get_legacy(command.intent_id)
         owner = tx.execute('SELECT owner_strategy_id,ownership_epoch,policy_revision FROM ledger.active_owners '
             'WHERE environment=%s AND account_id=%s AND product=%s '
             'AND instrument_uid=%s AND venue_leg=%s FOR SHARE',
@@ -250,13 +271,21 @@ class ReservationRepository:
 
     @atomic_write
     def append(self, reservation: t.CapitalReservation, expected_sequence: int):
-        intent = self.tx._latest('intents', reservation.intent_id, TradeIntent)
+        from trading_system.contracts.ledger_intents import intent_identity
+        intent = IntentRepository(self.tx).get(reservation.intent_id)
+        identity = None if intent is None else intent_identity(intent)
         if (reservation.environment != self.tx.scope.environment
                 or reservation.venue_account_id != self.tx.scope.venue_account_id
                 or reservation.collateral_group_id != self.tx.group_id
-                or intent is None or reservation.owner_strategy_id != intent.owner_strategy_id):
+                or identity is None or reservation.owner_strategy_id != identity.owner_strategy_id):
             self.tx.failed = True
             raise ScopeMismatch('reservation binding mismatch')
+        if type(intent) is not TradeIntent:
+            owner=self.tx.execute('SELECT owner_strategy_id,ownership_epoch,policy_revision FROM ledger.active_owners '
+                'WHERE environment=%s AND account_id=%s AND product=%s AND instrument_uid=%s AND venue_leg=%s FOR SHARE',
+                (*account_key(self.tx.scope),self.tx.scope.instrument_uid,self.tx.scope.venue_leg)).fetchone()
+            if owner!=(identity.owner_strategy_id,identity.ownership_epoch,identity.policy_revision):
+                raise ScopeMismatch('generic reservation current owner/policy mismatch')
         if (not reservation.amount.is_finite() or not reservation.reflected_amount.is_finite()
                 or not 0 <= reservation.reflected_amount <= reservation.amount):
             self.tx.failed = True

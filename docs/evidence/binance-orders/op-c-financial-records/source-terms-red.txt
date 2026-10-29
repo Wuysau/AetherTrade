@@ -1,0 +1,22 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_ test_risk_terms_cannot_change_original_proposal_responsibility[requested_leverage-4] _
+tests\unit\test_program_financial_records.py:79: in test_risk_terms_cannot_change_original_proposal_responsibility
+    with pytest.raises(ValueError,match='FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_risk_terms_cannot_change_original_proposal_responsibility[action-HOLD] _
+tests\unit\test_program_financial_records.py:79: in test_risk_terms_cannot_change_original_proposal_responsibility
+    with pytest.raises(ValueError,match='FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_risk_terms_cannot_change_original_proposal_responsibility[submission_deadline-2026-10-28T11:00:00Z] _
+tests\unit\test_program_financial_records.py:79: in test_risk_terms_cannot_change_original_proposal_responsibility
+    with pytest.raises(ValueError,match='FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_program_financial_records.py::test_risk_terms_cannot_change_original_proposal_responsibility[requested_leverage-4]
+FAILED tests/unit/test_program_financial_records.py::test_risk_terms_cannot_change_original_proposal_responsibility[action-HOLD]
+FAILED tests/unit/test_program_financial_records.py::test_risk_terms_cannot_change_original_proposal_responsibility[submission_deadline-2026-10-28T11:00:00Z]
+3 failed, 20 deselected in 0.75s

@@ -1,0 +1,22 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_ test_self_consistent_hashes_cannot_hide_source_or_unit_contradictions[side] _
+tests\unit\test_program_financial_records.py:106: in test_self_consistent_hashes_cannot_hide_source_or_unit_contradictions
+    with pytest.raises(ValueError):ProgramFinancialArchiveCodec().encode(altered)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_self_consistent_hashes_cannot_hide_source_or_unit_contradictions[bridge] _
+tests\unit\test_program_financial_records.py:106: in test_self_consistent_hashes_cannot_hide_source_or_unit_contradictions
+    with pytest.raises(ValueError):ProgramFinancialArchiveCodec().encode(altered)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_self_consistent_hashes_cannot_hide_source_or_unit_contradictions[signed_delta] _
+tests\unit\test_program_financial_records.py:106: in test_self_consistent_hashes_cannot_hide_source_or_unit_contradictions
+    with pytest.raises(ValueError):ProgramFinancialArchiveCodec().encode(altered)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_program_financial_records.py::test_self_consistent_hashes_cannot_hide_source_or_unit_contradictions[side]
+FAILED tests/unit/test_program_financial_records.py::test_self_consistent_hashes_cannot_hide_source_or_unit_contradictions[bridge]
+FAILED tests/unit/test_program_financial_records.py::test_self_consistent_hashes_cannot_hide_source_or_unit_contradictions[signed_delta]
+3 failed, 24 deselected in 0.72s

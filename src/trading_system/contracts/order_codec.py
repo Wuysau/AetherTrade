@@ -8,11 +8,13 @@ from .order_program import OrderProgram,AtomicOrderSpec,OrderProposal,OrderProgr
 from .order_lifecycle import ParentAuthority,ChildObservation,ProgramState,ApplicationWrite,ParentObservation
 from .order_program_v3 import OrderProgramV3,OrderProposalV3
 from .order_snapshots import OrderCapabilitySnapshot,OrderRuleSnapshot
+from .program_financial import ProgramFinancialIntent,ProgramFinancialRiskBasis
 
 KINDS={'order-proposal':OrderProposal,'order-program':OrderProgram,'atomic-order':AtomicOrderSpec,'parent-authority':ParentAuthority,'parent-observation':ParentObservation,
        'child-observation':ChildObservation,'program-state':ProgramState,'application-write':ApplicationWrite,
        'order-capability-snapshot':OrderCapabilitySnapshot,'order-rule-snapshot':OrderRuleSnapshot}
-KINDS_BY_VERSION={'2026-10-28':KINDS,'2026-10-29':{'order-program':OrderProgramV3,'order-proposal':OrderProposalV3}}
+KINDS_BY_VERSION={'2026-10-28':KINDS,'2026-10-29':{'order-program':OrderProgramV3,'order-proposal':OrderProposalV3,
+    'program-financial-intent':ProgramFinancialIntent,'program-financial-risk-basis':ProgramFinancialRiskBasis}}
 LEGACY={'decision-proposal','trade-intent','execution-command','risk-policy'}
 
 class VersionedOrderCodec:

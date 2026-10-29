@@ -9,7 +9,7 @@ from decimal import Decimal, localcontext, Inexact, Rounded
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, domain_payload
-from trading_system.contracts.wire import TradeIntent, ExecutionCommand
+from trading_system.contracts.wire import ExecutionCommand
 from trading_system.storage.models import decode, atomic_write, MissingEvidence, scope_id
 
 
@@ -42,7 +42,8 @@ class ReservationRepository:
                      for initial, projection in rows)
 
     def existing(self, intent):
-        stored = self.tx._latest('intents', intent.intent_id, TradeIntent)
+        from trading_system.storage.uow import IntentRepository
+        stored = IntentRepository(self.tx).get(intent.intent_id)
         if stored is None:
             return None
         if stored != intent:
