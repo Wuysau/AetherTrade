@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn):
+def real_case(dsn,*,qualified=True):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -46,7 +46,7 @@ def real_case(dsn):
     original_inputs=risk_module.inputs;suffix=uuid4().hex
     def scoped_inputs(product):
         p,r,c,k=original_inputs(product);scope=replace(k['scope'],venue_account_id='isolated-'+suffix)
-        r=replace(r,scope=scope);c=replace(c,scope=scope)
+        r=replace(r,scope=scope);c=replace(c,scope=scope,qualification='PAPER_VERIFIED' if qualified else 'NOT_RUN')
         k={**k,'scope':scope,'profile':replace(k['profile'],scope=scope),
             'expected_capabilities_hash':VersionedOrderCodec().hash('order-capability-snapshot',c)}
         return p,r,c,k
@@ -134,14 +134,28 @@ def test_actual_shared_bundle_persists_and_restarts_in_the_existing_cash_ledger(
 
 
 @pytest.mark.parametrize('fault',['missing_qualification','foreign_transaction','rollback_after_bundle','capacity',
-    'missing_clock','unhealthy_clock'])
+    'missing_clock','unhealthy_clock','unqualified_capabilities','commit_failure','fence_changed',
+    'expired_during_reader'])
 def test_failed_admission_keeps_durable_intake_but_no_partial_financial_bundle(database,fault):
-    c=real_case(database)
+    c=real_case(database,qualified=fault!='unqualified_capabilities')
+    if fault=='commit_failure':
+        class FailBeforeCommit:
+            def __init__(self,db):self.db=db
+            def __getattr__(self,name):return getattr(self.db,name)
+            def commit(self):raise OSError('injected real PostgreSQL commit failure')
+        failing=UnitOfWork(lambda:FailBeforeCommit(c.owner.connection_factory()))
+        c.service.uow=failing
     def load(*args):
         value=c.load(*args)
         if fault=='foreign_transaction':value=replace(value,archive=replace(value.archive,target_facts=replace(
             value.archive.target_facts,transaction_id='other-transaction')))
         if fault=='capacity':value=replace(value,group_capacity=(t.Money(currency='USDT',amount=D(1)),))
+        if fault=='fence_changed':
+            tx=args[0];context=value.archive.source.context
+            previous=tx._latest('audit_events',revision_key(context),IngressRevision)
+            tx._append('audit_events',revision_key(context),replace(previous,sequence=previous.sequence+1,
+                enabled=False),previous.sequence)
+        if fault=='expired_during_reader':c.service.clock=lambda:'2026-10-28T11:00:00Z'
         return value
     def operation(tx):
         result=c.service._reserve_program(tx,c.key,('original-request-id',),load_inputs=load,

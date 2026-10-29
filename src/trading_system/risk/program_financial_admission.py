@@ -142,6 +142,8 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
     intent,basis=validate_current_inputs(tx,source,intake,book,inputs,clock)
     a=inputs.archive
+    require(a.capabilities.transport=='PAPER' and a.capabilities.qualification=='PAPER_VERIFIED',
+        'PROGRAM_QUALIFICATION_REQUIRED')
     require((intent.owner_strategy_id,intent.ownership_epoch,intent.risk_policy_revision)==(
         fence.owner_strategy_id,fence.ownership_epoch,fence.risk_policy_revision),'STALE_OWNER')
     require(all(valid_evidence(e,tx.scope.environment,now) for e in book.evidence),'BOOK_EVIDENCE_INVALID')
@@ -187,6 +189,7 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     window=AdmissionWindow(started_at=now,started_ns=started_ns,wall_clock=service.clock,
         monotonic_clock=service.monotonic_clock)
     require(window.poll(expires) is not None,'EXPIRED_OR_UNBOUND_CLOCK')
+    require(digest(current_fence(tx,source.context))==digest(fence),'STALE_REVISION')
     require(digest(tx.projections.book(tx.scope))==original_book_hash,'PROGRAM_CURRENT_BOOK_CHANGED')
     tx.intents.append(intent)
     tx._append('audit_events',ARCHIVE_PREFIX+intent.intent_id,a,0)
