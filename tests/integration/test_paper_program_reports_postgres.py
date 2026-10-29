@@ -1,6 +1,7 @@
 """Actual financial command -> restricted matching -> independent source verifier."""
 from dataclasses import replace
-from decimal import Decimal as D
+from decimal import Decimal as D,localcontext
+from hashlib import sha256
 
 from integration.test_paper_market_matcher import isolated_postgres,database,venue,case,submit,event
 from trading_system.contracts import types as t
@@ -24,7 +25,7 @@ def test_real_partial_fill_normalizes_native_facts_and_preserves_management_duti
     observer,codec=actual_verifier(c,tmp_path/'archive')
     try:result=observer.verify(c.write.command_id)
     finally:codec.close()
-    assert result.source_verified and result.synthetic and not result.execution_authorized
+    assert result.source_verified and result.synthetic and not result.execution_authorized,result.discrepancies
     assert len(result.fills)==1 and result.fills[0].fill.quantity==t.Quantity(value=D('.4'),unit=c.bundle.intent.unit.native_unit)
     assert result.fills[0].fill.price.value==D('81490')
     assert result.fills[0].economics.reported_gross.amount==D('32596')
@@ -81,3 +82,47 @@ def test_source_with_excess_competing_allocation_cannot_qualify_an_own_fill(data
     finally:codec.close()
     assert not result.source_verified and 'PAPER_LIQUIDITY_OVERSPENT' in result.discrepancies
     assert result.raw_refs and not result.funds_release_authorized
+
+
+def test_real_query_preserves_persisted_revision_and_sql_event_hash_domain(database,venue,tmp_path):
+    import psycopg
+    c=case(database,venue,tmp_path);submit(c)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    report=c.engine.query_creation(c.write.command_id)
+    with psycopg.connect(venue.runtime_dsn) as db:
+        revision=db.execute('SELECT revision FROM public.paper_engine_orders WHERE scope_key=%s AND client_id=%s',
+            (c.engine._scope_key,report.orders[0].client_id)).fetchone()[0]
+        raw,stored_hash=db.execute('SELECT payload::text,payload_hash FROM public.paper_engine_events '
+            'WHERE scope_key=%s AND event_id=%s',(c.engine._scope_key,report.fills[0].fill_id)).fetchone()
+    assert report.orders[0].lifecycle_revision==revision
+    assert report.fills[0].raw_payload_json==raw
+    assert report.fills[0].evidence.hash==stored_hash==sha256(raw.encode('utf-8')).hexdigest()
+
+
+def test_real_query_remaining_and_fill_sum_are_independent_of_ambient_precision(database,venue,tmp_path):
+    c=case(database,venue,tmp_path);submit(c)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.000011'))
+    with localcontext() as arithmetic:
+        arithmetic.prec=3
+        report=c.engine.query_creation(c.write.command_id)
+    assert report.filled_quantity==D('.000011') and report.remaining_quantity==D('.999989')
+
+
+def test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified(database,venue,tmp_path):
+    import psycopg
+    c=case(database,venue,tmp_path,tif='IOC')
+    PaperMatcher(c.engine).apply_market_event(event(c,ask='81489.5',quantity='.4'))
+    submit(c)
+    report=c.engine.query_creation(c.write.command_id)
+    disposition=report.dispositions[-1]
+    with psycopg.connect(venue.runtime_dsn) as db:
+        raw,stored_hash=db.execute('SELECT payload::text,payload_hash FROM public.paper_engine_events '
+            'WHERE scope_key=%s AND event_id=%s',(c.engine._scope_key,disposition.event_id)).fetchone()
+    assert disposition.raw_payload_json==raw and disposition.evidence.hash==stored_hash
+    assert sha256(raw.encode('utf-8')).hexdigest()==stored_hash
+    observer,codec=actual_verifier(c,tmp_path/'archive')
+    try:result=observer.verify(c.write.command_id)
+    finally:codec.close()
+    assert result.source_verified,result.discrepancies
+    assert result.orders[0].lifecycle_state==t.OrderLifecycle.EXPIRED
+    assert result.fills[0].fill.price.value==D('81489.5')

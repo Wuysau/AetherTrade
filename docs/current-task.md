@@ -1,5 +1,19 @@
 # Current task
 
+## OP_E_REPORT_VERIFIER_FRESH_SOLE_WRITER — 2026-10-29
+
+Root delegated THIS worktree solely to reports_fresh; parent reviews only.
+Actual fixed5afa535 run78c6c2758b3a is terminal3passed/1failed/0error/0skip33.86s;
+positive normalization returned BLOCKED. Its unmodified raw artifacts remain in
+`.runtime/paper-qualification-78c6c2758b3a/evidence`. The inherited handle53316
+was agent-scoped; parent confirmed it terminal, no report jobs remain live.
+Narrow READ API corrections now belong to this tree: persisted row.revision,
+SQL payload::text with original payload_hash, exact remaining/fill sum. Peer
+activation_fresh was notified and retains producer0013/V2/session ownership.
+New actual PG tests will establish these failures before corrections; no fake
+fills/revisions, hash rewrites, automatic posting or funds release. Full goal
+remains ACTIVE through C/D/E/F/G and46/56.
+
 ## OP_E_REPORT_VERIFIER_PARENT — 2026-10-29
 
 Parent/root solely owns THIS binance-ope-report-verifier worktree; rootintegration
