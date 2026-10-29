@@ -1,5 +1,32 @@
 # Current task
 
+## OP_E_REPORT_VERIFIER_PARENT — 2026-10-29
+
+Parent/root solely owns THIS binance-ope-report-verifier worktree; rootintegration
+binance-orders remains solely integration_next. Fixedbase5866ddc, plan3abfa6b,
+clean91 baseline tests passed. Old binance-ope-management remains clean6b0c9db,
+all source/evidence retained; original recovery actual4PG/225component verified
+and independently reviewed/integrated by root. No parent test jobs are running.
+
+Next actual code: execution/paper_program_reports.py from approved plan. OPDpeer
+fixed real consumedpermit-after-SIM-lock expiry RED at023233e and added accepted
+clock/enforced current-consumption envelope/actual venue_order_id/raw_payload_json.
+Its whole16matcher+legacy cohort is RUNNING90027; wait for concrete reviewedAPI/
+serial0013 integration before copying production code. Root current full fixed
+checkpoint5866ddc is RUNNING45760, source-specific engineering gate, not fullG.
+
+FinancialUnit ruling: native t.Fill.quantity and venue price remain raw; carry
+ledger_units_per_native_unit and both multipliers plus exact gross. Root owns new
+same-ledger accounting, never old Spot q*price for generic programmes. Verifier
+must check real protected consumption, fullSIM accepted source and ALL competing
+liquidity allocations; preserve discrepancies/overfills/fees and duties, no caps,
+permits, ownership grants, automatic releases or second cash ledger. OP-F peer
+observability_fresh owns separate UI/API+explicit opt-in model frame and has a
+pending review fix for latest reservation projections; no actual paid calls.
+
+Goal remains ACTIVE through C/D/E/F/G with all46/56; TESTNET/LIVE stays disabled.
+Do not pause, mark complete, overwrite main/archive or integrate into public.
+
 ## OP_C_INTEGRATION_NEXT_SOLE_WRITER — 2026-10-29
 
 Parent root delegated sole write ownership of this binance-orders worktree to
