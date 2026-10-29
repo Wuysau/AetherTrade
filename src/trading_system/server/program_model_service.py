@@ -173,6 +173,9 @@ async def assess_program(service,symbol,mode,ids,revisions,key,frame,policy,rese
                     return {k:v for k,v in p.items() if k not in ('proposal_id','summary','evidence_refs')}
                 if terms(selected.payload['proposal'])!=terms(assessment.payload['proposal']):
                     status,reason='REPLAN_REQUIRED','PROGRAM_MODEL_DISAGREEMENT'
+        if selected is not None and status=='UNQUALIFIED':
+            try:parse_program_assessment(selected.payload,frame)
+            except ValueError:status,reason='EXPIRED','PROGRAM_CONTEXT_OR_PROPOSAL_EXPIRED'
         with service.store.transaction() as connection:
             if any(service._profile(connection,p)['revision']!=revisions[p] for p in ids):
                 status,reason='EXPIRED','MODEL_REVISION_CHANGED'

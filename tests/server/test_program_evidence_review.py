@@ -1,7 +1,7 @@
 """Explicit local fake research only; no provider network or trading authority."""
 import asyncio,copy,json
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime,timedelta
 
 import pytest
 
@@ -90,6 +90,25 @@ def test_research_acknowledgement_cannot_be_reused_for_a_different_review_policy
         with pytest.raises(ApiError,match='EXPLICIT_RESEARCH_AUTHORIZATION_REQUIRED'):
             asyncio.run(service.analyze('BTCUSDT','consensus',['default','review'],{'default':0,'review':0},
                 'cross-wrong-policy',frame,decision_policy='evidence_review',research_request=authorized))
+
+
+def test_plan_expiring_during_review_is_not_exposed_as_a_current_candidate(monkeypatch,tmp_path):
+    with research(monkeypatch,tmp_path) as (service,store,frame,value,request,session):
+        authorized=authorize_research(service,request,session,'cross-expired',frame)
+        class LateClock(datetime):
+            @classmethod
+            def now(cls,tz=None):return NOW+timedelta(seconds=60)
+        async def provider(*args):
+            context=json.loads(args[-1]['messages'][1]['content'])
+            if context['role']=='review':
+                monkeypatch.setattr(program_model_context,'datetime',LateClock)
+                return envelope({'schema_revision':'review_v1','issues':[]})
+            return envelope(value)
+        monkeypatch.setattr(model_client,'request',provider)
+        result=asyncio.run(service.analyze('BTCUSDT','consensus',['default','review'],{'default':0,'review':0},
+            'cross-expired',frame,decision_policy='evidence_review',research_request=authorized))
+        assert result['decision']['assessment_status']=='EXPIRED'
+        assert result['decision']['proposal'] is None and result['decision']['candidate_proposal']==value['proposal']
 
 
 @pytest.mark.parametrize('failure,expected',[
