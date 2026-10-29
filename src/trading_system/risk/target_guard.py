@@ -195,6 +195,15 @@ def target_obligations(tx, intent, book, scope_holds, now, *, program_exclusion=
         program_writes=tuple(o for o in program_writes if canonical_hash(domain_payload(o.original)) not in hashes)
     require(not any(write.unresolved for write in program_writes), 'PROGRAM_TARGET_RECONCILIATION_REQUIRED')
     require(not program_writes, 'PROGRAM_TARGET_ALLOCATION_REQUIRED')
+    return _legacy_target_obligations(tx,intent,book,scope_holds,now)
+
+def _legacy_target_obligations(tx,intent,book,scope_holds,now):
+    """Internal legacy quantity calculation after the caller checks programs.
+
+    Program current-boundary composition validates its full immutable program
+    obligation snapshot once under the SAME collateral mutex before using this.
+    Public legacy entry points retain target_obligations' registry checks.
+    """
     commands = roots(tx)
     by_id = {c.command_id: c for c in commands}
     for projection in scope_holds:

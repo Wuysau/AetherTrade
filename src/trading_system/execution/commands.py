@@ -128,7 +128,7 @@ class CommandRepository(LedgerCommands):
         # The IP-03 implementation commits synchronously before issuing a permit.
         return super().mark_may_have_sent(tx, command_id, expected_state)
 
-    def unresolved_in_group(self, excluding: str, *, program_exclusion=()) -> tuple[str, ...]:
+    def _legacy_unresolved_in_group(self, excluding: str) -> tuple[str, ...]:
         """A missing outcome for MAY_HAVE_SENT is unresolved, including DB loss.
 
 Use the collateral mutex held by the UoW, across accounts/products/instruments.
@@ -156,6 +156,10 @@ Unknown holds are never released here; every operation is conservatively blocked
                     or outcome.receipt.command_id != cid
                     or outcome.receipt.status not in (t.CommandState.VENUE_CONFIRMED, t.CommandState.VENUE_REJECTED)):
                 unresolved.append(cid)
+        return tuple(unresolved)
+
+    def unresolved_in_group(self, excluding: str, *, program_exclusion=()) -> tuple[str, ...]:
+        unresolved=list(self._legacy_unresolved_in_group(excluding))
         from trading_system.storage.application_writes import application_write_obligations
         # excluding is a legacy command ID. The distinct program namespace must
         # still block, including when its original ID has the same text.
