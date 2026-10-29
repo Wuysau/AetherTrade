@@ -43,6 +43,12 @@ def test_evaluator_rejects_schema_version_masquerading_as_legacy_source():
     assert result.verdict=='DENY' and 'INVALID_LEGACY_RISK_SOURCE' in result.rejection_codes
 
 
+def test_invalid_leverage_retains_legacy_diagnostic_arithmetic_category():
+    c=make_case();c.intent=replace(c.intent,requested_leverage=0)
+    expected=json.loads(Path('tests/fixtures/risk-core/invalid-leverage-zero.json').read_text())
+    assert domain_payload(c.evaluate())==expected['decision']
+
+
 
 @pytest.mark.parametrize('digits,reason',[(80,'INSUFFICIENT_SPENDABLE:USDT'),(300,'ARITHMETIC_PRECISION_UNPROVEN')])
 def test_spendable_subtraction_does_not_round_away_small_holds(digits,reason):

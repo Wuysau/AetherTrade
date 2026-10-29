@@ -4,7 +4,7 @@ RiskInputs are service-bound facts, not proposal fields. They must be rebuilt
 for each decision. No account access, mode switching, or order side effects.
 """
 from dataclasses import dataclass, replace
-from decimal import Decimal, DecimalException
+from decimal import Decimal, Inexact, Rounded
 from jsonschema import ValidationError
 
 from trading_system.contracts import types as t
@@ -330,7 +330,7 @@ class RiskEvaluator:
                 if capital_limit_exceeded(capital=capital,fees=fees.amount,funding=funding,
                         capital_in_use=valuation.convert(facts.capital_in_use,liability=True).amount,policy=policy):
                     reject('REPLAN:CAPITAL', plan=True)
-        except DecimalException:
+        except (Inexact,Rounded):
             reject('ARITHMETIC_PRECISION_UNPROVEN')
         except (ValueError, ArithmeticError) as exc:
             reject('INVALID_OR_MISSING_INPUT:' + str(exc))
