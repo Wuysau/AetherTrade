@@ -25,3 +25,21 @@ Equity quote propagation TDD: eight real compiler cases failed for missing
 quoteAsset, then all eight passed. Full compiler subset68 passed. Public schemas,
 old record hashes, native account access and operational settings are unchanged.
 This is field propagation evidence, not venue or full ORD qualification.
+
+`execution/creation_requests.py` now materializes full unsigned creation fields
+from the immutable compiler output and exact product profile. Assignment and
+materialization are separate: saved client IDs survive recovery and are not
+reassigned on a timeout. Ordinary/SOR, native lists, conditional algorithms,
+TWAP/VP and batch use their documented identity fields; a batch has no fabricated
+venue parent. Native children receive no additional local send command.
+
+Equity BUY requires an explicit fresh account/wallet routing selection bound to
+scope/profile/quote asset. Verification receives the independently loaded expected
+selection; a modified stored request cannot select another wallet by validating
+itself. This routing fact still requires financial wallet/balance proof in the
+later admission bundle. No eligibility, transfer or available balance is inferred.
+
+Creation binding tests26 passed together with equity quote cases; current broad
+contracts/intents/unit1258 passed. Raw scalar values, booleans, IDs, endpoints and
+batch items roundtrip without credentials, signing timestamps or HTTP transport.
+Independent review is pending; SQL/permit/adapter integration remains unfinished.
