@@ -82,6 +82,18 @@ def test_subclass_version_cannot_enter_a_v2_only_sidecar():
         project_proposal(p, ExecutionPolicy(policy_id='policy', revision=1, maximum_entry_slippage_bps='0'))
 
 
+def test_program_subclass_cannot_enter_a_v2_only_sidecar():
+    from dataclasses import fields
+    from trading_system.contracts.order_program import OrderProgram
+    class NewProgram(OrderProgram):
+        pass
+    p, _, _, _ = fixture()
+    program = NewProgram(**{f.name: getattr(p.program, f.name) for f in fields(p.program)})
+    with pytest.raises(ProposalRejected, match='ORDER_PROGRAM_VERSION_UNSUPPORTED'):
+        project_proposal(replace(p, program=program),
+            ExecutionPolicy(policy_id='policy', revision=1, maximum_entry_slippage_bps='0'))
+
+
 def test_public_reservation_guard_cannot_be_disabled_by_request():
     from trading_system.risk.reservations import ReservationService
     from trading_system.contracts import types as t

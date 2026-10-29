@@ -11,7 +11,7 @@ from decimal import Decimal
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp, decimal_string
 from trading_system.contracts.order_codec import VersionedOrderCodec
-from trading_system.contracts.order_program import OrderProposal, identifier
+from trading_system.contracts.order_program import OrderProposal, OrderProgram, identifier
 from trading_system.contracts.order_snapshots import OrderRuleSnapshot, OrderCapabilitySnapshot
 from trading_system.contracts.wire import (
     ContractCodec, DecisionProposal, DecisionProposalTarget, DecisionProposalEntry,
@@ -105,6 +105,8 @@ def project_proposal(proposal: OrderProposal, policy: ExecutionPolicy) -> Decisi
     """Lossless risk projection for the supported subset; sidecar retains TIF."""
     require(type(proposal) is OrderProposal and proposal.contract_version == '2026-10-28',
             'ORDER_PROPOSAL_VERSION_UNSUPPORTED')
+    require(proposal.program is None or (type(proposal.program) is OrderProgram
+            and proposal.program.contract_version == '2026-10-28'), 'ORDER_PROGRAM_VERSION_UNSUPPORTED')
     VersionedOrderCodec().encode('order-proposal', proposal)
     require(type(policy) is ExecutionPolicy, 'EXECUTION_POLICY_REQUIRED')
     p = proposal.program
