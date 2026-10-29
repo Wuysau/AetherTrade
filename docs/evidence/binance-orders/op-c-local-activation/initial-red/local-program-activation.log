@@ -1,0 +1,29 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_real_local_program_activates_with_sum_pool_without_external_parent[TWAP] _
+tests/integration/test_local_program_activation.py:25: in test_real_local_program_activates_with_sum_pool_without_external_parent
+    from trading_system.execution.local_program_activation import read_local_activation
+E   ModuleNotFoundError: No module named 'trading_system.execution.local_program_activation'
+_ test_real_local_program_activates_with_sum_pool_without_external_parent[VP] __
+tests/integration/test_local_program_activation.py:25: in test_real_local_program_activates_with_sum_pool_without_external_parent
+    from trading_system.execution.local_program_activation import read_local_activation
+E   ModuleNotFoundError: No module named 'trading_system.execution.local_program_activation'
+___ test_activation_failure_rolls_back_financial_bundle_and_lifecycle[clock] ___
+tests/integration/test_local_program_activation.py:50: in test_activation_failure_rolls_back_financial_bundle_and_lifecycle
+    from trading_system.execution.local_program_activation import read_local_activation
+E   ModuleNotFoundError: No module named 'trading_system.execution.local_program_activation'
+_ test_activation_failure_rolls_back_financial_bundle_and_lifecycle[rollback] __
+tests/integration/test_local_program_activation.py:50: in test_activation_failure_rolls_back_financial_bundle_and_lifecycle
+    from trading_system.execution.local_program_activation import read_local_activation
+E   ModuleNotFoundError: No module named 'trading_system.execution.local_program_activation'
+____________ test_historical_bundle_cannot_be_attached_after_commit ____________
+tests/integration/test_local_program_activation.py:60: in test_historical_bundle_cannot_be_attached_after_commit
+    from trading_system.execution.local_program_activation import activate_local_program
+E   ModuleNotFoundError: No module named 'trading_system.execution.local_program_activation'
+=========================== short test summary info ============================
+FAILED tests/integration/test_local_program_activation.py::test_real_local_program_activates_with_sum_pool_without_external_parent[TWAP]
+FAILED tests/integration/test_local_program_activation.py::test_real_local_program_activates_with_sum_pool_without_external_parent[VP]
+FAILED tests/integration/test_local_program_activation.py::test_activation_failure_rolls_back_financial_bundle_and_lifecycle[clock]
+FAILED tests/integration/test_local_program_activation.py::test_activation_failure_rolls_back_financial_bundle_and_lifecycle[rollback]
+FAILED tests/integration/test_local_program_activation.py::test_historical_bundle_cannot_be_attached_after_commit
+5 failed in 0.67s
