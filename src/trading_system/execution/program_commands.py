@@ -240,8 +240,16 @@ class ProgramCommandRepository:
         from trading_system.risk.asset_capacity import CapacityInputs,check_capacity,amounts
         from trading_system.execution.commands import CommandRepository
         from trading_system.storage.application_writes import application_write_obligations
+        from trading_system.storage.local_programs import local_program_obligations
         clock,lease=self._clock_lease(write);now=utc_timestamp(clock.utc_now)
         require(type(expected_lease) is t.OwnerLease and digest(lease)==digest(expected_lease),'PROGRAM_LEASE_CHANGED')
+        # Both neutral registries are current obligations. Optimizing the
+        # legacy numerical path must not bypass active local quantity pools or
+        # group uncertainty, including real zero-asset owned-position exits.
+        local=local_program_obligations(self.tx)
+        require(not any(p.unresolved for p in local),'PROGRAM_LOCAL_PROGRAM_GROUP_RECONCILIATION_REQUIRED')
+        require(not any(p.original.authority.scope==write.scope for p in local),
+            'PROGRAM_LOCAL_PROGRAM_SCOPE_ALLOCATION_REQUIRED')
         bundle=self._bundle(write.intent_id);source,intake=read_program_source(self.tx,bundle.intent.source.intake_record_id)
         from trading_system.risk.program_financial_admission import ProgramFinancialAttachment,ATTACHMENT_PREFIX
         attachment=self.tx._latest('audit_events',ATTACHMENT_PREFIX+write.intent_id,ProgramFinancialAttachment)
