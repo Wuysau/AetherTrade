@@ -77,8 +77,7 @@ negative observations after genuine production; no forced fills or fake admit.
 Verifier must not post ledger.fills by itself. Root integrator owns later same-
 ledger EvidenceIngestor/FillLedger/accounting with native/ledger multipliers.
 
-Reproduction: python tools/qualify_paper_docker.py --commit <fixed-source>
---suite paper-program-reports --timeout1200. The proper syntax is `--timeout 1200`.
+Reproduction: `python tools/qualify_paper_docker.py --commit <fixed-source> --suite paper-program-reports --timeout 1200`.
 
 ## Infrastructure recovery facts
 
