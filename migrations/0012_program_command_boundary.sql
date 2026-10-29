@@ -83,7 +83,11 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
  AND f.xmin=b.xmin AND i.xmin=b.xmin AND (ow.record_id IS NULL OR ow.xmin=b.xmin)
  AND NOT EXISTS(SELECT 1 FROM jsonb_array_elements(f.payload->'reservations') v
   LEFT JOIN ledger.reservations r ON r.scope_id=b.scope_id AND r.record_id=v#>>'{reservation,reservation_id}'
-  WHERE r.record_id IS NULL OR r.payload IS DISTINCT FROM v->'reservation' OR r.xmin IS DISTINCT FROM b.xmin)
+  LEFT JOIN ledger.order_funding_links l ON l.scope_id=b.scope_id AND l.record_id=r.record_id
+  WHERE r.record_id IS NULL OR r.payload IS DISTINCT FROM v->'reservation' OR r.xmin IS DISTINCT FROM b.xmin
+   OR l.record_id IS NULL OR l.xmin IS DISTINCT FROM b.xmin OR l.payload->>'intent_id' IS DISTINCT FROM p_write->>'intent_id'
+   OR l.payload->>'program_id' IS DISTINCT FROM p_write->>'program_id'
+   OR l.payload->>'reservation_id' IS DISTINCT FROM r.record_id)
  AND p_write->>'owner_strategy_id'=i.payload->>'owner_strategy_id'
  AND p_write->>'ownership_epoch'=i.payload->>'ownership_epoch'
  AND p_write->>'policy_revision'=i.payload->>'risk_policy_revision')
