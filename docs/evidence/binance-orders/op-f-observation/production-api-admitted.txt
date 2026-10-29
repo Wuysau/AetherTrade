@@ -1,0 +1,33 @@
+### Result
+{
+  "http": 200,
+  "scope": {
+    "environment": "PAPER",
+    "venue_account_id": "isolated-5dc12ad06aea410f8c7e2bac6b11b0a0",
+    "product": "SPOT",
+    "instrument_uid": "paper:BTCUSDT",
+    "venue_leg": "BOTH"
+  },
+  "program": "paper-limit-4000",
+  "contractVersion": "2026-10-28",
+  "limit": {
+    "kind": "FIXED_LIMIT",
+    "value": "81490.00",
+    "peg_type": null,
+    "price_match": null,
+    "offset_levels": null
+  },
+  "commandStates": [
+    "DURABLE_READY"
+  ],
+  "requestBindings": 1,
+  "reservations": 1,
+  "receipts": 1,
+  "executionState": "NOT_OBSERVED",
+  "executionAuthorized": false,
+  "qualification": "UNKNOWN"
+}
+### Ran Playwright code
+```js
+await page.evaluate('async () => { const p=await (await fetch("/api/order-programs?limit=10")).json(); let d; for(const n of p.items.filter(x=>x.template==="ATOMIC")){const candidate=await(await fetch(`/api/order-programs/${encodeURIComponent(n.program_id)}?scope=${encodeURIComponent(n.scope_id)}`)).json();if(candidate.records.commands.length){d=candidate;break;}} return {http:200,scope:d.scope,program:d.program_id,contractVersion:d.contract_version,limit:d.nodes[0].order.price,commandStates:d.records.commands.map(x=>x.payload.state),requestBindings:d.records.requests.length,reservations:d.records.reservations.length,receipts:d.records.financial.filter(x=>x.record_id.startsWith("generic-program-admission:")).length,executionState:d.execution_state,executionAuthorized:d.execution_authorized,qualification:d.capability.current_qualification}; }');
+```

@@ -1,0 +1,12 @@
+### Result
+{
+  "width": 1440,
+  "documentWidth": 1440,
+  "receipt": true,
+  "durable": true,
+  "limit": true
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ({width:innerWidth,documentWidth:document.documentElement.scrollWidth,receipt:document.querySelector(".program-detail")?.textContent.includes("已记录接入回执"),durable:document.querySelector(".program-detail")?.textContent.includes("DURABLE_READY"),limit:document.querySelector(".program-detail")?.textContent.includes("81490.00")})');
+```

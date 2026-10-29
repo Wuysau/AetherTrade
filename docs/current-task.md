@@ -1,5 +1,25 @@
 # Current task
 
+## OP_F_OBSERVATION_WORKER_CHECKPOINT — 2026-10-29
+
+Own sibling binance-opf-observability from exact integration6cbdf7e, branch
+codex/binance-opf-observability. Integration tree remains solely integration_next.
+Implemented read-only scoped ledger API/CLI and existing decision UI, same frozen
+contracts/receipts, no execution path/schema/migration/CI-inventory edits.
+Source d51523f: actual isolated PG7 (3basic+4real public-admission observations)
+passed with zero fail/error/skip; backend25 and web118 passed, typecheck/build
+passed. Real owned API8897/browser1440+390 read actual durable receipt/request/
+reservation while showing NOT_OBSERVED venue and UNKNOWN current qualification;
+no horizontal document overflow. No user's8787, account, model or venue accessed.
+
+Actual files/API/security/compatibility and remaining scope:
+docs/orders/OP-F-OBSERVATION.md; raw originals and SHA256 copy maps under
+docs/evidence/binance-orders/op-f-observation. Parent must serial-register BOTH
+newPG test modules before final integrated gate. Full OP-F stays active: genuine
+Registry snapshot→AI context/replan/control host binding still required. No
+qualification or permit is inferred from archived snapshot/schema/receipt.
+Root full46/56 and OP-C/D/E/G are unchanged, not complete. No merge/push/cleanup.
+
 ## OP_C_INTEGRATION_NEXT_SOLE_WRITER — 2026-10-29
 
 Parent root delegated sole write ownership of this binance-orders worktree to
