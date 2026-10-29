@@ -167,6 +167,7 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
         and proof.rules_hash==intent.hashes.rules and proof.profile_hash==intent.hashes.profile
         and proof.adapter_build_digest==a.compilation.adapter_build_digest
         and proof.execution_mode==a.compilation.original_program.execution_mode and proof.evidence
+        and digest(proof.evidence)==digest(a.capabilities.evidence)
         and all(valid_evidence(e,tx.scope.environment,now) for e in proof.evidence)
         and now<utc_timestamp(proof.valid_until),'PROGRAM_QUALIFICATION_REQUIRED')
     action_until=LockedActionVerifier().verify_program(tx,intent,a,reading,book=book,
