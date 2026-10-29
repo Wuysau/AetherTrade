@@ -56,7 +56,8 @@ def make_plan(template='ATOMIC',mode='VENUE_NATIVE',product=t.Product.SPOT):
 def facts_for(plan):
     source=next((n for n in plan.nodes if n.original.role=='WORKING'),None)
     return ProgramBudgetFacts(scope=plan.scope,collateral_group_id='group',compilation_hash=compilation_hash(plan),base_asset='BTC',quote_asset='USDT',
-        node_facts=tuple(NodeBudgetFacts(node_id=n.original.node_id,fees=(),margin=(t.Money(amount=D('10'),currency='USDT'),) if plan.scope.product==t.Product.USD_M_PERP else None) for n in plan.nodes),
+        node_facts=tuple(NodeBudgetFacts(node_id=n.original.node_id,fees=(),margin=(t.Money(amount=D('10'),currency='USDT'),) if plan.scope.product==t.Product.USD_M_PERP else None,
+            price_upper=t.Price(value=D('90000'),currency='USDT') if n.quantity.kind=='DERIVED_RECEIPT' else None) for n in plan.nodes),
         asset_limits=(t.Money(amount=D('10000000'),currency='USDT'),t.Money(amount=D('100'),currency='BTC')),
         consumers=(),reservations=(),allocations=(),atomic_groups=tuple(AtomicGroupProof(node_ids=g,evidence_id='native-atomic') for g in plan.original_program.exclusive_groups) if plan.original_program.execution_mode=='VENUE_NATIVE' else (),
         receipts=(LockedReceipt(source_node_id=source.original.node_id,target_node_ids=tuple(n.original.node_id for n in plan.nodes if n.quantity.kind=='DERIVED_RECEIPT'),evidence_id='locked-net'),) if plan.original_program.template.startswith('OPO') else (),
@@ -332,6 +333,114 @@ def test_fee_cannot_claim_more_assets_than_its_receipt_source():
     fee=FeeBound(amount=t.Money(amount=D(2),currency='BTC'),debit='FROM_RECEIPT')
     result=derive_program_exposure(plan,replace(facts,node_facts=(replace(facts.node_facts[0],fees=(fee,)),)),now=NOW)
     assert result.blockers==('RECEIPT_FEE_EXCEEDS_QUANTITY',)
+
+
+def test_sell_limit_native_oco_uses_gross_ceiling_not_wire_floor():
+    from trading_system.intents.program_compilation import FieldName
+    plan=make_plan('OCO')
+    assert plan.nodes[0].sizing_price_bound=='83000'
+    assert {p.name:p.value for p in plan.nodes[0].parameters}[FieldName.PRICE]=='83000'
+    assert D(plan.nodes[0].worst_case_quote_notional)==D('90000')
+    result=derive_program_exposure(plan,facts_for(plan),now=NOW)
+    assert not result.blockers and result.gross_program.amount==D('90000')
+    assert values(result.program_requirements)=={'BTC':D(1)}
+    assert 'ENFORCE_EXECUTION_PRICE_ENVELOPE' in result.obligations
+
+
+def test_usdm_opening_sell_multiplier_uses_independent_gross_ceiling():
+    from trading_system.intents.program_compilation import FieldName
+    p,r,c,k=inputs(t.Product.USD_M_PERP)
+    k['profile']=replace(k['profile'],usd_m=replace(k['profile'].usd_m,contract_multiplier='0.001',quantity_unit='CONTRACT'))
+    p=change(p,side='SELL',quantity=QuantitySpec(kind='BASE_QUANTITY',value='100',source_node=None))
+    plan=compile_order_program(p,r,c,**k)
+    assert D(plan.nodes[0].worst_case_quote_notional)==D('9000')
+    assert {x.name:x.value for x in plan.nodes[0].parameters}[FieldName.PRICE]=='81490.00'
+    result=derive_program_exposure(plan,facts_for(plan),now=NOW)
+    assert not result.blockers and result.gross_program.amount==D('9000')
+
+
+def sell_without_profile_ceiling():
+    p,r,c,k=inputs();k['profile']=replace(k['profile'],execution_price_envelope=None)
+    p=change(p,side='SELL',quantity=QuantitySpec(kind='BASE_QUANTITY',value='1',source_node=None))
+    return compile_order_program(p,r,c,**k)
+
+
+def test_sell_limit_without_profile_or_trusted_node_ceiling_is_blocked():
+    plan=sell_without_profile_ceiling()
+    assert plan.nodes[0].worst_case_quote_notional is None
+    result=derive_program_exposure(plan,facts_for(plan),now=NOW)
+    assert result.blockers[0].startswith('SELL_EXECUTION_UPPER_BOUND_MISSING')
+
+
+def test_fresh_trusted_node_ceiling_can_bound_sell_without_profile_ceiling():
+    plan=sell_without_profile_ceiling();facts=facts_for(plan)
+    info=replace(facts.node_facts[0],price_upper=t.Price(value=D('90000'),currency='USDT'))
+    result=derive_program_exposure(plan,replace(facts,node_facts=(info,)),now=NOW)
+    assert not result.blockers and result.gross_program.amount==D('90000')
+    assert plan.nodes[0].original.order.price.value=='81490.00'
+
+
+def test_profile_ceiling_below_sell_limit_cannot_be_used_as_financial_bound():
+    from trading_system.intents.product_rules import DecimalRange
+    from trading_system.intents.semantic_validation import ProposalRejected
+    p,r,c,k=inputs();k['profile']=replace(k['profile'],execution_price_envelope=DecimalRange(minimum='80000',maximum='81000'))
+    p=change(p,side='SELL',quantity=QuantitySpec(kind='BASE_QUANTITY',value='1',source_node=None))
+    with pytest.raises(ProposalRejected,match='SELL_LIMIT_EXCEEDS_EXECUTION_UPPER_BOUND'):
+        compile_order_program(p,r,c,**k)
+
+
+def test_trusted_sell_ceiling_may_expand_but_not_shrink_proven_profile_bound():
+    plan=make_plan('OCO');facts=facts_for(plan)
+    high=tuple(replace(n,price_upper=t.Price(value=D('92000'),currency='USDT')) for n in facts.node_facts)
+    result=derive_program_exposure(plan,replace(facts,node_facts=high),now=NOW)
+    assert not result.blockers and result.gross_program.amount==D('92000')
+    low=tuple(replace(n,price_upper=t.Price(value=D('85000'),currency='USDT')) for n in facts.node_facts)
+    assert derive_program_exposure(plan,replace(facts,node_facts=low),now=NOW).blockers==('PRICE_BOUND_CONFLICT',)
+
+
+def test_old_compiled_sell_floor_roundtrips_but_never_becomes_a_proven_ceiling():
+    from trading_system.storage.models import decode
+    from trading_system.intents.program_compilation import ProgramCompilation
+    from trading_system.contracts.canonical import canonical_hash
+    plan=make_plan('OCO')
+    old=replace(plan,nodes=tuple(replace(n,worst_case_quote_notional=n.original.order.price.value) for n in plan.nodes),
+        required_checks=tuple(c for c in plan.required_checks if c!='SELL_LIMIT_EXECUTION_UPPER_BOUND'))
+    raw=domain_payload(old);before=canonical_hash(raw)
+    restored=decode(ProgramCompilation,raw)
+    assert restored==old and canonical_hash(domain_payload(restored))==before
+    result=derive_program_exposure(restored,facts_for(restored),now=NOW)
+    assert result.blockers[0].startswith('SELL_EXECUTION_UPPER_BOUND_MISSING')
+    facts=facts_for(restored)
+    facts=replace(facts,node_facts=tuple(replace(n,price_upper=t.Price(value=D('90000'),currency='USDT')) for n in facts.node_facts))
+    result=derive_program_exposure(restored,facts,now=NOW)
+    assert not result.blockers and result.gross_program.amount==D('90000')
+    assert 'HISTORICAL_SELL_BOUND_REVALIDATION' in result.obligations
+    assert canonical_hash(domain_payload(restored))==before and not result.execution_authorized
+
+
+def test_deferred_receipt_sell_cannot_borrow_its_limit_as_an_upper_bound():
+    plan=make_plan('OPO');facts=facts_for(plan)
+    facts=replace(facts,node_facts=tuple(replace(n,price_upper=None) for n in facts.node_facts))
+    assert derive_program_exposure(plan,facts,now=NOW).blockers[0].startswith('SELL_EXECUTION_UPPER_BOUND_MISSING')
+    good=derive_program_exposure(plan,facts_for(plan),now=NOW)
+    assert not good.blockers and good.gross_program.amount==D('171490')
+
+
+def test_buy_limit_remains_its_cap_and_sell_price_upper_requires_correct_currency_and_freshness():
+    plan=make_plan();facts=facts_for(plan)
+    assert plan.nodes[0].worst_case_quote_notional=='81490.00'
+    assert derive_program_exposure(plan,facts,now=NOW).gross_program.amount==D('81490')
+    plan=sell_without_profile_ceiling();facts=facts_for(plan)
+    bad=replace(facts.node_facts[0],price_upper=t.Price(value=D('90000'),currency='USD'))
+    assert derive_program_exposure(plan,replace(facts,node_facts=(bad,)),now=NOW).blockers==('PRICE_CURRENCY_MISMATCH',)
+    good=replace(bad,price_upper=t.Price(value=D('90000'),currency='USDT'))
+    assert derive_program_exposure(plan,replace(facts,node_facts=(good,),valid_until=NOW),now=NOW).blockers==('FINANCIAL_FACTS_STALE',)
+
+
+def test_quote_sell_minimum_sizing_bound_stays_distinct_from_gross_quote_budget():
+    p,r,c,k=inputs();p=change(p,side='SELL',price=price(),tif=TimeInForceSpec(kind='NONE',expires_at=None))
+    plan=compile_order_program(p,r,c,**k)
+    assert plan.nodes[0].sizing_price_bound=='80000' and plan.nodes[0].worst_case_quote_notional=='4000'
 
 def test_compiled_atomic_fee_is_separate_and_no_authority_created():
     p,r,c,k=inputs();plan=compile_order_program(p,r,c,**k)

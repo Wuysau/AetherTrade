@@ -134,6 +134,9 @@ class RequiredCheck(StrEnum):
     EQUITY_MARKET_CALENDAR = 'EQUITY_MARKET_CALENDAR'
     TRIGGER_PROTECT_SPREAD = 'TRIGGER_PROTECT_SPREAD'
     EXECUTION_PRICE_ENVELOPE = 'EXECUTION_PRICE_ENVELOPE_ENFORCEMENT'
+    # Distinguishes new gross ceilings from historical SELL floor notionals
+    # without changing persisted CompiledNode shapes or rewriting old records.
+    SELL_LIMIT_EXECUTION_UPPER_BOUND = 'SELL_LIMIT_EXECUTION_UPPER_BOUND'
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -371,19 +374,27 @@ def _compile_node(node, program, rules, profile, allow_round_down, now):
         _usdm_fields(o, order_type, profile, rules, parameters, now)
     else:
         _equity_fields(o, quantity, profile, parameters)
+    if o.side == 'SELL' and o.price.kind == 'FIXED_LIMIT' and profile.execution_price_envelope is not None:
+        require(Decimal(profile.execution_price_envelope.maximum) >= Decimal(o.price.value),
+            'SELL_LIMIT_EXCEEDS_EXECUTION_UPPER_BOUND')
     worst_notional = sizing_bound = None
     if quantity.kind == 'BASE_QUANTITY':
         if o.price.kind == 'FIXED_LIMIT':
-            bound = o.price.value
+            sizing_bound = o.price.value  # BUY cap / SELL floor used for sizing.
+            if o.side == 'SELL':
+                bound = profile.execution_price_envelope.maximum if profile.execution_price_envelope is not None else None
+            else:
+                bound = o.price.value
         else:
             require(profile.execution_price_envelope is not None, 'BOUNDED_EXECUTION_PRICE_REQUIRED')
             bound = profile.execution_price_envelope.maximum
-        sizing_bound = bound
-        with localcontext() as ctx:
-            ctx.prec = 256
-            exposure = Decimal(quantity.value) * Decimal(bound) * Decimal(multiplier)
-        require(profile.notional.contains(exposure), 'WORST_CASE_NOTIONAL_OUT_OF_RANGE')
-        worst_notional = format(exposure, 'f')
+            sizing_bound = bound
+        if bound is not None:
+            with localcontext() as ctx:
+                ctx.prec = 256
+                exposure = Decimal(quantity.value) * Decimal(bound) * Decimal(multiplier)
+            require(profile.notional.contains(exposure), 'WORST_CASE_NOTIONAL_OUT_OF_RANGE')
+            worst_notional = format(exposure, 'f')
     elif quantity.kind == 'QUOTE_NOTIONAL':
         # quoteOrderQty BUY and equity notional BUY have an explicit quote
         # principal budget; fees remain a separate financial-admission input.
@@ -698,6 +709,9 @@ def compile_order_program(proposal: OrderProposal | OrderProposalV3, rules: Orde
         checks.add(RequiredCheck.TRIGGER_PROTECT_SPREAD)
     if any(node.original.order.price.kind != 'FIXED_LIMIT' for node in nodes):
         checks.add(RequiredCheck.EXECUTION_PRICE_ENVELOPE)
+    if any(node.original.order.side == 'SELL' and node.original.order.price.kind == 'FIXED_LIMIT' for node in nodes):
+        checks.add(RequiredCheck.EXECUTION_PRICE_ENVELOPE)
+        checks.add(RequiredCheck.SELL_LIMIT_EXECUTION_UPPER_BOUND)
     return ProgramCompilation(original_proposal=proposal, original_program=program, scope=scope, nodes=nodes,
         requests=requests, requested_features=features, required_checks=tuple(sorted(checks)),
         proposal_hash=codec.hash('order-proposal', proposal), program_hash=codec.hash('order-program', program),

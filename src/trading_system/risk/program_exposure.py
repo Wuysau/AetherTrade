@@ -247,7 +247,29 @@ def _derive(plan,facts,now,valuation,digest,facts_digest,obligations):
         if node.quantity.kind=='DERIVED_RECEIPT':
             _require(node_id in receipt_by_target,'LOCKED_NET_RECEIPT_BOUND_MISSING')
         notional=D(node.worst_case_quote_notional) if node.worst_case_quote_notional is not None else None
-        if notional is None:
+        fixed_sell=node.original.order.side=='SELL' and node.original.order.price.kind=='FIXED_LIMIT'
+        if fixed_sell:
+            _require(quantity is not None,'QUANTITY_BOUND_MISSING:'+node_id)
+            floor=D(node.original.order.price.value)
+            # A historical plan's q*SELL-limit must never acquire new ceiling
+            # meaning. It needs a fresh trusted upper, without rewriting it.
+            marked='SELL_LIMIT_EXECUTION_UPPER_BOUND' in plan.required_checks
+            proven=notional if marked else None
+            if proven is not None:
+                _require(proven>=quantity*floor*multiplier,'PRICE_BOUND_CONFLICT')
+            if info.price_upper is not None:
+                _require(info.price_upper.currency==facts.quote_asset,'PRICE_CURRENCY_MISMATCH')
+                nonnegative(info.price_upper.value)
+                _require(info.price_upper.value>=floor,'PRICE_BOUND_CONFLICT')
+                supplied=quantity*info.price_upper.value*multiplier
+                _require(proven is None or supplied>=proven,'PRICE_BOUND_CONFLICT')
+                proven=supplied
+            _require(proven is not None,'SELL_EXECUTION_UPPER_BOUND_MISSING:'+node_id)
+            notional=proven
+            obligations+=('ENFORCE_EXECUTION_PRICE_ENVELOPE','REVALIDATE_FEES_AND_MARGIN_AT_GROSS_CEILING')
+            if not marked:
+                obligations+=('HISTORICAL_SELL_BOUND_REVALIDATION',)
+        elif notional is None:
             _require(quantity is not None,'QUANTITY_BOUND_MISSING:'+node_id)
             price=D(node.original.order.price.value) if node.original.order.price.kind=='FIXED_LIMIT' else None
             if info.price_upper is not None:
@@ -266,7 +288,7 @@ def _derive(plan,facts,now,valuation,digest,facts_digest,obligations):
             else:
                 _require(deducted<=notional,'RECEIPT_FEE_EXCEEDS_NOTIONAL')
             obligations+=('ACTUAL_RECEIPT_FEE_RECHECK',)
-        if node.quantity.kind=='BASE_QUANTITY' and node.sizing_price_bound is not None:
+        if not fixed_sell and node.quantity.kind=='BASE_QUANTITY' and node.sizing_price_bound is not None:
             _require(notional==quantity*D(node.sizing_price_bound)*multiplier,'COMPILED_NOTIONAL_MISMATCH')
             if info.price_upper is not None:
                 _require(info.price_upper.currency==facts.quote_asset and info.price_upper.value==D(node.sizing_price_bound),'PRICE_BOUND_CONFLICT')
