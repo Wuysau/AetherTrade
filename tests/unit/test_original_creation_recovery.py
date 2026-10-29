@@ -51,10 +51,10 @@ def test_query_targets_and_scheduler_keep_existing_ids_after_submission_expires(
     assert targets[0].client_id==data[1].request.assigned_ids.members[0].client_id
     clock=t.ClockReading(utc_now='2027-01-01T00:00:00Z',monotonic_ns=100,clock_health='HEALTHY')
     budget=t.QueryBudget(maximum_requests=2,window_seconds=30,minimum_interval_ms=1000,retry_after=None)
-    case=original_creation_case(result,now=clock,budget=budget)
+    scheduled=original_creation_case(result,now=clock,budget=budget)
     from trading_system.recovery.cases import CaseScheduler
-    assert CaseScheduler((case,)).snapshot()==(case,)
-    assert case.command_ids==(result.initial.command_id,) and not result.can_resubmit
+    assert CaseScheduler((scheduled,)).snapshot()==(scheduled,)
+    assert scheduled.command_ids==(result.initial.command_id,) and not result.can_resubmit
 
 
 def test_ready_original_does_not_become_an_unknown_case():
