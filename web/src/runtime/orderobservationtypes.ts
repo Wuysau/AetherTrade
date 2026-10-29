@@ -5,6 +5,7 @@ export type ProgramView = {
   children_complete:string|null;execution_authorized:false;payload:Record<string,unknown>;
   nodes:{node_id:string;role:string;child_origin:string;order:Record<string,unknown>}[];
   intakes?:ArchiveRecord[];records?:Record<string,ArchiveRecord[]>;state_observation?:Record<string,unknown>|null;
+  reservation_observations?:{reservation_id:string;current_status:string;projection:Record<string,unknown>|null}[];
   capability?:{archived_snapshot:Record<string,unknown>|null;current_qualification:string;admission_blockers:string[]};
   rejection_reasons?:{code:string;stage:string}[];truncated?:Record<string,boolean>;
 };

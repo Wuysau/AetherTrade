@@ -64,3 +64,19 @@ def test_rejections_keep_specific_codes_and_separate_stages():
     assert classify_rejection('SIMULATION_DATA_INSUFFICIENT')['stage'] == 'DATA'
     assert classify_rejection('CANCEL_UNKNOWN')['stage'] == 'EXECUTION'
     assert classify_rejection('future-code') == {'code':'future-code', 'stage':'UNKNOWN'}
+
+def test_reservation_current_projection_does_not_reuse_initial_held_or_malformed_balance():
+    from trading_system.server.order_observation import project_reservation
+    initial=dict(reservation_id='r',environment='PAPER',collateral_group_id='pool',venue_account_id='account',
+        owner_strategy_id='owner',intent_id='intent',asset='USDT',amount='100',reflected_amount='0',state='HELD',
+        created_at='2026-10-29T00:00:00Z',expires_at='2026-10-29T01:00:00Z',command_refs=[],evidence_watermark='original')
+    unknown=project_reservation(initial,None)
+    assert unknown['current_status']=='NOT_OBSERVED' and unknown['projection'] is None
+    latest=dict(sequence=2,payload=dict(reservation=dict(initial,state='RELEASED'),held='0',reflected='0',release_pending='0',sequence=2))
+    observed=project_reservation(initial,latest)
+    assert observed['current_status']=='RECORDED_PROJECTION'
+    assert observed['projection']['held']=='0' and initial['state']=='HELD'
+    latest['payload']['held']='NaN'
+    invalid=project_reservation(initial,latest)
+    assert invalid['current_status']=='UNKNOWN' and invalid['projection'] is None
+    assert invalid['raw_projection']==latest

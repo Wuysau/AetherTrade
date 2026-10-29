@@ -52,3 +52,19 @@ def test_database_itself_enforces_reader_transaction_is_read_only(scenario):
         assert conn.execute('SHOW transaction_read_only').fetchone()[0] == 'on'
         with pytest.raises(Exception):
             conn.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) VALUES ('x','x',1,'{}','x')")
+
+def test_actual_latest_reservation_projection_is_observed_beside_initial_creation(scenario):
+    from decimal import Decimal
+    from trading_system.contracts import types as t
+    s=scenario
+    with s.uow.transaction(s.scope) as tx:
+        for sequence,reflected in ((1,'1'),(2,'2')):
+            projection=t.ReservationProjection(reservation=s.reservation,held=s.reservation.amount,
+                reflected=Decimal(reflected),release_pending=Decimal('3'),sequence=sequence)
+            tx._append('audit_events','ip07:reservation:'+s.reservation.reservation_id,projection,sequence-1)
+    view=OrderObservationService(s.connect_owner,(s.scope,)).detail(s.program.program_id,scope=scope_id(s.scope))
+    assert view['records']['reservations'][0]['payload']['state']=='HELD'
+    current=view['reservation_observations'][0]
+    assert current['current_status']=='RECORDED_PROJECTION'
+    assert current['projection']['sequence']==2 and current['projection']['reflected']=='2'
+    assert current['projection']['release_pending']=='3'

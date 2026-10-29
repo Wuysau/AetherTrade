@@ -8,12 +8,15 @@ from contextlib import contextmanager
 import base64
 import json
 from pathlib import Path
+from decimal import InvalidOperation
 from jsonschema import ValidationError
 
 from fastapi import Depends, Query
 from trading_system.contracts.canonical import canonical_hash, domain_payload
 from trading_system.contracts.order_codec import VersionedOrderCodec, KINDS_BY_VERSION
 from trading_system.storage.models import scope_id
+from trading_system.storage.models import decode
+from trading_system.contracts import types as t
 from .errors import ApiError
 
 
@@ -37,6 +40,30 @@ def capability_context(snapshot=None):
     return dict(archived_snapshot=snapshot, current_qualification='UNKNOWN',
                 execution_authorized=False,
                 admission_blockers=['CURRENT_QUALIFICATION_NOT_REGISTERED', 'HOST_ADMISSION_NOT_REGISTERED'])
+
+
+def project_reservation(initial, latest):
+    result = dict(reservation_id=initial.get('reservation_id'), initial=initial,
+                  current_status='NOT_OBSERVED', projection=None, raw_projection=latest)
+    if latest is None:
+        return result
+    try:
+        original = decode(t.CapitalReservation, initial)
+        projection = decode(t.ReservationProjection, latest['payload'])
+        immutable = ('reservation_id','environment','collateral_group_id','venue_account_id',
+                     'owner_strategy_id','intent_id','asset','amount','created_at','expires_at','command_refs')
+        if (any(getattr(original,k)!=getattr(projection.reservation,k) for k in immutable)
+            or type(projection.sequence) is not int or projection.sequence<1
+            or projection.sequence!=latest['sequence']
+            or not all(v.is_finite() for v in (projection.held,projection.reflected,projection.release_pending))
+            or not 0<=projection.held<=original.amount
+            or not 0<=projection.reflected<=projection.held
+            or not 0<=projection.release_pending<=projection.held):
+            raise ValueError('Invalid recorded projection')
+        result.update(current_status='RECORDED_PROJECTION', projection=latest['payload'])
+    except (ValueError, TypeError, KeyError, InvalidOperation):
+        result['current_status']='UNKNOWN'
+    return result
 
 
 def project_program(payload, *, source):
@@ -170,6 +197,12 @@ class OrderObservationService:
                     'program-residual-duty:')], program_id, program_id))
             records['reservations'], truncated['reservations'] = self._records(conn, available, 'reservations', scope,
                 "payload->>'intent_id'=ANY(%s)", (intents,))
+            records['reservation_projections'], truncated['reservation_projections'] = self._records(
+                conn, available, 'audit_events', scope, 'record_id=ANY(%s)',
+                (['ip07:reservation:'+r['record_id'] for r in records['reservations']],))
+            projection_by_id={r['record_id']:r for r in records['reservation_projections']}
+            view['reservation_observations']=[project_reservation(r['payload'],projection_by_id.get(
+                'ip07:reservation:'+r['record_id'])) for r in records['reservations']]
             activations = [r for r in records['financial'] if r['payload'].get('record_kind')=='LOCAL_PROGRAM_ACTIVATION']
             records['local_states'], truncated['local_states'] = self._records(conn, available, 'audit_events', scope,
                 'record_id=ANY(%s)', (['local-program-state:'+r['payload']['activation_id'] for r in activations],))

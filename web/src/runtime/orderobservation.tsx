@@ -35,7 +35,10 @@ export function OrderProgramDetail({detail}:{detail:ProgramView}) {
     </section>
     {Object.values(detail.truncated??{}).some(Boolean)&&<Alert error>关联记录超出读取上限，当前详情不完整；请通过账本审查继续核查。</Alert>}
     <Archive records={detail.intakes??[]} title="原始提案与决策上下文"/>
-    <Archive records={[...(records.financial??[]),...(records.reservations??[])]} title="资金、保护责任与接入证据"/>
+    <section><h4>最新资金预留投影</h4><p className="field-help">记录值不代表当前可花余额；缺失或无效投影显示当前未验证。</p>{(detail.reservation_observations??[]).map(item=><div className="program-node" key={item.reservation_id}><strong>{item.reservation_id}</strong><p>{item.current_status==='RECORDED_PROJECTION'?'已读取最新记录投影':'当前未验证 · '+item.current_status}</p>{item.projection&&<Fields fields={{held:item.projection.held,reflected:item.projection.reflected,release_pending:item.projection.release_pending,sequence:item.projection.sequence}}/>}</div>)}</section>
+    <Archive records={records.reservations??[]} title="原始资金预留（创建记录）"/>
+    <Archive records={records.reservation_projections??[]} title="预留投影原始证据"/>
+    <Archive records={records.financial??[]} title="保护责任与接入证据"/>
     <Archive records={[...(records.bindings??[]),...(records.states??[]),...(records.local_states??[]),...(records.requests??[])]} title="母子关联与完整请求"/>
     <details className="program-archive"><summary>原始计划与内容摘要</summary><p>JSONB 规范内容 SHA256：<span className="program-id">{detail.canonical_payload_hash}</span></p><p className="field-help">原记录中的 hash 与 ID 保持原值；此摘要不会替代历史 hash。</p><pre>{JSON.stringify(detail.payload,null,2)}</pre></details>
   </article>;
