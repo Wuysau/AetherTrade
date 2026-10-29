@@ -1,0 +1,14 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_____________ test_offline_runner_requires_an_immutable_image_id ______________
+tests\ops\test_paper_offline_runner.py:6: in test_offline_runner_requires_an_immutable_image_id
+    from tools.qualify_paper_docker import dependency_setup
+E   ImportError: cannot import name 'dependency_setup' from 'tools.qualify_paper_docker' (D:\Projects\Python\AetherTrade\TradingHandoff\AutoDispatchWorktrees\binance-ope-report-verifier\tools\qualify_paper_docker.py)
+_ test_offline_setup_installs_exact_checked_out_source_without_resolving_network_dependencies _
+tests\ops\test_paper_offline_runner.py:13: in test_offline_setup_installs_exact_checked_out_source_without_resolving_network_dependencies
+    from tools.qualify_paper_docker import dependency_setup
+E   ImportError: cannot import name 'dependency_setup' from 'tools.qualify_paper_docker' (D:\Projects\Python\AetherTrade\TradingHandoff\AutoDispatchWorktrees\binance-ope-report-verifier\tools\qualify_paper_docker.py)
+=========================== short test summary info ===========================
+FAILED tests/ops/test_paper_offline_runner.py::test_offline_runner_requires_an_immutable_image_id
+FAILED tests/ops/test_paper_offline_runner.py::test_offline_setup_installs_exact_checked_out_source_without_resolving_network_dependencies
+2 failed in 0.32s

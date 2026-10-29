@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.131" timestamp="2026-10-29T21:40:36.351665+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.unit.test_paper_program_liquidity" name="test_allocations_cannot_escape_exact_source_scope_side_price_and_identity[untyped_scope]" time="0.006"><failure message="AttributeError: 'NoneType' object has no attribute 'venue_account_id'">fault = 'untyped_scope'
+
+    @pytest.mark.parametrize('fault',['duplicate_fill','missing_event','other_instrument','other_product','wrong_price','wrong_side','negative','nondecimal','untyped_scope'])
+    def test_allocations_cannot_escape_exact_source_scope_side_price_and_identity(fault):
+        value=packet(amounts=('.2',))
+        first=value.consumptions[0]
+        if fault=='duplicate_fill':value=replace(value,consumptions=(first,first))
+        if fault=='missing_event':value=replace(value,inputs=())
+        if fault=='other_instrument':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,instrument_uid='other')),))
+        if fault=='other_product':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,product=t.Product.USD_M_PERP)),))
+        if fault=='wrong_price':value=replace(value,consumptions=(replace(first,price=D('102')),))
+        if fault=='wrong_side':value=replace(value,consumptions=(replace(first,side='BID',price=D('101')),))
+        if fault=='negative':value=replace(value,consumptions=(replace(first,quantity=D('-.1')),))
+        if fault=='nondecimal':value=replace(value,consumptions=(replace(first,quantity=True),))
+        if fault=='untyped_scope':value=replace(value,consumptions=(replace(first,scope=None),))
+&gt;       assert codes(reseal(value))
+               ^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\test_paper_program_liquidity.py:44: in codes
+    return market_evidence_codes(value,scope=SCOPE,command_id='command-one',request_hash='a'*64,now=NOW)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+evidence = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+scope = ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='account-a', product=&lt;Product.SPOT: 'SPOT'&gt;, instrument_uid='asset-x', venue_leg='BOTH')
+command_id = 'command-one'
+request_hash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+now = '2026-10-28T10:00:00Z'
+
+    def market_evidence_codes(evidence,*,scope,command_id,request_hash,now):
+        errors=[]
+        def issue(code):
+            if code not in errors:errors.append(code)
+        if (type(evidence) is not PaperMarketEvidence or type(evidence.inputs) is not tuple
+                or type(evidence.consumptions) is not tuple):return ('PAPER_MARKET_EVIDENCE_REQUIRED',)
+        if len(evidence.inputs)&gt;4096 or len(evidence.consumptions)&gt;100000:
+            return ('PAPER_MARKET_EVIDENCE_BOUND_EXCEEDED',)
+        if (scope.environment!=t.Environment.PAPER or evidence.command_id!=command_id
+                or evidence.request_hash!=request_hash):issue('PAPER_MARKET_REQUEST_CHANGED')
+        ref=evidence.evidence
+        try:
+            if (ref.environment!=t.Environment.PAPER or ref.source!=SOURCE
+                    or ref.id!='paper-market-source:'+command_id or exact_time(ref.visible_at)&gt;exact_time(now)):
+                issue('PAPER_MARKET_SOURCE_CHANGED')
+            size=512
+            for item in (*evidence.inputs,*evidence.consumptions):
+                if type(item) not in (PaperMarketInput,PaperLiquidityConsumption):
+                    return ('PAPER_MARKET_SOURCE_TYPE_INVALID',)
+                if type(item) is PaperMarketInput and (len(item.before_levels)&gt;8192
+                        or type(item.raw_payload_json) is not str or len(item.raw_payload_json.encode())&gt;1048576):
+                    return ('PAPER_MARKET_EVIDENCE_BOUND_EXCEEDED',)
+                size+=len(canonical_json(domain_payload(item)).encode('utf-8'))
+                if size&gt;MAX_BYTES:return ('PAPER_MARKET_EVIDENCE_BOUND_EXCEEDED',)
+            body=dict(command_id=command_id,request_hash=request_hash,
+                inputs=[domain_payload(i) for i in evidence.inputs],
+                consumptions=[domain_payload(c) for c in evidence.consumptions])
+            if canonical_hash(body)!=ref.hash:issue('PAPER_MARKET_SOURCE_HASH_CHANGED')
+        except (ValueError,TypeError,AttributeError,InvalidOperation):
+            return ('PAPER_MARKET_SOURCE_SHAPE_INVALID',)
+        expected_market=canonical_hash(dict(environment='PAPER',venue='BINANCE',product=str(scope.product),
+            instrument_uid=scope.instrument_uid))
+        allocations=defaultdict(list);seen_fills=set()
+        for allocation in evidence.consumptions:
+&gt;           native_key=(allocation.scope.venue_account_id,str(allocation.scope.product),
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                allocation.scope.instrument_uid,allocation.fill_id)
+E           AttributeError: 'NoneType' object has no attribute 'venue_account_id'
+
+src\trading_system\execution\paper_program_liquidity.py:68: AttributeError</failure></testcase></testsuite></testsuites>

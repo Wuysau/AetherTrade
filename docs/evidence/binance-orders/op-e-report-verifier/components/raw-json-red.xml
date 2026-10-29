@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="0.758" timestamp="2026-10-29T22:21:42.528621+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.unit.test_paper_program_reports" name="test_raw_source_is_strict_json_even_in_unrecognized_fields[NaN]" time="0.063"><failure message="Failed: DID NOT RAISE ValueError">constant = 'NaN'
+
+    @pytest.mark.parametrize('constant',['NaN','Infinity','-Infinity'])
+    def test_raw_source_is_strict_json_even_in_unrecognized_fields(constant):
+        from trading_system.execution.paper_program_reports import _raw_object
+        raw='{"source":"PAPER_MARKET_REPLAY_SYNTHETIC","extra":'+constant+'}'
+        ref=t.EvidenceRef(id='raw',hash=sha256(raw.encode()).hexdigest(),environment=t.Environment.PAPER,
+            source='PAPER_MARKET_REPLAY_SYNTHETIC',visible_at='2026-10-28T10:00:00Z')
+&gt;       with pytest.raises(ValueError):_raw_object(raw,ref)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_paper_program_reports.py:91: Failed</failure></testcase><testcase classname="tests.unit.test_paper_program_reports" name="test_raw_source_is_strict_json_even_in_unrecognized_fields[Infinity]" time="0.002"><failure message="Failed: DID NOT RAISE ValueError">constant = 'Infinity'
+
+    @pytest.mark.parametrize('constant',['NaN','Infinity','-Infinity'])
+    def test_raw_source_is_strict_json_even_in_unrecognized_fields(constant):
+        from trading_system.execution.paper_program_reports import _raw_object
+        raw='{"source":"PAPER_MARKET_REPLAY_SYNTHETIC","extra":'+constant+'}'
+        ref=t.EvidenceRef(id='raw',hash=sha256(raw.encode()).hexdigest(),environment=t.Environment.PAPER,
+            source='PAPER_MARKET_REPLAY_SYNTHETIC',visible_at='2026-10-28T10:00:00Z')
+&gt;       with pytest.raises(ValueError):_raw_object(raw,ref)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_paper_program_reports.py:91: Failed</failure></testcase><testcase classname="tests.unit.test_paper_program_reports" name="test_raw_source_is_strict_json_even_in_unrecognized_fields[-Infinity]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">constant = '-Infinity'
+
+    @pytest.mark.parametrize('constant',['NaN','Infinity','-Infinity'])
+    def test_raw_source_is_strict_json_even_in_unrecognized_fields(constant):
+        from trading_system.execution.paper_program_reports import _raw_object
+        raw='{"source":"PAPER_MARKET_REPLAY_SYNTHETIC","extra":'+constant+'}'
+        ref=t.EvidenceRef(id='raw',hash=sha256(raw.encode()).hexdigest(),environment=t.Environment.PAPER,
+            source='PAPER_MARKET_REPLAY_SYNTHETIC',visible_at='2026-10-28T10:00:00Z')
+&gt;       with pytest.raises(ValueError):_raw_object(raw,ref)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_paper_program_reports.py:91: Failed</failure></testcase></testsuite></testsuites>

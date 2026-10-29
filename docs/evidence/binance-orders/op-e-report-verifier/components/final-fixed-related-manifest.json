@@ -1,0 +1,29 @@
+{
+  "source_commit": "1d0106e9750580a060d824139d219ec8671d0e46",
+  "command": [
+    "D:/Projects/Python/AetherTrade/AetherTrade/.venv/Scripts/python.exe",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/unit/test_paper_program_reports.py",
+    "tests/unit/test_paper_program_liquidity.py",
+    "tests/unit/test_original_creation_recovery.py",
+    "tests/qualification/test_nautilus_bridge.py",
+    "tests/ops/test_paper_ci_gate.py",
+    "tests/ops/test_paper_offline_runner.py",
+    "--tb=short",
+    "--junitxml=.runtime\\paper-program-reports\\final-fixed-related-green.xml"
+  ],
+  "exit_code": 0,
+  "results": {
+    "passed": 169,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "tracked_python_changes_before_and_after": false,
+  "sha256": {
+    "final-fixed-related-green.txt": "62ca66ec2e016291d1ee2afd7017bab2be28689a10dc124055f096e161e327d6",
+    "final-fixed-related-green.xml": "2983ced1d01f62ac02682227f2571106cb39c25917054c01562ce838194cd0e1"
+  }
+}
