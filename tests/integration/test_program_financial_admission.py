@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,node_fees=None,**risk_options):
+def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -59,7 +59,13 @@ def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,n
         k={**k,'scope':scope,'profile':replace(k['profile'],scope=scope),
             'expected_capabilities_hash':VersionedOrderCodec().hash('order-capability-snapshot',c)}
         return p,r,c,k
-    with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs),patch.object(exposure_module,'inputs',scoped_inputs):
+    original_plan_for=risk_module.plan_for
+    def selected_plan(**options):
+        if not preserve_quote_limit:return original_plan_for(**options)
+        from trading_system.intents.program_compilation import compile_order_program
+        p,r,c,k=scoped_inputs(options.get('product',t.Product.SPOT))
+        return compile_order_program(p,r,c,**k),r
+    with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs),patch.object(exposure_module,'inputs',scoped_inputs),patch.object(risk_module,'plan_for',selected_plan):
         c=risk_module.risk_case(**risk_options)
     if node_fees is not None:
         c.facts=replace(c.facts,budget_facts=replace(c.facts.budget_facts,node_facts=tuple(

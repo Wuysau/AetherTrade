@@ -30,7 +30,7 @@ def venue(database):
     return roles
 
 
-def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_fee_rate='0',node_fees=None):
+def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_fee_rate='0',node_fees=None,**risk_options):
     from trading_system.engine.paper import PaperEngine
     from trading_system.engine.paper_market import PaperMatchingModel
     from trading_system.runtime.execution_owner import ExecutionOwner
@@ -39,7 +39,7 @@ def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_f
         n=p.program.nodes[0]
         return replace(p,program=replace(p.program,nodes=(replace(n,order=replace(n.order,
             tif=TimeInForceSpec(kind='NONE' if post_only else tif,expires_at=None),post_only=post_only)),)))
-    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees)
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
     c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
     c.gate=boundary(c);c.lease=lease(c);c.permit=None
     def unavailable(*args):raise ValueError('legacy guard never authorizes V3')
@@ -245,3 +245,45 @@ def test_quote_fee_is_actual_source_segregated_and_bounded_by_real_admission(dat
     unreserved=case(database,venue,tmp_path,quote_fee_rate='.001')
     with pytest.raises(ValueError,match='PAPER_FEE_MODEL_EXCEEDS_ADMITTED_BOUND'):submit(unreserved)
     assert unreserved.engine.query_creation(unreserved.write.command_id) is None
+
+
+def test_existing_book_fill_cannot_precede_actual_order_acceptance(database,venue,tmp_path):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.engine.paper_market import PaperMatcher
+    c=case(database,venue,tmp_path)
+    raw=event(c,quantity='1');PaperMatcher(c.engine).apply_market_event(raw)
+    accepted=(utc_timestamp(c.c.facts.inputs.clock.utc_now)+timedelta(seconds=1)).isoformat()
+    current=replace(c.c.facts.inputs.clock,utc_now=accepted,monotonic_ns=c.c.facts.inputs.clock.monotonic_ns+10**9)
+    c.engine._clock=lambda:current;c.owner.clock=lambda:current
+    submit(c)
+    report=c.engine.query_creation(c.write.command_id)
+    assert utc_timestamp(report.fills[0].occurred_at)>=utc_timestamp(accepted)
+    assert c.engine.query_market_evidence(c.write.command_id).inputs[0].event.occurred_at==raw.occurred_at
+
+
+def test_structured_fill_identity_handles_valid_multi_level_sell_collisions(database,venue,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=case(database,venue,tmp_path,product=t.Product.USD_M_PERP,actual='10.3',target='0',quantity='10.3',side='SELL',reduce_only=True)
+    submit(c)
+    raw=replace(event(c,ask='81500',quantity='1'),bids=(DepthLevel(price='81490.11',quantity='.3'),DepthLevel(price='81490.1',quantity='10')))
+    PaperMatcher(c.engine).apply_market_event(raw)
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.filled_quantity==D('10.3') and len(report.fills)==2
+    assert len({f.fill_id for f in report.fills})==2
+
+
+def test_original_4000_quote_limit_uses_compiled_native_quantity_without_rewriting_source(database,venue,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher
+    c=case(database,venue,tmp_path,preserve_quote_limit=True)
+    assert c.bundle.intent.proposal.target_value=='4000'
+    original=c.bundle.archive.compilation.nodes[0].original.order
+    assert original.quantity.kind=='QUOTE_NOTIONAL' and original.quantity.value=='4000'
+    assert original.price.value=='81490.00' and c.bundle.intent.proposal.exit_plan.stop_price=='81330.00'
+    submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,ask='81500',quantity='1'))
+    assert not c.engine.query_creation(c.write.command_id).fills
+    matcher.apply_market_event(event(c,sequence=2,quantity='.02'))
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.orders[0].quantity==D('.049085') and report.filled_quantity==D('.02') and report.remaining_quantity==D('.029085')
+    assert report.accepted_contexts[0].compilation.nodes[0].original.order.quantity.kind=='QUOTE_NOTIONAL'
