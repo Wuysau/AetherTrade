@@ -110,8 +110,17 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
                 (params[0],clients)).fetchall()
             sources=db.execute('SELECT i.* FROM public.paper_native_parent_input_dependencies_v2 d JOIN public.paper_market_inputs i '
                 'USING(market_key,event_id) WHERE d.scope_key=%s AND d.parent_client_id=%s ORDER BY i.sequence LIMIT 4097',params).fetchall()
-            consumptions=db.execute('SELECT c.* FROM public.paper_market_consumptions c JOIN public.paper_native_parent_input_dependencies_v2 d '
-                'USING(market_key,event_id) WHERE d.scope_key=%s AND d.parent_client_id=%s ORDER BY c.fill_id LIMIT 100001',params).fetchall()
+            allocation_sql=('SELECT c.market_key,c.event_id,c.scope_key,c.client_id,c.fill_id,c.side,c.price,c.quantity '
+                'FROM public.paper_market_consumptions c JOIN public.paper_native_parent_input_dependencies_v2 d '
+                'USING(market_key,event_id) WHERE d.scope_key=%s AND d.parent_client_id=%s')
+            allocation_args=params
+            if db.execute("SELECT to_regclass('public.paper_quote_allocations_v1') AS relation").fetchone()['relation'] is not None:
+                allocation_sql+=(' UNION ALL SELECT c.market_key,c.event_id,c.scope_key,t.client_id,c.fill_id,c.side,c.price,c.quantity '
+                    'FROM public.paper_quote_allocations_v1 c JOIN public.paper_quote_terms_v1 t USING(scope_key,command_id) '
+                    'JOIN public.paper_native_parent_input_dependencies_v2 d USING(market_key,event_id) '
+                    'WHERE d.scope_key=%s AND d.parent_client_id=%s')
+                allocation_args+=params
+            consumptions=db.execute(allocation_sql+' ORDER BY fill_id LIMIT 100001',allocation_args).fetchall()
         _check(len(members)<=4096 and len(events)<=4096 and len(sources)<=4096 and len(consumptions)<=100000,'PAPER_NATIVE_SOURCE_BOUND')
         # Archive source rows as explicit canonical strings before comparing DTOs.
         def serial(value):

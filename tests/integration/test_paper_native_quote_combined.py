@@ -76,4 +76,13 @@ def test_actual_native_quote_and_v2_base_authenticate_one_shared_book(database,c
         result=verifier.verify(n.write.command_id)
         assert result.source_verified,result.discrepancies
         assert not result.discrepancies and result.status=='VERIFIED'
+        rivals=tuple(a for a in source.consumptions if a.fill_id.startswith('paper-quote:'))
+        assert len(rivals)==1
+        for consumed in (tuple(a for a in source.consumptions if a not in rivals),source.consumptions+rivals):
+            changed=replace(source,consumptions=consumed)
+            n.engine.query_market_evidence=lambda _,changed=changed:changed
+            blocked=verifier.verify(n.write.command_id)
+            assert not blocked.source_verified and blocked.status=='BLOCKED'
+            assert blocked.discrepancies==('PAPER_NATIVE_LIQUIDITY_CHANGED',)
+            assert blocked.raw_refs
     finally:codec.close()
