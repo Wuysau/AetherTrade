@@ -149,3 +149,39 @@ def test_complete_causal_graph_is_stored_once_not_copied_into_every_fill_provena
     assert len(result.causal_dependencies)==10 and result.causal_graph_hash
     assert all(f.source_v2.causal_graph_hash==result.causal_graph_hash for f in result.fills)
     assert all(len(f.source_v2.causal_input_ids)<=2 for f in result.fills)
+
+
+def completed_oto(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path,template='OTO',
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,quantity='.4'))
+    clock=c.c.facts.inputs.clock
+    later=replace(clock,utc_now=(utc_timestamp(clock.utc_now)+timedelta(seconds=10)).isoformat(),monotonic_ns=clock.monotonic_ns+10**10)
+    c.engine._clock=lambda:later
+    matcher.apply_market_event(event(c,sequence=2,kind='DEPTH_DELTA',quantity='.6'))
+    matcher.apply_market_event(replace(event(c,sequence=3,ask='81491',quantity='1'),bids=(DepthLevel(price='81490',quantity='.4'),)))
+    return c
+
+
+def test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl(database,venue_v2,tmp_path):
+    c=completed_oto(database,venue_v2,tmp_path);result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    by_node={o.node_id:o for o in result.raw_report.orders}
+    assert by_node['exit'].runtime.parent_activation_fill_id
+    assert by_node['exit'].filled_quantity==D('.4') and by_node['exit'].remaining_quantity==D('.6')
+    assert sum((f.fill.quantity.value for f in result.fills if f.raw.node_id!='exit'),D(0))==1
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.order_writes_v2 WHERE scope_id=%s AND sequence=1',(scope_id(c.scope),)).fetchone()==(1,)
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(1,)
+
+
+def test_fake_native_pending_working_fill_link_is_archived_not_accepted(database,venue_v2,tmp_path):
+    c=completed_oto(database,venue_v2,tmp_path);report=c.engine.query_creation(c.write.command_id)
+    changed=reseal_report(replace(report,orders=tuple(replace(o,runtime=replace(o.runtime,parent_activation_fill_id='foreign-working-fill'))
+        if o.node_id=='exit' else o for o in report.orders)))
+    c.engine.query_creation=lambda _:changed
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and result.raw_refs
+    assert 'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED' in result.discrepancies
