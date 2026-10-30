@@ -164,6 +164,29 @@ def test_actual_process_restart_does_not_duplicate_projected_working_facts(datab
     finally:codec.close();source_codec.close()
 
 
+def test_observed_native_fill_without_per_fill_approval_blocks_new_account_funding(database,venue,tmp_path):
+    from integration.test_program_financial_admission import real_case
+    c,accounting,source_codec=setup(database,venue,tmp_path)
+    service,codec=projector(c,database,tmp_path/'observed-not-ingested')
+    try:
+        observed=service.observer.observe(c.write.command_id)
+        assert observed.submission_known and observed.state=='ACCEPTED'
+        with c.service.uow.transaction(c.scope) as tx:
+            assert tx.execute('SELECT count(*) FROM ledger.program_fill_source_approvals WHERE scope_id=%s',
+                (scope_id(c.scope),)).fetchone()==(0,)
+            assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+            snapshot=tx.execute('SELECT payload FROM ledger.program_fill_source_snapshots WHERE scope_id=%s AND snapshot_id=%s',
+                (scope_id(c.scope),observed.source_snapshot_hash)).fetchone()[0]
+            assert len(snapshot['normalized_fills'])==1
+        with pytest.raises(MissingEvidence,match='OBSERVED_PROGRAM_EXECUTIONS_UNPOSTED'):
+            real_case(database,scoped_quantities=True,venue_account_id=c.scope.venue_account_id,
+                collateral_group_id=c.c.terms.collateral_group_id,instrument_uid='must-not-fund-'+uuid4().hex)
+        with c.service.uow.transaction(c.scope) as tx:
+            assert tx.execute('SELECT count(*) FROM ledger.intents WHERE payload->>\'venue_account_id\'=%s',
+                (c.scope.venue_account_id,)).fetchone()==(1,)
+    finally:codec.close();source_codec.close()
+
+
 def test_owned_plus_real_working_leaves_new_bounded_intake_retains_cost_block_and_replay_stable(database,venue,tmp_path):
     from trading_system.execution.program_order_projection import read_program_working_inputs
     from trading_system.intents.program_target_allocation import compile_program_target
