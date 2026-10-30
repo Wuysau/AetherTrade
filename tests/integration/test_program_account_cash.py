@@ -20,7 +20,8 @@ from trading_system.storage.models import MissingEvidence,scope_id
 
 
 def prepared(database):
-    c=real_case(database)
+    from uuid import uuid4
+    c=real_case(database,instrument_uid='isolated-cash-market-'+uuid4().hex)
     balances,evidence=inputs(c)
     ProgramAccountOpeningService(provision_uow(database),c.scope).initialize(balances,evidence=evidence)
     return c
