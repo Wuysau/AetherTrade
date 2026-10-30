@@ -1,0 +1,323 @@
+diff --git a/migrations/0023_paper_management.sql b/migrations/0023_paper_management.sql
+index e03feea..bfc8019 100644
+--- a/migrations/0023_paper_management.sql
++++ b/migrations/0023_paper_management.sql
+@@ -14,17 +14,28 @@ CREATE TABLE public.paper_management_actions_v4(
+ CREATE TRIGGER immutable_management_actions BEFORE UPDATE OR DELETE OR TRUNCATE ON public.paper_management_actions_v4
+  FOR EACH STATEMENT EXECUTE FUNCTION public.paper_market_immutable();
+ REVOKE ALL ON public.paper_management_actions_v4 FROM PUBLIC;
++-- Read only the original immutable private authorization. The boolean never
++-- grants a permit or extends its window; clock_timestamp polls actual DB time.
++CREATE FUNCTION public.paper_management_authorization_current_v4(s text,id text,b jsonb) RETURNS boolean
++LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path=pg_catalog AS $$
++ SELECT EXISTS(SELECT FROM public.paper_management_authorizations_v4 a WHERE a.scope_key=s AND a.command_id=id
++  AND a.binding=b AND a.expires_at>clock_timestamp())
++$$;
++REVOKE ALL ON FUNCTION public.paper_management_authorization_current_v4(text,text,jsonb) FROM PUBLIC;
+ CREATE FUNCTION public.paper_manage_order_v4(s text,id text,b jsonb) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+ DECLARE w jsonb;target jsonb;ord public.paper_engine_orders;market text;result jsonb;BEGIN
+  w=b->'write';target=b#>'{plan,target}';
+- IF NOT EXISTS(SELECT FROM public.paper_management_authorizations_v4 a WHERE a.scope_key=s AND a.command_id=id
+-  AND a.binding=b AND a.expires_at>clock_timestamp()) THEN
++ IF NOT public.paper_management_authorization_current_v4(s,id,b) THEN
+   RAISE EXCEPTION 'private consumed management authorization required' USING ERRCODE='23514';END IF;
+  SELECT market_key INTO market FROM public.paper_order_terms WHERE scope_key=s AND client_id=w->>'original_client_id';
+  IF market IS NULL THEN RAISE EXCEPTION 'existing source order required';END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(market,0));
++ IF NOT public.paper_management_authorization_current_v4(s,id,b) THEN
++  RAISE EXCEPTION 'original management authorization expired after market lock' USING ERRCODE='23514';END IF;
+  SELECT * INTO ord FROM public.paper_engine_orders WHERE scope_key=s AND client_id=w->>'original_client_id' FOR UPDATE;
++ IF NOT public.paper_management_authorization_current_v4(s,id,b) THEN
++  RAISE EXCEPTION 'original management authorization expired after order lock' USING ERRCODE='23514';END IF;
+  IF w->>'contract_version' IS DISTINCT FROM '2026-10-30.management-v4' OR w->>'command_id' IS DISTINCT FROM id
+   OR w->'scope' IS DISTINCT FROM s::jsonb OR w#>>'{scope,environment}' IS DISTINCT FROM 'PAPER'
+   OR w->>'operation' IS DISTINCT FROM 'CANCEL' OR ord.client_id IS NULL
+@@ -40,17 +51,22 @@ DECLARE w jsonb;target jsonb;ord public.paper_engine_orders;market text;result j
+   'cancel_result',CASE WHEN ord.lifecycle IN ('SUBMITTED','PARTIALLY_FILLED') THEN 'CANCELED' ELSE 'NOT_CANCELED' END,
+   'prior_status',ord.lifecycle,'cumulative_quantity',ord.filled::text,'replacement_result','NOT_ATTEMPTED',
+   'funds_released',false,'children_terminal',false);
++ IF NOT public.paper_management_authorization_current_v4(s,id,b) THEN
++  RAISE EXCEPTION 'original management authorization expired before mutation' USING ERRCODE='23514';END IF;
+  IF ord.lifecycle IN ('SUBMITTED','PARTIALLY_FILLED') THEN
+   UPDATE public.paper_engine_orders SET lifecycle='CANCELED',revision=revision+1 WHERE scope_key=s AND client_id=ord.client_id;
+  END IF;
+  INSERT INTO public.paper_management_actions_v4(scope_key,command_id,binding_hash,payload)
+   VALUES(s,id,w->>'binding_hash',result);
++ IF NOT public.paper_management_authorization_current_v4(s,id,b) THEN
++  RAISE EXCEPTION 'original management authorization expired before return' USING ERRCODE='23514';END IF;
+  RETURN result;
+ END $$;
+ REVOKE ALL ON FUNCTION public.paper_manage_order_v4(text,text,jsonb) FROM PUBLIC;
+ GRANT SELECT ON public.paper_management_authorizations_v4 TO paper_matcher_definer;
+ GRANT SELECT,INSERT ON public.paper_management_actions_v4 TO paper_matcher_definer;
+ GRANT USAGE,CREATE ON SCHEMA public TO paper_matcher_definer;
++ALTER FUNCTION public.paper_management_authorization_current_v4(text,text,jsonb) OWNER TO paper_matcher_definer;
+ ALTER FUNCTION public.paper_manage_order_v4(text,text,jsonb) OWNER TO paper_matcher_definer;
+ REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
+ -- Runtime cannot author the private cross-database consumed authorization.
+diff --git a/src/trading_system/execution/program_management_paper.py b/src/trading_system/execution/program_management_paper.py
+index 41e0dbe..0de8048 100644
+--- a/src/trading_system/execution/program_management_paper.py
++++ b/src/trading_system/execution/program_management_paper.py
+@@ -84,11 +84,36 @@ def _submit_management(engine,write,permit,*,boundary,lease,owner,bridge):
+                 'VALUES(%s,%s,%s::jsonb,%s,%s)',(engine._scope_key,write.command_id,
+                     canonical_json(domain_payload(binding)),token_hash(permit.token),actual_expiry))
+         with engine._connect() as db:
+-            boundary.recheck_consumed(permit,lease)
++            db.execute("SELECT set_config('application_name','aethertrade-management-v4',true)")
++            market=db.execute('SELECT market_key FROM public.paper_order_terms WHERE scope_key=%s AND client_id=%s',
++                (engine._scope_key,write.original_client_id)).fetchone()
++            require(market is not None,'MANAGEMENT_ACTUAL_MARKET_REQUIRED')
++            # Match the existing creation guard: acquire the actual SIM locks
++            # before reloading business authority. No business TX crosses IO.
++            db.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(market['market_key'],))
++            with owner.guard(lease):
++                boundary.recheck_consumed(permit,lease)
++                _require_original_authorization(db,engine,write,binding)
++            target=db.execute('SELECT client_id FROM public.paper_engine_orders WHERE scope_key=%s AND client_id=%s FOR UPDATE',
++                (engine._scope_key,write.original_client_id)).fetchone()
++            require(target is not None,'MANAGEMENT_ACTUAL_TARGET_REQUIRED')
++            with owner.guard(lease):
++                boundary.recheck_consumed(permit,lease)
++                _require_original_authorization(db,engine,write,binding)
+             row=db.execute('SELECT public.paper_manage_order_v4(%s,%s,%s::jsonb)',
+                 (engine._scope_key,write.command_id,canonical_json(domain_payload(binding)))).fetchone()
++            # A delayed result/current reader cannot commit an expired or
++            # revoked action. Any failure rolls this SAME SIM transaction back.
++            with owner.guard(lease):
++                boundary.recheck_consumed(permit,lease)
++                _require_original_authorization(db,engine,write,binding)
+         return row['paper_manage_order_v4']
+ 
++def _require_original_authorization(db,engine,write,binding):
++    row=db.execute('SELECT public.paper_management_authorization_current_v4(%s,%s,%s::jsonb)',
++        (engine._scope_key,write.command_id,canonical_json(domain_payload(binding)))).fetchone()
++    require(row['paper_management_authorization_current_v4'] is True,'MANAGEMENT_ORIGINAL_PAPER_AUTHORIZATION_EXPIRED')
++
+ def provision_paper_management(admin_dsn,roles):
+     from pathlib import Path
+     import psycopg
+@@ -104,6 +129,7 @@ def provision_paper_management(admin_dsn,roles):
+         db.execute((Path(__file__).resolve().parents[3]/'migrations/0023_paper_management.sql').read_text(encoding='utf-8'))
+         db.execute(sql.SQL('GRANT SELECT ON public.paper_management_actions_v4 TO {}').format(sql.Identifier(roles.runtime_role)))
+         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_manage_order_v4(text,text,jsonb) TO {}').format(sql.Identifier(roles.runtime_role)))
++        db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_management_authorization_current_v4(text,text,jsonb) TO {}').format(sql.Identifier(roles.runtime_role)))
+         name='paper_engine_management_'+uuid4().hex[:12];password=secrets.token_urlsafe(32)
+         db.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS').format(
+             sql.Identifier(name),sql.Literal(password)))
+diff --git a/tests/integration/test_program_management_postgres.py b/tests/integration/test_program_management_postgres.py
+index 78fab15..db511d8 100644
+--- a/tests/integration/test_program_management_postgres.py
++++ b/tests/integration/test_program_management_postgres.py
+@@ -448,3 +448,210 @@ def test_reader_wait_advancing_current_clock_cannot_authorize_expired_write(mana
+         if phase=='admit':s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+         elif phase=='mark':s.boundary.mark_may_have_sent(w.command_id,c.lease)
+         else:s.boundary.consume(permit,c.lease)
++
++
++def _management_venue_admin(database,venue):
++    from psycopg.conninfo import conninfo_to_dict,make_conninfo
++    return make_conninfo(**{**conninfo_to_dict(database),'dbname':conninfo_to_dict(venue.runtime_dsn)['dbname']})
++
++
++def _hold_management_lock(blocker,c,write,lock_kind):
++    market=blocker.execute('SELECT market_key FROM public.paper_order_terms WHERE scope_key=%s AND client_id=%s',
++        (c.engine._scope_key,write.original_client_id)).fetchone()['market_key']
++    if lock_kind=='advisory':blocker.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(market,))
++    else:blocker.execute('SELECT client_id FROM public.paper_engine_orders WHERE scope_key=%s AND client_id=%s FOR UPDATE',
++        (c.engine._scope_key,write.original_client_id))
++
++
++def _await_actual_management_lock(monitor,future,lock_kind):
++    import time
++    deadline=time.monotonic()+4
++    while time.monotonic()<deadline:
++        waiting=monitor.execute("SELECT EXISTS(SELECT FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND (query LIKE 'SELECT public.paper_manage_order_v4%' OR application_name LIKE 'aethertrade-management-v4%'))").fetchone()[0]
++        if waiting:
++            print('CONFIRMED actual management '+lock_kind+' lock wait',flush=True)
++            return
++        if future.done():
++            future.result()
++            raise AssertionError('dispatch finished before actual '+lock_kind+' wait')
++        time.sleep(.02)
++    raise AssertionError('actual management '+lock_kind+' lock wait was not observed')
++
++
++def _await_original_authorization_expiry(monitor,c,write):
++    import time
++    remaining=monitor.execute('SELECT greatest(0,extract(epoch from expires_at-clock_timestamp())) FROM public.paper_management_authorizations_v4 WHERE scope_key=%s AND command_id=%s',
++        (c.engine._scope_key,write.command_id)).fetchone()[0]
++    time.sleep(float(remaining)+.15)
++    assert monitor.execute('SELECT expires_at<clock_timestamp() FROM public.paper_management_authorizations_v4 WHERE scope_key=%s AND command_id=%s',
++        (c.engine._scope_key,write.command_id)).fetchone()==(True,)
++    print('CONFIRMED exact original private authorization expired in DB before unlock',flush=True)
++
++
++def _assert_wait_failure_retains_original(c,service,write):
++    from trading_system.execution.program_management_commands import ManagementRepository
++    from trading_system.execution.program_management_outcomes import observe_paper_management
++    from trading_system.risk.reservation_repository import ReservationRepository
++    assert c.engine.query_creation(c.write.command_id).status=='SUBMITTED'
++    with c.engine._connect() as db:
++        assert db.execute('SELECT count(*) AS n FROM public.paper_management_actions_v4 WHERE scope_key=%s AND command_id=%s',
++            (c.engine._scope_key,write.command_id)).fetchone()['n']==0
++    with service.verifier_uow.transaction(c.scope) as tx:
++        assert ManagementRepository(tx).read(write.command_id).write.state=='UNKNOWN'
++        assert all(ReservationRepository(tx).get(p.reservation.reservation_id).held==p.held for p in c.bundle.reservations)
++    observation=observe_paper_management(service,write.command_id)
++    assert observation.cancel_result=='UNKNOWN' and observation.command_id==write.command_id and not observation.funds_released
++    with pytest.raises(ValueError):service.boundary.mark_may_have_sent(write.command_id,c.lease)
++
++
++@pytest.mark.parametrize('lock_kind',['advisory','row'])
++def test_expired_permit_cannot_cancel_after_actual_venue_mutex_wait(
++        management_database,venue_v2,management_venue,tmp_path,lock_kind):
++    """Reviewed P1, extended to both actual lock waits; no artificial PG clock."""
++    from concurrent.futures import ThreadPoolExecutor
++    import psycopg
++    from trading_system.execution.program_management_paper import submit_management
++    c,service,write=admitted(management_database,venue_v2,tmp_path)
++    permit=service.boundary.mark_may_have_sent(write.command_id,c.lease)
++    with c.engine._connect() as blocker:
++        _hold_management_lock(blocker,c,write,lock_kind)
++        def dispatch():
++            with c.owner.session(c.lease.shard):
++                return submit_management(c.engine,write,permit,boundary=service.boundary,
++                    lease=c.lease,owner=c.owner,bridge=management_venue)
++        with ThreadPoolExecutor(max_workers=1) as pool:
++            future=pool.submit(dispatch)
++            try:
++                with psycopg.connect(_management_venue_admin(management_database,venue_v2),autocommit=True) as monitor:
++                    _await_actual_management_lock(monitor,future,lock_kind)
++                    _await_original_authorization_expiry(monitor,c,write)
++            finally:blocker.commit()
++            with pytest.raises((ValueError,psycopg.Error)):future.result(timeout=10)
++    _assert_wait_failure_retains_original(c,service,write)
++
++
++def _stage_actual_private_bridge(c,service,write,permit,bridge):
++    """Exercise SQL's own checks with a genuinely consumed original authority."""
++    import psycopg
++    from trading_system.execution.program_management_commands import token_hash
++    from trading_system.contracts.canonical import canonical_json,domain_payload
++    from trading_system.storage.models import scope_id
++    with c.owner.session(c.lease.shard):
++        with c.owner.guard(c.lease):
++            binding=service.boundary.consume(permit,c.lease)
++            service.boundary.recheck_consumed(permit,c.lease)
++            with service.verifier_uow.transaction(c.scope) as tx:
++                expiry=tx.execute('SELECT expires_at FROM ledger.management_dispatch_marks WHERE scope_id=%s AND command_id=%s',
++                    (scope_id(c.scope),write.command_id)).fetchone()[0]
++            with psycopg.connect(bridge.bridge_dsn) as private:
++                private.execute('INSERT INTO public.paper_management_authorizations_v4(scope_key,command_id,binding,token_hash,expires_at) VALUES(%s,%s,%s::jsonb,%s,%s)',
++                    (c.engine._scope_key,write.command_id,canonical_json(domain_payload(binding)),token_hash(permit.token),expiry))
++    return binding
++
++
++@pytest.mark.parametrize('lock_kind',['advisory','row'])
++def test_sql_reducer_independently_rechecks_exact_expiry_after_each_lock(
++        management_database,venue_v2,management_venue,tmp_path,lock_kind):
++    from concurrent.futures import ThreadPoolExecutor
++    import psycopg
++    from trading_system.contracts.canonical import canonical_json,domain_payload
++    c,service,write=admitted(management_database,venue_v2,tmp_path)
++    permit=service.boundary.mark_may_have_sent(write.command_id,c.lease)
++    binding=_stage_actual_private_bridge(c,service,write,permit,management_venue)
++    with c.engine._connect() as blocker:
++        _hold_management_lock(blocker,c,write,lock_kind)
++        def dispatch():
++            try:
++                with c.owner.session(c.lease.shard):
++                    with c.owner.guard(c.lease):
++                        with c.engine._connect() as db:
++                            db.execute("SELECT set_config('application_name','aethertrade-management-v4-direct',true)")
++                            return db.execute('SELECT public.paper_manage_order_v4(%s,%s,%s::jsonb)',
++                                (c.engine._scope_key,write.command_id,canonical_json(domain_payload(binding)))).fetchone()
++            except Exception:
++                service.boundary.record_unknown(write.command_id)
++                raise
++        with ThreadPoolExecutor(max_workers=1) as pool:
++            future=pool.submit(dispatch)
++            try:
++                with psycopg.connect(_management_venue_admin(management_database,venue_v2),autocommit=True) as monitor:
++                    _await_actual_management_lock(monitor,future,lock_kind)
++                    _await_original_authorization_expiry(monitor,c,write)
++            finally:blocker.commit()
++            with pytest.raises(psycopg.errors.CheckViolation,match='expired after'):future.result(timeout=10)
++    _assert_wait_failure_retains_original(c,service,write)
++
++
++def _revoke_actual_deployment(c):
++    from trading_system.intents.ingress import IngressRevision,revision_key
++    with c.service.uow.transaction(c.scope) as tx:
++        key=revision_key(c.source.context)
++        current=tx._latest('audit_events',key,IngressRevision)
++        tx._append('audit_events',key,replace(current,sequence=current.sequence+1,enabled=False),current.sequence)
++
++
++@pytest.mark.parametrize('lock_kind',['advisory','row'])
++@pytest.mark.parametrize('change',['deployment','owner_epoch','lease_epoch'])
++def test_actual_authority_change_during_venue_wait_is_reloaded_after_lock(
++        management_database,venue_v2,management_venue,tmp_path,lock_kind,change):
++    from concurrent.futures import ThreadPoolExecutor
++    import psycopg
++    from trading_system.execution.program_management_paper import submit_management
++    c,service,write=admitted(management_database,venue_v2,tmp_path)
++    permit=service.boundary.mark_may_have_sent(write.command_id,c.lease)
++    with c.engine._connect() as blocker:
++        _hold_management_lock(blocker,c,write,lock_kind)
++        def dispatch():
++            with c.owner.session(c.lease.shard):
++                return submit_management(c.engine,write,permit,boundary=service.boundary,
++                    lease=c.lease,owner=c.owner,bridge=management_venue)
++        with ThreadPoolExecutor(max_workers=1) as pool:
++            future=pool.submit(dispatch)
++            try:
++                with psycopg.connect(_management_venue_admin(management_database,venue_v2),autocommit=True) as monitor:
++                    _await_actual_management_lock(monitor,future,lock_kind)
++                    if change=='deployment':_revoke_actual_deployment(c)
++                    elif change=='owner_epoch':
++                        with psycopg.connect(management_database) as admin:
++                            admin.execute('ALTER TABLE ledger.active_owners DISABLE TRIGGER owner_immutable')
++                            admin.execute('UPDATE ledger.active_owners SET ownership_epoch=ownership_epoch+1 WHERE account_id=%s',(c.scope.venue_account_id,))
++                            admin.execute('ALTER TABLE ledger.active_owners ENABLE TRIGGER owner_immutable')
++                    else:service.load_lease=lambda _:replace(c.lease,shard=replace(c.lease.shard,execution_epoch=2))
++                    assert monitor.execute('SELECT expires_at>clock_timestamp() FROM public.paper_management_authorizations_v4 WHERE scope_key=%s AND command_id=%s',
++                        (c.engine._scope_key,write.command_id)).fetchone()==(True,),'authority test must unlock before expiry'
++            finally:blocker.commit()
++            expected={'deployment':'DEPLOYMENT_FENCE_REQUIRED','owner_epoch':'STALE_OWNER','lease_epoch':'CURRENT_LEASE_REQUIRED'}[change]
++            with pytest.raises(ValueError,match=expected):future.result(timeout=10)
++    _assert_wait_failure_retains_original(c,service,write)
++
++
++@pytest.mark.parametrize('change',['deployment','expiry'])
++def test_final_guard_rolls_back_actual_venue_mutation_before_commit(
++        management_database,venue_v2,management_venue,tmp_path,change):
++    import psycopg
++    from trading_system.execution.program_management_paper import submit_management
++    c,service,write=admitted(management_database,venue_v2,tmp_path)
++    permit=service.boundary.mark_may_have_sent(write.command_id,c.lease)
++    original=c.engine._connect;executed=[]
++    class DelayedResult:
++        def __init__(self):self.db=original()
++        def __getattr__(self,name):return getattr(self.db,name)
++        def __enter__(self):self.db.__enter__();return self
++        def __exit__(self,*args):return self.db.__exit__(*args)
++        def execute(self,sql,*args,**kwargs):
++            cursor=self.db.execute(sql,*args,**kwargs)
++            if sql.startswith('SELECT public.paper_manage_order_v4('):
++                executed.append(True)
++                if change=='deployment':_revoke_actual_deployment(c)
++                else:
++                    with psycopg.connect(_management_venue_admin(management_database,venue_v2),autocommit=True) as monitor:
++                        _await_original_authorization_expiry(monitor,c,write)
++            return cursor
++    c.engine._connect=DelayedResult
++    try:
++        with c.owner.session(c.lease.shard):
++            with pytest.raises(ValueError):
++                submit_management(c.engine,write,permit,boundary=service.boundary,lease=c.lease,owner=c.owner,bridge=management_venue)
++    finally:c.engine._connect=original
++    assert executed==[True],'the real venue mutation must precede the late guard failure'
++    _assert_wait_failure_retains_original(c,service,write)

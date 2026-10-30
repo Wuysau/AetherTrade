@@ -1,5 +1,30 @@
 # Current task
 
+## MANAGEMENT_FIX_ROUND1_REVIEW_PENDING — 2026-10-30
+
+Parent reassigned this same tree to the original management implementer for
+fix round1/5. Fresh review413b273 confirmed P1: original private authorization
+was checked before actual advisory/order row waits; expired authority could
+still cancel. Personally reproduced source19441d1 actual40PG39pass1fail,
+170.288s, original88721TERMINALexit1, run50d5d27723a2. No old job was restarted.
+
+Fixed functionalfc2f818 actual51PG GREEN0fail/error/skip244.297s,
+original10349TERMINALexit0, run515ee2e7f73b. All39 original cases remain intact;
+12 added cases cover actual host/SQL advisory+row lock expiry, current owner/
+deployment/lease change during waits, and rollback after actual SQL mutation
+when expiry/revocation occurs before commit. Host holds real SIM locks before
+existing source-bound business rechecks; SQL polls exact immutable original
+authorization after every lock and before mutation/return. No token/window
+renewal, original-ID rewrite, cash release, creation permit or callback bypass.
+
+Code-review HEAD1d68518 only restores original test bytes afterfc2f818;
+test ASTs are independently identical. No functional full rerun is needed for
+that formatting correction. Migration0022, contracts and frozen0013/0014 stay
+byte-identical. Focused patch and32 raw qualification artifacts are under
+docs/evidence/binance-orders/op-e-management-v4-fix1. Same-reviewer scoped
+re-review of original P1 plus new fix regressions is PENDING; HOLD/no host remains.
+ALL management jobs are terminal. Full46/56 and remaining OP-E work stay ACTIVE.
+
 ## CURRENT_MANAGEMENT_V4_COMPONENT — 2026-10-30
 
 Management sole writer owns this binance-ope-management-v4 tree only, basefb8c62b5.

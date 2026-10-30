@@ -1,0 +1,16 @@
+.......................................F                                 [100%]
+=================================== FAILURES ===================================
+_______ test_expired_permit_cannot_cancel_after_actual_venue_mutex_wait ________
+tests/integration/test_program_management_postgres.py:499: in test_expired_permit_cannot_cancel_after_actual_venue_mutex_wait
+    assert report.status == 'SUBMITTED', 'expired one-use permit canceled the actual original order after venue mutex wait'
+E   AssertionError: expired one-use permit canceled the actual original order after venue mutex wait
+E   assert 'CANCELED' == 'SUBMITTED'
+E     
+E     - SUBMITTED
+E     + CANCELED
+----------------------------- Captured stdout call -----------------------------
+CONFIRMED: actual venue mutex wait observed; private authorization expired before unlock
+ACTUAL AFTER WAIT: {'command_id': 'management:338e42be71cb4a70bdfd0f02f70709cf', 'record_kind': 'PAPER_MANAGEMENT_OUTCOME_V4', 'binding_hash': 'dd60806ba09cfd69ae602d440081e98f4e46982cea73648bd7924a163a8ac589', 'prior_status': 'SUBMITTED', 'cancel_result': 'CANCELED', 'funds_released': False, 'target_venue_id': 'paper-v3:7554013edf4e8b9a3b66f77d7b90b1c6', 'children_terminal': False, 'original_client_id': '7554013edf4e8b9a3b66f77d7b90b1c6', 'replacement_result': 'NOT_ATTEMPTED', 'cumulative_quantity': '0'} original_status= CANCELED
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_management_postgres.py::test_expired_permit_cannot_cancel_after_actual_venue_mutex_wait
+1 failed, 39 passed in 170.29s (0:02:50)

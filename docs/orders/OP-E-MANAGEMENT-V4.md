@@ -1,4 +1,24 @@
-# OP-E management V4 component — ACTIVE, review checkpoint21e72d7
+# OP-E management V4 component — ACTIVE, fix round1 pending re-review
+
+The original independent review of413b273 found a P1: physical private
+authorization expired while the actual venue mutex/row lock was awaited, but
+the SQL reducer still canceled. Source19441d1 personally reproduced it with
+39passes/1failure,170.288s. The original review remains HOLD until scoped
+re-review; the prior39-case pass did not cover this venue wait.
+
+Fix round1/5 functionalfc2f818 passes51 actual restricted PostgreSQL cases,
+zero failures/errors/skips,244.297s. The host now acquires the actual market
+and target row locks before repeating the existing current business guard,
+then checks again before SIM commit. SQL independently polls the same immutable
+private authorization after both locks and immediately before mutation/return.
+No expiry, token, command or target identity is renewed. Failures roll back the
+venue transaction, retain original UNKNOWN/query duties and preserve all holds.
+The12 new cases include real advisory/row waits, persistent authority changes
+during waits and rejection after a real mutation but before commit. All39 prior
+cases are preserved. Formatting-only HEAD1d68518 has the same test AST as the
+tested source. See docs/evidence/binance-orders/op-e-management-v4-fix1 for the focused patch,
+source-compatibility proof and32 original raw artifacts. No0022/contract/frozen
+migration change or enabled host/native transport is included in this fix.
 
 This additive work preserves all46 Binance capabilities and56 scenarios. It is
 not full management qualification and installs no executable host or account
