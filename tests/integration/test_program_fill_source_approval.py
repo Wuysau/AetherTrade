@@ -393,11 +393,18 @@ def test_0018_backfills_existing_v2_source_without_rewriting_history(database,ve
     try:
         with c.service.uow.transaction(c.scope) as tx:
             prior=tuple(read_committed_fill_source(tx,a['approval_id']) for a in original_approvals)
-            assert [domain_payload(a) for a in prior]==original_approvals
+            for actual,original in zip(prior,original_approvals,strict=True):
+                assert set(original)=={'approval_id','identity_hash','normalized'}
+                assert {key:domain_payload(actual)[key] for key in original}==original
+                assert actual.command_id==c.write.command_id
         with psycopg.connect(old_dsn) as db:
             assert db.execute("SELECT to_regclass('ledger.program_fill_source_headers')").fetchone()==(None,)
             snapshots=db.execute('SELECT scope_id,snapshot_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_snapshots').fetchall()
             approvals=db.execute('SELECT scope_id,approval_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_approvals').fetchall()
+            verification=snapshots[0][2]['verification']
+            assert prior[0].verification_status==verification['status']
+            assert prior[0].verification_discrepancies==tuple(verification['discrepancies'])
+            assert prior[0].retained_duties==tuple(verification['retained_duties'])
             db.execute((root/'migrations/0018_program_fill_source_leaves.sql').read_text(encoding='utf-8'))
         with psycopg.connect(old_dsn) as db:
             assert db.execute('SELECT scope_id,snapshot_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_snapshots').fetchall()==snapshots
