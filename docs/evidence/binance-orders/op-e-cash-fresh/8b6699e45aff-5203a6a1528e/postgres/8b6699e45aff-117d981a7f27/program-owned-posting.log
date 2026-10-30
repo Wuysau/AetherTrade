@@ -1,0 +1,16 @@
+F...                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction _
+tests/integration/test_program_owned_posting.py:65: in test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction
+    assert fee[0]['classification']=='FEE' and fee[0]['amount']==dict(currency='USDT',amount='-32.596')
+E   AssertionError: assert ('FEE' == 'FEE'
+E     
+E       FEE and {'amount': '-...ency': 'USDT'} == {'currency': ...t': '-32.596'}
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing items:
+E     {'amount': '-32.596000000'} != {'amount': '-32.596'}
+E     Use -v to get more diff)
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction
+1 failed, 3 passed in 22.45s

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="7" time="40.003" timestamp="2026-10-30T05:28:49.549956+00:00" hostname="f3e9e6d8b1c1"><testcase classname="tests.integration.test_program_owned_posting" name="test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction" time="5.721" /><testcase classname="tests.integration.test_program_owned_posting" name="test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta" time="6.943" /><testcase classname="tests.integration.test_program_owned_posting" name="test_missing_owner_retains_native_facts_without_claiming_position_or_cash" time="4.603" /><testcase classname="tests.integration.test_program_owned_posting" name="test_failed_financial_commit_rolls_back_all_owner_effects_and_retry_posts_once" time="5.815" /><testcase classname="tests.integration.test_program_owned_posting" name="test_concurrent_independent_source_approvals_apply_one_native_owned_effect" time="6.472" /><testcase classname="tests.integration.test_program_owned_posting" name="test_real_process_restart_does_not_duplicate_position_or_fees" time="5.079" /><testcase classname="tests.integration.test_program_owned_posting" name="test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow" time="4.614"><failure message="ValueError: PAPER_CROSSED_SOURCE_BOOK">tests/integration/test_program_owned_posting.py:195: in test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow
+    PaperMatcher(c.engine).apply_market_event(market)
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:641: in apply_market_event
+    require(bounds['bid'] is None or bounds['ask'] is None or bounds['bid']&lt;bounds['ask'],'PAPER_CROSSED_SOURCE_BOOK')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_CROSSED_SOURCE_BOOK</failure></testcase></testsuite></testsuites>

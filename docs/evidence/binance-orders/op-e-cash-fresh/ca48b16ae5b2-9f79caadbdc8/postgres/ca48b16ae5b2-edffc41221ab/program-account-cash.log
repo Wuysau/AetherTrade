@@ -1,0 +1,15 @@
+.......F                                                                 [100%]
+=================================== FAILURES ===================================
+____ test_owner_sql_legacy_origin_and_fill_cannot_mint_mixed_account_credit ____
+tests/integration/test_program_account_cash.py:182: in test_owner_sql_legacy_origin_and_fill_cannot_mint_mixed_account_credit
+    read_program_account_cash(tx,read_opening=read_program_account_opening)
+src/trading_system/execution/program_account_cash.py:159: in read_program_account_cash
+    delta,signature=_legacy_effects(tx,fill,origins[_native_key(fill)])
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_account_cash.py:76: in _legacy_effects
+    side=command.canonical_payload.get('side');symbol=command.canonical_payload.get('symbol')
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'ExecutionCommandCanonicalPayload' object has no attribute 'get'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_account_cash.py::test_owner_sql_legacy_origin_and_fill_cannot_mint_mixed_account_credit
+1 failed, 7 passed in 33.73s

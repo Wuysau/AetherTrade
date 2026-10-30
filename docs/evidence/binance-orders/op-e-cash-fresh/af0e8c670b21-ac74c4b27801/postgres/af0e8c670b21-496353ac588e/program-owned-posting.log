@@ -1,0 +1,17 @@
+......F                                                                  [100%]
+=================================== FAILURES ===================================
+__ test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow __
+tests/integration/test_program_owned_posting.py:195: in test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow
+    PaperMatcher(c.engine).apply_market_event(market)
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:641: in apply_market_event
+    require(bounds['bid'] is None or bounds['ask'] is None or bounds['bid']<bounds['ask'],'PAPER_CROSSED_SOURCE_BOOK')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_CROSSED_SOURCE_BOOK
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow
+1 failed, 6 passed in 40.01s

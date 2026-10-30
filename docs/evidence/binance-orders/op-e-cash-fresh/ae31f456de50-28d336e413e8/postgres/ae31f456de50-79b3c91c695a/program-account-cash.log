@@ -1,0 +1,10 @@
+...F.....                                                                [100%]
+=================================== FAILURES ===================================
+_ test_economic_audit_marker_without_actual_owned_transition_cannot_be_spendable _
+tests/integration/test_program_account_cash.py:102: in test_economic_audit_marker_without_actual_owned_transition_cannot_be_spendable
+    with pytest.raises(MissingEvidence,match='UNPOSTED_PROGRAM_OWNED_EFFECTS'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_account_cash.py::test_economic_audit_marker_without_actual_owned_transition_cannot_be_spendable
+1 failed, 8 passed in 37.58s

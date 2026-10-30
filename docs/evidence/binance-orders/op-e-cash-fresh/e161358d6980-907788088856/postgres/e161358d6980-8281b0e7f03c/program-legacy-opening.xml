@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="4" time="1.620" timestamp="2026-10-30T05:14:25.233194+00:00" hostname="70f1e6669a72"><testcase classname="tests.integration.test_program_legacy_opening" name="test_ordinary_seed_alone_and_foreign_account_never_supply_opening" time="0.707" /><testcase classname="tests.integration.test_program_legacy_opening" name="test_owner_cannot_approve_its_seed_and_explicit_provisioner_attests_exact_original" time="0.094" /><testcase classname="tests.integration.test_program_legacy_opening" name="test_owner_cannot_mint_a_new_initialization_audit_or_direct_protected_opening" time="0.008"><failure message="ValueError: expected domain record">tests/integration/test_program_legacy_opening.py:83: in test_owner_cannot_mint_a_new_initialization_audit_or_direct_protected_opening
+    tx._append('audit_events','console:seed',seeded,0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.integration.test_program_legacy_opening" name="test_duplicate_seed_is_not_ignored_by_protected_reader" time="0.020" /></testsuite></testsuites>

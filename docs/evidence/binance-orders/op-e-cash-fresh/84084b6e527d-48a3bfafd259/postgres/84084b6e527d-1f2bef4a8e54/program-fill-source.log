@@ -1,0 +1,15 @@
+..F.............                                                         [100%]
+=================================== FAILURES ===================================
+_ test_actual_accepted_unfilled_gtc_snapshot_can_be_committed_without_fill_or_credit _
+tests/integration/test_program_fill_source_approval.py:109: in test_actual_accepted_unfilled_gtc_snapshot_can_be_committed_without_fill_or_credit
+    from trading_system.execution.program_fill_source import save_verification_snapshot
+E   ImportError: cannot import name 'save_verification_snapshot' from 'trading_system.execution.program_fill_source' (/tmp/source/src/trading_system/execution/program_fill_source.py)
+=============================== warnings summary ===============================
+tests/integration/test_program_fill_source_approval.py::test_per_fill_approval_does_not_fetch_or_decompress_shared_toast_proof
+  tests/integration/test_program_fill_source_approval.py:329: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_per_fill_approval_does_not_fetch_or_decompress_shared_toast_proof(database,venue,tmp_path,record_property):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_fill_source_approval.py::test_actual_accepted_unfilled_gtc_snapshot_can_be_committed_without_fill_or_credit
+1 failed, 15 passed, 1 warning in 71.22s (0:01:11)

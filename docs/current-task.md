@@ -1,5 +1,59 @@
 # Current task
 
+## Fresh cash/source/replay checkpoint — 2026-10-30
+
+`cash_fresh` remains sole accounting writer; current productf0707c5. No live
+qualifier remains: original84039 completed (do not restart). Root integration_fresh
+alone owns host hooks, current target/group adapter and protected0021 submission
+knownness; 0022/0023 are reserved for management,0024 belongs to this cash tree.
+Full46/56 goal ACTIVE; source/financial qualification is not complete.
+
+Strict neutral `read_program_account_cash` / BookCashBinding now requires actual
+versioned PROGRAM_OWNED_POSTING_V2 native→owner transition proof, not a marker:
+source batch IDs, before/after owner quantity, complete/exclusive marker set,
+unchanged ownership/position/protection identity, exact intended cost uncertainty,
+actual position/book/EventStore/outbox/FEE rows with common physical TX. Legacy
+V1 economic/replay markers never grant financial completion. Observed-only
+`observe_program_account_cash` is for financial reconstruction; NEVER wire it at
+admission/mark/consume/afterwait or bind. A partial owner commits own scope only,
+leaves NO cash binding until all account projections exist, and must later use
+its own reconcile/replan. No automatic old-plan renewal, release or FLAT.
+
+Actual later evidence:
+- 136b81c strict cash9PG green36e0072ea202; later e9332829PG green5bcc3dd6de59.
+- 4c57859 actual owned BookCash3PG green8d881c405dea.
+- 93d3470 replay8PG green909224bca271 after a9a2cc9 true false-posted RED.
+- Missing-member trueDIDNOTRAISE9d459e23316e and disjoint-batch trueDIDNOTRAISE
+  e1dc93012ecb are preserved. f0707c5 final owned10pass/1 fixture prerequisite
+  RESERVATION_QUANTITY_REQUIRED in334c7c877d4a; no errors/skips. This is NOT full
+  green and has never proved the hypothesized cross-command deadlock. Root must
+  provide legal A+B accepted-unfilled source path and current target filtering.
+- Same final job ordinary Python3501pass/699 explicit-environment skips/
+  96deselected, exit0,101.31s; existing Starlette/httpx warning. These skips do
+  not replace mandatory PostgreSQL evidence.
+- Source helper/static routes31c7572:16PG green5e04b388a02e and raw9PG green
+  bcad6f3c5198; zero-fill source RED48a3bfafd259 followed actual accepted query.
+  Finalminor5132cd4 binds V2 to compact authenticated context; no native producer
+  activation here. Exact frozen provider4Git blobs equal7925851. Local14version/
+  math/legacy compatibility unit tests passed; actual V2 approval/financial path
+  still requires ROOT producer proof and fresh review before qualification.
+- Opening exclusivity244d631:1pass/2 trueRED (legacy→new and both concurrent
+  created). Additive0024f0707c5:3PG greenc1adbd2c97c4,1.98s. 0019 and original
+  0020 bytes stay unchanged; no proof deletion/vector mutation/new authority.
+
+Root ruled FIRST generic admission/mark/consume/afterwait requires real local
+opening even before any fill/source approval. None remains only legacy/no-generic
+compatibility; ROOT callsites enforce nonNone, not caller exemptions. Historical
+query/recovery and qualified protection/reductions must retain management duties.
+Unproved legacy fills continue to block authenticated mixed cash; no complete
+legacy source adapter is registered and no fake import wrapper/fees were created.
+
+Fresh raw publication is under docs/evidence/binance-orders/op-e-cash-fresh;
+COPY-MAP binds original/copy bytes. Final committed-blob SHA validation pending
+the publication commit. All old parent evidence remains untouched. Next continue
+Root knownness/current target integration, actual two-command proof, actual V2
+source→approval→owned proof, fresh review and final combined mandatory gate.
+
 ## Actual cash writer progress / active review — 2026-10-30
 
 `cash_fresh` is still sole writer. Current product4fdbe01; no root/runtime host

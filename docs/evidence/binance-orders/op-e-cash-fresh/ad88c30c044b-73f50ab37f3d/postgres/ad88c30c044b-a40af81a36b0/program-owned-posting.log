@@ -1,0 +1,36 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction _
+tests/integration/test_program_owned_posting.py:42: in test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction
+    c,s,codec=setup(database,venue,tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:20: in setup
+    from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_owned_posting'
+__ test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta ___
+tests/integration/test_program_owned_posting.py:67: in test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta
+    c,s,codec=setup(database,venue,tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:20: in setup
+    from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_owned_posting'
+__ test_missing_owner_retains_native_facts_without_claiming_position_or_cash ___
+tests/integration/test_program_owned_posting.py:83: in test_missing_owner_retains_native_facts_without_claiming_position_or_cash
+    c,s,codec=setup(database,venue,tmp_path,owned=False)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:20: in setup
+    from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_owned_posting'
+_ test_failed_financial_commit_rolls_back_all_owner_effects_and_retry_posts_once _
+tests/integration/test_program_owned_posting.py:96: in test_failed_financial_commit_rolls_back_all_owner_effects_and_retry_posts_once
+    c,s,codec=setup(database,venue,tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:20: in setup
+    from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_owned_posting'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction
+FAILED tests/integration/test_program_owned_posting.py::test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta
+FAILED tests/integration/test_program_owned_posting.py::test_missing_owner_retains_native_facts_without_claiming_position_or_cash
+FAILED tests/integration/test_program_owned_posting.py::test_failed_financial_commit_rolls_back_all_owner_effects_and_retry_posts_once
+4 failed in 1.26s

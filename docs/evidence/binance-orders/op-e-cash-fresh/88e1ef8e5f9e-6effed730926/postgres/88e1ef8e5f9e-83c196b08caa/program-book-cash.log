@@ -1,0 +1,28 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_exact_current_cash_binding_is_required_and_a_forged_book_grants_nothing _
+tests/integration/test_program_book_cash.py:21: in test_exact_current_cash_binding_is_required_and_a_forged_book_grants_nothing
+    bind,guard,_=functions();c=prepared(database)
+                 ^^^^^^^^^^^
+tests/integration/test_program_book_cash.py:16: in functions
+    from trading_system.execution.program_book_cash import bind_program_book_cash,require_current_program_book_cash,reconcile_program_book_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_book_cash'
+_ test_actual_fill_changes_other_instrument_revision_until_its_own_owner_reconciles _
+tests/integration/test_program_book_cash.py:36: in test_actual_fill_changes_other_instrument_revision_until_its_own_owner_reconciles
+    bind,guard,reconcile=functions();c,s,codec,approval=matched(database,venue,tmp_path)
+                         ^^^^^^^^^^^
+tests/integration/test_program_book_cash.py:16: in functions
+    from trading_system.execution.program_book_cash import bind_program_book_cash,require_current_program_book_cash,reconcile_program_book_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_book_cash'
+____ test_current_cash_binding_requires_actual_owner_before_reconciliation _____
+tests/integration/test_program_book_cash.py:85: in test_current_cash_binding_requires_actual_owner_before_reconciliation
+    _,_,reconcile=functions();c=prepared(database)
+                  ^^^^^^^^^^^
+tests/integration/test_program_book_cash.py:16: in functions
+    from trading_system.execution.program_book_cash import bind_program_book_cash,require_current_program_book_cash,reconcile_program_book_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_book_cash'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_book_cash.py::test_exact_current_cash_binding_is_required_and_a_forged_book_grants_nothing
+FAILED tests/integration/test_program_book_cash.py::test_actual_fill_changes_other_instrument_revision_until_its_own_owner_reconciles
+FAILED tests/integration/test_program_book_cash.py::test_current_cash_binding_requires_actual_owner_before_reconciliation
+3 failed in 1.09s

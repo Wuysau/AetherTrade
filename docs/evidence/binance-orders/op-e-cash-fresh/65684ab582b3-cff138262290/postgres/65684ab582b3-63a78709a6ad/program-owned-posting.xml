@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="11" time="59.902" timestamp="2026-10-30T06:10:06.746770+00:00" hostname="4cb3b4c722a6"><testcase classname="tests.integration.test_program_owned_posting" name="test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction" time="6.152" /><testcase classname="tests.integration.test_program_owned_posting" name="test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta" time="7.358" /><testcase classname="tests.integration.test_program_owned_posting" name="test_missing_owner_retains_native_facts_without_claiming_position_or_cash" time="4.736" /><testcase classname="tests.integration.test_program_owned_posting" name="test_failed_financial_commit_rolls_back_all_owner_effects_and_retry_posts_once" time="6.176" /><testcase classname="tests.integration.test_program_owned_posting" name="test_concurrent_independent_source_approvals_apply_one_native_owned_effect" time="5.830" /><testcase classname="tests.integration.test_program_owned_posting" name="test_real_process_restart_does_not_duplicate_position_or_fees" time="5.529" /><testcase classname="tests.integration.test_program_owned_posting" name="test_low_decimal_precision_preserves_genuine_native_fee_cashflow" time="4.696" /><testcase classname="tests.integration.test_program_owned_posting" name="test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted" time="5.757" /><testcase classname="tests.integration.test_program_owned_posting" name="test_every_native_member_of_a_real_owned_batch_needs_its_same_transaction_marker" time="6.262"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'OWNED_POSTING_BATCH_INCOMPLETE'&#10;  Actual message: 'OWNED_POSTING_TRANSITION_REUSED'">tests/integration/test_program_owned_posting.py:265: in test_every_native_member_of_a_real_owned_batch_needs_its_same_transaction_marker
+    with pytest.raises(MissingEvidence,match='OWNED_POSTING_BATCH_INCOMPLETE'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'OWNED_POSTING_BATCH_INCOMPLETE'
+E     Actual message: 'OWNED_POSTING_TRANSITION_REUSED'</failure></testcase><testcase classname="tests.integration.test_program_owned_posting" name="test_disjoint_native_batches_cannot_reuse_one_actual_owned_transition" time="5.481" /><testcase classname="tests.integration.test_program_owned_posting" name="test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes" time="1.055"><failure message="trading_system.intents.semantic_validation.ProposalRejected: RESERVATION_QUANTITY_REQUIRED">tests/integration/test_program_owned_posting.py:340: in test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes
+    cases=[first,case(database,venue,tmp_path,prepared_case=second)]
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:48: in case
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:48: in &lt;lambda&gt;
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                                ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:370: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:366: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:253: in _reserve_program
+    inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:333: in load
+    return original(tx,source,intake,book,clock)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:128: in load
+    c.allocation=compile_program_target(c.plan,book,tf)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:145: in compile_program_target
+    return _compile_program_target(plan,book,facts)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:238: in _compile_program_target
+    delta=TargetCompiler(facts.inputs).compile_terms(terms,book)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/target_compiler.py:149: in compile_terms
+    return self._compile_terms(terms, book)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/target_compiler.py:160: in _compile_terms
+    return self._compile(terms, book)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/target_compiler.py:286: in _compile
+    scope_state=self._read_scope_quantities(intent,book,unit)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/target_compiler.py:273: in _read_scope_quantities
+    require(mapped == set(reservations), 'RESERVATION_QUANTITY_REQUIRED')
+src/trading_system/intents/semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: RESERVATION_QUANTITY_REQUIRED</failure></testcase></testsuite></testsuites>

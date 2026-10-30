@@ -1,0 +1,35 @@
+FFFFF                                                                    [100%]
+================================== FAILURES ===================================
+_____ test_unknown_or_partial_normalized_tag_never_falls_back_to_v1[tag0] _____
+tests\unit\test_program_source_versions.py:17: in test_unknown_or_partial_normalized_tag_never_falls_back_to_v1
+    from trading_system.execution.program_fill_source import decode_source_normalized
+E   ImportError: cannot import name 'decode_source_normalized' from 'trading_system.execution.program_fill_source' (D:\Projects\Python\AetherTrade\TradingHandoff\AutoDispatchWorktrees\binance-ope-program-accounting\src\trading_system\execution\program_fill_source.py)
+_____ test_unknown_or_partial_normalized_tag_never_falls_back_to_v1[tag1] _____
+tests\unit\test_program_source_versions.py:17: in test_unknown_or_partial_normalized_tag_never_falls_back_to_v1
+    from trading_system.execution.program_fill_source import decode_source_normalized
+E   ImportError: cannot import name 'decode_source_normalized' from 'trading_system.execution.program_fill_source' (D:\Projects\Python\AetherTrade\TradingHandoff\AutoDispatchWorktrees\binance-ope-program-accounting\src\trading_system\execution\program_fill_source.py)
+_____ test_unknown_or_partial_normalized_tag_never_falls_back_to_v1[tag2] _____
+tests\unit\test_program_source_versions.py:17: in test_unknown_or_partial_normalized_tag_never_falls_back_to_v1
+    from trading_system.execution.program_fill_source import decode_source_normalized
+E   ImportError: cannot import name 'decode_source_normalized' from 'trading_system.execution.program_fill_source' (D:\Projects\Python\AetherTrade\TradingHandoff\AutoDispatchWorktrees\binance-ope-program-accounting\src\trading_system\execution\program_fill_source.py)
+_____ test_unknown_or_partial_normalized_tag_never_falls_back_to_v1[tag3] _____
+tests\unit\test_program_source_versions.py:17: in test_unknown_or_partial_normalized_tag_never_falls_back_to_v1
+    from trading_system.execution.program_fill_source import decode_source_normalized
+E   ImportError: cannot import name 'decode_source_normalized' from 'trading_system.execution.program_fill_source' (D:\Projects\Python\AetherTrade\TradingHandoff\AutoDispatchWorktrees\binance-ope-program-accounting\src\trading_system\execution\program_fill_source.py)
+________ test_v2_math_keeps_native_economics_without_projecting_to_v1 _________
+tests\unit\test_program_source_versions.py:31: in test_v2_math_keeps_native_economics_without_projecting_to_v1
+    effects=derive_spot_asset_effects(normalized,base_asset='BTC',quote_asset='USDT')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\execution\program_asset_effects.py:33: in derive_spot_asset_effects
+    require(type(normalized) is NormalizedPaperFill and normalized.fill.scope.product==t.Product.SPOT,
+src\trading_system\execution\program_asset_effects.py:16: in require
+    if not condition:raise ValueError(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: SPOT_ASSET_EFFECTS_REQUIRED
+=========================== short test summary info ===========================
+FAILED tests/unit/test_program_source_versions.py::test_unknown_or_partial_normalized_tag_never_falls_back_to_v1[tag0]
+FAILED tests/unit/test_program_source_versions.py::test_unknown_or_partial_normalized_tag_never_falls_back_to_v1[tag1]
+FAILED tests/unit/test_program_source_versions.py::test_unknown_or_partial_normalized_tag_never_falls_back_to_v1[tag2]
+FAILED tests/unit/test_program_source_versions.py::test_unknown_or_partial_normalized_tag_never_falls_back_to_v1[tag3]
+FAILED tests/unit/test_program_source_versions.py::test_v2_math_keeps_native_economics_without_projecting_to_v1
+5 failed in 0.45s

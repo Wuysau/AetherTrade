@@ -1,0 +1,12 @@
+F.....                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction _
+tests/integration/test_program_owned_posting.py:68: in test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction
+    assert fee[1:]==fill
+E   AssertionError: assert ('776', 'c68b...d79e7d0a8a4c') == ('775', 'c68b...d79e7d0a8a4c')
+E     
+E     At index 0 diff: '776' != '775'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction
+1 failed, 5 passed in 45.47s

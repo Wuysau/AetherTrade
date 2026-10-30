@@ -1,0 +1,12 @@
+......F                                                                  [100%]
+=================================== FAILURES ===================================
+_______ test_low_decimal_precision_preserves_genuine_native_fee_cashflow _______
+tests/integration/test_program_owned_posting.py:199: in test_low_decimal_precision_preserves_genuine_native_fee_cashflow
+    assert [D(row[0]['amount']['amount']) for row in fees]==[D('-32.596')]
+E   AssertionError: assert [Decimal('-32.6')] == [Decimal('-32.596')]
+E     
+E     At index 0 diff: Decimal('-32.6') != Decimal('-32.596')
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_low_decimal_precision_preserves_genuine_native_fee_cashflow
+1 failed, 6 passed in 37.62s

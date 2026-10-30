@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="7" time="40.116" timestamp="2026-10-30T05:27:30.611626+00:00" hostname="dad9fa8b3196"><testcase classname="tests.integration.test_program_owned_posting" name="test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction" time="5.771" /><testcase classname="tests.integration.test_program_owned_posting" name="test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta" time="7.097" /><testcase classname="tests.integration.test_program_owned_posting" name="test_missing_owner_retains_native_facts_without_claiming_position_or_cash" time="4.786" /><testcase classname="tests.integration.test_program_owned_posting" name="test_failed_financial_commit_rolls_back_all_owner_effects_and_retry_posts_once" time="6.253" /><testcase classname="tests.integration.test_program_owned_posting" name="test_concurrent_independent_source_approvals_apply_one_native_owned_effect" time="5.988" /><testcase classname="tests.integration.test_program_owned_posting" name="test_real_process_restart_does_not_duplicate_position_or_fees" time="4.959" /><testcase classname="tests.integration.test_program_owned_posting" name="test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow" time="4.538"><failure message="ValueError: PAPER_CROSSED_SOURCE_BOOK">tests/integration/test_program_owned_posting.py:193: in test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow
+    market=replace(event(c,sequence=2,quantity='.2',ask='559.5',kind='DEPTH_DELTA'),
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in event
+    return PaperMarketEvent(contract_version='2026-10-29',event_id=event_id or uuid4().hex,stream_id=c.scope.instrument_uid,
+&lt;string&gt;:14: in __init__
+    ???
+src/trading_system/engine/paper_market.py:83: in __post_init__
+    require(max(number(l.price) for l in self.bids)&lt;min(number(l.price) for l in self.asks),'PAPER_CROSSED_SOURCE_BOOK')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_CROSSED_SOURCE_BOOK</failure></testcase></testsuite></testsuites>
