@@ -1,5 +1,32 @@
 # Current task
 
+## OP_E_NATIVE_QUERY_CHECKPOINT_REPRIORITIZED — 2026-10-30
+
+Parent explicitly reprioritized reports_fresh to actual PAPER V2 trusted report
+verification in a NEW tree from current root. This native/query tree is preserved
+as a clean checkpoint; no further unsigned parser expansion while V2 proceeds.
+Native artifacts:196 +response15 +query77 raw original/copy/committed blobs
+verified. NativeV1 core/source/window20PG+owner8PG proofs remain as recorded below.
+New responseff0a/3d62 had463relatedGREEN20.77s and parent independent UNVERIFIED-
+candidate review passed. Nonblocking deferred review item: confirm optional USD_M
+actualOrderId empty/zero placeholder semantics from official/pinned schemas;
+never attribute a generated child from a placeholder. This does not upgrade any
+native/source/ownership/permission qualification.
+
+New query71d3824 preserves V1 file/hash bytes and exact typed Decimal body replay,
+full bounded original pagination. Origin0211dc3 reads actual protected original
+SQL history; finalc72d3ec actual4PG0fail/error/skip16.80s includes real native OCO
+parent+2member IDs. Its earlier95b651f fixture correctly hit insufficient BTC
+capacity; only explicit fixture capacity/buffer inputs were corrected, retaining
+all existing collateral/transform/quote options. Combined483related0fail/error/
+skip21.20s. Query/origin independent review remains pending. No livejobs.
+
+Next authorized task: PAPER V2 verifier uses reviewed producer1b12ed9 API/0014
+exact hash and complete causal/all-rival evidence; newer native-parent/execution
+family remains evolving/explicit unsupported until frozen. V1 sources/readers
+stay unchanged. Root owns static SourceApproval registry, financial/accounting,
+public schema/migration edits and serial integration. Full46/56 remains ACTIVE.
+
 ## OP_E_NATIVE_ADAPTER_ACTIVE — 2026-10-30
 
 reports_fresh solely owns this NEW binance-ope-native-adapter worktree from
