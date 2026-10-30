@@ -19,7 +19,9 @@ sys.path.insert(0,str(ROOT/'src'))
 from trading_system.contracts import types as t
 from trading_system.storage.models import decode
 from trading_system.execution.creation_requests import VenueCreationRequest
+from trading_system.execution.management_requests import VenueManagementRequest
 from trading_system.engine.nautilus.native_creation import creation_call
+from trading_system.engine.nautilus.native_management import management_call
 from trading_system.engine.nautilus.sdk_pins import inspect_installed_sdk
 
 
@@ -32,26 +34,31 @@ async def probe(items):
     class InProcessFakeHttp:
         def __init__(self):self.requests=[]
         async def request(self,http_method,*,url,headers,body,keys):
-            assert http_method==HttpMethod.POST and url.startswith('https://offline.invalid/') and body is None
-            self.requests.append(dict(method='POST',url=url,ratelimiter_keys=keys))
+            assert http_method in (HttpMethod.GET,HttpMethod.POST,HttpMethod.PUT,HttpMethod.DELETE)
+            assert url.startswith('https://offline.invalid/') and body is None
+            self.requests.append(dict(url=url,ratelimiter_keys=keys))
             return SimpleNamespace(status=200,body=b'{"offline_shape_probe":true}',headers={})
     client=BinanceHttpClient(clock=LiveClock(),api_key='OFFLINE-PUBLIC-SHAPE-FIXTURE',api_secret=public_test_secret,
         base_url='https://offline.invalid')
     wire=InProcessFakeHttp();client._client=wire
     results=[]
     for item in items:
-        request=decode(VenueCreationRequest,item['request']);clock=decode(t.ClockReading,item['clock'])
-        call=creation_call(request,clock=clock,recv_window_ms=999)
+        family=item.get('family','creation');assert family in ('creation','management')
+        request=decode(VenueManagementRequest if family=='management' else VenueCreationRequest,item['request'])
+        clock=decode(t.ClockReading,item['clock'])
+        call=(management_call(request,clock=clock,recv_window_ms=999,**item.get('pagination',{}))
+            if family=='management' else creation_call(request,clock=clock,recv_window_ms=999))
         before=tuple(call.parameters)
         payload=dict(call.parameters)
         keys=['binance:'+call.endpoint.value,'binance:global']
-        raw=await BinanceHttpClient.sign_request(client,HttpMethod.POST,call.endpoint.value,payload=payload,ratelimiter_keys=keys)
+        method={'GET':HttpMethod.GET,'POST':HttpMethod.POST,'PUT':HttpMethod.PUT,'DELETE':HttpMethod.DELETE}[call.method]
+        raw=await BinanceHttpClient.sign_request(client,method,call.endpoint.value,payload=payload,ratelimiter_keys=keys)
         assert raw==b'{"offline_shape_probe":true}' and tuple(call.parameters)==before
         observed=parse_qsl(urlsplit(wire.requests[-1]['url']).query)
         signature=hmac.new(public_test_secret.encode(),urlencode(dict(before)).encode(),sha256).hexdigest()
         assert observed==[*before,('signature',signature)]
         assert wire.requests[-1]['ratelimiter_keys']==keys
-        results.append(dict(command_id=call.command_id,namespace=call.namespace.value,endpoint=call.endpoint.value,
+        results.append(dict(family=family,method=call.method,command_id=call.command_id,namespace=call.namespace.value,endpoint=call.endpoint.value,
             original_parameters=[list(p) for p in call.original_parameters],request_hash=call.request_hash,
             exact_sdk_signature_and_wire_shape=True))
     return dict(build=build,actual_sdk_client_constructed=True,http_transport='IN_PROCESS_FAKE_NO_NETWORK',
