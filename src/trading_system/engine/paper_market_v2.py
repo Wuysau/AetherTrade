@@ -177,6 +177,38 @@ class PaperLiquidityOwnershipEventV2:
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
+class PaperPositionEventV2:
+    contract_version:Literal['2026-10-30']
+    event_id:str
+    stream_id:str
+    product:t.Product
+    instrument_uid:str
+    sequence:int
+    kind:Literal['ACCOUNT_POSITION']
+    venue_account_id:str
+    venue_leg:Literal['BOTH','LONG','SHORT']
+    quantity_unit:str
+    notional_multiplier:str
+    reported_quantity:str
+    through_sequence:int
+    occurred_at:str
+    source:Literal['PAPER_MARKET_REPLAY_SYNTHETIC']
+    def __post_init__(self):
+        require(self.contract_version=='2026-10-30' and self.kind=='ACCOUNT_POSITION' and self.source==SOURCE
+            and self.product==t.Product.USD_M_PERP,'PAPER_POSITION_SOURCE_INVALID')
+        require(type(self.sequence) is int and 0<self.sequence<2**63 and type(self.through_sequence) is int
+            and 0<=self.through_sequence<self.sequence,'PAPER_POSITION_WATERMARK_INVALID')
+        require(all(type(v) is str and 0<len(v)<=256 for v in (self.event_id,self.stream_id,self.instrument_uid,
+            self.venue_account_id,self.quantity_unit)) and self.venue_leg in ('BOTH','LONG','SHORT'),'PAPER_POSITION_SCOPE_INVALID')
+        quantity=number(self.reported_quantity,signed=True)
+        require(number(self.notional_multiplier)>0 and (self.venue_leg!='LONG' or quantity>=0)
+            and (self.venue_leg!='SHORT' or quantity<=0),'PAPER_POSITION_UNIT_OR_SIGN_INVALID')
+        utc_timestamp(self.occurred_at)
+    @property
+    def market_key(self):return market_key(self.product,self.instrument_uid)
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
 class PaperExecutionTermsV2(PaperExecutionTerms):
     limit_price:str|None
     contract_version:Literal['2026-10-30']
@@ -373,7 +405,7 @@ def decode_source_event(payload):
     if payload.get('contract_version')=='2026-10-30':
         kind=payload.get('kind')
         types={'CLOCK':PaperClockEventV2,'SESSION_CALENDAR':PaperCalendarEventV2,'REFERENCE_PRICES':PaperReferenceEventV2,
-            'LIQUIDITY_OWNERSHIP':PaperLiquidityOwnershipEventV2}
+            'LIQUIDITY_OWNERSHIP':PaperLiquidityOwnershipEventV2,'ACCOUNT_POSITION':PaperPositionEventV2}
         require(kind in types,'PAPER_SOURCE_REVISION_UNKNOWN')
         return decode(types[kind],payload)
     return decode(PaperMarketEvent,payload)
@@ -391,7 +423,8 @@ def provision_paper_market_v2(admin_dsn,roles):
                 'public.paper_market_state_v2,public.paper_market_preventions_v2,public.paper_order_input_dependencies_v2,'
                 'public.paper_native_parents_v2,public.paper_native_members_v2,public.paper_native_parent_terms_v2,'
                 'public.paper_native_algorithm_progress_v2,public.paper_native_child_allocations_v2,'
-                'public.paper_native_parent_input_dependencies_v2 TO {}').format(sql.Identifier(role)))
+                'public.paper_native_parent_input_dependencies_v2,public.paper_venue_positions_v2,'
+                'public.paper_position_input_dependencies_v2 TO {}').format(sql.Identifier(role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_match_order(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_accept_native_program_v2(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_accept_native_algorithm_v2(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
@@ -401,8 +434,10 @@ def provision_paper_market_v2(admin_dsn,roles):
 
 
 def apply_reference_event(engine,event):
-    require(type(event) in (PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2) and event.product==engine.scope.product and event.instrument_uid==engine.scope.instrument_uid,
+    require(type(event) in (PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2,PaperPositionEventV2) and event.product==engine.scope.product and event.instrument_uid==engine.scope.instrument_uid,
         'PAPER_REFERENCE_SCOPE_MISMATCH')
+    if type(event) is PaperPositionEventV2:
+        require(event.venue_account_id==engine.scope.venue_account_id and event.venue_leg==engine.scope.venue_leg,'PAPER_POSITION_ACCOUNT_MISMATCH')
     now=engine._clock()
     require(type(now) is t.ClockReading and now.clock_health=='HEALTHY' and type(now.monotonic_ns) is int
         and now.monotonic_ns>=0 and utc_timestamp(event.occurred_at)<=utc_timestamp(now.utc_now),'PAPER_REFERENCE_CLOCK_REQUIRED')

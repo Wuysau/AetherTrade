@@ -89,6 +89,19 @@ CREATE TABLE public.paper_native_parent_input_dependencies_v2(
  PRIMARY KEY(scope_key,parent_client_id,market_key,event_id),
  FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
  FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
+-- Venue observations only: no cash, strategy owner, reservation or authority.
+CREATE TABLE public.paper_venue_positions_v2(
+ account_id text NOT NULL,product text NOT NULL,instrument_uid text NOT NULL,venue_leg text NOT NULL,
+ quantity_unit text NOT NULL,notional_multiplier numeric NOT NULL CHECK(notional_multiplier>0),
+ reported_quantity numeric NOT NULL,quantity numeric NOT NULL,through_sequence bigint NOT NULL,
+ market_key text NOT NULL,source_event_id text NOT NULL,known boolean NOT NULL,discrepancy text,
+ PRIMARY KEY(account_id,product,instrument_uid,venue_leg),
+ FOREIGN KEY(market_key,source_event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
+CREATE TABLE public.paper_position_input_dependencies_v2(
+ account_id text NOT NULL,product text NOT NULL,instrument_uid text NOT NULL,venue_leg text NOT NULL,
+ position_event_id text NOT NULL,market_key text NOT NULL,event_id text NOT NULL,
+ PRIMARY KEY(account_id,product,instrument_uid,venue_leg,position_event_id,market_key,event_id),
+ FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
 CREATE TABLE public.paper_order_runtime_v2(
  scope_key text NOT NULL,client_id text NOT NULL,active boolean NOT NULL,phase text NOT NULL,
  activation_event_id text,high_water numeric,low_water numeric,trail_started boolean NOT NULL DEFAULT false,
@@ -99,7 +112,7 @@ REVOKE ALL ON public.paper_market_state_v2,public.paper_reference_prices_v2,publ
  public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2,public.paper_market_preventions_v2,
  public.paper_order_input_dependencies_v2,public.paper_native_parents_v2,public.paper_native_members_v2,public.paper_native_exclusivity_v2,
  public.paper_native_parent_terms_v2,public.paper_native_algorithm_progress_v2,public.paper_native_child_allocations_v2,
- public.paper_native_parent_input_dependencies_v2 FROM PUBLIC;
+ public.paper_native_parent_input_dependencies_v2,public.paper_venue_positions_v2,public.paper_position_input_dependencies_v2 FROM PUBLIC;
 GRANT SELECT,INSERT,UPDATE ON public.paper_market_state_v2,public.paper_reference_prices_v2,
  public.paper_published_rules_v2,public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT ON public.paper_market_preventions_v2 TO paper_matcher_definer;
@@ -112,6 +125,8 @@ GRANT SELECT,INSERT,UPDATE ON public.paper_native_algorithm_progress_v2 TO paper
 GRANT SELECT,INSERT ON public.paper_native_child_allocations_v2,public.paper_native_parent_input_dependencies_v2 TO paper_matcher_definer;
 GRANT INSERT ON public.paper_engine_orders,public.paper_order_terms TO paper_matcher_definer;
 GRANT USAGE ON SEQUENCE public.paper_order_terms_arrival_sequence_seq TO paper_matcher_definer;
+GRANT SELECT,INSERT,UPDATE ON public.paper_venue_positions_v2 TO paper_matcher_definer;
+GRANT SELECT,INSERT ON public.paper_position_input_dependencies_v2 TO paper_matcher_definer;
 CREATE TRIGGER immutable_market_preventions_v2 BEFORE UPDATE OR DELETE ON public.paper_market_preventions_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 CREATE TRIGGER immutable_input_dependencies_v2 BEFORE UPDATE OR DELETE ON public.paper_order_input_dependencies_v2
@@ -123,6 +138,8 @@ CREATE TRIGGER immutable_native_parent_terms_v2 BEFORE UPDATE OR DELETE OR TRUNC
 CREATE TRIGGER immutable_native_allocations_v2 BEFORE UPDATE OR DELETE OR TRUNCATE ON public.paper_native_child_allocations_v2
  FOR EACH STATEMENT EXECUTE FUNCTION public.paper_market_immutable();
 CREATE TRIGGER immutable_native_parent_dependencies_v2 BEFORE UPDATE OR DELETE OR TRUNCATE ON public.paper_native_parent_input_dependencies_v2
+ FOR EACH STATEMENT EXECUTE FUNCTION public.paper_market_immutable();
+CREATE TRIGGER immutable_position_dependencies_v2 BEFORE UPDATE OR DELETE OR TRUNCATE ON public.paper_position_input_dependencies_v2
  FOR EACH STATEMENT EXECUTE FUNCTION public.paper_market_immutable();
 
 CREATE FUNCTION public.paper_accept_native_algorithm_v2(p_scope text,p_command text) RETURNS void
@@ -253,7 +270,8 @@ ALTER FUNCTION public.paper_claim_exclusive_v2(text,text,text) OWNER TO paper_ma
 REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
 
 CREATE FUNCTION public.paper_record_market_input_v2() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
-DECLARE point jsonb;
+DECLARE point jsonb;prior public.paper_venue_positions_v2;had_prior boolean;tail numeric;bad_unit boolean;
+ reported numeric;current_quantity numeric;watermark bigint;unit text;multiplier numeric;is_known boolean;issue text;
 BEGIN
  IF NEW.payload->>'kind' IN ('DEPTH_SNAPSHOT','DEPTH_DELTA') THEN
   INSERT INTO public.paper_market_state_v2 VALUES(NEW.market_key,NEW.event_id)
@@ -285,6 +303,53 @@ BEGIN
    INSERT INTO public.paper_liquidity_owners_v2 VALUES(NEW.market_key,NEW.payload->>'depth_event_id',point->>'side',
     (point->>'price')::numeric,(point->>'source_quantity')::numeric,point->>'venue_account_id',point->>'venue_order_id',NEW.event_id);
   END LOOP;
+ ELSIF NEW.payload->>'contract_version'='2026-10-30' AND NEW.payload->>'kind'='ACCOUNT_POSITION' THEN
+  IF NEW.payload->>'product' IS DISTINCT FROM 'USD_M_PERP' OR NEW.payload->>'source' IS DISTINCT FROM 'PAPER_MARKET_REPLAY_SYNTHETIC'
+   THEN RAISE EXCEPTION 'qualified native position source required'; END IF;
+  reported=(NEW.payload->>'reported_quantity')::numeric;watermark=(NEW.payload->>'through_sequence')::bigint;
+  unit=NEW.payload->>'quantity_unit';multiplier=(NEW.payload->>'notional_multiplier')::numeric;is_known=true;issue=NULL;
+  SELECT * INTO prior FROM public.paper_venue_positions_v2 WHERE account_id=NEW.payload->>'venue_account_id'
+   AND product=NEW.payload->>'product' AND instrument_uid=NEW.payload->>'instrument_uid' AND venue_leg=NEW.payload->>'venue_leg' FOR UPDATE;
+  had_prior=FOUND;
+  IF watermark<0 OR watermark>=NEW.sequence OR watermark>coalesce((SELECT sequence FROM public.paper_market_books WHERE market_key=NEW.market_key),0)
+   THEN is_known=false;issue='POSITION_WATERMARK_AHEAD';
+  ELSIF had_prior AND watermark<prior.through_sequence THEN is_known=false;issue='POSITION_SNAPSHOT_STALE';
+  ELSIF had_prior AND watermark=prior.through_sequence AND (reported<>prior.reported_quantity OR unit<>prior.quantity_unit OR multiplier<>prior.notional_multiplier)
+   THEN is_known=false;issue='POSITION_WATERMARK_CONFLICT'; END IF;
+  SELECT coalesce(sum(CASE WHEN t.terms->>'side'='BUY' THEN c.quantity ELSE -c.quantity END),0),
+   coalesce(bool_or(o.quantity_unit IS DISTINCT FROM unit OR (t.terms->>'multiplier')::numeric IS DISTINCT FROM multiplier),false)
+   INTO tail,bad_unit FROM public.paper_market_consumptions c JOIN public.paper_market_inputs i USING(market_key,event_id)
+    JOIN public.paper_order_terms t ON t.scope_key=c.scope_key AND t.client_id=c.client_id
+    JOIN public.paper_engine_orders o ON o.scope_key=c.scope_key AND o.client_id=c.client_id
+    WHERE c.market_key=NEW.market_key AND i.sequence>watermark
+     AND t.terms->'scope'->>'venue_account_id'=NEW.payload->>'venue_account_id'
+     AND t.terms->'scope'->>'product'=NEW.payload->>'product' AND t.terms->'scope'->>'instrument_uid'=NEW.payload->>'instrument_uid'
+     AND t.terms->'scope'->>'venue_leg'=NEW.payload->>'venue_leg';
+  IF bad_unit THEN is_known=false;issue='POSITION_UNIT_CONFLICT'; END IF;
+  current_quantity=reported+tail;
+  IF (NEW.payload->>'venue_leg'='LONG' AND current_quantity<0) OR (NEW.payload->>'venue_leg'='SHORT' AND current_quantity>0)
+   THEN is_known=false;issue='POSITION_LEG_CONFLICT'; END IF;
+  INSERT INTO public.paper_position_input_dependencies_v2 VALUES(NEW.payload->>'venue_account_id',NEW.payload->>'product',
+   NEW.payload->>'instrument_uid',NEW.payload->>'venue_leg',NEW.event_id,NEW.market_key,NEW.event_id);
+  INSERT INTO public.paper_position_input_dependencies_v2
+   SELECT NEW.payload->>'venue_account_id',NEW.payload->>'product',NEW.payload->>'instrument_uid',NEW.payload->>'venue_leg',NEW.event_id,c.market_key,c.event_id
+    FROM public.paper_market_consumptions c JOIN public.paper_market_inputs i USING(market_key,event_id)
+    JOIN public.paper_order_terms t ON t.scope_key=c.scope_key AND t.client_id=c.client_id
+    WHERE c.market_key=NEW.market_key AND i.sequence>watermark AND t.terms->'scope'->>'venue_account_id'=NEW.payload->>'venue_account_id'
+     AND t.terms->'scope'->>'product'=NEW.payload->>'product' AND t.terms->'scope'->>'instrument_uid'=NEW.payload->>'instrument_uid'
+     AND t.terms->'scope'->>'venue_leg'=NEW.payload->>'venue_leg' ON CONFLICT DO NOTHING;
+  IF NOT is_known AND had_prior THEN
+   current_quantity=prior.quantity;reported=prior.reported_quantity;watermark=prior.through_sequence;unit=prior.quantity_unit;multiplier=prior.notional_multiplier;
+   INSERT INTO public.paper_position_input_dependencies_v2
+    SELECT account_id,product,instrument_uid,venue_leg,NEW.event_id,market_key,event_id FROM public.paper_position_input_dependencies_v2
+     WHERE account_id=prior.account_id AND product=prior.product AND instrument_uid=prior.instrument_uid AND venue_leg=prior.venue_leg
+      AND position_event_id=prior.source_event_id ON CONFLICT DO NOTHING;
+  END IF;
+  INSERT INTO public.paper_venue_positions_v2 VALUES(NEW.payload->>'venue_account_id',NEW.payload->>'product',NEW.payload->>'instrument_uid',
+   NEW.payload->>'venue_leg',unit,multiplier,reported,current_quantity,watermark,NEW.market_key,NEW.event_id,is_known,issue)
+   ON CONFLICT(account_id,product,instrument_uid,venue_leg) DO UPDATE SET quantity_unit=excluded.quantity_unit,notional_multiplier=excluded.notional_multiplier,
+    reported_quantity=excluded.reported_quantity,quantity=excluded.quantity,through_sequence=excluded.through_sequence,market_key=excluded.market_key,
+    source_event_id=excluded.source_event_id,known=excluded.known,discrepancy=excluded.discrepancy;
  END IF;
  RETURN NEW;
 END $$;
@@ -324,6 +389,7 @@ DECLARE terms jsonb;spec jsonb;trigger_spec jsonb;runtime public.paper_order_run
  current_event text;resolved_price numeric;book record;expired_at timestamptz;payload jsonb;event_identifier text;
  calendar_source record;session_kind text;current_time_at timestamptz;day_close timestamptz;
  incoming_link jsonb;working_order record;full_fill_identifier text;working_sum numeric;
+ position_state public.paper_venue_positions_v2;
 BEGIN
  SELECT t.terms INTO terms FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=p_client;
  IF coalesce((terms->>'model_revision')::int,1)<>2 THEN RETURN true; END IF;
@@ -358,8 +424,18 @@ BEGIN
   ON CONFLICT(scope_key,client_id) DO NOTHING;
  SELECT * INTO runtime FROM public.paper_order_runtime_v2 r WHERE r.scope_key=p_scope AND r.client_id=p_client FOR UPDATE;
  IF coalesce((spec->>'reduce_only')::boolean,false) OR spec->>'position_side'<>'BOTH' THEN
-  UPDATE public.paper_order_runtime_v2 SET phase='WAITING_POSITION_SOURCE' WHERE scope_key=p_scope AND client_id=p_client;
-  RETURN false;
+  SELECT * INTO position_state FROM public.paper_venue_positions_v2 WHERE account_id=terms->'scope'->>'venue_account_id'
+   AND product=terms->'scope'->>'product' AND instrument_uid=terms->'scope'->>'instrument_uid'
+   AND venue_leg=terms->'scope'->>'venue_leg' FOR UPDATE;
+  IF position_state IS NOT NULL THEN
+   INSERT INTO public.paper_order_input_dependencies_v2 SELECT p_scope,p_client,d.market_key,d.event_id FROM public.paper_position_input_dependencies_v2 d
+    WHERE d.account_id=position_state.account_id AND d.product=position_state.product AND d.instrument_uid=position_state.instrument_uid
+     AND d.venue_leg=position_state.venue_leg AND d.position_event_id=position_state.source_event_id ON CONFLICT DO NOTHING;
+  END IF;
+  IF position_state IS NULL OR NOT position_state.known OR position_state.quantity_unit<>terms->'compilation'->'nodes'->0->>'quantity_unit'
+   OR position_state.notional_multiplier<>(terms->>'multiplier')::numeric THEN
+   UPDATE public.paper_order_runtime_v2 SET phase='WAITING_POSITION_SOURCE' WHERE scope_key=p_scope AND client_id=p_client;RETURN false;
+  END IF;
  END IF;
  SELECT l INTO incoming_link FROM jsonb_array_elements(terms->'compilation'->'original_program'->'links') l WHERE l->>'target'=terms->>'node_id';
  IF incoming_link IS NOT NULL AND runtime.parent_activation_fill_id IS NULL THEN
@@ -492,6 +568,7 @@ CREATE FUNCTION public.paper_advance_native_algorithms_v2(p_market text) RETURNS
 DECLARE book record;parent record;terms jsonb;model jsonb;node jsonb;spec jsonb;envelope jsonb;child_envelope jsonb;child_terms jsonb;
  duration integer;slots integer;due_slots integer;units numeric;target_units numeric;quantity numeric;step numeric;gross numeric;fee numeric;
  ordinal integer;allocation text;client text;current_at timestamptz;elapsed numeric;
+ position_state public.paper_venue_positions_v2;position_capacity numeric;
 BEGIN
  PERFORM pg_advisory_xact_lock(hashtextextended(p_market,0));
  SELECT * INTO book FROM public.paper_market_books WHERE market_key=p_market FOR UPDATE;
@@ -525,8 +602,28 @@ BEGIN
     WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
   END IF;
   IF coalesce((spec->>'reduce_only')::boolean,false) OR spec->>'position_side'<>'BOTH' THEN
-   UPDATE public.paper_native_parents_v2 SET status='WAITING_POSITION_SOURCE' WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;
-   CONTINUE;
+   SELECT * INTO position_state FROM public.paper_venue_positions_v2 WHERE account_id=terms->'scope'->>'venue_account_id'
+    AND product=terms->'scope'->>'product' AND instrument_uid=terms->'scope'->>'instrument_uid'
+    AND venue_leg=terms->'scope'->>'venue_leg' FOR UPDATE;
+   IF position_state IS NOT NULL THEN
+    INSERT INTO public.paper_native_parent_input_dependencies_v2
+     SELECT parent.scope_key,parent.parent_client_id,d.market_key,d.event_id FROM public.paper_position_input_dependencies_v2 d
+      WHERE d.account_id=position_state.account_id AND d.product=position_state.product AND d.instrument_uid=position_state.instrument_uid
+       AND d.venue_leg=position_state.venue_leg AND d.position_event_id=position_state.source_event_id ON CONFLICT DO NOTHING;
+   END IF;
+   IF position_state IS NULL OR NOT position_state.known OR position_state.quantity_unit<>terms->>'quantity_unit'
+    OR position_state.notional_multiplier<>(terms->>'multiplier')::numeric THEN
+    UPDATE public.paper_native_parents_v2 SET status='WAITING_POSITION_SOURCE' WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
+   END IF;
+   position_capacity=NULL;
+   IF (spec->>'reduce_only')::boolean OR (spec->>'position_side'='LONG' AND spec->>'side'='SELL') OR (spec->>'position_side'='SHORT' AND spec->>'side'='BUY') THEN
+    position_capacity=CASE WHEN spec->>'side'='SELL' THEN greatest(position_state.quantity,0) ELSE greatest(-position_state.quantity,0) END;
+    IF position_capacity=0 THEN
+     UPDATE public.paper_native_parents_v2 SET status='STOPPED_NO_POSITION',revision=revision+1
+      WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
+    END IF;
+   END IF;
+  ELSE position_capacity=NULL;
   END IF;
   IF NOT EXISTS(SELECT FROM public.paper_market_state_v2 WHERE market_key=p_market AND depth_event_id IS NOT NULL) THEN
    UPDATE public.paper_native_parents_v2 SET status='WAITING_DEPTH' WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
@@ -541,6 +638,7 @@ BEGIN
   step=(terms->>'quantity_step')::numeric;units=div(parent.original_quantity,step);
   IF mod(parent.original_quantity,step)<>0 THEN RAISE EXCEPTION 'native pool quantity grid changed'; END IF;
   target_units=div(units*due_slots,slots);quantity=target_units*step-parent.allocated_quantity;
+  IF position_capacity IS NOT NULL THEN quantity=least(quantity,div(position_capacity,step)*step); END IF;
   CONTINUE WHEN quantity<=0;
   IF quantity<(terms->'rules'->>'minimum_quantity')::numeric OR
    quantity*(envelope->>'minimum_price')::numeric*(terms->>'multiplier')::numeric<(terms->'rules'->>'minimum_notional')::numeric THEN
@@ -619,6 +717,7 @@ DECLARE market_id text; book record; ord record; level record; need numeric; ava
  preflight_need numeric;preflight_gross numeric;preflight_ok boolean;
  is_market boolean;model_revision integer;prepared record;liquidity_owner record;stp_mode text;depth_identifier text;
  maker_prevented numeric;taker_prevented numeric;prevention_identifier text;prevention_payload jsonb;
+ position_state public.paper_venue_positions_v2;position_capacity numeric;actual_spec jsonb;
 BEGIN
  SELECT market_key,(terms->'accepted_clock'->>'utc_now')::timestamptz INTO market_id,activity_at FROM public.paper_order_terms WHERE scope_key=p_scope AND client_id=p_client;
  IF market_id IS NULL THEN RAISE EXCEPTION 'original accepted PAPER terms required'; END IF;
@@ -667,6 +766,18 @@ BEGIN
   original_side=ord.terms->>'side';opposite_side=CASE WHEN original_side='BUY' THEN 'ASK' ELSE 'BID' END;
   limit_price=CASE WHEN model_revision=2 THEN ord.model_limit ELSE (ord.terms->>'limit_price')::numeric END;
   need=ord.quantity-ord.filled-coalesce(ord.model_prevented,0);reason=NULL;
+  actual_spec=coalesce(ord.terms->'spec',ord.terms->'compilation'->'nodes'->0->'original'->'order');position_capacity=NULL;
+  SELECT * INTO position_state FROM public.paper_venue_positions_v2 WHERE account_id=ord.terms->'scope'->>'venue_account_id'
+   AND product=ord.terms->'scope'->>'product' AND instrument_uid=ord.terms->'scope'->>'instrument_uid'
+   AND venue_leg=ord.terms->'scope'->>'venue_leg' FOR UPDATE;
+  IF coalesce((actual_spec->>'reduce_only')::boolean,false) OR actual_spec->>'position_side'<>'BOTH' THEN
+   IF position_state IS NULL OR NOT position_state.known OR position_state.quantity_unit<>ord.quantity_unit
+    OR position_state.notional_multiplier<>(ord.terms->>'multiplier')::numeric THEN CONTINUE; END IF;
+   IF (actual_spec->>'reduce_only')::boolean OR (actual_spec->>'position_side'='LONG' AND actual_spec->>'side'='SELL')
+    OR (actual_spec->>'position_side'='SHORT' AND actual_spec->>'side'='BUY') THEN
+    position_capacity=CASE WHEN actual_spec->>'side'='SELL' THEN greatest(position_state.quantity,0) ELSE greatest(-position_state.quantity,0) END;
+   END IF;
+  END IF;
   execution_at=greatest(activity_at,(ord.terms->'accepted_clock'->>'utc_now')::timestamptz,
    (book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
   envelope_min=(ord.terms->'execution_envelope'->>'minimum_price')::numeric;
@@ -697,7 +808,7 @@ BEGIN
     preflight_gross=preflight_gross+take_quantity*level.price*(ord.terms->>'multiplier')::numeric;
     preflight_need=preflight_need-take_quantity;
    END LOOP;
-   preflight_ok=preflight_need=0 AND preflight_gross<=envelope_gross
+   preflight_ok=preflight_need=0 AND (position_capacity IS NULL OR need<=position_capacity) AND preflight_gross<=envelope_gross
     AND preflight_gross*(ord.terms->>'quote_fee_rate')::numeric<=fee_ceiling;
   END IF;
   IF ord.revision=1 AND ((ord.terms->>'post_only')::boolean OR ord.terms->>'tif'='GTX') AND available_total>0 THEN
@@ -715,7 +826,8 @@ BEGIN
     AND (is_market OR CASE WHEN original_side='BUY' THEN price<=limit_price ELSE price>=limit_price END)
     ORDER BY CASE WHEN original_side='BUY' THEN price ELSE -price END FOR UPDATE LOOP
     EXIT WHEN need<=0;
-    take_quantity=least(need,level.available,coalesce(ord.model_visible,need));
+    IF position_capacity IS NOT NULL AND position_capacity<=0 THEN reason='REDUCE_ONLY_POSITION_EXHAUSTED';EXIT; END IF;
+    take_quantity=least(need,level.available,coalesce(ord.model_visible,need),coalesce(position_capacity,need));
     take_quantity=trunc(take_quantity/(ord.terms->>'quantity_step')::numeric)*(ord.terms->>'quantity_step')::numeric;
     CONTINUE WHEN take_quantity<=0;
     IF stp_mode<>'NONE' THEN
@@ -778,6 +890,14 @@ BEGIN
      VALUES('PAPER',ord.scope_key,fill_identifier,ord.client_id,encode(sha256(convert_to(fill_payload::text,'UTF8')),'hex'),fill_payload,take_quantity,level.price,execution_at);
     UPDATE public.paper_market_levels SET available=available-take_quantity
      WHERE market_key=market_id AND side=opposite_side AND price=level.price;
+    IF position_state IS NOT NULL AND position_state.known AND position_state.quantity_unit=ord.quantity_unit
+     AND position_state.notional_multiplier=(ord.terms->>'multiplier')::numeric THEN
+     UPDATE public.paper_venue_positions_v2 SET quantity=quantity+CASE WHEN original_side='BUY' THEN take_quantity ELSE -take_quantity END
+      WHERE account_id=position_state.account_id AND product=position_state.product AND instrument_uid=position_state.instrument_uid AND venue_leg=position_state.venue_leg;
+     INSERT INTO public.paper_position_input_dependencies_v2 VALUES(position_state.account_id,position_state.product,position_state.instrument_uid,
+      position_state.venue_leg,position_state.source_event_id,market_id,book.event_id) ON CONFLICT DO NOTHING;
+     IF position_capacity IS NOT NULL THEN position_capacity=position_capacity-take_quantity; END IF;
+    END IF;
     IF model_revision=2 AND ord.model_visible IS NOT NULL THEN
      ord.model_visible=ord.model_visible-take_quantity;
      UPDATE public.paper_order_runtime_v2 SET visible_remaining=ord.model_visible WHERE scope_key=ord.scope_key AND client_id=ord.client_id;

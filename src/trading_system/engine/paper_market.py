@@ -688,8 +688,8 @@ class PaperMatcher:
 
     @exact_market_arithmetic
     def apply_market_event(self,event):
-        from .paper_market_v2 import PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2,apply_reference_event
-        if type(event) in (PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2):return apply_reference_event(self.engine,event)
+        from .paper_market_v2 import PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2,PaperPositionEventV2,apply_reference_event
+        if type(event) in (PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2,PaperPositionEventV2):return apply_reference_event(self.engine,event)
         require(type(event) is PaperMarketEvent and event.product==self.engine.scope.product
             and event.instrument_uid==self.engine.scope.instrument_uid,'PAPER_MARKET_SCOPE_MISMATCH')
         now=self.engine._clock()
