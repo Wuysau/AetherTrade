@@ -11,7 +11,7 @@ from typing import Literal
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,domain_payload
 from trading_system.storage.events import EventStore
-from trading_system.storage.models import MissingEvidence,scope_id
+from trading_system.storage.models import MissingEvidence,scope_id,decode
 from trading_system.ownership.registry import RegistryTx,OwnerRecord
 from .program_asset_reader import ProgramAssetPostingReader
 from .program_asset_postings import ProgramAssetPostingRecord,make_program_asset_posting,economic_signature
@@ -19,6 +19,7 @@ from .program_account_cash import read_program_account_cash
 from .program_account_opening import read_program_account_opening
 from .program_legacy_opening import read_program_local_account_opening,read_program_legacy_opening
 from .program_book_cash import bind_program_book_cash,require_current_program_book_cash
+from .fills import FillLedger
 
 
 def need(condition,code):
@@ -28,12 +29,76 @@ def need(condition,code):
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramOwnedPostingRecord:
     contract_version:Literal['2026-10-30']
-    record_kind:Literal['PROGRAM_OWNED_POSTING_V1']
+    record_kind:Literal['PROGRAM_OWNED_POSTING_V1','PROGRAM_OWNED_POSTING_V2']
     identity_hash:str
     source_economic_hash:str
     owner_after:OwnerRecord
     position_sequence:int
     book_sequence:int
+    owner_before:OwnerRecord|None=None
+    source_approval_ids:tuple[str,...]=()
+
+
+def _history_row(tx,table,record_id,sequence):
+    return tx.execute('SELECT payload,xmin::text,transaction_id FROM ledger.'+table+
+        ' WHERE scope_id=%s AND record_id=%s AND sequence=%s',
+        (scope_id(tx.scope),record_id,sequence)).fetchone()
+
+
+def fee_cashflow(fact,index,fee):
+    ref=fact.fill.evidence
+    leg=t.EvidenceRef(id=ref.id+'#program-fee:'+fact.approval.identity_hash+':'+str(index),
+        hash=canonical_hash(dict(source=domain_payload(ref),index=index,fee=domain_payload(fee))),
+        source='PROGRAM_NATIVE_FEE_LEG',environment=ref.environment,visible_at=ref.visible_at)
+    return t.Cashflow(at=fact.fill.occurred_at,amount=replace(fee,amount=fee.amount.copy_negate()),
+        classification='FEE',internal_pair_id=None,evidence=leg)
+
+
+def require_owned_program_posting(tx,fact):
+    """Rederive a committed native-to-owner transition, never trust its marker."""
+    identity=fact.approval.identity_hash
+    row=_history_row(tx,'audit_events','program-owned-posting:'+identity,1)
+    need(row is not None,'UNPOSTED_PROGRAM_OWNED_EFFECTS')
+    try:posted=decode(ProgramOwnedPostingRecord,row[0])
+    except (ValueError,TypeError,KeyError) as error:raise MissingEvidence('OWNED_POSTING_HISTORY_REQUIRED') from error
+    before,after=posted.owner_before,posted.owner_after
+    need(posted.record_kind=='PROGRAM_OWNED_POSTING_V2' and before is not None
+        and posted.position_sequence>0 and posted.book_sequence>0 and bool(posted.source_approval_ids)
+        and posted.identity_hash==identity and posted.source_economic_hash==economic_signature(fact)
+        and after.sequence==before.sequence+1
+        and replace(after,position=before.position,sequence=before.sequence)==before,
+        'OWNED_POSTING_HISTORY_REQUIRED')
+    oldrow=_history_row(tx,'audit_events','ip16:owner',before.sequence)
+    newrow=_history_row(tx,'audit_events','ip16:owner',after.sequence)
+    prow=_history_row(tx,'positions',after.position.position_id,posted.position_sequence)
+    brow=_history_row(tx,'book_snapshots','book',posted.book_sequence)
+    need(oldrow is not None and oldrow[0]==domain_payload(before) and newrow is not None
+        and newrow[0]==domain_payload(after) and prow is not None and prow[0]==domain_payload(after.position)
+        and brow is not None and all(v[1:]==row[1:] for v in (newrow,prow,brow)),
+        'OWNED_POSTING_HISTORY_REQUIRED')
+    book=decode(t.BookSnapshot,brow[0])
+    need(book.scope==after.position.scope==before.position.scope==tx.scope and book.sequence==posted.book_sequence
+        and book.positions==(after.position,), 'OWNED_POSTING_HISTORY_REQUIRED')
+    facts=[];ids=set();reader=ProgramAssetPostingReader(tx,fill_ledger=FillLedger(None,tx.scope,trade_id_scope='INSTRUMENT'))
+    with localcontext() as arithmetic:
+        arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
+        quantity=before.position.actual_quantity.value
+        for approval in posted.source_approval_ids:
+            member=reader.read(approval);key=member.approval.identity_hash
+            need(key not in ids and (member.original_owner_strategy_id,member.original_ownership_epoch)==(
+                before.position.owner_strategy_id,before.position.ownership_epoch)
+                and member.effects.position_delta.unit==before.position.actual_quantity.unit,'OWNED_POSTING_HISTORY_REQUIRED')
+            ids.add(key);facts.append(member);quantity+=member.effects.position_delta.value
+        need(identity in ids and after.position.actual_quantity==replace(before.position.actual_quantity,value=quantity)
+            and after.position.owner_strategy_id==before.position.owner_strategy_id
+            and after.position.owner_book_id==before.position.owner_book_id
+            and after.position.ownership_epoch==before.position.ownership_epoch,'OWNED_POSTING_HISTORY_REQUIRED')
+    for member in facts:
+        for index,fee in enumerate(member.effects.fees):
+            cash=_history_row(tx,'cashflows','program-fee:'+member.approval.identity_hash+':'+str(index),1)
+            need(cash is not None and cash[0]==domain_payload(fee_cashflow(member,index,fee)) and cash[1:]==row[1:],
+                'OWNED_POSTING_HISTORY_REQUIRED')
+    return posted
 
 
 class ProgramOwnedSpotPosting:
@@ -67,6 +132,7 @@ class ProgramOwnedSpotPosting:
         for identity,fact in facts.items():
             posted=tx._latest('audit_events','program-owned-posting:'+identity,ProgramOwnedPostingRecord)
             if posted is None:pending.append(fact);continue
+            posted=require_owned_program_posting(tx,fact)
             need(posted.identity_hash==identity and posted.source_economic_hash==economic_signature(fact)
                 and posted.owner_after.position.owner_book_id==p.owner_book_id
                 and posted.owner_after.position.ownership_epoch==p.ownership_epoch,'OWNED_POSTING_NATIVE_CONFLICT')
@@ -118,11 +184,11 @@ class ProgramOwnedSpotPosting:
         for fact in pending:
             identity=fact.approval.identity_hash
             for index,fee in enumerate(fact.effects.fees):
-                cashflow=t.Cashflow(at=fact.fill.occurred_at,amount=replace(fee,amount=fee.amount.copy_negate()),
-                    classification='FEE',internal_pair_id=None,evidence=fact.fill.evidence)
+                cashflow=fee_cashflow(fact,index,fee)
                 tx._append('cashflows','program-fee:'+identity+':'+str(index),cashflow,0)
-            posting=ProgramOwnedPostingRecord(contract_version='2026-10-30',record_kind='PROGRAM_OWNED_POSTING_V1',
+            posting=ProgramOwnedPostingRecord(contract_version='2026-10-30',record_kind='PROGRAM_OWNED_POSTING_V2',
                 identity_hash=identity,source_economic_hash=economic_signature(fact),owner_after=new_owner,
-                position_sequence=position_sequence,book_sequence=updated_book.sequence)
+                position_sequence=position_sequence,book_sequence=updated_book.sequence,owner_before=owner,
+                source_approval_ids=tuple(f.approval.approval_id for f in pending))
             tx._append('audit_events','program-owned-posting:'+identity,posting,0)
         return ('COST_HISTORY_RECONCILIATION_REQUIRED','PROTECTION_RECHECK_REQUIRED')

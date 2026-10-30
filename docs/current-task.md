@@ -1,5 +1,47 @@
 # Current task
 
+## Actual cash writer progress / active review — 2026-10-30
+
+`cash_fresh` is still sole writer. Current product4fdbe01; no root/runtime host
+hooks or V2 registry have been installed in this worktree. Root's fresh source
+review now permits bounded frozen1b12 V2 source adaptation; it remains next work.
+Added protected0020 explicit legacy seed attestation (not capital from audit),
+neutral BookCashBinding and owner-scope reconciliation, and opt-in actual Spot
+asset/owned position/FEE/EventStore/book same-top-level-transaction posting.
+No running balance, fake principal cashflow, initial BTC allocation, release,
+FLAT, cost/history/protection completeness or other-product settlement grant.
+
+Real fixed source results (zero skips/errors unless stated):
+- BookCash88e1ef8:3 missing-module RED; a6de1ff:3PG green9.18s.
+- Legacy openingdb47601:3 missing-module RED; e161358:3pass/1 test dict-encoder
+  precondition; aab1ea1:4PG green; 733a004:5PG green including oldzero-base
+  book canonical-vector reconciliation once, no position allocation.
+- Cash282c4f5:6pass/1 trueDIDNOTRAISE malicious callable equality;1de1e5c:7PG
+  green. Registry now uses object identity only.
+- Owned postingad88c30:4missing-module RED. Later fixture errors preserved:
+  zero-fee fixture then string decimal-scale assertion, and financial SAVEPOINT
+  subtransaction xmin compared incorrectly with parent xmin. ddc4f22:6PG green
+  (actual nonzero32.596fee, duplicate/additional/concurrent independent sources,
+  real fork restart, absentowner raw-only, actualcommitfailure rollback+retry).
+- Fee precision38609d2:6pass/1 trueRED actual fee32.596 became-32.6 atprec3;
+  4fdbe01:7PG green via copy_negate. Earlier .1119-fixture preconditions
+  (crossed depth/envelope refusal) are retained, never claimed as bug proof.
+- Legacy forgeryca48b16:7pass/1 AttributeError in old typed .get math, NOT a
+  cash-mint DIDNOTRAISE. Root ruled unproved legacy origins must fail closed;
+  1da231a:8PG green with LEGACY_AUTHENTICATED_SOURCE_REQUIRED. No complete
+  protected legacy fill/history adapter exists. Original legacy-only None branch
+  remains; historical raw.zip has fees=[] and cannot be credited or repaired
+  with invented fees/event wrappers. Unchanged-artifact unit compatibility9green.
+
+Fresh independent reviewer cash_review identified replay-marker proof and
+two-owner-source interleaving hypotheses. Actual replay-negativea9a2cc9 failed
+against current code; do not integrate financial writer until fixed and green.
+Next: verify owner before/after delta plus actual historic position/book/fee rows;
+prove distinct-command, same-account concurrent-source owners can each post
+without cross-scope writes or weakening ordinary spendable read guards.
+Then V2 exact static registry/decoder integration and root actual proof. Evidence
+publication/copy/Git-blob SHA for this fresh cohort is still pending.
+
 ## Fresh accounting writer assigned — 2026-10-30
 
 Parent assigned `cash_fresh` as the sole writer of THIS accounting worktree
