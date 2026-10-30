@@ -377,3 +377,27 @@ def test_native_pending_node_cannot_borrow_program_gross_to_exceed_its_individua
         financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
     with pytest.raises(ValueError,match='PAPER_NATIVE_NODE_POLICY_EXCEEDED'):submit(c)
     assert c.engine.query_creation(c.write.command_id) is None
+
+
+def test_stp_decrement_retains_original_quantity_and_exact_prevented_leaves_then_fills_only_external_remainder(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher,digest
+    from trading_system.engine.paper_market_v2 import PaperLiquidityOwnershipEventV2,PaperLiquidityOwnerV2
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,stp='DECREMENT'),
+        profile_transform=lambda p:replace(p,profile_id='SYNTHETIC_V2_DECREMENT',spot=replace(p.spot,allowed_stp=('NONE','DECREMENT'))))
+    submit(c);matcher=PaperMatcher(c.engine);depth=event(c,quantity='0.4');matcher.apply_market_event(depth)
+    owned=PaperLiquidityOwnershipEventV2(contract_version='2026-10-30',event_id='decrement-owner',stream_id=c.scope.instrument_uid,
+        product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=2,kind='LIQUIDITY_OWNERSHIP',depth_event_id=depth.event_id,
+        depth_hash=digest(depth),owners=(PaperLiquidityOwnerV2(side='ASK',price='81490',source_quantity='0.4',
+        venue_account_id=c.scope.venue_account_id,venue_order_id='synthetic-owned-maker'),),occurred_at=c.c.facts.inputs.clock.utc_now,
+        source='PAPER_MARKET_REPLAY_SYNTHETIC')
+    matcher.apply_market_event(owned);prevented=c.engine.query_creation(c.write.command_id)
+    assert not prevented.fills and prevented.orders[0].quantity==1 and prevented.remaining_quantity==D('0.6')
+    assert prevented.orders[0].runtime.prevented_quantity==D('0.4') and prevented.status=='SUBMITTED'
+    delta=event(c,sequence=3,quantity='0.6',kind='DEPTH_DELTA');matcher.apply_market_event(delta)
+    external=replace(owned,event_id='decrement-external',sequence=4,depth_event_id=delta.event_id,depth_hash=digest(delta),
+        owners=(replace(owned.owners[0],source_quantity='1.0',venue_account_id='synthetic-other-account',venue_order_id='synthetic-external-maker'),))
+    matcher.apply_market_event(external);after=c.engine.query_creation(c.write.command_id)
+    assert after.status=='FILLED' and after.orders[0].quantity==1 and after.filled_quantity==D('0.6') and after.remaining_quantity==0
+    proof=c.engine.query_market_evidence(c.write.command_id)
+    assert sum((p.taker_quantity for p in proof.preventions),D(0))==D('0.4')
+    assert sum((a.quantity for a in proof.consumptions),D(0))==D('0.6')
