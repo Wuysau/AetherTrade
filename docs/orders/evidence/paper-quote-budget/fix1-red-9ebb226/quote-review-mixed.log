@@ -1,0 +1,30 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+__________ test_real_quote_then_v2_shared_event_authenticates[False] ___________
+tests/integration/test_quote_review_mixed.py:41: in test_real_quote_then_v2_shared_event_authenticates
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_ALL_RIVAL_ALLOCATION_SET_CHANGED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-b34710fb8ea64977bfefd2831fa7fe23', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified
+___________ test_real_quote_then_v2_shared_event_authenticates[True] ___________
+tests/integration/test_quote_review_mixed.py:41: in test_real_quote_then_v2_shared_event_authenticates
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_ALL_RIVAL_ALLOCATION_SET_CHANGED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-e75bfd5a65f04ac69860415999be40e6', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified
+____________ test_real_quote_after_reference_preserves_depth_source ____________
+tests/integration/test_quote_review_mixed.py:51: in test_real_quote_after_reference_preserves_depth_source
+    assert verify_quote_report(q.engine,report,boundary=q.gate).discrepancies==()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_quote_reports.py:66: in verify_quote_report
+    levels=event['asks' if opposite=='ASK' else 'bids']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'asks'
+=========================== short test summary info ============================
+FAILED tests/integration/test_quote_review_mixed.py::test_real_quote_then_v2_shared_event_authenticates[False]
+FAILED tests/integration/test_quote_review_mixed.py::test_real_quote_then_v2_shared_event_authenticates[True]
+FAILED tests/integration/test_quote_review_mixed.py::test_real_quote_after_reference_preserves_depth_source
+3 failed in 32.23s
