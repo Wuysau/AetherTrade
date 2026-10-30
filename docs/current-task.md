@@ -104,6 +104,21 @@ actual8GREEN53.77s/2GREEN15.68s at081d76e, zero failures/errors/skips. Runs
 be restarted. ROOT owns actual physicalscope quantity validation and legal A/B
 accepted-unfilled composition. Full46/56 remains ACTIVE.
 
+Broader ordinary compatibility is now explicit: exact081d76e original90517
+TERMINALRED3490pass/26fail/819environmentalskip/96deselect99.99s. All26 failed
+in the old legacy SimpleNamespace locked-action fixture's missing require_scope
+interface. No product guard was loosened. Local candidateefbc762 added exact
+scope+explicit no-generic-schema fixture behavior: actual119unitPASS5.28s then
+Linux original80025 TERMINALexit0 ordinary3516PASS/819explicit-envSKIP/
+96deselect104.74s plus realV2PG2PASS17.31s. Parent pointed to already-reviewed
+ROOT93efd36/b7 equivalent fixture; replaced WHOLE file VERBATIM at5803976,
+actual119unitPASS5.46s. Product code is unchanged from081d76e in both ordinary
+runs and this exact fixture replacement. Ordinary skips never replace mandatory
+PG; full combined gate/twoScope financial progress is still outstanding. All20
+fresh qualifier jobs terminal; raw negatives/greens retained and SHA publication
+updated below. Do not restart old jobs.145mentioned in coordination was an
+estimate corrected to actual119, not an executed count.
+
 ROOT dependencies are being coordinated before serial import. No fabrication
 of permits/accepted states/fees, no relaxed cross-command or cash guard, no
 foreign-scope writes or second running balance. Two-command proof remains a

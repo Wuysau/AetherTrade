@@ -23,6 +23,10 @@ Actual source-bound results:
   IDs are declarations and do not authenticate a runtime exclusion.
 - 764c2c9 opening9PG5.50s/BookCash3PG11.77s. Owned10pass/1same fixture prerequisite
   RESERVATION_QUANTITY_REQUIRED; no actual two-command progress claim.
+- Ordinary081d76e3490pass/26fixturefail/819envskip/96deselect retained. Corrected
+  efbc762 ordinary3516pass/819envskip/96deselect104.74s, paired2PG17.31s; subsequent
+  5803976 exact reviewed ROOT locked-action fixture119unit5.46s. No production
+  code changed between those sources. Ordinary skips are not PG qualification.
 
 All missing-module/migration REDs, schema reprovision/old-status/DTO fixture
 failures and the initial eager-schema upgrade precondition failure are retained.
