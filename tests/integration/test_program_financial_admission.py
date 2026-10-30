@@ -199,6 +199,19 @@ def test_execution_owner_cannot_forge_a_bounded_generic_intake(database):
         with c.owner.transaction(c.scope) as tx:tx._append('order_program_intakes','forged',c.record,0)
 
 
+@pytest.mark.parametrize('template',['OTO','OPO'])
+def test_native_pending_order_over_policy_never_commits_financial_reservations(database,template):
+    c=real_case(database,template=template)
+    c.c.policy=replace(c.c.policy,maximum_order_notional='82000')
+    with pytest.raises(ValueError,match='PROGRAM_RISK_ASSESSMENT_NOT_ALLOW'):
+        c.service._transaction(lambda tx:c.service._reserve_program(tx,c.key,('original-list-request',),
+            load_inputs=c.load,load_qualification=c.qualify,load_clock=lambda _:c.c.facts.inputs.clock))
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.intents.get(c.record.intent_id) is None
+        assert tx.reservations.for_intent(c.record.intent_id)==()
+        assert tx._latest('order_program_intakes',c.key,type(c.record))==c.record
+
+
 @pytest.mark.parametrize('fault',['missing_clock','unhealthy_clock','missing_lease','lease_reader_failure'])
 def test_public_unconfigured_readers_do_not_commit_private_financial_bundle(database,fault):
     """Negative public composition in actual PG; positive attachments follow separately."""

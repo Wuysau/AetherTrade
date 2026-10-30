@@ -137,6 +137,13 @@ def risk_case(*,template='ATOMIC',mode='VENUE_NATIVE',product=t.Product.SPOT,act
 def assess(c):return RiskEvaluator(c.facts.inputs).evaluate_program(c.terms,c.plan,c.allocation,c.exposure,c.book,c.policy,c.facts)
 
 
+@pytest.mark.parametrize('template',['OTO','OTOCO','OPO','OPOCO'])
+def test_each_native_pending_order_must_fit_per_order_policy_even_when_initial_entry_fits(template):
+    c=risk_case(template=template);c.policy=replace(c.policy,maximum_order_notional='82000')
+    result=assess(c)
+    assert result.verdict=='REPLAN_REQUIRED' and 'REPLAN:ORDER_NOTIONAL' in result.rejection_codes
+
+
 def rebind(c,*,book=None,market=None,target_facts=None):
     c.book=book or c.book;market=market or c.facts.market;tf=target_facts or c.facts.target_facts
     market=replace(market,ref=replace(market.ref,hash=snapshot_content_hash(market)))
