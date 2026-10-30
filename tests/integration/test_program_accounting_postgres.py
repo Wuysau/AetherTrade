@@ -151,3 +151,33 @@ def test_legacy_refresh_cannot_ignore_source_approved_generic_execution(database
             if operation=='cash':runtime._cash(tx)
             else:runtime._book(tx,c.scope,refresh=True)
         assert tx.projections.book(c.scope)==before
+
+
+@pytest.mark.parametrize('operation',('cash','book'))
+def test_missing_foreign_source_binding_cannot_hide_unreconciled_execution(database,venue,tmp_path,operation):
+    import psycopg
+    from integration.test_program_financial_admission import real_case
+    from trading_system.server.paper_runtime import UnifiedPaperRuntime
+    from trading_system.server.errors import ApiError
+    from trading_system.contracts.canonical import canonical_json
+    source,service,codec=setup_accounting(database,venue,tmp_path)
+    try:service.apply(source.write.command_id)
+    finally:codec.close()
+    with source.service.uow.transaction(source.scope) as tx:group=tx.group_id
+    receiver=real_case(database,collateral_group_id=group)
+    runtime=object.__new__(UnifiedPaperRuntime)
+    runtime.clock=lambda:receiver.c.facts.inputs.clock
+    with receiver.service.uow.transaction(receiver.scope) as tx:
+        before=tx.projections.book(receiver.scope)
+        seed=next(b.amount for b in before.balances if b.currency=='USDT')
+        tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
+            "VALUES(%s,'console:seed',1,%s::jsonb,%s)",
+            (scope_id(receiver.scope),canonical_json(dict(initial_cash=format(seed,'f'),source='EXPLICIT_ISOLATED_VIRTUAL_CAPITAL')),tx.transaction_id))
+    with psycopg.connect(database) as db:
+        db.execute('DELETE FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s',
+            (str(source.scope.environment),source.scope.venue_account_id,str(source.scope.product)))
+    with receiver.service.uow.transaction(receiver.scope) as tx:
+        with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
+            if operation=='cash':runtime._cash(tx)
+            else:runtime._book(tx,receiver.scope,refresh=True)
+        assert tx.projections.book(receiver.scope)==before
