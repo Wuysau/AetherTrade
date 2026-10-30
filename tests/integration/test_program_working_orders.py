@@ -241,6 +241,38 @@ def test_new_observed_clock_same_native_facts_does_not_change_cash_or_owned_quan
     finally:codec.close();source_codec.close()
 
 
+def test_real_same_account_working_projection_never_writes_the_other_scope(database,venue,tmp_path):
+    from integration.test_program_financial_admission import real_case
+    def history(c):
+        with c.service.uow.transaction(c.scope) as tx:
+            return tuple((table,tx.execute('SELECT row_to_json(r)::text,xmin::text FROM ledger.'+table+
+                ' r WHERE scope_id=%s ORDER BY row_to_json(r)::text',(scope_id(c.scope),)).fetchall()) for table in
+                ('order_projections','book_snapshots','audit_events','positions','cashflows','risk_locks','domain_events','outbox'))
+    a=case(database,venue,tmp_path,scoped_quantities=True);submit(a)
+    first,codec_a=projector(a,database,tmp_path/'scope-a')
+    second=codec_b=None
+    try:
+        assert first.observer.observe(a.write.command_id).state=='ACCEPTED'
+        b=case(database,venue,tmp_path,prepared_case=real_case(database,scoped_quantities=True,
+            venue_account_id=a.scope.venue_account_id,collateral_group_id=a.c.terms.collateral_group_id,
+            instrument_uid='working-peer-'+uuid4().hex))
+        submit(b);second,codec_b=projector(b,database,tmp_path/'scope-b')
+        before_b=history(b)
+        assert first.apply(a.write.command_id).status=='ORDER_BOOK_PROJECTED_DUTIES_RETAINED'
+        assert history(b)==before_b
+        before_a=history(a)
+        assert second.apply(b.write.command_id).status=='ORDER_BOOK_PROJECTED_DUTIES_RETAINED'
+        assert history(a)==before_a
+        for c in (a,b):
+            with c.service.uow.transaction(c.scope) as tx:
+                book=tx.projections.book(c.scope)
+                assert book.positions==() and book.active_orders[0].leaves_quantity.value==1
+                assert tx.reservations.for_intent(c.bundle.intent.intent_id)
+    finally:
+        codec_a.close()
+        if codec_b:codec_b.close()
+
+
 def test_owned_plus_real_working_leaves_new_bounded_intake_retains_cost_block_and_replay_stable(database,venue,tmp_path):
     from trading_system.execution.program_order_projection import read_program_working_inputs
     from trading_system.intents.program_target_allocation import compile_program_target
