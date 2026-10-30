@@ -138,3 +138,14 @@ def test_missing_real_competing_account_allocation_cannot_be_hidden_by_resealing
     result=observe(a,tmp_path/'raw')
     assert not result.source_verified and result.raw_refs and not result.fills
     assert 'PAPER_V2_ALL_RIVAL_ALLOCATION_SET_CHANGED' in result.discrepancies
+
+
+def test_complete_causal_graph_is_stored_once_not_copied_into_every_fill_provenance(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);matcher=PaperMatcher(c.engine)
+    for sequence in range(1,11):
+        matcher.apply_market_event(event(c,sequence=sequence,quantity='.1',kind='DEPTH_SNAPSHOT' if sequence==1 else 'DEPTH_DELTA'))
+    result=observe(c,tmp_path/'raw')
+    assert result.source_verified and len(result.fills)==10,result.discrepancies
+    assert len(result.causal_dependencies)==10 and result.causal_graph_hash
+    assert all(f.source_v2.causal_graph_hash==result.causal_graph_hash for f in result.fills)
+    assert all(len(f.source_v2.causal_input_ids)<=2 for f in result.fills)
