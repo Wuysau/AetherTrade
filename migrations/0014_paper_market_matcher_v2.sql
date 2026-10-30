@@ -149,6 +149,9 @@ BEGIN
  IF parent IS NULL OR parent IS DISTINCT FROM command.client_id OR parent IS DISTINCT FROM terms->>'parent_client_id'
   OR envelope->>'request_hash' IS DISTINCT FROM command.request_hash OR envelope->>'command_id' IS DISTINCT FROM p_command
   OR envelope->'scope' IS DISTINCT FROM p_scope::jsonb OR quantity IS NULL OR quantity<=0
+  OR terms->>'node_id' IS DISTINCT FROM terms->'compilation'->'nodes'->0->'original'->>'node_id'
+  OR terms->>'quantity' IS DISTINCT FROM terms->'compilation'->'nodes'->0->'quantity'->>'value'
+  OR NOT EXISTS(SELECT FROM jsonb_array_elements(command.request->'fields') f WHERE f->>'name'='quantity' AND f->>'value'=terms->>'quantity')
   OR (envelope->>'maximum_gross_notional')::numeric IS NULL THEN RAISE EXCEPTION 'finite original native parent pool required'; END IF;
  accepted=(terms->'accepted_clock'->>'utc_now')::timestamptz;
  ending=accepted+((terms->'compilation'->'original_program'->'algorithm'->>'duration_seconds')::integer)*interval '1 second';
@@ -497,7 +500,13 @@ BEGIN
   -- An older parent-only record never silently gains child-generation semantics.
   CONTINUE WHEN terms->>'record_kind'<>'PAPER_NATIVE_EXECUTION_TERMS_V2' OR book.sequence<=parent.accepted_source_sequence;
   model=terms->'execution_model';node=terms->'compilation'->'nodes'->0;spec=node->'original'->'order';envelope=terms->'execution_envelope';
+  IF parent.original_quantity IS DISTINCT FROM (terms->>'quantity')::numeric
+   OR parent.maximum_gross_notional IS DISTINCT FROM (envelope->>'maximum_gross_notional')::numeric
+   OR parent.fee_ceilings IS DISTINCT FROM envelope->'fee_ceilings'
+   OR parent.maximum_live_children IS DISTINCT FROM (terms->>'maximum_live_children')::integer
+   THEN RAISE EXCEPTION 'native pool immutable source changed'; END IF;
   IF terms->>'template' IS DISTINCT FROM 'TWAP' OR model->>'model_kind' IS DISTINCT FROM 'PAPER_NATIVE_TWAP_CLOCK_MODEL'
+   OR terms->>'record_revision' IS DISTINCT FROM '2'
    OR model->>'model_revision' IS DISTINCT FROM '1' OR model->>'slice_seconds' IS DISTINCT FROM '60'
    OR model->>'child_tif' IS DISTINCT FROM 'IOC' OR model->>'unused_policy' IS DISTINCT FROM 'NO_AUTOMATIC_RECYCLE'
    THEN RAISE EXCEPTION 'explicit native execution model required'; END IF;
