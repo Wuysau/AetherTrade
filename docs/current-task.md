@@ -12,6 +12,25 @@ same-ledger accounting work; activation_fresh owns OP-D matcher; reports_fresh
 owns controlled native adapter/consumed-current guard. Main/archive untouched.
 Goal ACTIVE: all46 capabilities/56 cases, complete OP-C→D/E/F→G remain required.
 
+Latest0015 actual current-quote cohort:58a36a1 fixed12 PG passed/0fail/error/skip
+after6 initial REDs and an actual SQL downgrade RED (10pass/1DID NOT RAISE).
+The new predicate binds current archive kind/version to immutable sequence1
+financial bundle, preserving0012 bytes/old V2 handler. Actual scalarV3 mark/
+consume/UNKNOWN also passes after0015. Quote real foreign funded READY request
+counts its cash once with tight group/strategy capacity while local quantity
+stays0. Raw source book and prepared financial book have separate bound hashes.
+Independent execution-bound loader remains required at mark and consume.
+
+Post-consumption quote guard extension0ea5d22 is in13-case actual PG56740 RUNNING;
+the preceding bbee3ae RED10pass/3fail exposed old-only typed restoration. It now
+statically restores known kinds without risk replay, reconciles actual own/other
+holds and rechecks current raw/prepared books/current execution proof. No result
+claimed yet. Mutable permit-label audit remains peer work, not waived.
+
+Standalone original0a55692 PG proof is published under op-c-expanded-checkpoint:
+42 suites1085 pass/0fail/error/skip;105 original bytes mapped/copied. The combined
+ordinary run stays INTERRUPTED. Fresh complete verification of later source is due.
+
 The explicit quote source/allocation now uses RiskEvaluator's same bindings,
 ExposureCalculator and policy core, full replay archive and a distinct2026-10-30
 financial intent/basis in the existing registry. Bounded intake and SAME

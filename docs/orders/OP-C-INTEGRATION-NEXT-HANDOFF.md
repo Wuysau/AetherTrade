@@ -1,5 +1,12 @@
 # Root integration continuation handoff
 
+RESUMED: parent explicitly reassigned SOLE root writer to integration_next after
+fresh-agent creation failed platform thread limit. The release narrative below
+is historical, not current ownership. Original57061 is terminal INTERRUPTED:
+42PG/1085 all pass, ordinary1048bytes/no XML/no launcher; runner137.0015 current
+quote12PG nowgreen58a36a1; post-consumed quote guard13PG0ea5d22 is RUNNING. Parent
+owns0016/17/18 source/accounting; integration_next owns0015/root integration.
+
 Prepared2026-10-30. Parent APPROVED WRITE RELEASE; integration_next explicitly
 RELEASES binance-orders write ownership at this checkpoint. Successor PENDING
 parent assignment. Integration_next retains ONLY READ-ONLY exec57061 job ownership

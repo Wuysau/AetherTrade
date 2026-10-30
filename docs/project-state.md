@@ -2,9 +2,10 @@
 
 Latest engineering2026-10-29: ACTIVE full Binance46-target/56-case OP-C→D/E/F→G
 continuation. Implementation tree is TradingHandoff/AutoDispatchWorktrees/binance-orders;
-root write ownership is RELEASED by integration_next at the2026-10-30 checkpoint;
-successor awaits explicit parent assignment. Integration_next retains only the
-original57061 read-only test job until terminal. Parent owns separate accounting;
+root sole write ownership was explicitly reassigned to integration_next after
+the platform rejected fresh-agent creation; the af255ee release is historical.
+Original57061 is INTERRUPTED:42 PG suites1085 passed with complete summary/XML,
+ordinary incomplete/no XML or launcher manifest, runner137. Parent owns separate accounting;
 OP-D and controlled native work continue in their isolated trees. Actual integration is
 under verification, with native quote interval financial and later work pending.
 Authoritative live engineering checkpoint: docs/current-task.md top sections.
