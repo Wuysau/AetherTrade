@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
     ('program-management', '03', 'tests/integration/test_program_management_postgres.py'),
     ('effective-orders', '03', 'tests/integration/test_effective_orders_postgres.py'),
+    ('effective-source-boundary', '03', 'tests/integration/test_effective_source_boundary.py'),
     ('paper-native-quote-combined', '03', 'tests/integration/test_paper_native_quote_combined.py'),
     ('paper-native-parent', '03', 'tests/integration/test_paper_native_parent_postgres.py'),
     ('quote-review-mixed', '03', 'tests/integration/test_quote_review_mixed.py'),
