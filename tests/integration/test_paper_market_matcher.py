@@ -30,7 +30,7 @@ def venue(database):
     return roles
 
 
-def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_fee_rate='0',node_fees=None,order_transform=None,**risk_options):
+def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_fee_rate='0',node_fees=None,order_transform=None,prepared_case=None,**risk_options):
     from trading_system.engine.paper import PaperEngine
     from trading_system.engine.paper_market import PaperMatchingModel
     from trading_system.runtime.execution_owner import ExecutionOwner
@@ -40,7 +40,16 @@ def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_f
         order=replace(n.order,tif=TimeInForceSpec(kind='NONE' if post_only else tif,expires_at=None),post_only=post_only)
         if order_transform is not None:order=order_transform(order)
         return replace(p,program=replace(p.program,nodes=(replace(n,order=order),)))
-    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+    if prepared_case is not None:
+        if tif!='GTC' or post_only or market is not None or node_fees is not None or order_transform is not None or risk_options:
+            raise ValueError('prepared financial fixture already defines its order and risk facts')
+        c=prepared_case
+        from trading_system.execution.program_book_cash import bind_program_book_cash
+        from trading_system.execution.program_legacy_opening import read_program_local_account_opening
+        with c.service.uow.transaction(c.scope) as tx:
+            bind_program_book_cash(tx,tx.projections.book(c.scope),read_opening=read_program_local_account_opening)
+    else:
+        c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
     c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
     c.gate=boundary(c);c.lease=lease(c);c.permit=None
     def unavailable(*args):raise ValueError('legacy guard never authorizes V3')

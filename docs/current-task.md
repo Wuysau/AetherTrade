@@ -50,6 +50,23 @@ root will serially select the reviewed shared file. Old V1/schema/hash/native-ID
 bindings remain, unknown kinds deny, evolving native-parent/execution stays
 blocked. Fresh root actual source cohort is due after this candidate commit.
 
+Rootbc4b3d6 actual51V2 PG now TERMINALexit0,238.15s, run7ebeaaf392a2/original92569.
+Its raw proof publication follows; this does not install a shared source registry.
+All prior imports/root component538 committed files freshly SHA-verified0mismatch.
+D6133034 actual34V2 PG GREEN0fail/error/skip157.49s, d75cc14 retains all96 raw
+RED/fixture/GREEN artifacts; this evolving producer remains outside frozenroot.
+
+Neutral cash integration candidate selects reviewed1de1e5c opening0019/legacy0020,
+exact reader identity fix, readonly asset reconstruction/book binding and richer
+historical source status/duties. Owned financial writer and preview are EXCLUDED.
+The new source registry/tagged V2 decoder remains cash_fresh-owned until review.
+Root fixture merges preserve order_transform/all current safety tests and add
+prepared_case with actual protected initial book binding before financial intake.
+New3-case actual cash-boundary cohort is RED-first pending: collateral requires
+binding, actual approved/recorded effects make mark/consume and post-wait guards
+stale. No hooks installed yet. Five neutral source suites added alongside every
+old mandatory suite; asset arithmetic/accounting12unitGREEN0.30s. Full46/56 ACTIVE.
+
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
 ROOT WRITE RELEASE: parent-approved checkpoint complete; integration_next now

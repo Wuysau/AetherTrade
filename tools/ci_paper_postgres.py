@@ -28,6 +28,12 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('program-cash-guards', '03', 'tests/integration/test_program_cash_guards.py'),
+    ('program-account-opening', '03', 'tests/integration/test_program_account_opening.py'),
+    ('program-account-cash', '03', 'tests/integration/test_program_account_cash.py'),
+    ('program-book-cash', '03', 'tests/integration/test_program_book_cash.py'),
+    ('program-legacy-opening', '03', 'tests/integration/test_program_legacy_opening.py'),
+    ('program-asset-reader', '03', 'tests/integration/test_program_asset_reader_postgres.py'),
     ('paper-program-v2-reports', '03', 'tests/integration/test_paper_program_v2_reports_postgres.py'),
     ('paper-market-matcher-v2', '03', 'tests/integration/test_paper_market_matcher_v2.py'),
     ('paper-market-matcher-v2-compat', '03', 'tests/integration/test_paper_market_matcher_v2_compat.py'),
