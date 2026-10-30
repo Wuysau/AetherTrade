@@ -424,3 +424,29 @@ def test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_o
     assert recreated.query_creation(c.write.command_id)==report
     recreated._matching_model=None
     with pytest.raises(ValueError,match='PAPER_NATIVE_PARENT_READER_REQUIRED'):recreated.query_creation(c.write.command_id)
+
+
+def test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read(database,venue_v2,tmp_path):
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+    admin=make_conninfo(**{**conninfo_to_dict(database),'dbname':conninfo_to_dict(venue_v2.runtime_dsn)['dbname']})
+    with psycopg.connect(admin) as db:
+        db.execute('UPDATE public.paper_native_algorithm_progress_v2 SET maximum_gross_notional=maximum_gross_notional+1 '
+            'WHERE scope_key=%s AND parent_client_id=%s',(c.engine._scope_key,c.request.assigned_ids.parent_client_id))
+    with pytest.raises(ValueError,match='PAPER_NATIVE_POOL_SOURCE_CHANGED'):c.engine.query_creation(c.write.command_id)
+
+
+def test_nullable_native_target_does_not_weaken_ordinary_or_incomplete_parent_command_constraints(database,venue_v2,tmp_path):
+    import psycopg
+    from psycopg.types.json import Jsonb
+    from trading_system.contracts.canonical import domain_payload
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+    for operation,request in [('SUBMIT',{}),('CREATE_REQUEST',domain_payload(c.request))]:
+        with pytest.raises(psycopg.IntegrityError):
+            with psycopg.connect(venue_v2.runtime_dsn) as db:
+                # A null target alone does not manufacture a native parent.
+                db.execute('INSERT INTO public.paper_engine_commands VALUES(%s,%s,%s,%s,NULL,%s,%s,%s)',
+                    ('PAPER',c.engine._scope_key,'unbacked-'+operation,'f'*32,operation,'f'*64,Jsonb(request)))
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with psycopg.connect(venue_v2.runtime_dsn) as db:db.execute('UPDATE public.paper_native_algorithm_progress_v2 SET allocated_quantity=0')
