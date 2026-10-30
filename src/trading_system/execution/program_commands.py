@@ -360,6 +360,9 @@ class ProgramCommandRepository:
         ttl=min(self.tx.permit_ttl_ms,int((expires-utc_timestamp(clock.utc_now)).total_seconds()*1000),
             (current.deadline_monotonic_ns-clock.monotonic_ns)//1_000_000)
         require(ttl>=1,'PROGRAM_PERMIT_WINDOW_EXPIRED')
+        context['permit_window']={
+            'expires_at':(utc_timestamp(clock.utc_now)+timedelta(milliseconds=ttl)).isoformat(),
+            'deadline_monotonic_ns':clock.monotonic_ns+ttl*1_000_000}
         self.tx.execute('SELECT ledger.mark_program_may(%s,%s,%s::jsonb,%s,%s,%s)',
             (scope_id(w.scope),command_id,canonical_json(context),token_hash,ttl,self.tx.transaction_id))
         # This uncommitted candidate never escapes ProgramCommandBoundary.

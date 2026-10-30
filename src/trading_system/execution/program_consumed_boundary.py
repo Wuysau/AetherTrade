@@ -64,26 +64,29 @@ def _protected(tx,command_id):
     return consumed,marked,marked_write,may_write,consumed_token,marked_token,db_remaining_us
 
 
-def _original_permit_window(tx,marked,permit):
-    """Restore the exact existing mark/boundary token labels, never renew them.
+def _original_permit_window(marked,permit):
+    """Match committed original labels, independent of today's TTL policy.
 
-    This is the same TTL formula used by mark_may_have_sent, using its protected
-    original clock/lease/horizon and the trusted boundary's unchanged TTL policy.
-    A changed policy fails closed; a new process must query original IDs rather
-    than recreate a send token. This performs no historical financial replay.
+    Old marks without this metadata remain historical query sources, never new
+    send authority. The server-only mark records the exact original constructor
+    values atomically with MAY; no row/hash is backfilled or recomputed here.
     """
-    clock=marked['clock'];lease=marked['lease']
-    require(type(tx.permit_ttl_ms) is int and 1<=tx.permit_ttl_ms<=5000
+    clock=marked['clock'];lease=marked['lease'];window=marked.get('permit_window')
+    require(type(window) is dict and set(window)=={'expires_at','deadline_monotonic_ns'}
+        and type(window['expires_at']) is str and type(window['deadline_monotonic_ns']) is int
         and clock['clock_health']=='HEALTHY' and type(clock['monotonic_ns']) is int
         and clock['monotonic_ns']>=0 and type(lease['deadline_monotonic_ns']) is int,
         'PROGRAM_ORIGINAL_PERMIT_WINDOW_REQUIRED')
-    marked_at=utc_timestamp(clock['utc_now'])
-    # Preserve the frozen constructor's millisecond truncation exactly.
-    ttl=min(tx.permit_ttl_ms,int((utc_timestamp(marked['valid_until'])-marked_at).total_seconds()*1000),
-        (lease['deadline_monotonic_ns']-clock['monotonic_ns'])//1_000_000)
-    require(ttl>=1 and type(permit.deadline_monotonic_ns) is int
-        and permit.deadline_monotonic_ns==clock['monotonic_ns']+ttl*1_000_000
-        and permit.expires_at==(marked_at+timedelta(milliseconds=ttl)).isoformat(),
+    marked_at=utc_timestamp(clock['utc_now']);expires=utc_timestamp(window['expires_at'])
+    duration_us=(expires-marked_at)//timedelta(microseconds=1)
+    require(0<duration_us<=5_000_000 and duration_us%1000==0
+        and expires<=min(utc_timestamp(marked['valid_until']),utc_timestamp(lease['expires_at']))
+        and window['deadline_monotonic_ns']==clock['monotonic_ns']+duration_us*1000
+        and window['deadline_monotonic_ns']<=lease['deadline_monotonic_ns'],
+        'PROGRAM_COMMITTED_PERMIT_WINDOW_INVALID')
+    require(type(permit.deadline_monotonic_ns) is int
+        and permit.deadline_monotonic_ns==window['deadline_monotonic_ns']
+        and permit.expires_at==window['expires_at'],
         'PROGRAM_ORIGINAL_PERMIT_WINDOW_CHANGED')
 
 
@@ -95,7 +98,7 @@ def recheck_consumed(boundary,permit,lease):
     with boundary.uow.transaction(boundary.scope) as tx:
         consumed,marked,marked_write,may_write,c_token,m_token,_=_protected(tx,permit.command_id)
         require(c_token==m_token==_token_hash(permit.token),'PROGRAM_CONSUMED_TOKEN_CHANGED')
-        _original_permit_window(tx,marked,permit)
+        _original_permit_window(marked,permit)
         original=read_original_creation(tx,permit.command_id)
         require(original is not None and original.current_state=='MAY_HAVE_SENT','PROGRAM_CONSUMED_MAY_REQUIRED')
         write=replace(original.initial,state='MAY_HAVE_SENT');request=original.request
