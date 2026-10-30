@@ -1,5 +1,6 @@
 """Restricted management of actual existing PAPER orders; no matcher or fills."""
 from dataclasses import dataclass,replace
+from hashlib import sha256
 from datetime import timedelta
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import domain_payload,canonical_json,utc_timestamp
@@ -9,12 +10,18 @@ from trading_system.intents.order_management_compilation import OwnedTargetSnaps
 from trading_system.runtime.execution_owner import ExecutionOwner
 from trading_system.storage.models import scope_id
 
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperManagementTargetObservation:
+    target:OwnedTargetSnapshot
+    source_json:str
+    source_hash:str
+
 class PaperManagementTargetReader:
     def __init__(self,engine):
         require(type(engine) is PaperEngine,'MANAGEMENT_ACTUAL_PAPER_ENGINE_REQUIRED')
         self.engine=engine
 
-    def capture(self,original):
+    def capture(self,original,*,execution_epoch):
         require(original is not None and original.initial.scope==self.engine.scope,'MANAGEMENT_ORIGINAL_SCOPE_REQUIRED')
         report=self.engine.query_creation(original.initial.command_id)
         require(report is not None and digest(report.request)==original.initial.request_hash,
@@ -28,13 +35,16 @@ class PaperManagementTargetReader:
             'MANAGEMENT_SOURCE_IDENTITY_CHANGED')
         now=self.engine._clock()
         require(now.clock_health=='HEALTHY','MANAGEMENT_TARGET_CLOCK_REQUIRED')
-        return OwnedTargetSnapshot(scope=w.scope,namespace=original.request.namespace,program_id=w.program_id,
+        target=OwnedTargetSnapshot(scope=w.scope,namespace=original.request.namespace,program_id=w.program_id,
             program_hash=w.canonical_program_hash,venue_id=row.venue_order_id,client_id=row.client_id,
-            owner_strategy_id=w.owner_strategy_id,ownership_epoch=w.ownership_epoch,execution_epoch=w.execution_epoch,
+            owner_strategy_id=w.owner_strategy_id,ownership_epoch=w.ownership_epoch,execution_epoch=execution_epoch,
             policy_revision=w.policy_revision,status='NEW' if row.status=='SUBMITTED' else row.status,
             order=context.compilation.nodes[0].original.order,original_quantity=format(row.quantity,'f'),
             cumulative_quantity=format(row.filled_quantity,'f'),parent_list_id=None,evidence=report.evidence,
             as_of=now.utc_now,valid_until=(utc_timestamp(now.utc_now)+timedelta(seconds=30)).isoformat())
+        raw=canonical_json(domain_payload(report))
+        require(len(raw.encode('utf-8'))<=16777216,'MANAGEMENT_TARGET_SOURCE_BOUND_EXCEEDED')
+        return PaperManagementTargetObservation(target=target,source_json=raw,source_hash=sha256(raw.encode('utf-8')).hexdigest())
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class PaperManagementBridge:

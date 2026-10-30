@@ -81,6 +81,10 @@ def test_actual_management_commits_full_plan_and_real_outbox(management_database
         stored=ManagementRepository(tx).read(write.command_id)
         assert stored.write==write and stored.plan.target.client_id==c.request.assigned_ids.members[0].client_id
         assert stored.write.plan_hash and stored.write.target_hash and stored.write.funding_hash
+        from hashlib import sha256
+        import json
+        assert sha256(stored.target_source_json.encode('utf-8')).hexdigest()==stored.target_source_hash
+        assert json.loads(stored.target_source_json)['evidence']['hash']==stored.plan.target.evidence.hash
         assert tx.execute('SELECT kind FROM ledger.outbox WHERE aggregate_id=%s',(write.command_id,)).fetchone()==('PROGRAM_MANAGEMENT_READY',)
 
 
@@ -320,3 +324,31 @@ def test_neutral_management_duty_is_visible_across_instrument_scope(management_d
         obligations=management_obligations(tx)
         assert len(obligations)==1 and obligations[0].original==w and obligations[0].unresolved
         assert management_obligations(tx,scope_only=True)==()
+
+def test_protective_reduction_cancel_requires_independent_action_proof(management_database,venue_v2,tmp_path):
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    c=advanced_case(management_database,venue_v2,tmp_path,actual='1',target='0',quantity='1',side='SELL',
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    submit(c);s=management(c)
+    assert c.bundle.archive.allocation.delta.classification=='REDUCE'
+    with pytest.raises(ValueError,match='PROTECTION_ACTION_PROOF_REQUIRED'):
+        s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+    assert c.engine.query_creation(c.write.command_id).status=='SUBMITTED'
+
+def test_direct_sql_consume_cannot_use_uncommitted_management_may(management_database,venue_v2,tmp_path):
+    import psycopg
+    from trading_system.execution.program_management_commands import ManagementRepository,token_hash
+    from trading_system.contracts.canonical import canonical_json
+    from trading_system.storage.models import scope_id
+    c,s,w=admitted(management_database,venue_v2,tmp_path);target=s.capture_for(w.command_id)
+    with pytest.raises(psycopg.errors.CheckViolation,match='committed unused'):
+        with s.verifier_uow.transaction(c.scope) as tx:
+            b=ManagementRepository(tx).read(w.command_id)
+            ctx,clock,_=s.current(tx,b,target,c.lease)
+            s.boundary.tx_mark(tx,b,ctx,'private-test-token',5000)
+            marked=ManagementRepository(tx).read(w.command_id)
+            ctx,_,_=s.current(tx,marked,target,c.lease)
+            tx.execute('SELECT ledger.consume_management_permit(%s,%s,%s,%s::jsonb,%s)',
+                (scope_id(c.scope),w.command_id,token_hash('private-test-token'),canonical_json(ctx),tx.transaction_id))
+    with s.verifier_uow.transaction(c.scope) as tx:assert ManagementRepository(tx).read(w.command_id).write.state=='DURABLE_READY'

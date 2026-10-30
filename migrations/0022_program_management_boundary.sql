@@ -108,6 +108,8 @@ DECLARE w jsonb;original jsonb;BEGIN
   OR ledger.program_digest(b->'plan') IS DISTINCT FROM w->>'plan_hash'
   OR ledger.program_digest(b#>'{plan,target}') IS DISTINCT FROM w->>'target_hash'
   OR ledger.program_digest(b->'request') IS DISTINCT FROM w->>'request_hash'
+  OR encode(sha256(convert_to(b->>'target_source_json','UTF8')),'hex') IS DISTINCT FROM b->>'target_source_hash'
+  OR (b->>'target_source_json')::jsonb#>>'{evidence,hash}' IS DISTINCT FROM b#>>'{plan,target,evidence,hash}'
   OR ledger.program_digest(jsonb_set(b,'{write,binding_hash}',to_jsonb(repeat('0',64)))) IS DISTINCT FROM w->>'binding_hash'
   OR b#>>'{plan,instruction,kind}' IS DISTINCT FROM w->>'operation'
   OR w->>'operation'<>'CANCEL'

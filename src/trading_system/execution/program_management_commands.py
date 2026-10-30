@@ -3,6 +3,8 @@ from dataclasses import dataclass,replace
 from datetime import timedelta
 from typing import Literal
 import secrets
+import json
+from hashlib import sha256
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload,utc_timestamp
 from trading_system.contracts.management_write_v4 import ManagementWriteV4
@@ -34,6 +36,8 @@ class ManagementBinding:
     reservation_hash:str
     risk_hash:str
     funding_hash:str
+    target_source_json:str
+    target_source_hash:str
 
 def binding_hash(binding):return digest(replace(binding,write=replace(binding.write,binding_hash='0'*64)))
 
@@ -60,6 +64,9 @@ class ManagementRepository:
             and digest(binding.plan.target)==w.target_hash and digest(binding.request)==w.request_hash
             and binding.risk_hash==w.risk_hash and binding.funding_hash==w.funding_hash,
             'MANAGEMENT_IMMUTABLE_BINDING_CHANGED')
+        require(sha256(binding.target_source_json.encode('utf-8')).hexdigest()==binding.target_source_hash
+            and json.loads(binding.target_source_json)['evidence']['hash']==binding.plan.target.evidence.hash,
+            'MANAGEMENT_TARGET_SOURCE_CHANGED')
         rows=self.tx.execute('SELECT sequence,payload FROM ledger.management_writes WHERE scope_id=%s AND record_id=%s ORDER BY sequence',
             (scope_id(self.tx.scope),command_id)).fetchall()
         require(tuple(n for n,_ in rows)==tuple(range(1,len(rows)+1)) and 1<=len(rows)<=3,'MANAGEMENT_HISTORY_REQUIRED')

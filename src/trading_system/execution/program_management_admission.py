@@ -42,10 +42,10 @@ class ProgramManagementService:
         self.target_reader=target_reader;self.load_clock=load_clock;self.load_lease=load_lease;self.load_inputs=load_inputs
         self.boundary=ManagementBoundary(self)
 
-    def _capture(self,original):
+    def _capture(self,original,execution_epoch):
         from .program_management_paper import PaperManagementTargetReader
         require(type(self.target_reader) is PaperManagementTargetReader,'MANAGEMENT_TRUSTED_TARGET_READER_REQUIRED')
-        return self.target_reader.capture(original)
+        return self.target_reader.capture(original,execution_epoch=execution_epoch)
 
     def capture_for(self,command_id):
         # This transaction closes BEFORE independent venue source IO.
@@ -53,7 +53,7 @@ class ProgramManagementService:
             binding=ManagementRepository(tx).read(command_id)
             require(binding is not None,'MANAGEMENT_COMMAND_REQUIRED')
             original=read_original_creation(tx,binding.write.original_command_id)
-        return self._capture(original)
+        return self._capture(original,binding.write.execution_epoch)
 
     def _facts(self,tx,original,target,lease,*,valid_until):
         require(tx.active and tx.scope==self.scope and self.scope.environment==t.Environment.PAPER,'MANAGEMENT_PAPER_ONLY')
@@ -66,7 +66,7 @@ class ProgramManagementService:
         now=utc_timestamp(clock.utc_now)
         require(type(lease) is t.OwnerLease and current_lease==lease and lease.shard.environment==self.scope.environment
             and lease.shard.venue_account_id==self.scope.venue_account_id and lease.shard.product==self.scope.product
-            and lease.shard.execution_epoch==w.execution_epoch and bool(lease.instance_id and lease.shard.node_id)
+            and lease.shard.execution_epoch==target.execution_epoch and bool(lease.instance_id and lease.shard.node_id)
             and now<utc_timestamp(lease.expires_at) and clock.monotonic_ns<lease.deadline_monotonic_ns,
             'MANAGEMENT_CURRENT_LEASE_REQUIRED')
         bundle=read_program_bundle(tx,w.intent_id)
@@ -80,7 +80,7 @@ class ProgramManagementService:
             w.owner_strategy_id,w.ownership_epoch,w.policy_revision),'MANAGEMENT_CURRENT_OWNER_REQUIRED')
         require(target.scope==self.scope and target.program_id==w.program_id and target.program_hash==w.canonical_program_hash
             and target.namespace.value==w.service_namespace and (target.owner_strategy_id,target.ownership_epoch,
-            target.execution_epoch,target.policy_revision)==(w.owner_strategy_id,w.ownership_epoch,w.execution_epoch,w.policy_revision),
+            target.execution_epoch,target.policy_revision)==(w.owner_strategy_id,w.ownership_epoch,lease.shard.execution_epoch,w.policy_revision),
             'MANAGEMENT_TARGET_IDENTITY_CHANGED')
         book=tx.projections.book(self.scope)
         from trading_system.risk.program_cash_guard import require_current_account_book
@@ -125,9 +125,12 @@ class ProgramManagementService:
 
     def admit(self,original_command_id,instruction,lease,*,command_id=None,valid_until=None):
         require(type(instruction) is ManagementInstruction and instruction.kind!=ManagementKind.QUERY,'MANAGEMENT_QUERY_READ_ONLY')
-        with self.verifier_uow.transaction(self.scope) as tx:original=read_original_creation(tx,original_command_id)
+        with self.verifier_uow.transaction(self.scope) as tx:
+            original=read_original_creation(tx,original_command_id)
+            current_lease=self.load_lease(tx) if self.load_lease else None
         require(original is not None,'MANAGEMENT_ORIGINAL_REQUIRED')
-        target=self._capture(original)
+        require(type(current_lease) is t.OwnerLease and current_lease==lease,'MANAGEMENT_CURRENT_LEASE_REQUIRED')
+        observation=self._capture(original,current_lease.shard.execution_epoch);target=observation.target
         with self.verifier_uow.transaction(self.scope) as tx:
             again=read_original_creation(tx,original_command_id)
             require(digest(again)==digest(original),'MANAGEMENT_ORIGINAL_CHANGED')
@@ -158,7 +161,8 @@ class ProgramManagementService:
                 state='DURABLE_READY',created_at=clock.utc_now,valid_until=expires.isoformat())
             binding=ManagementBinding(write=w,plan=plan,request=request,source_context=bundle.intent.source.context,
                 original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
-                risk_hash=digest(risk),funding_hash=digest(funding))
+                risk_hash=digest(risk),funding_hash=digest(funding),target_source_json=observation.source_json,
+                target_source_hash=observation.source_hash)
             binding=replace(binding,write=replace(w,binding_hash=binding_hash(binding)))
             ctx=self._context(binding,clock,lease,expires,risk,funding,fence)
             return ManagementRepository(tx).append(binding,ctx)
@@ -176,6 +180,9 @@ class ProgramManagementService:
             risk=risk,funding=funding,request_hash=binding.write.request_hash)
 
     def current(self,tx,binding,target,lease):
+        from .program_management_paper import PaperManagementTargetObservation
+        require(type(target) is PaperManagementTargetObservation,'MANAGEMENT_TRUSTED_TARGET_OBSERVATION_REQUIRED')
+        target=target.target
         w=binding.write;original=read_original_creation(tx,w.original_command_id)
         require(original is not None and digest(original.initial)==binding.original_write_hash,'MANAGEMENT_ORIGINAL_CHANGED')
         # Repeated trusted reads may have later observation timestamps, but must
