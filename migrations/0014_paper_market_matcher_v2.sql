@@ -387,7 +387,9 @@ BEGIN
    OR ord.terms->>'quantity' IS NULL OR (ord.terms->>'quantity')::numeric<>ord.quantity
    OR (coalesce((ord.terms->>'model_revision')::integer,1)=1 AND ord.terms->>'order_type' NOT IN ('LIMIT','LIMIT_MAKER'))
    OR (coalesce((ord.terms->>'model_revision')::integer,1)=2 AND
-    (ord.terms->>'contract_version' IS DISTINCT FROM '2026-10-30' OR ord.terms->'spec' IS DISTINCT FROM ord.terms->'compilation'->'nodes'->0->'original'->'order'))
+    (ord.terms->>'contract_version' IS DISTINCT FROM '2026-10-30' OR ord.terms->'spec' IS DISTINCT FROM
+     (SELECT n->'original'->'order' FROM jsonb_array_elements(ord.terms->'compilation'->'nodes') n
+      WHERE n->'original'->>'node_id'=ord.terms->>'node_id')))
    OR ord.terms->>'side' NOT IN ('BUY','SELL')
    OR ord.terms->>'tif' NOT IN ('GTC','IOC','FOK','GTX','GTD','DAY')
    OR ord.terms->'accepted_clock'->>'clock_health' IS DISTINCT FROM 'HEALTHY'
