@@ -1,5 +1,5 @@
 """Restricted management of actual existing PAPER orders; no matcher or fills."""
-from dataclasses import dataclass,replace
+from dataclasses import dataclass,field,replace
 from hashlib import sha256
 from datetime import timedelta
 from trading_system.contracts import types as t
@@ -48,7 +48,7 @@ class PaperManagementTargetReader:
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class PaperManagementBridge:
-    bridge_dsn:str
+    bridge_dsn:str=field(repr=False)
 
 def submit_management(engine,write,permit,*,boundary,lease,owner,bridge=None):
     from trading_system.contracts.management_write_v4 import ManagementWriteV4

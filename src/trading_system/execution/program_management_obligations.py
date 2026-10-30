@@ -10,12 +10,13 @@ class ManagementObligation:
     original:ManagementWriteV4
     current:ManagementWriteV4
     collateral_group_id:str
+    aborted_unsent:bool=False
 
     @property
     def unresolved(self):
         # Even a source-confirmed cancellation does not reconcile late fills,
         # protection, remaining parent children or retained collateral.
-        return True
+        return not self.aborted_unsent
 
     @property
     def identity(self):return 'MANAGEMENT_V4:'+scope_id(self.original.scope)+':'+self.original.command_id
@@ -44,7 +45,14 @@ def management_obligations(tx,*,scope_only=False):
             if original is None or digest(original[0])!=b.original_write_hash:raise ValueError('original creation changed')
             if len(writes)>1 and tx.execute('SELECT count(*) FROM ledger.management_dispatch_marks WHERE scope_id=%s AND command_id=%s',
                     (physical,cid)).fetchone()!=(1,):raise ValueError('protected MAY missing')
-            if not scope_only or w.scope==tx.scope:result.append(ManagementObligation(original=w,current=writes[-1],collateral_group_id=group[0]))
+            aborted=tx.execute('SELECT payload FROM ledger.management_unsent_aborts WHERE scope_id=%s AND command_id=%s',
+                (physical,cid)).fetchone()
+            if aborted is not None:
+                p=aborted[0]
+                if len(writes)!=1 or p!={'command_id':cid,'binding_hash':w.binding_hash,'state':'ABORTED_UNSENT','funds_released':False}:
+                    raise ValueError('unsent abort proof changed')
+            if not scope_only or w.scope==tx.scope:result.append(ManagementObligation(original=w,current=writes[-1],
+                collateral_group_id=group[0],aborted_unsent=aborted is not None))
     except Exception as exc:
         raise MissingEvidence('MANAGEMENT_OBLIGATION_SOURCE_INVALID') from exc
     return tuple(result)

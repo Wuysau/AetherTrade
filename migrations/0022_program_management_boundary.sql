@@ -36,8 +36,12 @@ CREATE TABLE ledger.management_outcomes(
  scope_id text NOT NULL,command_id text NOT NULL,source_hash text NOT NULL,payload jsonb NOT NULL,transaction_id text NOT NULL,
  database_transaction xid8 NOT NULL DEFAULT pg_current_xact_id(),
  PRIMARY KEY(scope_id,command_id,source_hash),FOREIGN KEY(scope_id,command_id) REFERENCES ledger.management_bindings);
+CREATE TABLE ledger.management_unsent_aborts(
+ scope_id text NOT NULL,command_id text NOT NULL,payload jsonb NOT NULL,transaction_id text NOT NULL,
+ database_transaction xid8 NOT NULL DEFAULT pg_current_xact_id(),PRIMARY KEY(scope_id,command_id),
+ FOREIGN KEY(scope_id,command_id) REFERENCES ledger.management_bindings);
 DO $$ DECLARE tab text; BEGIN
- FOREACH tab IN ARRAY ARRAY['management_bindings','management_writes','management_dispatch_marks','management_permit_consumptions','management_outcomes'] LOOP
+ FOREACH tab IN ARRAY ARRAY['management_bindings','management_writes','management_dispatch_marks','management_permit_consumptions','management_outcomes','management_unsent_aborts'] LOOP
   EXECUTE format('CREATE TRIGGER immutable_history BEFORE UPDATE OR DELETE OR TRUNCATE ON ledger.%I FOR EACH STATEMENT EXECUTE FUNCTION ledger.reject_mutation()',tab);
   EXECUTE format('REVOKE ALL ON ledger.%I FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_program_dispatch_verifier,ledger_management_dispatch_verifier',tab);
   EXECUTE format('GRANT SELECT ON ledger.%I TO ledger_owner,ledger_management_dispatch_verifier',tab);
@@ -119,7 +123,8 @@ DECLARE w jsonb;original jsonb;BEGIN
   OR NOT ledger.management_context_current(s,c,w) THEN
   RAISE EXCEPTION 'complete current management financial binding required' USING ERRCODE='23514';END IF;
  IF EXISTS(SELECT FROM ledger.management_bindings prior WHERE prior.scope_id=s
-  AND prior.payload#>>'{write,original_client_id}'=w->>'original_client_id') THEN
+  AND prior.payload#>>'{write,original_client_id}'=w->>'original_client_id'
+  AND NOT EXISTS(SELECT FROM ledger.management_unsent_aborts a WHERE a.scope_id=prior.scope_id AND a.command_id=prior.record_id)) THEN
   RAISE EXCEPTION 'existing management duty requires original-ID reconciliation' USING ERRCODE='23514'; END IF;
  INSERT INTO ledger.management_bindings VALUES(s,id,b,tx);
  INSERT INTO ledger.management_writes(scope_id,record_id,sequence,payload,transaction_id) VALUES(s,id,1,w,tx);
@@ -131,6 +136,7 @@ CREATE FUNCTION ledger.mark_management_may(s text,id text,c jsonb,token text,ttl
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$ DECLARE w jsonb;BEGIN
  SELECT payload INTO w FROM ledger.management_writes WHERE scope_id=s AND record_id=id ORDER BY sequence DESC LIMIT 1;
  IF w->>'state' IS DISTINCT FROM 'DURABLE_READY' OR ttl NOT BETWEEN 1 AND 5000 OR length(token)<>64
+  OR EXISTS(SELECT FROM ledger.management_unsent_aborts WHERE scope_id=s AND command_id=id)
   OR NOT ledger.management_context_current(s,c,w) THEN RAISE EXCEPTION 'current management required' USING ERRCODE='23514';END IF;
  INSERT INTO ledger.management_dispatch_marks VALUES(s,id,c,token,clock_timestamp()+ttl*interval '1 millisecond',tx);
  INSERT INTO ledger.management_writes(scope_id,record_id,sequence,payload,transaction_id)
@@ -158,6 +164,24 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$ DECLAR
 END $$;
 REVOKE ALL ON FUNCTION ledger.mark_management_unknown(text,text,text) FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_program_dispatch_verifier;
 GRANT EXECUTE ON FUNCTION ledger.mark_management_unknown(text,text,text) TO ledger_management_dispatch_verifier;
+CREATE FUNCTION ledger.abort_management_unsent(s text,id text,tx text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$ DECLARE w jsonb;p jsonb;BEGIN
+ SELECT payload INTO w FROM ledger.management_writes WHERE scope_id=s AND record_id=id ORDER BY sequence DESC LIMIT 1;
+ IF w->>'state' IS DISTINCT FROM 'DURABLE_READY'
+  OR EXISTS(SELECT FROM ledger.management_dispatch_marks WHERE scope_id=s AND command_id=id)
+  OR EXISTS(SELECT FROM ledger.management_permit_consumptions WHERE scope_id=s AND command_id=id)
+  OR NOT EXISTS(SELECT FROM ledger.active_owners o WHERE o.environment=w#>>'{scope,environment}'
+   AND o.account_id=w#>>'{scope,venue_account_id}' AND o.product=w#>>'{scope,product}'
+   AND o.instrument_uid=w#>>'{scope,instrument_uid}' AND o.venue_leg=w#>>'{scope,venue_leg}'
+   AND o.owner_strategy_id=w->>'owner_strategy_id' AND o.ownership_epoch=(w->>'ownership_epoch')::bigint
+   AND o.policy_revision=(w->>'policy_revision')::bigint) THEN
+  RAISE EXCEPTION 'provably unsent current management required' USING ERRCODE='23514';END IF;
+ p=jsonb_build_object('command_id',id,'binding_hash',w->>'binding_hash','state','ABORTED_UNSENT','funds_released',false);
+ INSERT INTO ledger.management_unsent_aborts(scope_id,command_id,payload,transaction_id) VALUES(s,id,p,tx) ON CONFLICT DO NOTHING;
+ RETURN p;
+END $$;
+REVOKE ALL ON FUNCTION ledger.abort_management_unsent(text,text,text) FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_program_dispatch_verifier;
+GRANT EXECUTE ON FUNCTION ledger.abort_management_unsent(text,text,text) TO ledger_management_dispatch_verifier;
 REVOKE ALL ON FUNCTION ledger.management_context_current(text,jsonb,jsonb),ledger.admit_management(text,text,jsonb,jsonb,text),
  ledger.mark_management_may(text,text,jsonb,text,integer,text),ledger.consume_management_permit(text,text,text,jsonb,text)
  FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_program_dispatch_verifier;

@@ -28,7 +28,8 @@ def management_database(database):
             'EXECUTE ON FUNCTION ledger.mark_management_may(text,text,jsonb,text,integer,text)',
             'EXECUTE ON FUNCTION ledger.consume_management_permit(text,text,text,jsonb,text)',
             'EXECUTE ON FUNCTION ledger.mark_management_unknown(text,text,text)',
-            'EXECUTE ON FUNCTION ledger.record_management_outcome(text,text,jsonb,text)'):
+            'EXECUTE ON FUNCTION ledger.record_management_outcome(text,text,jsonb,text)',
+            'EXECUTE ON FUNCTION ledger.abort_management_unsent(text,text,text)'):
             db.execute(sql.SQL('GRANT '+grant+' TO {}').format(sql.Identifier(name)))
         db.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(conninfo_to_dict(database)['dbname']),sql.Identifier(name)))
         _VERIFIER_DSNS[database]=make_conninfo(**{**conninfo_to_dict(database),'user':name,'password':password})
@@ -172,7 +173,7 @@ def test_missing_local_inputs_and_target_reader_deny(management_database,venue_v
     s.target_reader=None
     with pytest.raises(ValueError,match='TARGET_READER_REQUIRED'):s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
 
-@pytest.mark.parametrize('table',['management_bindings','management_writes','management_dispatch_marks','management_permit_consumptions','management_outcomes'])
+@pytest.mark.parametrize('table',['management_bindings','management_writes','management_dispatch_marks','management_permit_consumptions','management_outcomes','management_unsent_aborts'])
 def test_ordinary_owner_cannot_forge_private_management_records(management_database,table):
     import psycopg
     from integration.test_program_financial_admission import real_case
@@ -375,3 +376,19 @@ def test_committed_may_can_never_be_unsent_aborted(management_database,venue_v2,
     permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
     with pytest.raises((ValueError,psycopg.Error)):s.abort_unsent(w.command_id,c.lease)
     s.boundary.consume(permit,c.lease)
+
+def test_stale_book_cannot_be_refreshed_by_current_venue_target_alone(management_database,venue_v2,tmp_path):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    c=advanced_case(management_database,venue_v2,tmp_path);submit(c)
+    base=c.engine._clock();c.engine._clock=lambda:replace(base,
+        utc_now=(utc_timestamp(base.utc_now)+timedelta(seconds=61)).isoformat(),monotonic_ns=base.monotonic_ns+61*10**9)
+    c.lease=replace(c.lease,expires_at='2026-10-28T11:00:00Z');c.owner.lease=c.lease
+    s=management(c);original=s.load_inputs
+    def inputs(*args):
+        i=original(*args)
+        return replace(i,authorization=replace(i.authorization,authorization=replace(i.authorization.authorization,expires_at='2026-10-28T11:00:00Z')))
+    s.load_inputs=inputs
+    with pytest.raises(ValueError,match='BOOK_EVIDENCE_REQUIRED'):
+        s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)

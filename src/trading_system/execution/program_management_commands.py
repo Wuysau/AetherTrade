@@ -51,8 +51,20 @@ class ManagementPermit:
     expires_at:str
     deadline_monotonic_ns:int
 
+@dataclass(frozen=True,slots=True,kw_only=True)
+class ManagementUnsentAbort:
+    command_id:str
+    binding_hash:str
+    state:Literal['ABORTED_UNSENT']
+    funds_released:Literal[False]
+
 class ManagementRepository:
     def __init__(self,tx):self.tx=tx
+
+    def aborted(self,command_id):
+        row=self.tx.execute('SELECT payload FROM ledger.management_unsent_aborts WHERE scope_id=%s AND command_id=%s',
+            (scope_id(self.tx.scope),command_id)).fetchone()
+        return None if row is None else decode(ManagementUnsentAbort,row[0])
 
     def read(self,command_id):
         row=self.tx.execute('SELECT payload FROM ledger.management_bindings WHERE scope_id=%s AND record_id=%s',
@@ -91,7 +103,8 @@ class ManagementBoundary:
         target=self.service.capture_for(command_id)
         with self.uow.transaction(self.scope) as tx:
             binding=ManagementRepository(tx).read(command_id)
-            require(binding is not None and binding.write.state=='DURABLE_READY','MANAGEMENT_QUERY_ORIGINAL_NO_RETRY')
+            require(binding is not None and binding.write.state=='DURABLE_READY'
+                and ManagementRepository(tx).aborted(command_id) is None,'MANAGEMENT_QUERY_ORIGINAL_NO_RETRY')
             context,clock,expires=self.service.current(tx,binding,target,lease)
             ttl=min(tx.permit_ttl_ms,int((expires-utc_timestamp(clock.utc_now)).total_seconds()*1000),
                 (lease.deadline_monotonic_ns-clock.monotonic_ns)//1_000_000)

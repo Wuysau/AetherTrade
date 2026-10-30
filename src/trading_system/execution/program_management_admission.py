@@ -42,6 +42,24 @@ class ProgramManagementService:
         self.target_reader=target_reader;self.load_clock=load_clock;self.load_lease=load_lease;self.load_inputs=load_inputs
         self.boundary=ManagementBoundary(self)
 
+    def abort_unsent(self,command_id,lease):
+        from trading_system.storage.models import scope_id,decode
+        from .program_management_commands import ManagementUnsentAbort
+        with self.verifier_uow.transaction(self.scope) as tx:
+            b=ManagementRepository(tx).read(command_id)
+            require(b is not None and b.write.state=='DURABLE_READY','MANAGEMENT_PROVABLY_UNSENT_REQUIRED')
+            current_fence(tx,b.source_context)
+            clock=self.load_clock(tx) if self.load_clock else None
+            actual=self.load_lease(tx) if self.load_lease else None
+            require(type(clock) is t.ClockReading and clock.clock_health=='HEALTHY' and type(actual) is t.OwnerLease
+                and actual==lease and actual.shard.environment==self.scope.environment
+                and actual.shard.venue_account_id==self.scope.venue_account_id and actual.shard.product==self.scope.product
+                and utc_timestamp(clock.utc_now)<utc_timestamp(actual.expires_at)
+                and clock.monotonic_ns<actual.deadline_monotonic_ns,'MANAGEMENT_CURRENT_LEASE_REQUIRED')
+            row=tx.execute('SELECT ledger.abort_management_unsent(%s,%s,%s)',
+                (scope_id(self.scope),command_id,tx.transaction_id)).fetchone()
+            return decode(ManagementUnsentAbort,row[0])
+
     def _capture(self,original,execution_epoch):
         from .program_management_paper import PaperManagementTargetReader
         require(type(self.target_reader) is PaperManagementTargetReader,'MANAGEMENT_TRUSTED_TARGET_READER_REQUIRED')
