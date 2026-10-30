@@ -7,7 +7,7 @@ from trading_system.contracts.canonical import canonical_hash,domain_payload
 from trading_system.contracts.wire import ExecutionCommand,TradeIntent
 from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
 from trading_system.storage.models import MissingEvidence,decode,scope_id,account_key
-from .reservation_repository import ReservationRepository,merge_holds
+from .reservation_repository import ReservationRepository
 
 
 def need(value,code):
@@ -99,15 +99,26 @@ def _own_ids(tx,bundle,physical):
     return result
 
 
-def current_program_quantity_reservation_ids(tx,raw_source_book,financial_book,*,bundle=None):
+def _prepared_holds(tx,raw_source_book,load_released_balances):
+    # Never inherit credit from the supplied financial DTO. Re-run the same
+    # current-book/transaction/reconciliation/terminal-or-abort verifier used
+    # by admission, after independently binding the physical creation rows.
+    from .reservations import prepare_collateral
+    prepared=prepare_collateral(tx,raw_source_book,load_released_balances=load_released_balances)
+    need(not prepared.rejection_codes,','.join(prepared.rejection_codes))
+    return prepared.holds
+
+
+def current_program_quantity_reservation_ids(tx,raw_source_book,financial_book,*,bundle=None,load_released_balances=None):
     tx.require_scope(raw_source_book.scope)
     need(type(raw_source_book) is t.BookSnapshot and type(financial_book) is t.BookSnapshot
         and financial_book.scope==tx.scope and tx.projections.book(tx.scope)==raw_source_book,
         'PROGRAM_CURRENT_SOURCE_BOOK_REQUIRED')
     need(replace(raw_source_book,reservations=())==replace(financial_book,reservations=()),
         'PROGRAM_FINANCIAL_BOOK_SOURCE_CHANGED')
-    physical,group=_actual_group(tx);own=_own_ids(tx,bundle,physical)
-    expected=tuple(p for p in merge_holds(group,raw_source_book) if p.reservation.reservation_id not in own)
+    physical,_=_actual_group(tx);own=_own_ids(tx,bundle,physical)
+    expected=tuple(p for p in _prepared_holds(tx,raw_source_book,load_released_balances)
+        if p.reservation.reservation_id not in own)
     expected_by_id={p.reservation.reservation_id:p for p in expected}
     supplied={p.reservation.reservation_id:p for p in financial_book.reservations}
     need(len(supplied)==len(financial_book.reservations) and supplied==expected_by_id,
@@ -120,17 +131,20 @@ def current_program_quantity_reservation_ids(tx,raw_source_book,financial_book,*
     return tuple(sorted(identifier for identifier in supplied if identifier in local|external))
 
 
-def validate_current_program_quantity_scope(tx,raw_source_book,financial_book,target_facts,*,bundle=None):
+def validate_current_program_quantity_scope(tx,raw_source_book,financial_book,target_facts,*,bundle=None,load_released_balances=None):
     need(type(target_facts) is ProgramScopedTargetFactsV2,'PROGRAM_SCOPED_TARGET_FACTS_REQUIRED')
     target_facts.__post_init__()
-    expected=current_program_quantity_reservation_ids(tx,raw_source_book,financial_book,bundle=bundle)
+    expected=current_program_quantity_reservation_ids(tx,raw_source_book,financial_book,bundle=bundle,
+        load_released_balances=load_released_balances)
     need(target_facts.quantity_scope==tx.scope and target_facts.quantity_reservation_ids==expected,
         'PROGRAM_CURRENT_QUANTITY_RESERVATION_MAP_CHANGED')
     return expected
 
 
-def current_scoped_program_financial_book(tx,bundle,raw_source_book):
+def current_scoped_program_financial_book(tx,bundle,raw_source_book,*,load_released_balances=None):
     need(type(bundle.archive.target_facts) is ProgramScopedTargetFactsV2,'PROGRAM_SCOPED_TARGET_FACTS_REQUIRED')
-    physical,group=_actual_group(tx);own=_own_ids(tx,bundle,physical)
-    return replace(raw_source_book,reservations=tuple(p for p in merge_holds(group,raw_source_book)
+    tx.require_scope(raw_source_book.scope)
+    need(tx.projections.book(tx.scope)==raw_source_book,'PROGRAM_CURRENT_SOURCE_BOOK_REQUIRED')
+    physical,_=_actual_group(tx);own=_own_ids(tx,bundle,physical)
+    return replace(raw_source_book,reservations=tuple(p for p in _prepared_holds(tx,raw_source_book,load_released_balances)
         if p.reservation.reservation_id not in own))

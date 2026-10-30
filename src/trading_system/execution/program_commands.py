@@ -108,12 +108,14 @@ def validate_stored_program_binding(tx,original,current):
 
 class ProgramCommandRepository:
     def __init__(self,tx,*,load_clock=None,load_lease=None,load_current_facts=None,
-                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None):
+                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None,
+                 load_released_balances=None):
         self.tx=tx;self.load_clock=load_clock;self.load_lease=load_lease
         self.load_current_facts=load_current_facts;self.load_qualification=load_qualification
         self.load_action_proof=load_action_proof
         self.load_wallet_selection=load_wallet_selection
         self.load_execution_bounds=load_execution_bounds
+        self.load_released_balances=load_released_balances
 
     def _raw_binding(self,command_id):
         return self.tx._latest('program_request_bindings',command_id,ProgramRequestBinding)
@@ -293,9 +295,11 @@ class ProgramCommandRepository:
             current_scoped_program_financial_book,validate_current_program_quantity_scope)
         scoped=not quote and type(bundle.archive.target_facts) is ProgramScopedTargetFactsV2
         financial_book=current_quote_financial_book(self.tx,bundle,book) if quote else (
-            current_scoped_program_financial_book(self.tx,bundle,book) if scoped else book)
+            current_scoped_program_financial_book(self.tx,bundle,book,
+                load_released_balances=self.load_released_balances) if scoped else book)
         inputs=self.load_current_facts(self.tx,source,intake,financial_book,clock) if self.load_current_facts else None
-        if scoped:validate_current_program_quantity_scope(self.tx,book,financial_book,inputs.archive.target_facts,bundle=bundle)
+        if scoped:validate_current_program_quantity_scope(self.tx,book,financial_book,inputs.archive.target_facts,bundle=bundle,
+            load_released_balances=self.load_released_balances)
         intent,basis=validate_current_inputs(self.tx,source,intake,financial_book,inputs,clock,self.load_execution_bounds)
         a=inputs.archive
         require(quote or type(a.target_facts) is type(bundle.archive.target_facts),'PROGRAM_CURRENT_TARGET_FACT_KIND_CHANGED')
@@ -320,7 +324,7 @@ class ProgramCommandRepository:
         actual_own=tuple(reservations.get(p.reservation.reservation_id) for p in bundle.reservations)
         require(digest(actual_own)==digest(bundle.reservations),'PROGRAM_RESERVATION_CHANGED')
         holds=merge_holds(reservations.group(),book)
-        others=tuple(p for p in holds if p.reservation.reservation_id not in own_ids)
+        others=financial_book.reservations if scoped else tuple(p for p in holds if p.reservation.reservation_id not in own_ids)
         require(digest(others)==digest(inputs.reconciled_holds if quote else a.budget_facts.reservations),
             'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
         if quote:
@@ -369,8 +373,10 @@ class ProgramCommandRepository:
             require(digest(current_quote_financial_book(self.tx,bundle,self.tx.projections.book(self.tx.scope)))==digest(financial_book),
                 'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
         if scoped:
-            validate_current_program_quantity_scope(self.tx,book,financial_book,a.target_facts,bundle=bundle)
-            require(digest(current_scoped_program_financial_book(self.tx,bundle,book))==digest(financial_book),
+            validate_current_program_quantity_scope(self.tx,book,financial_book,a.target_facts,bundle=bundle,
+                load_released_balances=self.load_released_balances)
+            require(digest(current_scoped_program_financial_book(self.tx,bundle,book,
+                load_released_balances=self.load_released_balances))==digest(financial_book),
                 'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
         require(before==digest(self.tx.projections.book(self.tx.scope)) and
             digest(current_fence(self.tx,source.context))==digest(fence),'PROGRAM_CURRENT_STATE_CHANGED')
@@ -450,11 +456,12 @@ class ProgramCommandBoundary:
     nothing. No UNKNOWN replay mints or renews a permit.
     """
     def __init__(self,uow,scope,*,load_clock=None,load_lease=None,load_current_facts=None,
-                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None):
+                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None,
+                 load_released_balances=None):
         self.uow,self.scope=uow,scope
         self.readers=dict(load_clock=load_clock,load_lease=load_lease,load_current_facts=load_current_facts,
             load_qualification=load_qualification,load_action_proof=load_action_proof,load_wallet_selection=load_wallet_selection,
-            load_execution_bounds=load_execution_bounds)
+            load_execution_bounds=load_execution_bounds,load_released_balances=load_released_balances)
 
     def mark_may_have_sent(self,command_id,lease):
         token=secrets.token_urlsafe(32)

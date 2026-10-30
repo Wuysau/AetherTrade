@@ -155,7 +155,8 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
             from trading_system.risk.program_financial_admission import read_program_bundle
             original_book=tx.projections.book(tx.scope)
             stored_bundle=read_program_bundle(tx,intake_record.intent_id)
-            ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle)
+            ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle,
+                load_released_balances=service.load_released_balances)
             tf=ProgramScopedTargetFactsV2(**{f.name:getattr(tf,f.name) for f in fields(ProgramTargetFacts)},
                 contract_version='2026-10-30',record_kind='PROGRAM_SCOPED_TARGET_FACTS_V2',
                 quantity_scope=tx.scope,quantity_reservation_ids=ids)

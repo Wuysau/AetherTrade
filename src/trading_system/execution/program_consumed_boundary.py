@@ -166,10 +166,12 @@ def recheck_consumed(boundary,permit,lease):
                 'PROGRAM_CONSUMED_CURRENT_STATE_CHANGED')
         elif scoped:
             require(digest(book)==consumed.get('source_book_hash'),'PROGRAM_CONSUMED_BOOK_CHANGED')
-            financial_book=current_scoped_program_financial_book(tx,bundle,book)
+            financial_book=current_scoped_program_financial_book(tx,bundle,book,
+                load_released_balances=boundary.readers.get('load_released_balances'))
             require(digest(financial_book)==consumed.get('financial_book_hash')==digest(assessment.book),
                 'PROGRAM_CONSUMED_FINANCIAL_BOOK_CHANGED')
-            validate_current_program_quantity_scope(tx,book,financial_book,assessment.target_facts,bundle=bundle)
+            validate_current_program_quantity_scope(tx,book,financial_book,assessment.target_facts,bundle=bundle,
+                load_released_balances=boundary.readers.get('load_released_balances'))
         else:
             require(book is not None and digest(book)==digest(assessment.book),'PROGRAM_CONSUMED_BOOK_CHANGED')
         duty=LockedActionVerifier().verify_program(tx,bundle.intent,assessment,clock.utc_now,
