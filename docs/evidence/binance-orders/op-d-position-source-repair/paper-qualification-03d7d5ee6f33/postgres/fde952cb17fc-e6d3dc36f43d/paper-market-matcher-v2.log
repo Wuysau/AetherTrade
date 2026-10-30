@@ -1,0 +1,12 @@
+.................................F                                       [100%]
+=================================== FAILURES ===================================
+__ test_actual_reduce_only_position_capacity_is_debited_between_depth_levels ___
+tests/integration/test_paper_market_matcher_v2.py:602: in test_actual_reduce_only_position_capacity_is_debited_between_depth_levels
+    assert report.filled_quantity==D('0.15') and report.remaining_quantity==0
+E   AssertionError: assert (Decimal('0.150000') == Decimal('0.15') and Decimal('0.850000') == 0)
+E    +  where Decimal('0.150000') = PaperCreationReportV2(command_id='isolated-command-610592d5fb13462da93fb287ea32d1d1', request=VenueCreationRequest(con...ngs=())),), dispositions=(), contract_version='2026-10-30', record_kind='PAPER_CREATION_REPORT_V2', native_parent=None).filled_quantity
+E    +  and   Decimal('0.15') = D('0.15')
+E    +  and   Decimal('0.850000') = PaperCreationReportV2(command_id='isolated-command-610592d5fb13462da93fb287ea32d1d1', request=VenueCreationRequest(con...ngs=())),), dispositions=(), contract_version='2026-10-30', record_kind='PAPER_CREATION_REPORT_V2', native_parent=None).remaining_quantity
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_actual_reduce_only_position_capacity_is_debited_between_depth_levels
+1 failed, 33 passed in 156.16s (0:02:36)

@@ -1,5 +1,24 @@
 # Current task
 
+## OP_D_POSITION_SOURCE_COMPONENT_GREEN — 2026-10-30
+
+Sole ROOT+D writer remains integration_fresh; parent coordinates read-only.
+Final fixed6133034 actual34V2 PG passed0fail/error/skip157.49s, XML157.482.
+Original90456/run e31afcb14c7d TERMINALexit0; no D livejobs or restarts.
+Actual nullable position and STP column-shadowing REDs are fixed; parent scoped
+review of6543655 product diff found no new blocker. Later corrections only
+repair the NEW test fixture's depth/order/GTC/zero-asset assumptions; all old33
+pass in every fixed run.96 raw originals across six separate source runs and
+SHA-copy maps retained in docs/evidence/binance-orders/op-d-position-source-repair.
+
+This evolving D source uses0014 SHA
+8d80e4fe57b32dfebc95d2c5b09ec1b16d4dc424a85765ff7dc2c1aca76887c7.
+It is NOT the frozen1b12 verifier producer. Root now independently integrated
+the frozen0014df9e producer, genuine root21+23 component proof and reviewed V2
+verifier candidate. Evolving native parent/execution/position families stay
+unregistered until exact source adapter and fresh combined verification exist.
+Full46/56 C–G remains ACTIVE and unfinished, no external/account/model calls.
+
 ## OP_D_FRESH_POSITION_SOURCE_REPAIR — 2026-10-30
 
 Parent explicitly assigned integration_fresh as sole writer of this tree and

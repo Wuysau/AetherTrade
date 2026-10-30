@@ -1,0 +1,21 @@
+.................................F                                       [100%]
+=================================== FAILURES ===================================
+__ test_actual_reduce_only_position_capacity_is_debited_between_depth_levels ___
+tests/integration/test_paper_market_matcher_v2.py:597: in test_actual_reduce_only_position_capacity_is_debited_between_depth_levels
+    matcher.apply_market_event(position_source(c,1,'0.15',0))
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:692: in apply_market_event
+    if type(event) in (PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2,PaperPositionEventV2):return apply_reference_event(self.engine,event)
+                                                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market_v2.py:469: in apply_reference_event
+    if first:db.execute('SELECT public.paper_match_order(%s,%s)',(first['scope_key'],first['client_id']))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.RaiseException: current market depth required on arrival
+E   CONTEXT:  PL/pgSQL function public.paper_match_order(text,text) line 46 at RAISE
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_actual_reduce_only_position_capacity_is_debited_between_depth_levels
+1 failed, 33 passed in 157.86s (0:02:37)
