@@ -9,8 +9,10 @@ permission, cash, ownership, FLAT, protection or release.
 **Architecture:** Command-ID-only trusted host, actual UoW/PaperEngine/archive.
 Read immutable original/request/consumption in existing ledger; close business
 TX before venue IO. Fsync complete raw snapshots before classification. Separate
-explicit V2 result/normalized/raw source types, common native quantity/price/
-FinancialUnit fields for root's static source registry, no V1 masquerading.
+explicit V2 result/normalized/provenance types, common native quantity/price/
+FinancialUnit fields for root's static source registry. Normalized.raw retains
+the genuine unchanged producer PaperMarketFill; additional source_v2 carries
+tagged V2 provenance. No V1 verifier/result masquerading.
 
 **Spec:** approved CODEX_HANDOFF/ADR-ORDER-001; producer1b12ed9 interface and0014
 SHA df9e0709b7ebb12006549c464251b29f1937aed2efd20182319e9d42a13dd565;

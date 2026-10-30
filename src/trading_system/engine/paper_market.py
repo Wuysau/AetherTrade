@@ -318,6 +318,9 @@ def _current_consumed_owner(boundary,write,lease,consumption,assessment,permit):
 
 
 def _accepted_context(payload,request):
+    if payload.get('model_revision')==2:
+        from .paper_market_v2 import restore_accepted_context_v2
+        return restore_accepted_context_v2(payload,request)
     names={f.name for f in fields(PaperExecutionTerms)}
     require(set(payload)==names|{'write','request','compilation','rules','model','execution_envelope'},'PAPER_ACCEPTED_CONTEXT_SHAPE_INVALID')
     context=PaperAcceptedContext(original_write=decode(ApplicationWriteV3,payload['write']),
@@ -344,6 +347,7 @@ def _accepted_context(payload,request):
     return context
 
 
+@exact_market_arithmetic
 def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
     from trading_system.contracts.application_write_v3 import ApplicationWriteV3
     from trading_system.execution.creation_requests import VenueCreationRequest
@@ -355,10 +359,12 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
         'PAPER_ACTUAL_BOUNDARY_OWNER_REQUIRED')
     require(write.scope==engine.scope==boundary.scope and write.command_id==request.command_id==permit.command_id
         and write.request_hash==permit.request_hash==digest(request),'PAPER_ORIGINAL_REQUEST_REQUIRED')
-    require(engine.scope.product in (t.Product.SPOT,t.Product.USD_M_PERP),
-        'PAPER_EQUITY_SESSION_MODEL_REQUIRED' if engine.scope.product==t.Product.US_EQUITY else 'PAPER_PRODUCT_MODEL_REQUIRED')
     model=engine._matching_model
-    require(type(model) is PaperMatchingModel,'PAPER_EXPLICIT_MATCHING_MODEL_REQUIRED')
+    from .paper_market_v2 import PaperMatchingModelV2,validate_atomic_v2,execution_tif
+    v2=type(model) is PaperMatchingModelV2
+    require(engine.scope.product in (t.Product.SPOT,t.Product.USD_M_PERP) or v2 and engine.scope.product==t.Product.US_EQUITY,
+        'PAPER_EQUITY_SESSION_MODEL_REQUIRED' if engine.scope.product==t.Product.US_EQUITY else 'PAPER_PRODUCT_MODEL_REQUIRED')
+    require(type(model) is PaperMatchingModel or v2,'PAPER_EXPLICIT_MATCHING_MODEL_REQUIRED')
     with owner.guard(lease):
         consumed=boundary.consume(permit,lease)
         require(type(consumed) is VenueCreationRequest and digest(consumed)==digest(request),'PAPER_CONSUMED_REQUEST_CHANGED')
@@ -382,51 +388,86 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                 and consumption['assessment_hash']==digest(assessment),'PAPER_PROTECTED_CONTEXT_CHANGED')
         plan=assessment.compilation
         require(digest(plan)==original.compilation_hash,'PAPER_CURRENT_COMPILATION_CHANGED')
-        require(plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 and len(request.assigned_ids.members)==1,
+        native_list=v2 and engine.scope.product==t.Product.SPOT and plan.original_program.template in ('OCO','OTO','OTOCO') and plan.original_program.execution_mode=='VENUE_NATIVE'
+        require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+            and tuple(m.node_id for m in request.assigned_ids.members)==tuple(n.original.node_id for n in plan.nodes),
             'PAPER_PROGRAM_MATCHER_STAGE_REQUIRED')
-        node=plan.nodes[0];order=node.original.order
-        require(node.order_type in ('LIMIT','LIMIT_MAKER') and order.price.kind=='FIXED_LIMIT' and order.trigger.kind=='NONE'
-            and order.iceberg_quantity is None and order.stp=='NONE' and order.routing=='STANDARD'
-            and order.trading_session is None
-            and (order.tif.kind in ('GTC','IOC','FOK','GTX') or node.order_type=='LIMIT_MAKER' and order.tif.kind=='NONE'),
-            'PAPER_EXECUTION_SEMANTICS_STAGE_REQUIRED')
-        require(node.quantity.kind=='BASE_QUANTITY','PAPER_NATIVE_QUANTITY_REQUIRED')
-        quantity_fields=tuple(f for f in request.fields if f.name=='quantity')
-        require(len(quantity_fields)==1 and type(quantity_fields[0].value) is str
-            and number(quantity_fields[0].value)==number(node.quantity.value),'PAPER_NATIVE_REQUEST_QUANTITY_CHANGED')
-        qty=number(node.quantity.value);client=request.assigned_ids.members[0].client_id
-        bounds=tuple(b for b in assessment.risk_facts.node_bounds if b.node_id==node.original.node_id)
-        require(len(bounds)==1 and bounds[0].execution_fees is not None,'PAPER_CURRENT_EXECUTION_BOUND_REQUIRED')
-        bound=bounds[0];ceilings={}
-        for fee in bound.execution_fees:
-            ceilings[fee.amount.currency]=ceilings.get(fee.amount.currency,Decimal(0))+fee.amount.amount
-        require(assessment.assessment.metrics.maximum_order_notional.currency==assessment.rules.quote_asset,
-            'PAPER_GROSS_BOUND_CURRENCY_CHANGED')
-        envelope=PaperExecutionEnvelope(contract_version='2026-10-29',record_kind='PAPER_EXECUTION_ENVELOPE',scope=engine.scope,
-            command_id=write.command_id,request_hash=digest(request),consumption_context_hash=canonical_hash(consumption),
-            assessment_hash=digest(assessment),source_ref='ledger.program_permit_consumptions:'+scope_id(engine.scope)+':'+write.command_id,
-            node_id=node.original.node_id,minimum_price=None if bound.minimum_price is None else format(bound.minimum_price.value,'f'),
-            maximum_price=None if bound.maximum_price is None else format(bound.maximum_price.value,'f'),
-            maximum_gross_notional=format(assessment.assessment.metrics.maximum_order_notional.amount,'f'),
-            fee_ceilings=tuple(AssetBudget(asset=asset,amount=format(value,'f')) for asset,value in sorted(ceilings.items())))
-        with localcontext() as arithmetic:
-            arithmetic.prec=256;arithmetic.traps[Inexact]=True;arithmetic.traps[Rounded]=True
-            fee_price=envelope.maximum_price if envelope.maximum_price is not None else order.price.value if order.side=='BUY' else None
-            require(number(model.quote_fee_rate)==0 or fee_price is not None,'PAPER_SELL_FEE_UPPER_BOUND_REQUIRED')
-            maximum_fee=Decimal(0) if number(model.quote_fee_rate)==0 else qty*number(fee_price)*number(node.quantity_multiplier)*number(model.quote_fee_rate)
-            reserved_fee=sum((f.amount.amount for f in bound.execution_fees
-                if f.amount.currency==assessment.rules.quote_asset and f.debit=='EXTERNAL_BALANCE'),Decimal(0))
-            require(maximum_fee<=reserved_fee,'PAPER_FEE_MODEL_EXCEEDS_ADMITTED_BOUND')
-        terms={'scope':domain_payload(engine.scope),'client_id':client,'node_id':node.original.node_id,
-            'namespace':request.namespace.value,'quantity':node.quantity.value,'quantity_step':assessment.rules.quantity_step,
-            'side':order.side,'order_type':node.order_type,'limit_price':order.price.value,'post_only':order.post_only,
-            'tif':'GTC' if node.order_type=='LIMIT_MAKER' else order.tif.kind,'multiplier':node.quantity_multiplier,'quote_asset':assessment.rules.quote_asset,
-            'quote_fee_rate':model.quote_fee_rate,'model':domain_payload(model),'request':domain_payload(request),
-            'write':domain_payload(original),'rules':domain_payload(assessment.rules),'compilation':domain_payload(plan),
-            'execution_envelope':domain_payload(envelope)}
+        if native_list:
+            require(request.namespace.value=='BINANCE_SPOT_ORDER_LIST' and request.operation.value=='SUBMIT_'+plan.original_program.template
+                and request.assigned_ids.parent_client_id is not None,'PAPER_ACTUAL_NATIVE_PARENT_REQUIRED')
+            require(all(n.original.order.stp=='NONE' for n in plan.nodes),'PAPER_NATIVE_LIST_STP_STAGE_REQUIRED')
+        execution_rows=[]
+        for node in plan.nodes:
+            order=node.original.order
+            if v2:validate_atomic_v2(engine.scope,node)
+            else:
+                require(node.order_type in ('LIMIT','LIMIT_MAKER') and order.price.kind=='FIXED_LIMIT' and order.trigger.kind=='NONE'
+                    and order.iceberg_quantity is None and order.stp=='NONE' and order.routing=='STANDARD'
+                    and order.trading_session is None
+                    and (order.tif.kind in ('GTC','IOC','FOK','GTX') or node.order_type=='LIMIT_MAKER' and order.tif.kind=='NONE'),
+                    'PAPER_EXECUTION_SEMANTICS_STAGE_REQUIRED')
+            require(node.quantity.kind=='BASE_QUANTITY','PAPER_NATIVE_QUANTITY_REQUIRED')
+            quantity_name='quantity'
+            if native_list and plan.original_program.template!='OCO':
+                quantity_name='workingQuantity' if node.original.role=='WORKING' else 'pendingQuantity'
+            quantity_fields=tuple(f for f in request.fields if f.name==quantity_name)
+            require(len(quantity_fields)==1 and type(quantity_fields[0].value) is str
+                and number(quantity_fields[0].value)==number(node.quantity.value),'PAPER_NATIVE_REQUEST_QUANTITY_CHANGED')
+            qty=number(node.quantity.value);client=next(m.client_id for m in request.assigned_ids.members if m.node_id==node.original.node_id)
+            bounds=tuple(b for b in assessment.risk_facts.node_bounds if b.node_id==node.original.node_id)
+            require(len(bounds)==1 and bounds[0].execution_fees is not None,'PAPER_CURRENT_EXECUTION_BOUND_REQUIRED')
+            bound=bounds[0];ceilings={}
+            for fee in bound.execution_fees:
+                ceilings[fee.amount.currency]=ceilings.get(fee.amount.currency,Decimal(0))+fee.amount.amount
+            require(assessment.assessment.metrics.maximum_order_notional.currency==assessment.rules.quote_asset,
+                'PAPER_GROSS_BOUND_CURRENCY_CHANGED')
+            gross_limit=assessment.assessment.metrics.maximum_order_notional.amount
+            if native_list:
+                # The scalar metric limits the initial target order. Pending
+                # native exits have their own already admitted node budgets;
+                # using the initial BUY cap would erase legitimate SELL upside.
+                require(bound.maximum_price is not None and node.worst_case_quote_notional is not None
+                    and assessment.exposure.gross_program is not None
+                    and assessment.exposure.gross_program.currency==assessment.rules.quote_asset,
+                    'PAPER_NATIVE_NODE_GROSS_SOURCE_REQUIRED')
+                with localcontext() as arithmetic:
+                    arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
+                    gross_limit=min(qty*bound.maximum_price.value*number(node.quantity_multiplier),number(node.worst_case_quote_notional))
+                require(0<gross_limit<=assessment.exposure.gross_program.amount,'PAPER_NATIVE_NODE_GROSS_EXCEEDS_PROGRAM')
+                from trading_system.risk.valuation import Valuation
+                valued=Valuation(assessment.risk_policy.valuation_currency,assessment.risk_facts.inputs.fx_rates).convert(
+                    t.Money(currency=assessment.rules.quote_asset,amount=gross_limit),liability=True)
+                require(valued.amount<=number(assessment.risk_policy.maximum_order_notional),'PAPER_NATIVE_NODE_POLICY_EXCEEDED')
+            envelope=PaperExecutionEnvelope(contract_version='2026-10-29',record_kind='PAPER_EXECUTION_ENVELOPE',scope=engine.scope,
+                command_id=write.command_id,request_hash=digest(request),consumption_context_hash=canonical_hash(consumption),
+                assessment_hash=digest(assessment),source_ref='ledger.program_permit_consumptions:'+scope_id(engine.scope)+':'+write.command_id,
+                node_id=node.original.node_id,minimum_price=None if bound.minimum_price is None else format(bound.minimum_price.value,'f'),
+                maximum_price=None if bound.maximum_price is None else format(bound.maximum_price.value,'f'),
+                maximum_gross_notional=format(gross_limit,'f'),
+                fee_ceilings=tuple(AssetBudget(asset=asset,amount=format(value,'f')) for asset,value in sorted(ceilings.items())))
+            if v2 and order.price.kind=='MARKET':
+                require(envelope.minimum_price is not None and envelope.maximum_price is not None,'PAPER_MARKET_EXECUTION_ENVELOPE_REQUIRED')
+            with localcontext() as arithmetic:
+                arithmetic.prec=256;arithmetic.traps[Inexact]=True;arithmetic.traps[Rounded]=True
+                fee_price=envelope.maximum_price if envelope.maximum_price is not None else order.price.value if order.side=='BUY' else None
+                require(number(model.quote_fee_rate)==0 or fee_price is not None,'PAPER_SELL_FEE_UPPER_BOUND_REQUIRED')
+                maximum_fee=Decimal(0) if number(model.quote_fee_rate)==0 else qty*number(fee_price)*number(node.quantity_multiplier)*number(model.quote_fee_rate)
+                reserved_fee=sum((f.amount.amount for f in bound.execution_fees
+                    if f.amount.currency==assessment.rules.quote_asset and f.debit=='EXTERNAL_BALANCE'),Decimal(0))
+                require(maximum_fee<=reserved_fee,'PAPER_FEE_MODEL_EXCEEDS_ADMITTED_BOUND')
+            terms={'scope':domain_payload(engine.scope),'client_id':client,'node_id':node.original.node_id,
+                'namespace':node.namespace.value,'quantity':node.quantity.value,'quantity_step':assessment.rules.quantity_step,
+                'side':order.side,'order_type':node.order_type,'limit_price':order.price.value,'post_only':order.post_only,
+                'tif':execution_tif(node) if v2 else 'GTC' if node.order_type=='LIMIT_MAKER' else order.tif.kind,
+                'multiplier':node.quantity_multiplier,'quote_asset':assessment.rules.quote_asset,
+                'quote_fee_rate':model.quote_fee_rate,'model':domain_payload(model),'request':domain_payload(request),
+                'write':domain_payload(original),'rules':domain_payload(assessment.rules),'compilation':domain_payload(plan),
+                'execution_envelope':domain_payload(envelope)}
+            if v2:
+                terms.update(contract_version='2026-10-30',record_kind='PAPER_EXECUTION_TERMS_V2',model_revision=2,spec=domain_payload(order))
+            execution_rows.append((terms,node,qty,client))
         with owner.guard(lease):
             clock=_consumed_permit_clock(engine,permit,created_at=original.created_at)
-            terms['accepted_clock']=domain_payload(clock)
             with engine._connect() as db:
                 key=market_key(engine.scope.product,engine.scope.instrument_uid)
                 db.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(key,))
@@ -438,25 +479,28 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                     observed=decode(t.ClockReading,source_book['observed_clock'])
                     require(observed.clock_health=='HEALTHY' and utc_timestamp(observed.utc_now)<=utc_timestamp(clock.utc_now)
                         and source_book['occurred_at']<=utc_timestamp(clock.utc_now),'PAPER_MARKET_CLOCK_AHEAD_OF_ACCEPTANCE')
-                terms['accepted_clock']=domain_payload(clock)
                 require(db.execute('SELECT 1 FROM public.paper_engine_commands WHERE scope_key=%s AND command_id=%s',
                     (engine._scope_key,write.command_id)).fetchone() is None,'PAPER_ORIGINAL_ID_ALREADY_OBSERVED')
-                db.execute('INSERT INTO public.paper_engine_orders(environment,scope_key,client_id,order_id,logical_id,'
-                    'owner_strategy_id,ownership_epoch,quantity_unit,price_currency,quantity) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-                    ('PAPER',engine._scope_key,client,'paper-v3:'+client,client,original.owner_strategy_id,
-                        original.ownership_epoch,node.quantity_unit,assessment.rules.quote_asset,qty))
+                for terms,node,qty,client in execution_rows:
+                    terms['accepted_clock']=domain_payload(clock)
+                    db.execute('INSERT INTO public.paper_engine_orders(environment,scope_key,client_id,order_id,logical_id,'
+                        'owner_strategy_id,ownership_epoch,quantity_unit,price_currency,quantity) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+                        ('PAPER',engine._scope_key,client,'paper-v3:'+client,client,original.owner_strategy_id,
+                            original.ownership_epoch,node.quantity_unit,assessment.rules.quote_asset,qty))
+                    db.execute('INSERT INTO public.paper_order_terms(scope_key,client_id,market_key,terms) VALUES(%s,%s,%s,%s)',
+                        (engine._scope_key,client,key,Jsonb(terms)))
+                anchor=execution_rows[0][3]
                 db.execute('INSERT INTO public.paper_engine_commands VALUES(%s,%s,%s,%s,%s,%s,%s,%s)',
-                    ('PAPER',engine._scope_key,write.command_id,client,client,'CREATE_REQUEST',digest(request),Jsonb(domain_payload(request))))
-                db.execute('INSERT INTO public.paper_order_terms(scope_key,client_id,market_key,terms) VALUES(%s,%s,%s,%s)',
-                    (engine._scope_key,client,key,Jsonb(terms)))
-                db.execute('SELECT public.paper_match_order(%s,%s)',(engine._scope_key,client))
+                    ('PAPER',engine._scope_key,write.command_id,anchor,anchor,'CREATE_REQUEST',digest(request),Jsonb(domain_payload(request))))
+                if native_list:db.execute('SELECT public.paper_accept_native_program_v2(%s,%s)',(engine._scope_key,write.command_id))
+                db.execute('SELECT public.paper_match_order(%s,%s)',(engine._scope_key,anchor))
                 # Owner clock/lease remains held and current through SIM commit.
                 with owner.guard(lease):
                     _current_consumed_owner(boundary,original,lease,consumption,assessment,permit)
                     _consumed_permit_clock(engine,permit,after=clock,created_at=original.created_at)
         report=query_creation(engine,write.command_id)
         return PaperCreationReceipt(command_id=write.command_id,request_hash=digest(request),scope=engine.scope,
-            namespace=request.namespace.value,client_ids=(client,),status=report.status,evidence=report.evidence)
+            namespace=request.namespace.value,client_ids=tuple(row[3] for row in execution_rows),status=report.status,evidence=report.evidence)
 
 
 def query_creation(engine,command_id):
@@ -470,7 +514,9 @@ def query_creation(engine,command_id):
         require(request.command_id==command_id and request.scope==engine.scope and digest(request)==command['request_hash'],
             'PAPER_REQUEST_QUERY_BINDING_CHANGED')
         rows=db.execute('SELECT o.*,t.terms FROM public.paper_engine_orders o JOIN public.paper_order_terms t '
-            'USING(scope_key,client_id) WHERE o.scope_key=%s AND o.client_id=%s',(engine._scope_key,command['target_client_id'])).fetchall()
+            'USING(scope_key,client_id) WHERE o.scope_key=%s AND o.client_id=ANY(%s) ORDER BY t.arrival_sequence',
+            (engine._scope_key,[m.client_id for m in request.assigned_ids.members])).fetchall()
+        require(len(rows)==len(request.assigned_ids.members)<=32,'PAPER_COMPLETE_NATIVE_MEMBER_INVENTORY_REQUIRED')
         orders=[];fills=[];contexts=[];dispositions=[];raw_total=0
         for row in rows:
             terms=row['terms']
@@ -529,8 +575,12 @@ def query_creation(engine,command_id):
                     'PAPER_FILL_SOURCE_INCOMPLETE')
         payload={'request':domain_payload(request),'orders':[domain_payload(o) for o in orders],'fills':[domain_payload(f) for f in fills],
             'accepted_contexts':[domain_payload(c) for c in contexts],'dispositions':[domain_payload(d) for d in dispositions]}
-        return PaperCreationReport(command_id=command_id,request=request,orders=tuple(orders),fills=tuple(fills),
+        report=PaperCreationReport(command_id=command_id,request=request,orders=tuple(orders),fills=tuple(fills),
             accepted_contexts=tuple(contexts),dispositions=tuple(dispositions),evidence=_evidence('paper-market-query:'+command_id,payload,engine._clock().utc_now))
+        if any(getattr(context.terms,'model_revision',None)==2 for context in contexts):
+            from .paper_market_v2 import decorate_report_v2
+            return decorate_report_v2(engine,db,report)
+        return report
 
 
 def query_market_evidence(engine,command_id):
@@ -543,19 +593,27 @@ def query_market_evidence(engine,command_id):
         request=decode(VenueCreationRequest,command['request'])
         require(request.scope==engine.scope and request.command_id==command_id and digest(request)==command['request_hash'],
             'PAPER_MARKET_QUERY_BINDING_CHANGED')
+        v2=db.execute("SELECT terms->>'model_revision' AS revision FROM public.paper_order_terms WHERE scope_key=%s AND client_id=%s",
+            (engine._scope_key,command['target_client_id'])).fetchone()['revision']=='2'
         inputs=[];consumptions=[];used_bytes=512
         # Named cursors fetch one source/allocation at a time. Bounds apply
         # globally before append, not per event after loading an entire history.
         with db.cursor(name='paper_market_evidence_sources') as source_cursor:
             source_cursor.itersize=1
-            source_cursor.execute('SELECT DISTINCT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels,i.observed_clock '
+            source_query=('SELECT DISTINCT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels,i.observed_clock '
                 "FROM public.paper_market_inputs i JOIN public.paper_engine_events e ON e.payload->>'market_key'=i.market_key "
-                "AND e.payload->>'market_event_id'=i.event_id WHERE e.scope_key=%s AND e.client_id=%s "
-                'ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097',
-                (engine._scope_key,command['target_client_id']))
+                "AND (e.payload->>'market_event_id'=i.event_id OR e.payload->>'calendar_event_id'=i.event_id "
+                "OR e.payload->>'depth_event_id'=i.event_id) WHERE e.scope_key=%s AND e.client_id=%s "
+                'ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097')
+            if v2:
+                source_query=('SELECT DISTINCT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels,i.observed_clock '
+                    'FROM public.paper_market_inputs i JOIN public.paper_order_input_dependencies_v2 d USING(market_key,event_id) '
+                    'WHERE d.scope_key=%s AND d.client_id=ANY(%s) ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097')
+            source_cursor.execute(source_query,(engine._scope_key,[m.client_id for m in request.assigned_ids.members] if v2 else command['target_client_id']))
             for row in source_cursor:
                 require(len(inputs)<4096,'PAPER_MARKET_EVIDENCE_BOUND_EXCEEDED')
-                event=decode(PaperMarketEvent,row['payload']);require(digest(event)==row['payload_hash'],'PAPER_MARKET_ARCHIVE_HASH_CHANGED')
+                from .paper_market_v2 import decode_source_event
+                event=decode_source_event(row['payload']);require(digest(event)==row['payload_hash'],'PAPER_MARKET_ARCHIVE_HASH_CHANGED')
                 raw=canonical_json(row['payload'])
                 require(len(raw.encode('utf-8'))<=1048576 and len(row['before_levels'])<=8192,'PAPER_MARKET_RAW_EVIDENCE_BOUND_EXCEEDED')
                 item=PaperMarketInput(event=event,event_hash=row['payload_hash'],raw_payload_json=raw,before_levels=tuple(
@@ -574,6 +632,9 @@ def query_market_evidence(engine,command_id):
                             side=allocated['side'],price=allocated['price'],quantity=allocated['quantity'])
                         used_bytes+=len(canonical_json(domain_payload(item)).encode('utf-8'))
                         require(used_bytes<=16777216,'PAPER_MARKET_TOTAL_EVIDENCE_BOUND_EXCEEDED');consumptions.append(item)
+        if v2:
+            from .paper_market_v2 import decorate_market_evidence_v2
+            return decorate_market_evidence_v2(engine,db,command_id,request,inputs,consumptions,used_bytes)
         payload={'command_id':command_id,'request_hash':digest(request),'inputs':[domain_payload(i) for i in inputs],
             'consumptions':[domain_payload(c) for c in consumptions]}
         return PaperMarketEvidence(command_id=command_id,request_hash=digest(request),inputs=tuple(inputs),consumptions=tuple(consumptions),
@@ -588,6 +649,8 @@ class PaperMatcher:
 
     @exact_market_arithmetic
     def apply_market_event(self,event):
+        from .paper_market_v2 import PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2,apply_reference_event
+        if type(event) in (PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2):return apply_reference_event(self.engine,event)
         require(type(event) is PaperMarketEvent and event.product==self.engine.scope.product
             and event.instrument_uid==self.engine.scope.instrument_uid,'PAPER_MARKET_SCOPE_MISMATCH')
         now=self.engine._clock()
