@@ -1,5 +1,95 @@
 # Current task
 
+## CURRENT_NATIVE_QUOTE_INTEGRATION_GREEN — 2026-10-30
+
+Exact ROOT9d8dd5c90ed1cade158bca0a825edac0890be4e9 actual combined2PG GREEN
+35.862s plus native27/128.351s, quote30/191.605s, V2source51/259.222s and V2compat23/
+120.737s, all0fail/error/skip. Every original handle71461/11501/41834/62776/99218
+is terminal0. No repeated jobs or broad old-source gate. Focused53unit GREEN2.33s.
+
+Both native-first and quote-first/reference-carried cases genuinely consume
+.2native+.08quote+.02BASE from shared.3 depth and verify every source; omitting
+or duplicating quote rivals BLOCKS native verification. Genuine combined RED236
+is2fail35.35s/PAPER_NATIVE_LIQUIDITY_CHANGED after actual fills. Only native
+independent manifest expanded to actual quote rivals; exact bounded complete-set
+comparison retained. Initial fix0657's ambiguous JOIN2fail35.67s was corrected
+with qualified ON, not relaxed checks. Three prior new-fixture failures are
+explicitly separated from productRED; final50000..60000 model is genuinely
+compiled and fully assessed before any write. Native stays MARKET, no fake LIMIT.
+
+Native0026 and five direct producer/test files match reviewedda12780 exactly.
+Adapter is a clean three-way merge preserving quote dispatch/query/all-rival
+UNION. Quote manifest/capacity helper, frozen0013/14/25 and all5ef cash/release/
+financial/current/afterwait/source-registry bytes are unchanged. Exact8path+13
+preserved hashes: ROOT-NATIVE-QUOTE-DEPENDENCY-9d8dd5c.json. Ten runs160safe raw
+originals/copies are preserved under op-d-root-native-quote-integration; actual
+committed Gitblob verification follows this evidence commit.
+
+Source-native/quote0021/static financial registration and owned posting still
+BLOCKED; distinct native result cannot alias V1/V2 or clear nonempty-member21.
+No host/default qualification. Next reviewed management closeout is EXACT
+a6d7dddbc8f39d1d2648a71a2649a472a05834c4 (a6d7dd3 is not a revision); serialselect
+NEW0022/23 and contracts/services/tests, retaining this new matcher and5ef guards,
+then actual51PG. CASH solely owns A+B/orderprojection/newintake. All46/56 active.
+
+## CURRENT_NATIVE_COMBINED_GREEN_REGRESSIONS_RUNNING — 2026-10-30
+
+Exact ROOT9d8dd5c90ed1cade158bca0a825edac0890be4e9 passes genuine combined
+nativeTWAP/quote/V2BASE source2PG,0fail/error/skip35.862s; original71461 terminal0,
+run405ca12357c7. Both native-first and quote-first/reference-carried paths consume
+.2+.08+.02 from shared.3 depth and authenticate all three sources. Omitted or
+repeated quote rivals must BLOCK native verification and retain raw evidence.
+New native independent SQL manifest now includes actual quote allocations with
+original bounded complete-set comparison; no filtering or alternate authority.
+
+Actual product RED236af39 original46544/run3a7e3f9c539c:2fail35.35s, both
+PAPER_NATIVE_LIQUIDITY_CHANGED after genuine fills and successful quote/V2 checks.
+Initial fix0657 original28373/run58002a0250be failed2/35.67s on ambiguous SQL JOIN;
+9d8 qualifies the dependency join with ON. Prior48/2ea/5f runs are ONLY fixture
+precondition failures (MARKET variant, profile mismatch, full loss limit), not
+product/sourceRED. Final test explicitly compiles matching50000..60000 native
+model/risk bounds, retains nativeMARKET and genuine bounded funds/risk assessment.
+No policy/risk limit, opening, reservation, original IDs, permit or safety case
+was relaxed. Reviewed native27/source/runtime logic otherwise selected unchanged.
+
+Four affected fixed9d8 regressions now RUNNING on original11501(native27),
+41834(quote30),62776(V2source51),99218(V2compat23). Do not restart for timeout.
+Quote/shared-capacity/sourcemanifest and ROOT5ef guards/frozen13/14/25 unchanged.
+Static native-parent/quote registration and owned financial posting remain off;
+no host/default qualification. After these actual regressions, integrate reviewed
+management22/23 and51cases on this new core; CASH solewriter continues separately.
+
+
+## CURRENT_NATIVE_QUOTE_COMBINATION_WIP — 2026-10-30
+
+ROOT quote checkpointa741fe9 is clean/source46bf; all64new raw original/copy/
+actual731e1fc Gitblob hashes verified0mismatch. Native independent reviewed
+candidate da12780f358e666ec5035adec95c637ae74403ca is now selectively present:
+additive0026, distinct native terms/report/verifier, position event/adapter and
+covering tests. Adapter three-way merge preserves quote dispatch/query/complete
+allocation UNION. Quote source manifest/capacity helper, staticregistry, frozen
+0013/14, and all ROOT5ef financial/release/current/afterwait bytes are unchanged.
+
+Actual combined same-market test uses genuine nativeTWAP,quote4000 and BASE
+rivals consuming .3 total depth; both quote-first/reference-carried and native-
+first paths must authenticate all three reports. Native manifest originally reads
+only BASE consumptions, so combined source remains NOT qualified pending actual
+proof and correction. First48b09ab run55011/23b0e1912c8b failed2 beforeexecution:
+new fixture incorrectly applied fixed-limit value to nativeMARKET. Next2ea run
+81888/3cb1c826a6b7 failed2 beforeexecution: actual risk denied50000bound outside
+native compiled80000..90000 model profile. Neither is product/source RED. Current
+5f7c359 fixture declares model50000..90000 through genuine pre-intake profile
+compilation plus matching node bounds; maximum90000/fullreservation/risk guards
+remain. Original49939 is RUNNING at this checkpoint, no restarts. Focused53unit
+GREEN2.33s. All prior original handles terminal; no host/financial registration.
+
+After native/quote combined actualPG and relevant regressions pass, integrate
+reviewed management a6d7dd3/0022+0023 on this new core (never old0014replacement)
+and verify its51cases. CASH solely owns its A+B/working-source/newintake path;
+ROOT must not remove generic-newwrite guards to continue accepted GTC programs.
+All46/56 remains active; main/archives untouched; ROOT+D ownership retained.
+
+
 ## CURRENT_ROOT_QUOTE_INTEGRATION_GREEN — 2026-10-30
 
 Reviewed quote candidate03646b5705a5cabbefafe608dee472a2cf0ba103 is selectively

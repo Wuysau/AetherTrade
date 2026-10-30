@@ -1,0 +1,18 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_actual_native_quote_and_v2_base_authenticate_one_shared_book[False] ___
+tests/integration/test_paper_native_quote_combined.py:77: in test_actual_native_quote_and_v2_base_authenticate_one_shared_book
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_NATIVE_LIQUIDITY_CHANGED',)
+E   assert False
+E    +  where False = PaperNativeParentVerification(command_id='isolated-command-f1918728791e416bb8b98c8963fc15ab', status='BLOCKED', source...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+___ test_actual_native_quote_and_v2_base_authenticate_one_shared_book[True] ____
+tests/integration/test_paper_native_quote_combined.py:77: in test_actual_native_quote_and_v2_base_authenticate_one_shared_book
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_NATIVE_LIQUIDITY_CHANGED',)
+E   assert False
+E    +  where False = PaperNativeParentVerification(command_id='isolated-command-ea0681da9d074203a8a0cc9f16c0f8fa', status='BLOCKED', source...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_native_quote_combined.py::test_actual_native_quote_and_v2_base_authenticate_one_shared_book[False]
+FAILED tests/integration/test_paper_native_quote_combined.py::test_actual_native_quote_and_v2_base_authenticate_one_shared_book[True]
+2 failed in 35.35s

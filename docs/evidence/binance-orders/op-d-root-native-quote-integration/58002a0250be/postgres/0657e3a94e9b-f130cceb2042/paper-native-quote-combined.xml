@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="35.672" timestamp="2026-10-30T09:46:31.657784+00:00" hostname="c10f3d14a4b9"><testcase classname="tests.integration.test_paper_native_quote_combined" name="test_actual_native_quote_and_v2_base_authenticate_one_shared_book[False]" time="17.825"><failure message="psycopg.errors.AmbiguousColumn: common column name &quot;market_key&quot; appears more than once in left table">tests/integration/test_paper_native_quote_combined.py:76: in test_actual_native_quote_and_v2_base_authenticate_one_shared_book
+    result=verifier.verify(n.write.command_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_native_parent_reports.py:53: in verify
+    fills,codes=self._authenticate(original,bundle,consumed,assessment,report,market,clock,refs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_native_parent_reports.py:123: in _authenticate
+    consumptions=db.execute(allocation_sql+' ORDER BY fill_id LIMIT 100001',allocation_args).fetchall()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.AmbiguousColumn: common column name "market_key" appears more than once in left table</failure></testcase><testcase classname="tests.integration.test_paper_native_quote_combined" name="test_actual_native_quote_and_v2_base_authenticate_one_shared_book[True]" time="16.675"><failure message="psycopg.errors.AmbiguousColumn: common column name &quot;market_key&quot; appears more than once in left table">tests/integration/test_paper_native_quote_combined.py:76: in test_actual_native_quote_and_v2_base_authenticate_one_shared_book
+    result=verifier.verify(n.write.command_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_native_parent_reports.py:53: in verify
+    fills,codes=self._authenticate(original,bundle,consumed,assessment,report,market,clock,refs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_native_parent_reports.py:123: in _authenticate
+    consumptions=db.execute(allocation_sql+' ORDER BY fill_id LIMIT 100001',allocation_args).fetchall()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.AmbiguousColumn: common column name "market_key" appears more than once in left table</failure></testcase></testsuite></testsuites>
