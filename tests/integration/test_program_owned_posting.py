@@ -62,7 +62,8 @@ def test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transa
         frame=require_current_program_book_cash(tx,book,read_opening=read_program_account_opening)
         assert len(frame.native_identities)==1
         fee=tx.execute('SELECT payload,xmin::text,transaction_id FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()
-        assert fee[0]['classification']=='FEE' and fee[0]['amount']==dict(currency='USDT',amount='-32.596')
+        assert fee[0]['classification']=='FEE' and fee[0]['amount']['currency']=='USDT'
+        assert D(fee[0]['amount']['amount'])==D('-32.596')
         fill=tx.execute('SELECT xmin::text,transaction_id FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()
         assert fee[1:]==fill
         for table,record in [('positions',owner.position.position_id),('book_snapshots','book'),('audit_events','ip16:owner')]:
@@ -117,4 +118,63 @@ def test_failed_financial_commit_rolls_back_all_owner_effects_and_retry_posts_on
             assert RegistryTx(tx).owner().position.actual_quantity.value==0
         s.uow=original
         assert s.apply(c.write.command_id).status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+    finally:codec.close()
+
+
+def test_concurrent_independent_source_approvals_apply_one_native_owned_effect(database,venue,tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from trading_system.execution.program_accounting import ProgramPaperAccountingService
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+    from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
+    c,s,codec=setup(database,venue,tmp_path);ready=Barrier(2)
+    def apply(index):
+        verifier,local_codec=actual_verifier(c,tmp_path/('archive-'+str(index)))
+        service=ProgramPaperAccountingService(c.service.uow,c.scope,
+            source_service=ProgramFillSourceService(source_uow(database),c.scope,verifier=verifier),
+            trade_id_scope='INSTRUMENT',financial_posting=ProgramOwnedSpotPosting(read_opening=read_program_account_opening))
+        try:
+            ready.wait(timeout=20)
+            return service.apply(c.write.command_id).status
+        finally:local_codec.close()
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:results=list(pool.map(apply,(1,2)))
+        assert results==['ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED']*2
+        with c.service.uow.transaction(c.scope) as tx:
+            assert RegistryTx(tx).owner().position.actual_quantity.value==D('.4')
+            assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(1,)
+            assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(1,)
+            assert tx.projections.book(c.scope).sequence==2
+    finally:codec.close()
+
+
+def test_real_process_restart_does_not_duplicate_position_or_fees(database,venue,tmp_path):
+    import os
+    from trading_system.execution.program_accounting import ProgramPaperAccountingService
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+    from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
+    c,s,codec=setup(database,venue,tmp_path)
+    try:
+        s.apply(c.write.command_id)
+        read_end,write_end=os.pipe();child=os.fork()
+        if child==0:
+            os.close(read_end)
+            try:
+                verifier,fresh_codec=actual_verifier(c,tmp_path/'restarted-archive')
+                fresh=ProgramPaperAccountingService(c.service.uow,c.scope,
+                    source_service=ProgramFillSourceService(source_uow(database),c.scope,verifier=verifier),
+                    trade_id_scope='INSTRUMENT',financial_posting=ProgramOwnedSpotPosting(read_opening=read_program_account_opening))
+                result=fresh.apply(c.write.command_id)
+                fresh_codec.close()
+                with os.fdopen(write_end,'w') as output:output.write(result.status)
+            except BaseException:os._exit(71)
+            os._exit(0)
+        os.close(write_end)
+        with os.fdopen(read_end) as incoming:status=incoming.read(256)
+        _,exit_status=os.waitpid(child,0)
+        assert os.waitstatus_to_exitcode(exit_status)==0 and status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+        with c.service.uow.transaction(c.scope) as tx:
+            assert RegistryTx(tx).owner().position.actual_quantity.value==D('.4')
+            assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(1,)
+            assert tx.projections.book(c.scope).sequence==2
     finally:codec.close()
