@@ -127,6 +127,7 @@ GRANT INSERT ON public.paper_engine_orders,public.paper_order_terms TO paper_mat
 GRANT USAGE ON SEQUENCE public.paper_order_terms_arrival_sequence_seq TO paper_matcher_definer;
 GRANT SELECT,INSERT,UPDATE ON public.paper_venue_positions_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT ON public.paper_position_input_dependencies_v2 TO paper_matcher_definer;
+GRANT SELECT ON public.paper_market_consumptions TO paper_matcher_definer;
 CREATE TRIGGER immutable_market_preventions_v2 BEFORE UPDATE OR DELETE ON public.paper_market_preventions_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 CREATE TRIGGER immutable_input_dependencies_v2 BEFORE UPDATE OR DELETE ON public.paper_order_input_dependencies_v2
