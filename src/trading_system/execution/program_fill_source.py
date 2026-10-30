@@ -156,6 +156,14 @@ class CommittedProgramFillSources:
         require(self.tx.active and not self.tx.failed,'PROGRAM_SOURCE_TRANSACTION_CLOSED')
         return _read_committed_fill_source(self.tx,approval_id,self)
 
+    def read_snapshot(self,command_id,source_hash):
+        """Read an exact committed query proof, including an actual zero fill.
+
+        Reuses the same original-context/hash/physical-commit checks and live
+        transaction cache. A snapshot supplies observations, never permissions.
+        """
+        return self._snapshot(source_hash,command_id)
+
 
 def _read_committed_fill_source(tx,approval_id,reader):
     """Read immutable historical facts only, without venue/file IO or new authority.
