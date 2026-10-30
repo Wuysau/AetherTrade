@@ -190,8 +190,8 @@ def test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow(d
     c,s,codec=setup(database,venue,tmp_path)
     try:
         s.apply(c.write.command_id)
-        market=replace(event(c,sequence=2,quantity='.2',ask='559.5',kind='DEPTH_DELTA'),
-            bids=(DepthLevel(price='559',quantity='1'),))
+        market=replace(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'),
+            bids=(DepthLevel(price='559',quantity='1'),),asks=(DepthLevel(price='559.5',quantity='.2'),))
         PaperMatcher(c.engine).apply_market_event(market)
         report=c.engine.query_creation(c.write.command_id)
         assert D(report.fills[-1].fees[0].amount)==D('.1119')
