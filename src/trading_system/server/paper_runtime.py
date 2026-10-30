@@ -247,9 +247,10 @@ class UnifiedPaperRuntime:
         installed=tx.execute("SELECT to_regclass('ledger.program_fill_source_approvals')").fetchone()[0]
         if installed is None:return
         pending=tx.execute('SELECT 1 FROM ledger.program_fill_source_approvals a '
-            'JOIN ledger.account_bindings b ON b.environment=a.payload#>>\'{scope,environment}\' '
+            'LEFT JOIN ledger.account_bindings b ON b.environment=a.payload#>>\'{scope,environment}\' '
             'AND b.account_id=a.payload#>>\'{scope,venue_account_id}\' AND b.product=a.payload#>>\'{scope,product}\' '
-            'WHERE b.environment=%s AND b.collateral_group_id=%s LIMIT 1',
+            'WHERE a.payload#>>\'{scope,environment}\'=%s '
+            'AND (b.collateral_group_id=%s OR b.collateral_group_id IS NULL) LIMIT 1',
             (str(tx.scope.environment),tx.group_id)).fetchone()
         if pending is not None:
             raise ApiError('PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED',

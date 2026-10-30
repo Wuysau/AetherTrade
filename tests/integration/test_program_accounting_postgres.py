@@ -155,6 +155,7 @@ def test_legacy_refresh_cannot_ignore_source_approved_generic_execution(database
 
 @pytest.mark.parametrize('operation',('cash','book'))
 def test_missing_foreign_source_binding_cannot_hide_unreconciled_execution(database,venue,tmp_path,operation):
+    import os
     import psycopg
     from integration.test_program_financial_admission import real_case
     from trading_system.server.paper_runtime import UnifiedPaperRuntime
@@ -175,11 +176,15 @@ def test_missing_foreign_source_binding_cannot_hide_unreconciled_execution(datab
             (scope_id(receiver.scope),canonical_json(dict(initial_cash=format(seed,'f'),source='EXPLICIT_ISOLATED_VIRTUAL_CAPITAL')),tx.transaction_id))
     # Normal writes must remain blocked. The following admin-only corruption
     # fixture models incomplete historical restore, not runtime permissions.
+    assert os.environ.get('IP03_ISOLATED_DATABASE')=='YES'
     with pytest.raises(psycopg.errors.CheckViolation,match='append-only'):
         with psycopg.connect(database) as db:
             db.execute('DELETE FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s',
                 (str(source.scope.environment),source.scope.venue_account_id,str(source.scope.product)))
     with psycopg.connect(database) as db:
+        assert db.execute('SELECT current_database()').fetchone()[0].startswith('ip03_test_')
+        assert db.execute("SELECT tgenabled FROM pg_trigger WHERE tgrelid='ledger.account_bindings'::regclass "
+            "AND tgname='binding_immutable'").fetchone()==('O',)
         db.execute('ALTER TABLE ledger.account_bindings DISABLE TRIGGER binding_immutable')
         binding=db.execute('DELETE FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s '
             'RETURNING collateral_group_id,payload',
@@ -199,3 +204,5 @@ def test_missing_foreign_source_binding_cannot_hide_unreconciled_execution(datab
             db.execute('INSERT INTO ledger.account_bindings(environment,account_id,product,collateral_group_id,payload) '
                 'VALUES(%s,%s,%s,%s,%s::jsonb)',(str(source.scope.environment),source.scope.venue_account_id,
                 str(source.scope.product),binding[0],None if binding[1] is None else canonical_json(binding[1])))
+            assert db.execute("SELECT tgenabled FROM pg_trigger WHERE tgrelid='ledger.account_bindings'::regclass "
+                "AND tgname='binding_immutable'").fetchone()==('O',)
