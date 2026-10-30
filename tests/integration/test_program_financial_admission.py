@@ -39,7 +39,7 @@ def database(isolated_postgres):
 
 def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,
               plan_proposal_transform=None,profile_transform=None,risk_policy_transform=None,financial_capacity=None,financial_buffer=None,
-              provision_opening=True,initial_assets=None,venue_account_id=None,**risk_options):
+              provision_opening=True,initial_assets=None,venue_account_id=None,scoped_quantities=False,**risk_options):
     import psycopg
     from integration.support_program_capital import ensure_current_capital_schema,initialize_declared_assets
     ensure_current_capital_schema(dsn)
@@ -148,6 +148,22 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
         current=replace(c.facts.inputs,intent_id=intake_record.intent_id,clock=clock)
         tf=replace(c.facts.target_facts,transaction_id=tx.transaction_id,inputs=replace(
             c.facts.target_facts.inputs,clock=clock))
+        if scoped_quantities:
+            from dataclasses import fields
+            from trading_system.intents.program_target_allocation import ProgramTargetFacts,ProgramScopedTargetFactsV2
+            from trading_system.risk.program_quantity_scope import current_program_quantity_reservation_ids
+            from trading_system.risk.program_financial_admission import read_program_bundle
+            original_book=tx.projections.book(tx.scope)
+            stored_bundle=read_program_bundle(tx,intake_record.intent_id)
+            ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle,
+                load_released_balances=service.load_released_balances)
+            tf=ProgramScopedTargetFactsV2(**{f.name:getattr(tf,f.name) for f in fields(ProgramTargetFacts)},
+                contract_version='2026-10-30',record_kind='PROGRAM_SCOPED_TARGET_FACTS_V2',
+                quantity_scope=tx.scope,quantity_reservation_ids=ids)
+            tf=replace(tf,book_sequence=book.sequence,book_hash=digest(book))
+            budget=replace(c.facts.budget_facts,reservations=book.reservations)
+            c.facts=replace(c.facts,budget_facts=budget)
+            c.exposure=derive_program_exposure(c.plan,budget,now=clock.utc_now)
         c.allocation=compile_program_target(c.plan,book,tf)
         c.book=book;c.terms=replace(c.terms,decision_id=intake_record.intent_id)
         c.facts=replace(c.facts,inputs=current,target_facts=tf,

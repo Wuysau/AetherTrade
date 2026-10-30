@@ -275,13 +275,20 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     fence=current_fence(tx,source.context)
     require(tx.intents.get(intake.intent_id) is None,'PROGRAM_FINANCIAL_ALREADY_ADMITTED')
     book=tx.projections.book(tx.scope)
+    source_book=book
     original_book_hash=digest(book)
     from trading_system.risk.program_cash_guard import require_funded_program_account_book
-    require_funded_program_account_book(tx,book)
+    account_cash=require_funded_program_account_book(tx,book)
     collateral=service._prepare_collateral(tx,book)
     require(not collateral.rejection_codes,','.join(collateral.rejection_codes))
     book=collateral.book
     inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
+    from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
+    from .program_quantity_scope import validate_current_program_quantity_scope
+    proposed_archive=getattr(inputs,'archive',None)
+    scoped=type(getattr(proposed_archive,'target_facts',None)) is ProgramScopedTargetFactsV2
+    if scoped:validate_current_program_quantity_scope(tx,source_book,book,proposed_archive.target_facts,
+        load_released_balances=service.load_released_balances)
     intent,basis=validate_current_inputs(tx,source,intake,book,inputs,clock,load_execution_bounds)
     a=inputs.archive;sf=_scope_facts(a)
     from .quote_financial_admission import (QuoteFinancialInputsV1,QuoteProgramFinancialBundleV1,
@@ -349,6 +356,11 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     require(window.poll(expires) is not None,'EXPIRED_OR_UNBOUND_CLOCK')
     require(digest(current_fence(tx,source.context))==digest(fence),'STALE_REVISION')
     require(digest(tx.projections.book(tx.scope))==original_book_hash,'PROGRAM_CURRENT_BOOK_CHANGED')
+    if scoped:validate_current_program_quantity_scope(tx,source_book,book,a.target_facts,
+        load_released_balances=service.load_released_balances)
+    final_cash=require_funded_program_account_book(tx,source_book)
+    require(final_cash.opening_id==account_cash.opening_id and final_cash.economic_revision==account_cash.economic_revision,
+        'PROGRAM_CURRENT_ACCOUNT_CASH_CHANGED')
     if quote:
         validate_current_quote_bounds(tx,source,intake,book,clock,a,load_execution_bounds)
         require(window.poll(expires) is not None,'EXPIRED_OR_UNBOUND_CLOCK')
