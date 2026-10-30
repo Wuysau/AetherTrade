@@ -121,6 +121,19 @@ def test_unknown_opening_provider_cannot_turn_a_dto_into_spendable_cash(database
     finally:codec.close()
 
 
+def test_callable_equality_cannot_impersonate_a_registered_capital_reader(database):
+    from trading_system.execution.program_account_cash import read_program_account_cash
+    c=prepared(database)
+    with c.service.uow.transaction(c.scope) as tx:
+        actual=read_program_account_opening(tx)
+        class ImpersonatingReader:
+            def __eq__(self,other):return True
+            def __call__(self,tx):
+                return replace(actual,balances=(t.Money(currency='USDT',amount=D('9000000')),))
+        with pytest.raises(MissingEvidence,match='TRUSTED_ACCOUNT_OPENING_READER_REQUIRED'):
+            read_program_account_cash(tx,read_opening=ImpersonatingReader())
+
+
 def test_actual_unapproved_extra_fill_cannot_be_ignored_by_account_reconstruction(database,venue,tmp_path):
     from trading_system.execution.program_account_cash import read_program_account_cash
     c,s,codec,approval=matched(database,venue,tmp_path)
