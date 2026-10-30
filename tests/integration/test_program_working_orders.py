@@ -178,12 +178,66 @@ def test_observed_native_fill_without_per_fill_approval_blocks_new_account_fundi
             snapshot=tx.execute('SELECT payload FROM ledger.program_fill_source_snapshots WHERE scope_id=%s AND snapshot_id=%s',
                 (scope_id(c.scope),observed.source_snapshot_hash)).fetchone()[0]
             assert len(snapshot['normalized_fills'])==1
+        b=real_case(database,scoped_quantities=True,venue_account_id=c.scope.venue_account_id,
+            collateral_group_id=c.c.terms.collateral_group_id,instrument_uid='must-not-fund-'+uuid4().hex,
+            provision_opening=False)
         with pytest.raises(MissingEvidence,match='OBSERVED_PROGRAM_EXECUTIONS_UNPOSTED'):
-            real_case(database,scoped_quantities=True,venue_account_id=c.scope.venue_account_id,
-                collateral_group_id=c.c.terms.collateral_group_id,instrument_uid='must-not-fund-'+uuid4().hex)
+            case(database,venue,tmp_path,prepared_case=b)
         with c.service.uow.transaction(c.scope) as tx:
-            assert tx.execute('SELECT count(*) FROM ledger.intents WHERE payload->>\'venue_account_id\'=%s',
+            assert tx.execute("SELECT count(*) FROM ledger.intents WHERE payload#>>'{scope,venue_account_id}'=%s",
                 (c.scope.venue_account_id,)).fetchone()==(1,)
+    finally:codec.close();source_codec.close()
+
+
+@pytest.mark.parametrize('fault',('unit','fees','global_status'))
+def test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity(database,venue,tmp_path,fault):
+    from trading_system.execution.program_fill_source import save_verification_snapshot
+    from trading_system.execution.program_account_cash import read_program_account_cash
+    from trading_system.execution.program_account_opening import read_program_account_opening
+    c,accounting,source_codec=setup(database,venue,tmp_path)
+    try:
+        accounting.apply(c.write.command_id)
+        verified=accounting.source_service.verifier.verify(c.write.command_id)
+        # Deliberately disputed source-only candidate, not a legitimate new fill.
+        # Existing actual fill/approval/financial rows remain byte-for-byte.
+        if fault=='global_status':
+            changed=replace(verified,status='DISCREPANCY',discrepancies=('ADVERSARIAL_GLOBAL_SOURCE_CONFLICT',))
+        else:
+            native=verified.fills[0]
+            if fault=='unit':
+                economics=replace(native.economics,unit=replace(native.economics.unit,
+                    ledger_units_per_native_unit=D(2),native_multiplier=D(2)))
+                altered=replace(native,economics=economics)
+            else:
+                fees=(replace(native.economics.fees[0],amount=native.economics.fees[0].amount+D(1)),)
+                altered=replace(native,economics=replace(native.economics,fees=fees),fill=replace(native.fill,fees=fees))
+            changed=replace(verified,fills=(altered,))
+        with source_uow(database).transaction(c.scope) as tx:save_verification_snapshot(tx,changed)
+        reason='OBSERVED_PROGRAM_SOURCE_RECONCILIATION_REQUIRED' if fault=='global_status' else 'OBSERVED_PROGRAM_NATIVE_ECONOMICS_CONFLICT'
+        with c.service.uow.transaction(c.scope) as tx:
+            with pytest.raises(MissingEvidence,match=reason):read_program_account_cash(tx,read_opening=read_program_account_opening)
+            assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(1,)
+    finally:source_codec.close()
+
+
+def test_new_observed_clock_same_native_facts_does_not_change_cash_or_owned_quantity(database,venue,tmp_path):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.execution.program_account_cash import read_program_account_cash
+    from trading_system.execution.program_account_opening import read_program_account_opening
+    c,accounting,source_codec=setup(database,venue,tmp_path)
+    service,codec=projector(c,database,tmp_path/'fresh-clock')
+    try:
+        accounting.apply(c.write.command_id)
+        with c.service.uow.transaction(c.scope) as tx:
+            before=read_program_account_cash(tx,read_opening=read_program_account_opening);book=tx.projections.book(c.scope)
+        old=c.c.facts.inputs.clock
+        c.engine._clock=lambda:replace(old,utc_now=(utc_timestamp(old.utc_now)+timedelta(seconds=10)).isoformat(),
+            monotonic_ns=old.monotonic_ns+10**10)
+        observed=service.observer.observe(c.write.command_id);assert observed.submission_known
+        with c.service.uow.transaction(c.scope) as tx:
+            assert read_program_account_cash(tx,read_opening=read_program_account_opening)==before
+            assert tx.projections.book(c.scope)==book and book.positions[0].actual_quantity.value==D('.4')
     finally:codec.close();source_codec.close()
 
 
