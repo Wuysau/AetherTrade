@@ -72,6 +72,18 @@ def read_program_bundle(tx,intent_id):
     return None if payload is None else decode_program_bundle(payload)
 
 
+def restore_assessment_archive(payload):
+    """Static historical restoration, never replay current financial authority."""
+    from trading_system.storage.models import decode
+    from trading_system.intents.quote_assessment_archive import QuoteAssessmentArchiveV1
+    require(type(payload) is dict,'ASSESSMENT_ARCHIVE_TYPE_REQUIRED')
+    key=(payload.get('contract_version'),payload.get('record_kind'))
+    kinds={('2026-10-29','PROGRAM_FINANCIAL_ASSESSMENT_ARCHIVE'):ProgramFinancialAssessmentArchive,
+        ('2026-10-30','QUOTE_ASSESSMENT_ARCHIVE_V1'):QuoteAssessmentArchiveV1}
+    require(key in kinds,'ASSESSMENT_ARCHIVE_VERSION_UNSUPPORTED')
+    return decode(kinds[key],payload)
+
+
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramFinancialInputs:
     archive:ProgramFinancialAssessmentArchive

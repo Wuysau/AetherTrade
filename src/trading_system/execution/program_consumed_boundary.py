@@ -18,6 +18,7 @@ from trading_system.intents.program_assessment_archive import ProgramFinancialAs
 from trading_system.recovery.original_creation import read_original_creation
 from trading_system.risk.locked_actions import LockedActionVerifier
 from trading_system.risk.program_financial_admission import ProgramFinancialQualification,ProgramFinancialBundle,BUNDLE_PREFIX
+from trading_system.risk.program_financial_admission import decode_program_bundle,restore_assessment_archive
 from trading_system.storage.models import scope_id,decode
 
 
@@ -85,8 +86,9 @@ def recheck_consumed(boundary,permit,lease):
         source=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
             (scope_id(boundary.scope),BUNDLE_PREFIX+write.intent_id)).fetchone()
         require(source is not None,'PROGRAM_CONSUMED_BUNDLE_REQUIRED')
-        bundle=decode(ProgramFinancialBundle,source[0])
-        assessment=decode(ProgramFinancialAssessmentArchive,consumed['assessment'])
+        bundle=decode_program_bundle(source[0])
+        assessment=restore_assessment_archive(consumed['assessment'])
+        require(type(bundle.archive) is type(assessment),'PROGRAM_CONSUMED_SOURCE_KIND_CHANGED')
         qualification=decode(ProgramFinancialQualification,consumed['qualification'])
         require(consumed['assessment_hash']==digest(assessment)
             and consumed['source_hash']==digest(bundle.intent.source)==digest(assessment.source)
@@ -112,9 +114,30 @@ def recheck_consumed(boundary,permit,lease):
         fence=current_fence(tx,assessment.source.context)
         require(digest(fence)==canonical_hash(consumed['fence']),'PROGRAM_CONSUMED_FENCE_CHANGED')
         book=tx.projections.book(write.scope)
-        require(book is not None and digest(book)==digest(assessment.book),'PROGRAM_CONSUMED_BOOK_CHANGED')
+        from trading_system.risk.quote_financial_admission import (QuoteProgramFinancialBundleV1,
+            current_quote_financial_book,validate_current_quote_bounds)
+        quote=type(bundle) is QuoteProgramFinancialBundleV1
+        financial_book=book
+        if quote:
+            from trading_system.intents.generic_program_intake import read_program_source
+            require(digest(book)==consumed.get('source_book_hash'),'PROGRAM_CONSUMED_BOOK_CHANGED')
+            financial_book=current_quote_financial_book(tx,bundle,book)
+            require(digest(financial_book)==consumed.get('financial_book_hash')==digest(assessment.book),
+                'PROGRAM_CONSUMED_FINANCIAL_BOOK_CHANGED')
+            original_source,intake=read_program_source(tx,bundle.intent.source.intake_record_id)
+            require(digest(original_source)==digest(assessment.source),'PROGRAM_CONSUMED_SOURCE_HASHES_CHANGED')
+            validate_current_quote_bounds(tx,original_source,intake,financial_book,clock,assessment,
+                boundary.readers.get('load_execution_bounds'))
+            require(digest(assessment.risk_facts.target_facts.bounds)==consumed.get('execution_bounds_hash'),
+                'PROGRAM_CONSUMED_EXECUTION_BOUND_CHANGED')
+            require(digest(tx.projections.book(write.scope))==consumed.get('source_book_hash')
+                and digest(current_quote_financial_book(tx,bundle,tx.projections.book(write.scope)))==digest(financial_book)
+                and digest(current_fence(tx,assessment.source.context))==canonical_hash(consumed['fence']),
+                'PROGRAM_CONSUMED_CURRENT_STATE_CHANGED')
+        else:
+            require(book is not None and digest(book)==digest(assessment.book),'PROGRAM_CONSUMED_BOOK_CHANGED')
         duty=LockedActionVerifier().verify_program(tx,bundle.intent,assessment,clock.utc_now,
-            book=book,read_proof=boundary.readers['load_action_proof'])
+            book=financial_book,read_proof=boundary.readers['load_action_proof'])
         require(duty is not None,'PROGRAM_ACTIVE_RISK_LOCK')
         horizons=(write.valid_until,bundle.intent.valid_until,consumed['valid_until'],marked['valid_until'],
             assessment.assessment.expires_at,assessment.risk_terms.submission_deadline,qualification.valid_until,
