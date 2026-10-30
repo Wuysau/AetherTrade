@@ -325,7 +325,7 @@ def test_two_real_commands_same_account_can_post_own_scope_then_reconcile_withou
     from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
     from trading_system.execution.program_book_cash import require_current_program_book_cash,reconcile_program_book_cash
     from trading_system.storage.models import MissingEvidence
-    first=real_case(database,instrument_uid='peer-a-'+uuid4().hex)
+    first=real_case(database,instrument_uid='peer-a-'+uuid4().hex,provision_opening=False)
     balances,proof=inputs(first)
     ProgramAccountOpeningService(provision_uow(database),first.scope).initialize(balances,evidence=proof)
     group=first.c.terms.collateral_group_id
@@ -345,7 +345,7 @@ def test_two_real_commands_same_account_can_post_own_scope_then_reconcile_withou
     current_loader(first)
     first=case(database,venue,tmp_path,prepared_case=first)
     second=real_case(database,venue_account_id=first.scope.venue_account_id,collateral_group_id=group,
-        instrument_uid='peer-b-'+uuid4().hex)
+        instrument_uid='peer-b-'+uuid4().hex,provision_opening=False)
     current_loader(second)
     cases=[first,case(database,venue,tmp_path,prepared_case=second)]
     services=[];codecs=[]
