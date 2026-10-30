@@ -1,0 +1,68 @@
+FFFFFFFF                                                                 [100%]
+=================================== FAILURES ===================================
+_ test_real_owner_consumption_emits_only_archived_offline_unknown_observation __
+tests/integration/test_native_creation_owner_postgres.py:49: in test_real_owner_consumption_emits_only_archived_offline_unknown_observation
+    c=prepared(database,tmp_path)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'
+_ test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[default_disabled] _
+tests/integration/test_native_creation_owner_postgres.py:65: in test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write
+    c=prepared(database,tmp_path,installed=fault!='default_disabled')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'
+_ test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[changed_request] _
+tests/integration/test_native_creation_owner_postgres.py:65: in test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write
+    c=prepared(database,tmp_path,installed=fault!='default_disabled')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'
+_ test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[no_active_owner] _
+tests/integration/test_native_creation_owner_postgres.py:65: in test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write
+    c=prepared(database,tmp_path,installed=fault!='default_disabled')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'
+_ test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[reused_permit] _
+tests/integration/test_native_creation_owner_postgres.py:65: in test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write
+    c=prepared(database,tmp_path,installed=fault!='default_disabled')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'
+_ test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck[expiry] _
+tests/integration/test_native_creation_owner_postgres.py:81: in test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck
+    c=prepared(database,tmp_path,blocked=True)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'
+_ test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck[fence] _
+tests/integration/test_native_creation_owner_postgres.py:81: in test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck
+    c=prepared(database,tmp_path,blocked=True)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'
+_ test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck[lock] _
+tests/integration/test_native_creation_owner_postgres.py:81: in test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck
+    c=prepared(database,tmp_path,blocked=True)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'
+=========================== short test summary info ============================
+FAILED tests/integration/test_native_creation_owner_postgres.py::test_real_owner_consumption_emits_only_archived_offline_unknown_observation
+FAILED tests/integration/test_native_creation_owner_postgres.py::test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[default_disabled]
+FAILED tests/integration/test_native_creation_owner_postgres.py::test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[changed_request]
+FAILED tests/integration/test_native_creation_owner_postgres.py::test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[no_active_owner]
+FAILED tests/integration/test_native_creation_owner_postgres.py::test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[reused_permit]
+FAILED tests/integration/test_native_creation_owner_postgres.py::test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck[expiry]
+FAILED tests/integration/test_native_creation_owner_postgres.py::test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck[fence]
+FAILED tests/integration/test_native_creation_owner_postgres.py::test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck[lock]
+8 failed in 19.54s

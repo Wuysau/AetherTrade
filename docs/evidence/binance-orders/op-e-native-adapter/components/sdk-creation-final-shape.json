@@ -1,0 +1,831 @@
+{
+  "build": {
+    "version": "1.231.0",
+    "python_version": "3.14.2",
+    "platform_tag": "win_amd64",
+    "source_hashes": {
+      "adapters/binance/execution.py": "642b91645bea94648a674db4c202072a96b7a184a91c5f91d33792587dba0d2b",
+      "adapters/binance/config.py": "838366a8660343c3cace4b60a17917949425e665684fef359973524ffefd39f4",
+      "adapters/binance/http/client.py": "b7cc9cfc6c05b8168a9c0181c96156a31e05634d874bcb19199c2ff54f6516c6",
+      "adapters/binance/http/endpoint.py": "8f86df89ad9085710ef704866c27a602146dd554ab5da1bb5136173d52a85876",
+      "adapters/binance/spot/http/account.py": "5dfe5d19898de6dc8b31ae2df8082dd1cafc1713bd7614fc8ebb512701ced07e",
+      "adapters/binance/futures/http/account.py": "53ab44531c556adfc772518d668db7f01047becfc4e6007ee5955c0130e36d5e",
+      "core/nautilus_pyo3.cp314-win_amd64.pyd": "0b47c2849a11e7d20661ec6f8053ea94fe90118b219b61c4f6ea7c3cd9795111"
+    },
+    "source_commit_reference": "27a8e54e7ac3c57d6cbf8891f0283dfbaee97317",
+    "published_wheel_sha256": "295b67b127f67429ebb9d937bd11448f930bee697fca6a8e0ec1de343ad3c68c",
+    "execution_authorized": false,
+    "native_order_qualified": false,
+    "external_activation_allowed": false,
+    "post_wait_last_send_qualification": "BLOCKED",
+    "linux_deployment": "BLOCKED"
+  },
+  "actual_sdk_client_constructed": true,
+  "http_transport": "IN_PROCESS_FAKE_NO_NETWORK",
+  "actual_account_or_endpoint_called": false,
+  "permission_or_consumption_proof": false,
+  "native_order_qualification": "NOT_RUN",
+  "results": [
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-spot",
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "endpoint": "/api/v3/order",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "type",
+          "LIMIT"
+        ],
+        [
+          "quantity",
+          "0.049085"
+        ],
+        [
+          "price",
+          "81490.00"
+        ],
+        [
+          "timeInForce",
+          "GTC"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "newClientOrderId",
+          "021336b10a16dcc7318623f19a317ee6"
+        ]
+      ],
+      "request_hash": "a7308ecb7642f104f041c54b816c3094621f77115bea4465584cbab20805d73f",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-sor",
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "endpoint": "/api/v3/sor/order",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "type",
+          "LIMIT"
+        ],
+        [
+          "quantity",
+          "0.05"
+        ],
+        [
+          "price",
+          "81490.00"
+        ],
+        [
+          "timeInForce",
+          "GTC"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "newClientOrderId",
+          "83c5db330da8b7216ff791088e5a6865"
+        ]
+      ],
+      "request_hash": "9e553d65c1ae8af757a3d428a97866de12f2ea4792c9c1f26b27d1b1435ab89f",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-usdm",
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "endpoint": "/fapi/v1/order",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "type",
+          "LIMIT"
+        ],
+        [
+          "quantity",
+          "0.049085"
+        ],
+        [
+          "price",
+          "81490.00"
+        ],
+        [
+          "timeInForce",
+          "GTC"
+        ],
+        [
+          "positionSide",
+          "BOTH"
+        ],
+        [
+          "reduceOnly",
+          "false"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "newClientOrderId",
+          "3df95203d3f1c295b029772ad375be7a"
+        ]
+      ],
+      "request_hash": "6657ab22072ba500e0f40e88d5093c01d720c9ee3c517a47f606aaae0d7d236d",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-conditional",
+      "namespace": "BINANCE_USD_M_CONDITIONAL_ALGO",
+      "endpoint": "/fapi/v1/algoOrder",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "type",
+          "STOP_MARKET"
+        ],
+        [
+          "quantity",
+          "0.05"
+        ],
+        [
+          "positionSide",
+          "BOTH"
+        ],
+        [
+          "reduceOnly",
+          "false"
+        ],
+        [
+          "algoType",
+          "CONDITIONAL"
+        ],
+        [
+          "workingType",
+          "MARK_PRICE"
+        ],
+        [
+          "triggerPrice",
+          "81330.00"
+        ],
+        [
+          "priceProtect",
+          "false"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "clientAlgoId",
+          "4214a784a1bb7a2018a21de217cfa068"
+        ]
+      ],
+      "request_hash": "0e446ce3ec1a92350ad445d18530ac68e83ed8f90c37564330a2a0cb3eb6eafd",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-batch",
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "endpoint": "/fapi/v1/batchOrders",
+      "original_parameters": [
+        [
+          "batchOrders",
+          "[{\"newClientOrderId\":\"a7045d73a4543687ccb7c99505433b19\",\"positionSide\":\"BOTH\",\"price\":\"81490.00\",\"quantity\":\"1\",\"reduceOnly\":\"false\",\"selfTradePreventionMode\":\"NONE\",\"side\":\"BUY\",\"symbol\":\"BTCUSDT\",\"timeInForce\":\"GTC\",\"type\":\"LIMIT\"},{\"newClientOrderId\":\"61b8d3a4d3ac17ca5f8b3244ed4e88ba\",\"positionSide\":\"BOTH\",\"price\":\"81490.00\",\"quantity\":\"1\",\"reduceOnly\":\"false\",\"selfTradePreventionMode\":\"NONE\",\"side\":\"BUY\",\"symbol\":\"BTCUSDT\",\"timeInForce\":\"GTC\",\"type\":\"LIMIT\"}]"
+        ]
+      ],
+      "request_hash": "746fdd7cad878669a788a65c6d597b98d440ac9f335bd2dddc432b3ce22f1bb3",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-equity",
+      "namespace": "BINANCE_REAL_EQUITY",
+      "endpoint": "/sapi/v1/equity/order/place",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "orderType",
+          "LIMIT"
+        ],
+        [
+          "quantity",
+          "0.049085"
+        ],
+        [
+          "price",
+          "81490.00"
+        ],
+        [
+          "timeInForce",
+          "GTC"
+        ],
+        [
+          "tradingSession",
+          "24H"
+        ],
+        [
+          "tokenize",
+          "false"
+        ],
+        [
+          "quoteAsset",
+          "USDT"
+        ],
+        [
+          "clientOrderId",
+          "94241328b4c10d3895e4adcaeff6c488"
+        ],
+        [
+          "walletType",
+          "MAIN"
+        ]
+      ],
+      "request_hash": "598057dc2305d22e057b68c5933fbad3d7dd330375092ef9d57d65dcd3d6c233",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-OCO",
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "endpoint": "/api/v3/orderList/oco",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "side",
+          "SELL"
+        ],
+        [
+          "aboveType",
+          "TAKE_PROFIT_LIMIT"
+        ],
+        [
+          "quantity",
+          "1"
+        ],
+        [
+          "abovePrice",
+          "83000"
+        ],
+        [
+          "aboveTimeInForce",
+          "GTC"
+        ],
+        [
+          "aboveStopPrice",
+          "83000"
+        ],
+        [
+          "belowType",
+          "STOP_LOSS_LIMIT"
+        ],
+        [
+          "belowPrice",
+          "81300"
+        ],
+        [
+          "belowTimeInForce",
+          "GTC"
+        ],
+        [
+          "belowStopPrice",
+          "81330"
+        ],
+        [
+          "listClientOrderId",
+          "c490d4acc57aeabf7e32b5df19a31ac3"
+        ],
+        [
+          "aboveClientOrderId",
+          "f94a2b32d082323de24aeb4832ff35e2"
+        ],
+        [
+          "belowClientOrderId",
+          "6d60e4f8de72da85606c9dd0251a782b"
+        ]
+      ],
+      "request_hash": "9b129d912b0f111d3b98bed8b49249d3f8e6ee4a9d211494e827c738416114e4",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-OTO",
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "endpoint": "/api/v3/orderList/oto",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "workingSide",
+          "BUY"
+        ],
+        [
+          "workingType",
+          "LIMIT"
+        ],
+        [
+          "workingQuantity",
+          "1"
+        ],
+        [
+          "workingPrice",
+          "81490.00"
+        ],
+        [
+          "workingTimeInForce",
+          "GTC"
+        ],
+        [
+          "pendingSide",
+          "SELL"
+        ],
+        [
+          "pendingType",
+          "LIMIT"
+        ],
+        [
+          "pendingQuantity",
+          "1"
+        ],
+        [
+          "pendingPrice",
+          "81490.00"
+        ],
+        [
+          "pendingTimeInForce",
+          "GTC"
+        ],
+        [
+          "listClientOrderId",
+          "d84516652c45deaaa538b62d067e20af"
+        ],
+        [
+          "workingClientOrderId",
+          "1b57dde9748bfd2e009b0afecc633a5a"
+        ],
+        [
+          "pendingClientOrderId",
+          "c99cdabb7acd1e5613e638e6acdec1a1"
+        ]
+      ],
+      "request_hash": "e49a36adeca52d05aca7a728f880183941e9df7150e6cc4970529ef2d09ecafa",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-OTOCO",
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "endpoint": "/api/v3/orderList/otoco",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "workingSide",
+          "BUY"
+        ],
+        [
+          "workingType",
+          "LIMIT"
+        ],
+        [
+          "workingQuantity",
+          "1"
+        ],
+        [
+          "workingPrice",
+          "81490.00"
+        ],
+        [
+          "workingTimeInForce",
+          "GTC"
+        ],
+        [
+          "pendingSide",
+          "SELL"
+        ],
+        [
+          "pendingAboveType",
+          "TAKE_PROFIT_LIMIT"
+        ],
+        [
+          "pendingQuantity",
+          "1"
+        ],
+        [
+          "pendingAbovePrice",
+          "83000"
+        ],
+        [
+          "pendingAboveTimeInForce",
+          "GTC"
+        ],
+        [
+          "pendingAboveStopPrice",
+          "83000"
+        ],
+        [
+          "pendingBelowType",
+          "STOP_LOSS_LIMIT"
+        ],
+        [
+          "pendingBelowPrice",
+          "81300"
+        ],
+        [
+          "pendingBelowTimeInForce",
+          "GTC"
+        ],
+        [
+          "pendingBelowStopPrice",
+          "81330"
+        ],
+        [
+          "listClientOrderId",
+          "bb29895c68d4156ac802e0ddbab53279"
+        ],
+        [
+          "workingClientOrderId",
+          "c248f34854c26019a8acba91872bd905"
+        ],
+        [
+          "pendingAboveClientOrderId",
+          "2ede7ab684d238a6efc0e347fdfb8acb"
+        ],
+        [
+          "pendingBelowClientOrderId",
+          "c23ec732e92924c7066f179822eb43ef"
+        ]
+      ],
+      "request_hash": "20b3f289d5ee9cadf95df0d0cbefcaf5cc581026a854f16d90648b05c5e4de92",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-OPO",
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "endpoint": "/api/v3/orderList/opo",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "workingSide",
+          "BUY"
+        ],
+        [
+          "workingType",
+          "LIMIT"
+        ],
+        [
+          "workingQuantity",
+          "1"
+        ],
+        [
+          "workingPrice",
+          "81490.00"
+        ],
+        [
+          "workingTimeInForce",
+          "GTC"
+        ],
+        [
+          "pendingSide",
+          "SELL"
+        ],
+        [
+          "pendingType",
+          "LIMIT"
+        ],
+        [
+          "pendingPrice",
+          "81490.00"
+        ],
+        [
+          "pendingTimeInForce",
+          "GTC"
+        ],
+        [
+          "listClientOrderId",
+          "826789a61d3ca36689ba7aab453d42b7"
+        ],
+        [
+          "workingClientOrderId",
+          "05314cb6cfc8963d20ec49c46640a4ea"
+        ],
+        [
+          "pendingClientOrderId",
+          "05c9470bd7367b755109debb3c2e90c4"
+        ]
+      ],
+      "request_hash": "2024722821175776ff0807c74d0fe5ce20ed1c3195d60b56ec7d4701d6361998",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-OPOCO",
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "endpoint": "/api/v3/orderList/opoco",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "workingSide",
+          "BUY"
+        ],
+        [
+          "workingType",
+          "LIMIT"
+        ],
+        [
+          "workingQuantity",
+          "1"
+        ],
+        [
+          "workingPrice",
+          "81490.00"
+        ],
+        [
+          "workingTimeInForce",
+          "GTC"
+        ],
+        [
+          "pendingSide",
+          "SELL"
+        ],
+        [
+          "pendingAboveType",
+          "TAKE_PROFIT_LIMIT"
+        ],
+        [
+          "pendingAbovePrice",
+          "83000"
+        ],
+        [
+          "pendingAboveTimeInForce",
+          "GTC"
+        ],
+        [
+          "pendingAboveStopPrice",
+          "83000"
+        ],
+        [
+          "pendingBelowType",
+          "STOP_LOSS_LIMIT"
+        ],
+        [
+          "pendingBelowPrice",
+          "81300"
+        ],
+        [
+          "pendingBelowTimeInForce",
+          "GTC"
+        ],
+        [
+          "pendingBelowStopPrice",
+          "81330"
+        ],
+        [
+          "listClientOrderId",
+          "926fe9f8542b2539a9ea62133cd7716c"
+        ],
+        [
+          "workingClientOrderId",
+          "623f3fc9fba8a17902b3a4b20f1ff1c6"
+        ],
+        [
+          "pendingAboveClientOrderId",
+          "e7a050d50eb60ee8612de11cea7b0bd3"
+        ],
+        [
+          "pendingBelowClientOrderId",
+          "b5489a0e41b138e68d327b91c390de53"
+        ]
+      ],
+      "request_hash": "a5c6517bb7c3540de6aeea873aa55283f4b6d0963b7fdb1eff0eb234e0dd3969",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-spot-TWAP",
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/spot/newOrderTwap",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "quantity",
+          "1"
+        ],
+        [
+          "duration",
+          "300"
+        ],
+        [
+          "clientAlgoId",
+          "10713613ec5e6fd12883e25cd1f8ef8d"
+        ]
+      ],
+      "request_hash": "c6ecaf9514ecc7b2f79401dca86909719dd219bb21feb1b6a02dc4e856537c15",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-spot-VP",
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/spot/newOrderVp",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "quantity",
+          "1"
+        ],
+        [
+          "urgency",
+          "HIGH"
+        ],
+        [
+          "clientAlgoId",
+          "6dbad4fa81dd8bc0838435a5ea87bcc2"
+        ]
+      ],
+      "request_hash": "ca3b4a4d33fbb53656bebd16ddfcc809f77aeaab94b25dbb9ff41f5b505406e3",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-usdm-TWAP",
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/futures/newOrderTwap",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "quantity",
+          "1"
+        ],
+        [
+          "duration",
+          "300"
+        ],
+        [
+          "positionSide",
+          "BOTH"
+        ],
+        [
+          "reduceOnly",
+          "false"
+        ],
+        [
+          "clientAlgoId",
+          "3b32f68df70556af62da4d36e5c17c4c"
+        ]
+      ],
+      "request_hash": "a07e194bd81b138e50193c4ad0b8b06566c0237152876398833a3cd5d088df67",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "creation",
+      "method": "POST",
+      "command_id": "original-usdm-VP",
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/futures/newOrderVp",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "quantity",
+          "1"
+        ],
+        [
+          "urgency",
+          "HIGH"
+        ],
+        [
+          "positionSide",
+          "BOTH"
+        ],
+        [
+          "reduceOnly",
+          "false"
+        ],
+        [
+          "clientAlgoId",
+          "63ad208fb17e8696b35ed8619b356ca7"
+        ]
+      ],
+      "request_hash": "a972a46371f0c96cf813b531c731d80949f3fabc9de54a58a14f123f2282daec",
+      "exact_sdk_signature_and_wire_shape": true
+    }
+  ]
+}

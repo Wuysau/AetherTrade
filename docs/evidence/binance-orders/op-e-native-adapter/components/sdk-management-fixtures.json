@@ -1,0 +1,775 @@
+[
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "command_id": null,
+      "management_hash": "398045646b7991bf8971fc5387aa0e8640b9879edbb78f32d81e17b48e5e72d3",
+      "instruction_hash": "338c572b7a717e132b94a4b0b534cd4fa25127002591108da73e79e5e8ddd46e",
+      "target_hash": "2eea8d15598c5780a3dd248f3733d64637703e6e7329984ad5f57c6d74963d2c",
+      "source_request_hash": "677294ec73b409402e6166a7ce418eac9a00c57e5f59268d58aacb39984eb4d9",
+      "request_index": 0,
+      "method": "GET",
+      "endpoint": "/api/v3/order",
+      "parameters": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "origClientOrderId",
+          "value": "original-client"
+        }
+      ],
+      "target_venue_id": null,
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "command_id": "amend-command",
+      "management_hash": "043e43491a1645c992a9c3143e8162c17a447ead9138ccdda342ee42d48edcfa",
+      "instruction_hash": "8594188541c908291df557acb1d2310c225f748e8fec519ca681253b1a7c017b",
+      "target_hash": "94e2355bd458d4c898213e89ed9cf9c05558eabb3ada9d7b52d33e5ea69031f3",
+      "source_request_hash": "99a98eae6ee2a8a6166344b6bf1c1b246daab58687da664e32eca10b94560e2b",
+      "request_index": 0,
+      "method": "DELETE",
+      "endpoint": "/api/v3/order",
+      "parameters": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "orderId",
+          "value": "123"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "command_id": null,
+      "management_hash": "62ad7c6cdd763e42fbf06d1bbee7ffab85fce9afd1711092d6c826debc717e10",
+      "instruction_hash": "338c572b7a717e132b94a4b0b534cd4fa25127002591108da73e79e5e8ddd46e",
+      "target_hash": "8685a34d33e19002dd296952af7872109997451bf46ee68dc054d533f44f10bb",
+      "source_request_hash": "90a7e8c31b3e481076042f96d6c1bf3315c7163c03c4ff59fb8c801b35bcabbd",
+      "request_index": 0,
+      "method": "GET",
+      "endpoint": "/api/v3/orderList",
+      "parameters": [
+        {
+          "name": "origClientOrderId",
+          "value": "original-client"
+        }
+      ],
+      "target_venue_id": null,
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "command_id": "amend-command",
+      "management_hash": "980a362c3c673b30d9157e905a6d6724a6d4cd1ed2853167140501062d9d1ace",
+      "instruction_hash": "8594188541c908291df557acb1d2310c225f748e8fec519ca681253b1a7c017b",
+      "target_hash": "5d9f2d4ed5956449662a68e0c321dec50416b400efbd2dab33ec8fad5a603755",
+      "source_request_hash": "5ba44055e8ce9be0b1076070a6d89697eb1b9fc199f32ef55efbe743192003c6",
+      "request_index": 0,
+      "method": "DELETE",
+      "endpoint": "/api/v3/orderList",
+      "parameters": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "orderListId",
+          "value": "123"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "command_id": null,
+      "management_hash": "afb25ef9d2298e4f4c0add9f3e710c2363ac9df2805ee95e2380da8ef62b927c",
+      "instruction_hash": "338c572b7a717e132b94a4b0b534cd4fa25127002591108da73e79e5e8ddd46e",
+      "target_hash": "71ae9be6fd5137a66cebd719554d7ee71fff72482253f0eb4c13b6695b155c34",
+      "source_request_hash": "44c2e7f66c8de3932d2bc659ef4009fe4542f6605cef3b9cdfec6ed8ee9ebfb0",
+      "request_index": 0,
+      "method": "GET",
+      "endpoint": "/fapi/v1/order",
+      "parameters": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "origClientOrderId",
+          "value": "original-client"
+        }
+      ],
+      "target_venue_id": null,
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "command_id": "amend-command",
+      "management_hash": "9c7a9a9177ee5669dc3166698d1c7d7610c2b3462bb2d75dd2140d9b607f52ec",
+      "instruction_hash": "8594188541c908291df557acb1d2310c225f748e8fec519ca681253b1a7c017b",
+      "target_hash": "47811aecccc3d76b5b3ecfa866a83028607d78ec12ddd1313d5d5ca35d75c32d",
+      "source_request_hash": "b5629263a306c755188f74f16bba2843b866848b6f86043c81bc7632b31d93cb",
+      "request_index": 0,
+      "method": "DELETE",
+      "endpoint": "/fapi/v1/order",
+      "parameters": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "orderId",
+          "value": "123"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_USD_M_CONDITIONAL_ALGO",
+      "command_id": null,
+      "management_hash": "e9f1b75b0beecc94effe4fc74ab8447c262663153810efdd68666ed8420ecc3e",
+      "instruction_hash": "338c572b7a717e132b94a4b0b534cd4fa25127002591108da73e79e5e8ddd46e",
+      "target_hash": "43a66269266760f9b963eff108c6f184322f88ce630e114531a696afed8f89ce",
+      "source_request_hash": "3214b2388f37a14e8bf026ef73db00b122f46b97a308a8dcfac8c414b79793b7",
+      "request_index": 0,
+      "method": "GET",
+      "endpoint": "/fapi/v1/algoOrder",
+      "parameters": [
+        {
+          "name": "clientAlgoId",
+          "value": "original-client"
+        }
+      ],
+      "target_venue_id": null,
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_USD_M_CONDITIONAL_ALGO",
+      "command_id": "amend-command",
+      "management_hash": "16e5fc3a5f334e1cd07349f12179787d09c81023d1770084128134cd7eb49236",
+      "instruction_hash": "8594188541c908291df557acb1d2310c225f748e8fec519ca681253b1a7c017b",
+      "target_hash": "fa2ca45a609e99e36d470185063ac9f2a14041071302da4014dd707731625709",
+      "source_request_hash": "0949536eb6ba92344424b0ba4a232eeec5c4d0e6cc910a973f46859cfd546d83",
+      "request_index": 0,
+      "method": "DELETE",
+      "endpoint": "/fapi/v1/algoOrder",
+      "parameters": [
+        {
+          "name": "algoId",
+          "value": "123"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "command_id": null,
+      "management_hash": "6a5ef75d6f5292346574c7f6b711286aae6c4e26b082103cd548748737117888",
+      "instruction_hash": "338c572b7a717e132b94a4b0b534cd4fa25127002591108da73e79e5e8ddd46e",
+      "target_hash": "0f5a4ef1507d0a573400ebbe2648edee347a058e09f21d836bb0b188a191c353",
+      "source_request_hash": "38098dafe2ae30c64ce8b792ea6982caa9a53371d442950b06cb6d460605b318",
+      "request_index": 0,
+      "method": "GET",
+      "endpoint": "/sapi/v1/algo/spot/openOrders",
+      "parameters": [],
+      "target_venue_id": null,
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": true
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "command_id": null,
+      "management_hash": "6a5ef75d6f5292346574c7f6b711286aae6c4e26b082103cd548748737117888",
+      "instruction_hash": "338c572b7a717e132b94a4b0b534cd4fa25127002591108da73e79e5e8ddd46e",
+      "target_hash": "0f5a4ef1507d0a573400ebbe2648edee347a058e09f21d836bb0b188a191c353",
+      "source_request_hash": "5de8cf49c4df5b0bc2c61a66eeeab820cdbc76beb7dde48453c8f17b3c7e8e4a",
+      "request_index": 1,
+      "method": "GET",
+      "endpoint": "/sapi/v1/algo/spot/historicalOrders",
+      "parameters": [],
+      "target_venue_id": null,
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": true
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {
+      "page_number": 2,
+      "page_size": 10
+    }
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "command_id": "amend-command",
+      "management_hash": "6f134c5b77b80c035f0301a25fd910b6243d626dcead4ff4ea281b24ce15e52f",
+      "instruction_hash": "8594188541c908291df557acb1d2310c225f748e8fec519ca681253b1a7c017b",
+      "target_hash": "6b5805f3cf9cfc477b066704709b5af519967fd15a3cf5f86e44a08c18dfcfce",
+      "source_request_hash": "73569c80f2c2bf71fc607bbb750f632d8a8453511b767734aad3492da5176486",
+      "request_index": 0,
+      "method": "DELETE",
+      "endpoint": "/sapi/v1/algo/spot/order",
+      "parameters": [
+        {
+          "name": "algoId",
+          "value": "123"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "command_id": null,
+      "management_hash": "96c4b5ad4878e5bb37fa378835263797a8dd6ae482d952e46c104450bb4303f8",
+      "instruction_hash": "338c572b7a717e132b94a4b0b534cd4fa25127002591108da73e79e5e8ddd46e",
+      "target_hash": "0ff7f87739178259b2055f84cee3848643d740359abf1628198f3d874eee6097",
+      "source_request_hash": "d5e9b57189a781c7dae07675c54048aa561aa535db19b35edbda55b5db30b770",
+      "request_index": 0,
+      "method": "GET",
+      "endpoint": "/sapi/v1/algo/futures/openOrders",
+      "parameters": [],
+      "target_venue_id": null,
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": true
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "command_id": null,
+      "management_hash": "96c4b5ad4878e5bb37fa378835263797a8dd6ae482d952e46c104450bb4303f8",
+      "instruction_hash": "338c572b7a717e132b94a4b0b534cd4fa25127002591108da73e79e5e8ddd46e",
+      "target_hash": "0ff7f87739178259b2055f84cee3848643d740359abf1628198f3d874eee6097",
+      "source_request_hash": "aba6d464febdd76cb17b8200f8b83befe6352e72cbb5918eea678829c6b870ab",
+      "request_index": 1,
+      "method": "GET",
+      "endpoint": "/sapi/v1/algo/futures/historicalOrders",
+      "parameters": [],
+      "target_venue_id": null,
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": true
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {
+      "page_number": 2,
+      "page_size": 10
+    }
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "command_id": "amend-command",
+      "management_hash": "5c0be094804cb2ad0f162da748bd5ae6b70eab230b9938b3193bef090eccff8a",
+      "instruction_hash": "8594188541c908291df557acb1d2310c225f748e8fec519ca681253b1a7c017b",
+      "target_hash": "b4bb5ae8911194e0d7b957725c1c85b9a1d305e3b56ce1e01bbafdefff8a8954",
+      "source_request_hash": "c4065f77b3539ba987ec03480328acdc600bf384473b0b2b31e98c823172df26",
+      "request_index": 0,
+      "method": "DELETE",
+      "endpoint": "/sapi/v1/algo/futures/order",
+      "parameters": [
+        {
+          "name": "algoId",
+          "value": "123"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "US_EQUITY",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_REAL_EQUITY",
+      "command_id": null,
+      "management_hash": "1fe34a64e4ea958df5f1bcb9b4c391d88ec1d6e69cbfa7f982a5524160fef9c5",
+      "instruction_hash": "338c572b7a717e132b94a4b0b534cd4fa25127002591108da73e79e5e8ddd46e",
+      "target_hash": "dd0cf1bc20f64f851058629a79124c67c007d1330e6669e247b4bcf821beb598",
+      "source_request_hash": "ad5c6de12585e1df00a7cd8de86ebecb1343e0448f5e6663a84e6af25d2a2c87",
+      "request_index": 0,
+      "method": "GET",
+      "endpoint": "/sapi/v1/equity/order/detail",
+      "parameters": [
+        {
+          "name": "clientOrderId",
+          "value": "original-client"
+        }
+      ],
+      "target_venue_id": null,
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "US_EQUITY",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_REAL_EQUITY",
+      "command_id": "amend-command",
+      "management_hash": "2b83068d3aacbc77889ebc33b0e0aadbcdec17c70d4fcd0f6854252888903374",
+      "instruction_hash": "8594188541c908291df557acb1d2310c225f748e8fec519ca681253b1a7c017b",
+      "target_hash": "eb1cc7b6b57ca0647a482b31f98d0cfe0cb5b85cb638d8b3ea85b3e0236e3335",
+      "source_request_hash": "0153a1a6b8b75549fde83e028509123f3839f91e63358113779a6f849803ba6f",
+      "request_index": 0,
+      "method": "POST",
+      "endpoint": "/sapi/v1/equity/order/cancel",
+      "parameters": [
+        {
+          "name": "orderId",
+          "value": "123"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "command_id": "amend-command",
+      "management_hash": "d84fe7e7289d760e73d43c7aea747aa38b65b5cd05573d38b76ae97395e79495",
+      "instruction_hash": "6eae813c263a4f9fee498420194ac435d440c90aef24f0c4132482a78da35dbb",
+      "target_hash": "94e2355bd458d4c898213e89ed9cf9c05558eabb3ada9d7b52d33e5ea69031f3",
+      "source_request_hash": "bf54a8518fb9565d44c35b867a360d0821217261934ed5b613031ad6f6c0c324",
+      "request_index": 0,
+      "method": "PUT",
+      "endpoint": "/api/v3/order/amend/keepPriority",
+      "parameters": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "orderId",
+          "value": "123"
+        },
+        {
+          "name": "newQty",
+          "value": "0.5"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "command_id": "amend-command",
+      "management_hash": "f87fa0515a768642496928e7c0065ca96f063a3ca9c84dfb37019a1ea26ac0bf",
+      "instruction_hash": "0c8fc256f86ce04a34c586766730f449cfd84c72d3a0a436eef46388911ca9f1",
+      "target_hash": "94e2355bd458d4c898213e89ed9cf9c05558eabb3ada9d7b52d33e5ea69031f3",
+      "source_request_hash": "fabe061207dd2333a1a9746d7e3e8b0185c9878dc82c7d97e8b01677764ce31d",
+      "request_index": 0,
+      "method": "POST",
+      "endpoint": "/api/v3/order/cancelReplace",
+      "parameters": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "type",
+          "value": "LIMIT"
+        },
+        {
+          "name": "quantity",
+          "value": "0.049085"
+        },
+        {
+          "name": "price",
+          "value": "81490.00"
+        },
+        {
+          "name": "timeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "cancelOrderId",
+          "value": "123"
+        },
+        {
+          "name": "newClientOrderId",
+          "value": "management-client"
+        },
+        {
+          "name": "cancelReplaceMode",
+          "value": "ALLOW_FAILURE"
+        },
+        {
+          "name": "orderRateLimitExceededMode",
+          "value": "CANCEL_ONLY"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  },
+  {
+    "family": "management",
+    "request": {
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "command_id": "amend-command",
+      "management_hash": "0c7689df10f333aa1eacd7a1296e39a9e8ddf2d19e7032266155b9c6dd59dc8d",
+      "instruction_hash": "5f311d20e41ea83de268da6c3f621d70759370c9b2f761fc354c939885afd39e",
+      "target_hash": "47811aecccc3d76b5b3ecfa866a83028607d78ec12ddd1313d5d5ca35d75c32d",
+      "source_request_hash": "901542fb49c97f21ba01bf77ddac3cecd0e6dab0c241aa343d048b99e4367007",
+      "request_index": 0,
+      "method": "PUT",
+      "endpoint": "/fapi/v1/order",
+      "parameters": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "orderId",
+          "value": "123"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "quantity",
+          "value": "0.5"
+        },
+        {
+          "name": "price",
+          "value": "81480.00"
+        }
+      ],
+      "target_venue_id": "123",
+      "original_client_id": "original-client",
+      "venue_symbol": "BTCUSDT",
+      "filter_original_identity": false
+    },
+    "clock": {
+      "utc_now": "2026-10-28T10:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    },
+    "pagination": {}
+  }
+]

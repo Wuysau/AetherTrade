@@ -1,0 +1,45 @@
+{
+  "scope": "official schema evidence only; not installed SDK behavior or venue qualification",
+  "checked_on": "2026-10-30",
+  "sources": [
+    {
+      "url": "https://developers.binance.com/en/docs/catalog/advanced-trading-stocks-trading/api/rest-api/trade",
+      "facts": {
+        "place_response_fields": [
+          "status",
+          "orderId",
+          "clientOrderId"
+        ],
+        "place_status_S_F_is_acknowledgement_not_lifecycle": true,
+        "cancel_status_S_F_is_acknowledgement_not_lifecycle": true,
+        "lifecycle_requires_original_order_query": true
+      }
+    },
+    {
+      "url": "https://developers.binance.com/en/docs/catalog/advanced-trading-algo-trading/api/rest-api/spot-algo",
+      "facts": {
+        "twap_response_fields": [
+          "clientAlgoId",
+          "success",
+          "code",
+          "msg"
+        ],
+        "creation_response_does_not_supply_algoId": true,
+        "original_open_and_history_query_still_required": true
+      }
+    },
+    {
+      "url": "https://developers.binance.com/en/docs/catalog/advanced-trading-algo-trading/api/rest-api/future-algo",
+      "facts": {
+        "twap_response_fields": [
+          "clientAlgoId",
+          "success",
+          "code",
+          "msg"
+        ],
+        "creation_response_does_not_supply_algoId": true,
+        "original_open_and_history_query_still_required": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+.................FF                                                      [100%]
+=================================== FAILURES ===================================
+_ test_original_token_window_survives_a_later_shorter_trusted_boundary_policy __
+tests/integration/test_program_consumed_boundary_postgres.py:106: in test_original_token_window_survives_a_later_shorter_trusted_boundary_policy
+    result=check(c)
+           ^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:26: in check
+    return recheck_consumed(c.gate,c.permit if permit is None else permit,c.lease)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_consumed_boundary.py:98: in recheck_consumed
+    _original_permit_window(tx,marked,permit)
+src/trading_system/execution/program_consumed_boundary.py:84: in _original_permit_window
+    require(ttl>=1 and type(permit.deadline_monotonic_ns) is int
+src/trading_system/execution/program_consumed_boundary.py:25: in require
+    if not condition:raise ValueError(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_ORIGINAL_PERMIT_WINDOW_CHANGED
+_ test_later_longer_policy_cannot_authenticate_relabelled_original_shorter_token _
+tests/integration/test_program_consumed_boundary_postgres.py:119: in test_later_longer_policy_cannot_authenticate_relabelled_original_shorter_token
+    with pytest.raises(ValueError):check(c,permit=changed)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_consumed_boundary_postgres.py::test_original_token_window_survives_a_later_shorter_trusted_boundary_policy
+FAILED tests/integration/test_program_consumed_boundary_postgres.py::test_later_longer_policy_cannot_authenticate_relabelled_original_shorter_token
+2 failed, 17 passed in 74.56s (0:01:14)
