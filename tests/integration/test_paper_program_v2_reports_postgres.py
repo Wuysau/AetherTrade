@@ -2,6 +2,7 @@
 from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal as D
+from uuid import uuid4
 
 from integration.test_paper_market_matcher_v2 import isolated_postgres,database,venue,venue_v2,advanced_case,reference,market_order
 from integration.test_paper_market_matcher import submit,event
@@ -24,6 +25,21 @@ def observe(c,path):
     service,codec=verifier(c,path)
     try:return service.verify(c.write.command_id)
     finally:codec.close()
+
+
+def reseal_report(report):
+    body=dict(request=domain_payload(report.request),orders=[domain_payload(o) for o in report.orders],
+        fills=[domain_payload(f) for f in report.fills],accepted_contexts=[domain_payload(c) for c in report.accepted_contexts],
+        dispositions=[domain_payload(d) for d in report.dispositions],contract_version=report.contract_version,
+        record_kind=report.record_kind,native_parent=domain_payload(report.native_parent) if report.native_parent is not None else None)
+    return replace(report,evidence=replace(report.evidence,hash=canonical_hash(body)))
+
+
+def reseal_market(report):
+    body=dict(command_id=report.command_id,request_hash=report.request_hash,inputs=[domain_payload(i) for i in report.inputs],
+        consumptions=[domain_payload(i) for i in report.consumptions],preventions=[domain_payload(i) for i in report.preventions],
+        contract_version=report.contract_version,record_kind=report.record_kind)
+    return replace(report,evidence=replace(report.evidence,hash=canonical_hash(body)))
 
 
 def trailing_case(database,venue_v2,tmp_path):
@@ -94,3 +110,31 @@ def test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_comm
     with c.service.uow.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.order_writes_v2 WHERE scope_id=%s AND sequence=1',(scope_id(c.scope),)).fetchone()==(1,)
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(1,)
+
+
+def test_changed_native_parent_venue_identity_cannot_be_authenticated_by_a_resealed_dto(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path,template='OCO',actual='1',target='0',side='SELL',
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    submit(c);report=c.engine.query_creation(c.write.command_id)
+    changed=reseal_report(replace(report,native_parent=replace(report.native_parent,venue_parent_id='foreign-parent')))
+    c.engine.query_creation=lambda _:changed
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and result.raw_refs and not result.fills
+    assert 'PAPER_V2_NATIVE_PARENT_SOURCE_CHANGED' in result.discrepancies
+
+
+def test_missing_real_competing_account_allocation_cannot_be_hidden_by_resealing_evidence(database,venue_v2,tmp_path):
+    market='actual-v2-shared-'+uuid4().hex
+    a=advanced_case(database,venue_v2,tmp_path,market=market);b=advanced_case(database,venue_v2,tmp_path,market=market)
+    submit(a);submit(b);PaperMatcher(a.engine).apply_market_event(event(a,quantity='1.4'))
+    assert a.engine.query_creation(a.write.command_id).filled_quantity==1
+    assert b.engine.query_creation(b.write.command_id).filled_quantity==D('.4')
+    original=a.engine.query_market_evidence
+    def omit(command):
+        report=original(command)
+        return reseal_market(replace(report,consumptions=tuple(c for c in report.consumptions if c.scope==a.scope)))
+    a.engine.query_market_evidence=omit
+    result=observe(a,tmp_path/'raw')
+    assert not result.source_verified and result.raw_refs and not result.fills
+    assert 'PAPER_V2_ALL_RIVAL_ALLOCATION_SET_CHANGED' in result.discrepancies
