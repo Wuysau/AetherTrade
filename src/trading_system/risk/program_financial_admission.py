@@ -385,6 +385,8 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     witnesses[intent.intent_id]=_ProgramFinancialWitness(transaction_id=tx.transaction_id,scope=tx.scope,
         bundle_hash=digest(bundle),original_book_hash=original_book_hash,command_ids=command_ids,
         expires_at=expires.isoformat())
+    from .program_continuation import persist_program_continuation
+    persist_program_continuation(tx,bundle)
     return bundle
 
 

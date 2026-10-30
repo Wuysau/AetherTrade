@@ -18,6 +18,9 @@ from .program_assessment import _valid_refs
 from trading_system.intents.semantic_validation import on_grid
 from .policy_checks import exact_risk_arithmetic
 from .valuation import Valuation
+from trading_system.storage.models import atomic_write
+
+CONTINUATION_PREFIX='program-continuation-risk:'
 
 D=Decimal
 def digest(value):return canonical_hash(domain_payload(value))
@@ -170,3 +173,27 @@ def _stop_estimate(a,low,high):
         if not estimates:return 'UNKNOWN',None
         return 'BOUND_TO_ASSESSED_SOURCE',max(estimates,key=lambda m:m.amount)
     except (ValueError,ArithmeticError):return 'UNKNOWN',None
+
+
+class _ContinuationWriter:
+    def __init__(self,tx):self.tx=tx
+
+    @atomic_write
+    def persist(self,bundle):
+        from .program_financial_admission import current_program_bundle_witness
+        tx=self.tx
+        current_program_bundle_witness(tx,bundle)
+        require(bundle.intent.scope==tx.scope,'CONTINUATION_SCOPE_CHANGED')
+        record=derive_program_continuation(bundle.archive)
+        require(record.intent_id==bundle.intent.intent_id and record.archive_hash==bundle.intent.hashes.archive,
+            'CONTINUATION_FINANCIAL_SOURCE_CHANGED')
+        key=CONTINUATION_PREFIX+record.intent_id
+        previous=tx._latest('audit_events',key,ProgramContinuationRiskV1)
+        require(previous is None or digest(previous)==digest(record),'CONTINUATION_SOURCE_CONFLICT')
+        if previous is None:tx._append('audit_events',key,record,0)
+        return previous or record
+
+
+def persist_program_continuation(tx,bundle):
+    """Private successful-kernel attachment, never an owner-authored grant."""
+    return _ContinuationWriter(tx).persist(bundle)
