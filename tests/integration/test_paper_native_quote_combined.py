@@ -37,7 +37,9 @@ def test_actual_native_quote_and_v2_base_authenticate_one_shared_book(database,c
     # Native TWAP remains a MARKET program. Its independently admitted model
     # envelope overlaps the quote model at50000; maximum90000 and the complete
     # original gross reservation stay intact. No LIMIT variant is fabricated.
-    prepared=real_case(database,instrument_uid=q.scope.instrument_uid,template='TWAP',stop='40000')
+    prepared=real_case(database,instrument_uid=q.scope.instrument_uid,template='TWAP',stop='40000',
+        profile_transform=lambda profile:replace(profile,execution_price_envelope=replace(
+            profile.execution_price_envelope,minimum='50000')))
     prepared.c.facts=replace(prepared.c.facts,node_bounds=tuple(replace(bound,
         minimum_price=replace(bound.minimum_price,value=D('50000'))) for bound in prepared.c.facts.node_bounds))
     n=advanced_case(database,combined_venue,tmp_path,prepared_case=prepared)
