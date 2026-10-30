@@ -274,3 +274,40 @@ def test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_in
     other=case(database,venue_v2,tmp_path,market=c.scope.instrument_uid);submit(other)
     assert other.engine.query_creation(other.write.command_id).filled_quantity==D(maker_remaining)
     assert not matcher.apply_market_event(ownership).applied
+
+
+def test_actual_consumed_command_cannot_start_against_a_market_book_from_its_future(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher
+    c=advanced_case(database,venue_v2,tmp_path)
+    base=c.c.facts.inputs.clock
+    c.engine._clock=lambda:replace(base,utc_now='2026-10-28T10:00:01Z',monotonic_ns=base.monotonic_ns+10**9)
+    PaperMatcher(c.engine).apply_market_event(replace(event(c,quantity='1'),occurred_at='2026-10-28T10:00:01Z'))
+    c.engine._clock=lambda:base
+    with pytest.raises(ValueError,match='PAPER_MARKET_CLOCK_AHEAD_OF_ACCEPTANCE'):submit(c)
+    assert c.engine.query_creation(c.write.command_id) is None
+    from trading_system.storage.models import scope_id
+    with c.service.uow.transaction(c.scope) as tx:
+        # Real MAY/consume remains; rollback of external SIM admission cannot
+        # erase the original-ID query obligation in the business database.
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s AND command_id=%s',
+            (scope_id(c.scope),c.write.command_id)).fetchone()[0]==1
+
+
+def test_owner_source_rejects_wrong_depth_or_quantity_and_runtime_cannot_publish_it(database,venue_v2,tmp_path):
+    import psycopg
+    from trading_system.engine.paper_market import PaperMatcher,digest
+    from trading_system.engine.paper_market_v2 import PaperLiquidityOwnershipEventV2,PaperLiquidityOwnerV2
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);matcher=PaperMatcher(c.engine)
+    depth=event(c,ask='81500',quantity='1');matcher.apply_market_event(depth)
+    ownership=PaperLiquidityOwnershipEventV2(contract_version='2026-10-30',event_id='bad-owner',stream_id=c.scope.instrument_uid,
+        product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=2,kind='LIQUIDITY_OWNERSHIP',
+        depth_event_id=depth.event_id,depth_hash=digest(depth),owners=(PaperLiquidityOwnerV2(side='ASK',price='81500',source_quantity='2',
+        venue_account_id=c.scope.venue_account_id,venue_order_id='synthetic-source-maker'),),
+        occurred_at=c.c.facts.inputs.clock.utc_now,source='PAPER_MARKET_REPLAY_SYNTHETIC')
+    with pytest.raises(psycopg.Error):matcher.apply_market_event(ownership)
+    with pytest.raises(psycopg.Error):matcher.apply_market_event(replace(ownership,depth_hash='0'*64))
+    for statement in ('INSERT INTO public.paper_liquidity_owners_v2 DEFAULT VALUES',
+            'UPDATE public.paper_session_calendars_v2 SET calendar=calendar',
+            'DELETE FROM public.paper_market_preventions_v2'):
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            with psycopg.connect(venue_v2.runtime_dsn) as db:db.execute(statement)
