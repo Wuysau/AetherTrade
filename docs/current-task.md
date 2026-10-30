@@ -3,7 +3,7 @@
 ## Account asset reconstruction checkpoint — 2026-10-30
 
 Parent/root is the sole writer of this accounting worktree. Current product is
-fb2de603. All parent test handles below are terminal; there is no live parent
+2204549 (test strengthening after fb2de603). All parent test handles below are terminal; there is no live parent
 qualification job. The complete 46-capability/56-case goal remains ACTIVE.
 
 Implemented since the previous checkpoint:
@@ -44,6 +44,7 @@ Actual source-specific validation:
 | 5fc320c | account cash RED | 6 missing-module failures |
 | 7ca3f09 | initial account cash | 2 passed, 4 fixture market-sequence conflicts |
 | fb2de60 | account cash | 6 passed, 27.44s, no failures/errors/skips |
+| 2204549 | distinct-observation replay | 6 passed, 26.85s; two physical source snapshots, one native identity and unchanged revision |
 
 The fixture conflicts were fixed with separate instrument stream IDs, preserving
 matcher sequence checks. Existing fixture defaults and order/risk options are
@@ -52,7 +53,7 @@ opening before financial admission. Adversarial normalized fill/audit inputs in
 negative cases are explicitly not legitimate execution evidence. Related local
 unit regression: 175 passed, 11.21s at 85ab011; later focused 42 passed, 0.41s.
 
-160 new raw artifacts are preserved under op-e-account-cash with a source-bound
+176 new raw artifacts are preserved under op-e-account-cash with a source-bound
 copy map. This is separate from the prior 289 raw files already checked against
 original/copy/committed Git blobs. Publication requires the same Git-blob check.
 
@@ -69,10 +70,9 @@ IMPORTANT unfinished work, not a complete financial writer:
    real cross-instrument stale-book tests, then expose exact neutral guard APIs
    to root's initial financial / mark / consume / after-wait seams. Never save
    another instrument through the current LedgerTx or nest collateral UoWs.
-4. Account revision is based on initial proof plus stable economic contributions;
-   repeated source snapshots must not change it. Strengthen the current replay
-   test to advance the source observation clock and assert distinct snapshot rows
-   with the same native identity, then confirm identical cash/revision.
+4. Account revision is based on initial proof plus stable economic contributions.
+   The replay test now advances the observation clock, asserts two physical source
+   snapshots and confirms identical cash/revision with one native identity.
 5. Before cash data can be claimed ready, add mixed legacy/new, concurrent/restart,
    fee asset and source-conflict cases, actual ownership/positions/book writes,
    fee cashflows without double counting, and retained protection/cost/history
@@ -98,6 +98,14 @@ V2 normalized.raw remains genuine PaperMarketFill; explicit source_v2 tags/globa
 serialized source status/duties distinguish its proof. Keep V1 schema/hash intact.
 Activation and root integration continue their own trees. No LIVE/TESTNET/account,
 paid product model, main/archive or public push/cleanup action was performed.
+
+Fresh implementation handoff coordination: integration_next is preparing a clean
+root handoff after its original 50-suite fixed a0ca274 job96697 reaches terminal.
+Its original artifacts are .runtime/paper-qualification-992d4e437dfe/evidence in
+binance-orders; never restart that job on observation timeout. Parent will assign
+the next fresh integration lead root and this cash tree with explicit sole-write
+ownership. Until that assignment, parent still owns this tree and no child may
+write it. This is context management, never a goal pause or completion.
 
 ## OP_E_MISSING_BINDING_REVIEW_CLOSED_SPOT_MATH_STARTED — 2026-10-30
 

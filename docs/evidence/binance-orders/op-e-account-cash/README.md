@@ -16,6 +16,7 @@ remaining legacy opening, BookCashBinding and owner transaction work.
 | cash-red | 5fc320c | 6 missing-module failures |
 | cash-fixture-conflicts | 7ca3f09 | 2 passed, 4 precondition market-sequence failures |
 | cash-green | fb2de60 | 6 passed, 27.44s |
+| cash-distinct-snapshots-green | 2204549 | 6 passed, 26.85s; distinct source snapshots, one economic contribution |
 
 Completed positive suites have zero failures/errors/skips. Source regression
 retains the JUnit record_property compatibility warning. The sequence conflicts
@@ -27,7 +28,7 @@ Every run used a fixed source and fresh isolated Linux/PostgreSQL containers:
 & 'D:/Projects/Python/AetherTrade/AetherTrade/.venv/Scripts/python.exe' -X utf8 tools/qualify_paper_docker.py --commit <fixed-sha> --suite <program-asset-reader|program-fill-source|program-account-opening|program-account-cash> --timeout 1200 --runner-image sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7 --offline-dependencies
 ```
 
-The 160 raw files include original stdout, JUnit, launch manifests, migration
+The 176 raw files include original stdout, JUnit, launch manifests, migration
 hashes and dependency evidence. copy-map.json records each original path, byte
 count and SHA256. Private container.env/credentials are excluded. Publication
 also checks actual committed blobs; working-copy equality alone is insufficient.
