@@ -1,5 +1,59 @@
 # Current task
 
+## OP_E_PAPER_V2_REPORT_ACTIVE — 2026-10-30
+
+reports_fresh solely owns binance-ope-v2-report-verifier from root5f71102.
+Native/query2c9e634 and V1report5ef7d9a preserved/read-only. Parent owns protected
+SourceApproval exact version registry/decoder, financial/accounting and all
+public schema/migration/root integration. Full46/56 C–G remains ACTIVE.
+
+Producer baseline1b12ed9 +0014 exactSHA df9e0709b7ebb12006549c464251b29f1937aed2efd20182319e9d42a13dd565
+imported locally with ROOT currentconsumed permit/window guard, clock-ahead and
+all current safety tests preserved. Shared fixtures retain collateral_group_id,
+transforms/quote options plus producer V2 optional policy/profile/asset inputs.
+Exact submit decorator frome45 backported independently. No0013/V1report bytes
+changed. Evolvingnative-parent/execution kind not imported or implicitly allowed.
+
+Actualintegratedproducer c15 baseline20pass1oldnegativeexpectationfail100.47s;
+currentroot corrects policy earlier atfinancialadmission.84494a4 testretains
+stronger earlydeny+zero intent/holds/writes/consume/SIMcommands. Freshfull21
+baseline/compatibility cohort still due after this adaptation.
+
+Actual V2 report REDfb05:4missingmodule19.32s after genuine protected V2
+market/trailing/OCO production. Newservice/independentliquidity5f466 actual4PG
+GREEN20.44s. Additional30fd resealedparentID/omittedREALrivalallocation tests
+produced4pass2fail34.12s. Fix7ea addsactualrestrictedSQLparent/dependency/events/
+ALLrivalalloc/prevention snapshot; exact6PGGREEN33.07s. f601 actual10partial-fill
+compactgraph test6pass1fail38.02s;3e64 stores completecausal graph ONCE/globalhash
+and per-fill source_v2 onlyhash+immediatefill/activation IDs. Exact7PGGREEN37.74s.
+All raw outputs remain in .runtime/paper-qualification-* /evidence, not overwritten.
+
+Current3817276 adds nativeOTO/OTOCO actualcompleteworking fills/fullsum/witness/
+inheritedcausalgraph verification; c41 had genuine7pass2fail48.63s unsupported-
+lineage RED. Fixed9PG originalhandle37704 is LIVE (pollsamehandle; no restart).
+Current uncommitted changes are checkpointdocs only. No registry installation
+or full V2 qualification yet; actual supported semantics still exclude STP,
+calendar/equity, peg/priceMatch and iceberg until their independent TDD exists.
+
+Exact interfaces: PaperProgramV2ReportVerifier.verify(command_id) only external
+input, actual UoW/PaperEngine/NativeEventBridge. Fsync complete report/raw SQL/
+input/source-manifest before claims. NormalizedPaperFillV2.raw is genuine
+PaperMarketFill; explicit source_v2:PaperFillSourceV2 +tags distinguishmodelV2.
+Result PaperProgramVerificationV2 keeps raw_report.request.command_id and common
+fill/side/economics/raw/fees_known fields, serialized globalcodes/duties/graph.
+Nativequantity/venueprice/FinancialUnit and raw economics remain uncapped.
+No posting/credit/ownership/FLAT/protection/release/permit. LateracceptedGTC/
+working children are historical observations, never re-gated bycreationTTL.
+
+Nextsmalleststep: inspect37704 actualterminal; fix concrete failure if any;
+then add actual source-bound STP/prevention+calendar/peg/iceberg TDD. Tighten
+all disposition source/model/envelope/clocks, report duplicatefill/inventory,
+OCOexclusive/sibling/pool causality, preserved economic/cumulative mismatches,
+rawarchival before unknownshape, allrival boundedness and restart. Only after
+actual fullsupportedsourcePG+independentreview may parent installstaticregistry.
+Preserve every RED/GREEN/infra and publish SHA maps verified against committed
+blobs. Currentmodule is NOT source-qualified asfullV2 and fullgoal isNOTcomplete.
+
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
 Parent explicitly REASSIGNED root SOLE WRITE ownership to integration_next after
