@@ -171,3 +171,60 @@ def test_missing_or_not_observed_command_cannot_mint_source_approval(database,ve
         missing=service.approve('missing-original-command')
     finally:codec.close()
     assert before.status==missing.status=='BLOCKED' and not before.approvals and not missing.approvals
+
+
+def test_owner_reads_only_committed_protected_source_and_not_own_audit_json(database,venue,tmp_path):
+    from trading_system.execution.program_fill_source import read_committed_fill_source
+    c,service,codec=setup_source(database,venue,tmp_path)
+    try:approved=service.approve(c.write.command_id)
+    finally:codec.close()
+    expected=approved.approvals[0]
+    with c.service.uow.transaction(c.scope) as tx:
+        found=read_committed_fill_source(tx,expected.approval_id)
+        assert found==expected and not found.balance_credit_authorized
+        tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
+            "VALUES(%s,'forged-source-approval',1,%s::jsonb,%s)",
+            (scope_id(c.scope),'{"source_verified":true}',tx.transaction_id))
+        with pytest.raises(ValueError,match='PROGRAM_COMMITTED_SOURCE_APPROVAL_REQUIRED'):
+            read_committed_fill_source(tx,'f'*64)
+    with c.service.uow.transaction(replace(c.scope,instrument_uid='foreign-instrument')) as tx:
+        with pytest.raises(ValueError,match='PROGRAM_COMMITTED_SOURCE_APPROVAL_REQUIRED'):
+            read_committed_fill_source(tx,expected.approval_id)
+
+
+def test_uncommitted_approval_cannot_be_consumed_even_in_the_source_transaction(database,venue,tmp_path):
+    from trading_system.execution.program_fill_source import read_committed_fill_source,_source_context
+    from trading_system.contracts.canonical import canonical_json
+    c,service,codec=setup_source(database,venue,tmp_path)
+    try:verified=service.verifier.verify(c.write.command_id)
+    finally:codec.close()
+    with pytest.raises(ValueError,match='PROGRAM_COMMITTED_SOURCE_APPROVAL_REQUIRED'):
+        with service.uow.transaction(c.scope) as tx:
+            payload=dict(contract_version='2026-10-30',record_kind='PAPER_PROGRAM_FILL_SOURCE_V1',
+                scope=domain_payload(c.scope),command_id=c.write.command_id,**_source_context(tx,c.write.command_id),
+                normalized=domain_payload(verified.fills[0]),verification=domain_payload(verified))
+            approval_id=tx.execute('SELECT ledger.approve_program_fill_source(%s,%s,%s::jsonb,%s)',
+                (scope_id(c.scope),c.write.command_id,canonical_json(payload),tx.transaction_id)).fetchone()[0]
+            read_committed_fill_source(tx,approval_id)
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.program_fill_source_approvals WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchone()==(0,)
+
+
+def test_source_commit_failure_cannot_return_a_usable_approval(database,venue,tmp_path):
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+    c,service,codec=setup_source(database,venue,tmp_path)
+    class FailCommit:
+        def __init__(self,db):self.db=db
+        def __getattr__(self,name):return getattr(self.db,name)
+        def commit(self):raise RuntimeError('injected source commit failure')
+    failing=ProgramFillSourceService(UnitOfWork(lambda:FailCommit(service.uow.connection_factory())),
+        c.scope,verifier=service.verifier)
+    try:
+        with pytest.raises(RuntimeError,match='injected source commit failure'):
+            failing.approve(c.write.command_id)
+        with c.service.uow.transaction(c.scope) as tx:
+            assert tx.execute('SELECT count(*) FROM ledger.program_fill_source_approvals WHERE scope_id=%s',
+                (scope_id(c.scope),)).fetchone()==(0,)
+        assert service.approve(c.write.command_id).approvals
+    finally:codec.close()
