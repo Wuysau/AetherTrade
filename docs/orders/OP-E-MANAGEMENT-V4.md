@@ -1,10 +1,25 @@
-# OP-E management V4 component — ACTIVE, fix round1 pending re-review
+# OP-E management V4 component — ACTIVE, independent fix review clear
+
+Current independent scoped re-review: **PASS; original P1 ADDRESSED**, with no
+new Critical/Important finding in the fix diff. Reviewed checkpoint:
+`e24858a1d56223184fd1de48f4f7e70159d93d61`; tested functional source:
+`fc2f81897b691465b78ec23a71997ae505ccfffa`, actual51PG passed with zero failures,
+errors or skips,244.297s. The external report's final scoped re-review section
+at `TradingHandoff/ManagementReview-21e72d7/review.md` resolves the historical
+P1 HOLD. This clears that component finding only; full46/56, management host,
+transport and the unimplemented actions below remain unqualified.
+
+The documentation-only closeout preserves that reviewed code and all test
+evidence. The current writer releases this tree for a parent-assigned fresh
+writer. Next-slice interfaces and restrictions are recorded in
+`docs/orders/OP-E-MANAGEMENT-EFFECTIVE-TERMS-HANDOFF.md`; no next feature is started.
 
 The original independent review of413b273 found a P1: physical private
 authorization expired while the actual venue mutex/row lock was awaited, but
 the SQL reducer still canceled. Source19441d1 personally reproduced it with
-39passes/1failure,170.288s. The original review remains HOLD until scoped
-re-review; the prior39-case pass did not cover this venue wait.
+39passes/1failure,170.288s. The original review's HOLD was the historical
+pre-fix assessment; the scoped re-review above resolves that P1. The prior
+39-case pass did not cover this venue wait.
 
 Fix round1/5 functionalfc2f818 passes51 actual restricted PostgreSQL cases,
 zero failures/errors/skips,244.297s. The host now acquires the actual market
