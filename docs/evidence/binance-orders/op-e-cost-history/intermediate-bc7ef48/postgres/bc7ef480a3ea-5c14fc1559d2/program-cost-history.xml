@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="11" time="83.690" timestamp="2026-10-30T13:17:52.262246+00:00" hostname="c56f29d28ce0"><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_fresh_native_cost_history" time="6.732" /><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_source_cost_plus_real_working_returns_none_without_new_writes" time="9.410" /><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_cost_revision_rollback_new_fill_and_immutable_quantity_proofs" time="8.532" /><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_owner_authored_complete_cost_pnl_and_book_cannot_replace_proof" time="4.742" /><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_nonzero_initial_owner_is_never_zero_cost_genesis" time="4.324" /><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_process_restart_and_same_account_peer_are_read_only" time="5.671" /><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_actual_native_oto_partial_sell_cost_and_exact_flat[False]" time="19.051" /><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_actual_native_oto_partial_sell_cost_and_exact_flat[True]" time="18.850" /><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_protected_later_pretrade_book_requires_complete_zero_prefix[False]" time="0.210"><failure message="ValueError: PROGRAM_RISK_ASSESSMENT_NOT_ALLOW">tests/integration/test_program_cost_history_postgres.py:288: in test_protected_later_pretrade_book_requires_complete_zero_prefix
+    c,service,codec=setup(database,venue_v2,tmp_path,source_version=2)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:40: in setup
+    c=case(database,venue,tmp_path,prepared_case=initial,quote_fee_rate='.001')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:53: in case
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:280: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:53: in &lt;lambda&gt;
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                                ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:271: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:415: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:411: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:292: in _reserve_program
+    intent,basis=validate_current_inputs(tx,source,intake,book,inputs,clock,load_execution_bounds)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:248: in validate_current_inputs
+    intent=financial_intent_from_assessment_archive(a)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_assessment_archive.py:149: in financial_intent_from_assessment_archive
+    require(decision.verdict=='ALLOW' and m is not None and not decision.rejection_codes
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_RISK_ASSESSMENT_NOT_ALLOW</failure></testcase><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_protected_later_pretrade_book_requires_complete_zero_prefix[True]" time="0.216"><failure message="ValueError: PROGRAM_RISK_ASSESSMENT_NOT_ALLOW">tests/integration/test_program_cost_history_postgres.py:288: in test_protected_later_pretrade_book_requires_complete_zero_prefix
+    c,service,codec=setup(database,venue_v2,tmp_path,source_version=2)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:40: in setup
+    c=case(database,venue,tmp_path,prepared_case=initial,quote_fee_rate='.001')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:53: in case
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:280: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:53: in &lt;lambda&gt;
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                                ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:271: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:415: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:411: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:292: in _reserve_program
+    intent,basis=validate_current_inputs(tx,source,intake,book,inputs,clock,load_execution_bounds)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:248: in validate_current_inputs
+    intent=financial_intent_from_assessment_archive(a)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_assessment_archive.py:149: in financial_intent_from_assessment_archive
+    require(decision.verdict=='ALLOW' and m is not None and not decision.rejection_codes
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_RISK_ASSESSMENT_NOT_ALLOW</failure></testcase><testcase classname="tests.integration.test_program_cost_history_postgres" name="test_complete_forged_cost_record_cannot_override_rederived_economics" time="5.001" /></testsuite></testsuites>

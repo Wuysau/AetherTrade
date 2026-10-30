@@ -269,7 +269,17 @@ def test_protected_later_pretrade_book_requires_complete_zero_prefix(database,ve
     from trading_system.contracts import types as t
     import integration.test_program_financial_admission as admission
     original_case=admission.real_case;original_save=ProjectionRepository.save_book
-    def scoped_case(*args,**kwargs):return original_case(*args,**{**kwargs,'scoped_quantities':True})
+    def scoped_case(*args,**kwargs):
+        result=original_case(*args,**{**kwargs,'scoped_quantities':True})
+        original_load=result.load
+        def current_inputs(tx,source,intake,book,clock):
+            # Rebind the fixture's actual risk reader to the genuine newer book;
+            # do not reuse its initial book_sequence=1 or override an ALLOW.
+            result.c.facts=replace(result.c.facts,inputs=replace(result.c.facts.inputs,
+                book_sequence=book.sequence,basis_fingerprint=book.basis_fingerprint))
+            return original_load(tx,source,intake,book,clock)
+        result.load=current_inputs
+        return result
     def pretrade_snapshot(repo,book,expected):
         if expected!=0:return original_save(repo,book,expected)
         old=book
