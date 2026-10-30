@@ -174,10 +174,18 @@ def test_missing_foreign_source_binding_cannot_hide_unreconciled_execution(datab
             "VALUES(%s,'console:seed',1,%s::jsonb,%s)",
             (scope_id(receiver.scope),canonical_json(dict(initial_cash=format(seed,'f'),source='EXPLICIT_ISOLATED_VIRTUAL_CAPITAL')),tx.transaction_id))
     with psycopg.connect(database) as db:
-        db.execute('DELETE FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s',
-            (str(source.scope.environment),source.scope.venue_account_id,str(source.scope.product)))
-    with receiver.service.uow.transaction(receiver.scope) as tx:
-        with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
-            if operation=='cash':runtime._cash(tx)
-            else:runtime._book(tx,receiver.scope,refresh=True)
-        assert tx.projections.book(receiver.scope)==before
+        binding=db.execute('DELETE FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s '
+            'RETURNING collateral_group_id,payload',
+            (str(source.scope.environment),source.scope.venue_account_id,str(source.scope.product))).fetchone()
+    try:
+        with receiver.service.uow.transaction(receiver.scope) as tx:
+            with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
+                if operation=='cash':runtime._cash(tx)
+                else:runtime._book(tx,receiver.scope,refresh=True)
+            assert tx.projections.book(receiver.scope)==before
+    finally:
+        # Restore this test-owned disposable binding even on the intended RED.
+        with psycopg.connect(database) as db:
+            db.execute('INSERT INTO ledger.account_bindings(environment,account_id,product,collateral_group_id,payload) '
+                'VALUES(%s,%s,%s,%s,%s::jsonb)',(str(source.scope.environment),source.scope.venue_account_id,
+                str(source.scope.product),binding[0],None if binding[1] is None else canonical_json(binding[1])))
