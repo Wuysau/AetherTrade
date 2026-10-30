@@ -71,6 +71,7 @@ GRANT SELECT,INSERT ON public.paper_market_preventions_v2 TO paper_matcher_defin
 GRANT SELECT,INSERT ON public.paper_order_input_dependencies_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT,UPDATE ON public.paper_native_parents_v2,public.paper_native_exclusivity_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT ON public.paper_native_members_v2 TO paper_matcher_definer;
+GRANT SELECT ON public.paper_engine_commands TO paper_matcher_definer;
 CREATE TRIGGER immutable_market_preventions_v2 BEFORE UPDATE OR DELETE ON public.paper_market_preventions_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 CREATE TRIGGER immutable_input_dependencies_v2 BEFORE UPDATE OR DELETE ON public.paper_order_input_dependencies_v2
@@ -82,7 +83,7 @@ CREATE FUNCTION public.paper_accept_native_program_v2(p_scope text,p_command tex
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE command public.paper_engine_commands;terms jsonb;member jsonb;parent text;item jsonb;ordinal integer=0;
 BEGIN
- SELECT * INTO command FROM public.paper_engine_commands WHERE scope_key=p_scope AND command_id=p_command FOR SHARE;
+ SELECT * INTO command FROM public.paper_engine_commands WHERE scope_key=p_scope AND command_id=p_command;
  SELECT t.terms INTO terms FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=command.target_client_id;
  IF command IS NULL OR terms IS NULL OR terms->'request' IS DISTINCT FROM command.request
   OR terms->'compilation'->'original_program'->>'template'<>'OCO'
