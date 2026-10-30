@@ -401,3 +401,26 @@ def test_stp_decrement_retains_original_quantity_and_exact_prevented_leaves_then
     proof=c.engine.query_market_evidence(c.write.command_id)
     assert sum((p.taker_quantity for p in proof.preventions),D(0))==D('0.4')
     assert sum((a.quantity for a in proof.consumptions),D(0))==D('0.6')
+
+
+@pytest.mark.parametrize('product',[t.Product.SPOT,t.Product.USD_M_PERP])
+def test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool(database,venue_v2,tmp_path,product):
+    from trading_system.engine.paper import PaperEngine
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE',product=product)
+    receipt=submit(c);report=c.engine.query_creation(c.write.command_id)
+    assert receipt.client_ids==(c.request.assigned_ids.parent_client_id,) and not c.request.assigned_ids.members
+    assert report.status=='WAITING_MARKET_SOURCE' and not report.orders and not report.fills
+    assert report.native_parent.parent_client_id==c.request.assigned_ids.parent_client_id and report.native_parent.venue_parent_id
+    assert report.pool.original_quantity==report.pool.remaining_pool_quantity==1
+    assert report.pool.allocated_quantity==report.pool.executed_quantity==report.pool.unused_quantity==0
+    assert report.accepted_contexts[0].request==c.request
+    with c.engine._connect() as db:
+        assert db.execute('SELECT target_client_id FROM public.paper_engine_commands WHERE scope_key=%s AND command_id=%s',
+            (c.engine._scope_key,c.write.command_id)).fetchone()['target_client_id'] is None
+        assert db.execute('SELECT count(*) AS n FROM public.paper_engine_orders WHERE scope_key=%s',(c.engine._scope_key,)).fetchone()['n']==0
+    recreated=PaperEngine(c.scope,dsn=venue_v2.runtime_dsn,event_dsn=venue_v2.event_dsn,
+        authority_guard=lambda _:None,owner_strategy_id=c.bundle.intent.owner_strategy_id,quantity_unit=c.bundle.intent.unit.native_unit,
+        price_currency=c.bundle.archive.rules.quote_asset,clock=lambda:c.c.facts.inputs.clock,matching_model=c.engine._matching_model)
+    assert recreated.query_creation(c.write.command_id)==report
+    recreated._matching_model=None
+    with pytest.raises(ValueError,match='PAPER_NATIVE_PARENT_READER_REQUIRED'):recreated.query_creation(c.write.command_id)
