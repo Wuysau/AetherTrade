@@ -78,5 +78,3 @@ def verify_quote_report(engine,report,*,boundary):
     # Do not cap reported fills to make an envelope pass.
     return VerifiedPaperQuoteReportV1(record_kind='VERIFIED_PAPER_QUOTE_REPORT_V1',report=report,
         consumption_context_hash=canonical_hash(context),discrepancies=tuple(sorted(set(problems))))
-
-

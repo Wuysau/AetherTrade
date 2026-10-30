@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="11.969" timestamp="2026-10-30T08:30:37.261982+00:00" hostname="4f3deb42ca8e"><testcase classname="tests.integration.test_paper_quote_budget_postgres" name="test_native_quote_request_executes_actual_depth_without_original_base_quantity[50000-.08-4000]" time="7.569"><failure message="ValueError: stored record fields differ from contract">tests/integration/test_paper_quote_budget_postgres.py:43: in test_native_quote_request_executes_actual_depth_without_original_base_quantity
+    submit(c)
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:386: in submit_creation
+    consumption=source[0];assessment=decode(ProgramFinancialAssessmentArchive,consumption['assessment'])
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:107: in decode
+    return restore(cls, payload)
+           ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:102: in restore
+    raise ValueError('stored record fields differ from contract')
+E   ValueError: stored record fields differ from contract</failure></testcase><testcase classname="tests.integration.test_paper_quote_budget_postgres" name="test_native_quote_request_executes_actual_depth_without_original_base_quantity[60000-.066-3960]" time="3.498"><failure message="ValueError: PAPER_MARKET_SEQUENCE_CONFLICT">tests/integration/test_paper_quote_budget_postgres.py:42: in test_native_quote_request_executes_actual_depth_without_original_base_quantity
+    PaperMatcher(c.engine).apply_market_event(snapshot)
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:667: in apply_market_event
+    require(book is None or (book['stream_id']==event.stream_id and event.sequence&gt;book['sequence']
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_MARKET_SEQUENCE_CONFLICT</failure></testcase></testsuite></testsuites>

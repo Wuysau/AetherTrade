@@ -174,5 +174,3 @@ def query_quote_creation(engine,command_id):
             reason=row['reason'],actual_base=row['actual_base'],gross_quote=row['gross_quote'],remaining_quote=row['remaining_quote'],fills=fills)
         return PaperQuoteReportV1(**payload,evidence=_evidence('paper-quote:'+command_id,
             {k:domain_payload(v) if hasattr(v,'__dataclass_fields__') else [domain_payload(f) for f in v] if k=='fills' else str(v) if isinstance(v,Decimal) else v for k,v in payload.items()},terms.accepted_clock.utc_now))
-
-

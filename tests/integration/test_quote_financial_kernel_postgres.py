@@ -157,6 +157,3 @@ def test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier(data
     assert len(calls)==2
     with c.owner.transaction(c.scope) as tx:
         assert tx.intents.get(c.qrecord.intent_id) is None and tx.reservations.for_intent(c.qrecord.intent_id)==()
-
-
-

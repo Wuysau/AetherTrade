@@ -720,5 +720,3 @@ class PaperMatcher:
                 (event.market_key,)).fetchone()
             if first:db.execute('SELECT public.paper_match_order(%s,%s)',(first['scope_key'],first['client_id']))
         return PaperMarketResult(market_key=event.market_key,event_id=event.event_id,applied=True)
-
-
