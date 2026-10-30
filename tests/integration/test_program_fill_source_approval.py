@@ -297,3 +297,43 @@ def test_historical_v1_approval_still_reads_without_rewriting_its_payload(databa
         assert found.normalized==verified.fills[0] and not found.balance_credit_authorized
         assert tx.execute('SELECT payload FROM ledger.program_fill_source_approvals WHERE scope_id=%s AND approval_id=%s',
             (scope_id(c.scope),approval_id)).fetchone()[0]==payload
+
+
+def test_per_fill_approval_does_not_fetch_or_decompress_shared_toast_proof(database,venue,tmp_path,record_property):
+    import psycopg
+    c,service,codec=setup_source(database,venue,tmp_path)
+    for sequence in range(2,10):
+        PaperMatcher(c.engine).apply_market_event(event(c,sequence=sequence,quantity='.01',kind='DEPTH_DELTA'))
+    try:result=service.approve(c.write.command_id)
+    finally:codec.close()
+    with c.service.uow.transaction(c.scope) as tx:
+        references=tx.execute('SELECT payload FROM ledger.program_fill_source_approvals WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchall()
+    def read_blocks():
+        with psycopg.connect(database) as db:
+            db.execute('SELECT pg_stat_clear_snapshot()')
+            return db.execute("SELECT heap_blks_read+heap_blks_hit,toast_blks_read+toast_blks_hit "
+                "FROM pg_statio_user_tables WHERE schemaname='ledger' AND relname='program_fill_source_snapshots'").fetchone()
+    initial=read_blocks()
+    # Positive control: reading/decompressing the real shared proof must change
+    # these counters, otherwise a zero delta would not prove the absence of IO.
+    with psycopg.connect(database) as db:
+        assert db.execute("SELECT pg_relation_size(reltoastrelid)>0 FROM pg_class "
+            "WHERE oid='ledger.program_fill_source_snapshots'::regclass").fetchone()==(True,)
+        db.execute('SELECT length(payload::text) FROM ledger.program_fill_source_snapshots WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchall()
+        db.execute('SELECT pg_stat_force_next_flush()')
+    before=read_blocks()
+    assert sum(before)>sum(initial),(initial,before)
+    with service.uow.transaction(c.scope) as tx:
+        for (payload,) in references:
+            tx.execute('SELECT ledger.approve_program_fill_source_v2(%s,%s,%s,%s,%s)',
+                (scope_id(c.scope),c.write.command_id,payload['source_snapshot_hash'],payload['normalized_hash'],tx.transaction_id)).fetchone()
+        tx.execute('SELECT pg_stat_force_next_flush()')
+    after=read_blocks()
+    record_property('shared_proof_heap_blocks_before',before[0])
+    record_property('shared_proof_toast_blocks_before',before[1])
+    record_property('shared_proof_heap_blocks_after',after[0])
+    record_property('shared_proof_toast_blocks_after',after[1])
+    assert len(references)==len(result.approvals)==9
+    assert after==before,dict(before=before,after=after,per_fill_calls=len(references))
