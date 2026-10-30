@@ -19,11 +19,11 @@ from trading_system.storage.models import scope_id
 def digest(value):return canonical_hash(domain_payload(value))
 
 
-def quote_case(database):
-    c=real_case(database)
+def quote_case(database, *, real_options=None, quote_options=None):
+    c=real_case(database, **(real_options or {}))
     # real_case initializes the existing synthetic helper import paths only.
     from test_quote_risk_assessment import quote_risk_case
-    q=quote_risk_case();original=c.ingress.load_inputs(None,None,None,None)
+    q=quote_risk_case(**(quote_options or {}));original=c.ingress.load_inputs(None,None,None,None)
     context=c.record.context;scope=c.scope
     caps=replace(q.facts.target_facts.capabilities,scope=scope,qualification='PAPER_VERIFIED',evidence=original.capabilities.evidence)
     profile=replace(q.facts.target_facts.profile,scope=scope)
@@ -157,3 +157,4 @@ def test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier(data
     assert len(calls)==2
     with c.owner.transaction(c.scope) as tx:
         assert tx.intents.get(c.qrecord.intent_id) is None and tx.reservations.for_intent(c.qrecord.intent_id)==()
+

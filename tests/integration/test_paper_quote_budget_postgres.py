@@ -9,11 +9,24 @@ from integration.test_program_commands_postgres import lease
 from trading_system.execution.program_commands import ProgramCommandRepository
 
 
+@pytest.fixture(scope='module')
+def quote_venue(database,venue):
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
+    from trading_system.engine.paper_market_quote import provision_paper_quote
+    admin=make_conninfo(**{**conninfo_to_dict(database),'dbname':conninfo_to_dict(venue.runtime_dsn)['dbname']})
+    provision_paper_quote(admin,venue)
+    return venue
+
+
 def execution_case(database, venue, tmp_path):
     from trading_system.engine.paper import PaperEngine
     from trading_system.engine.paper_market import PaperMatchingModel
     from trading_system.runtime.execution_owner import ExecutionOwner
-    c=admitted(database)
+    from uuid import uuid4
+    from integration.test_quote_financial_kernel_postgres import quote_case
+    from integration.test_quote_program_admission_postgres import public
+    c=quote_case(database,real_options={'instrument_uid':'quote-'+uuid4().hex})
+    receipt=public(c).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan);c.cid=receipt.attachment.command_ids[0]
     with c.owner.transaction(c.scope) as tx:
         repo=ProgramCommandRepository(tx);c.write=repo.write(c.cid);c.request=repo.request(c.cid)
     c.gate=gate(c);c.lease=lease(c);c.permit=None
@@ -35,9 +48,9 @@ def execution_case(database, venue, tmp_path):
 
 
 @pytest.mark.parametrize('price,expected_base,expected_gross',[('50000','.08','4000'),('60000','.066','3960')])
-def test_native_quote_request_executes_actual_depth_without_original_base_quantity(database,venue,tmp_path,price,expected_base,expected_gross):
+def test_native_quote_request_executes_actual_depth_without_original_base_quantity(database,quote_venue,tmp_path,price,expected_base,expected_gross):
     from trading_system.engine.paper_market import PaperMatcher,DepthLevel
-    c=execution_case(database,venue,tmp_path)
+    c=execution_case(database,quote_venue,tmp_path)
     snapshot=replace(event(c),asks=(DepthLevel(price=price,quantity='.1'),),bids=(DepthLevel(price='49999',quantity='.1'),))
     PaperMatcher(c.engine).apply_market_event(snapshot)
     submit(c)
@@ -49,5 +62,7 @@ def test_native_quote_request_executes_actual_depth_without_original_base_quanti
     assert report.gross_quote==D(expected_gross)
     assert report.remaining_quote==4000-D(expected_gross)
     assert sum((f.quantity*f.price for f in report.fills),D(0))==report.gross_quote
+
+
 
 
