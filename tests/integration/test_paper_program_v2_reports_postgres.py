@@ -426,15 +426,19 @@ def test_actual_price_match_uses_original_five_level_book_without_inventing_nati
     assert all(f.name!='price' for f in result.raw_report.request.fields)
 
 
-def test_actual_bid_ask_trigger_selects_side_specific_reference_and_existing_depth(database,venue_v2,tmp_path):
-    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,
-        trigger=TriggerSpec(kind='STATIC',purpose='STOP_LOSS',source='BID_ASK',price='83000',
-            activation_price=None,offset=None,offset_unit=None,price_protect=False)))
-    submit(c);matcher=PaperMatcher(c.engine);matcher.apply_market_event(event(c,quantity='.4'))
-    matcher.apply_market_event(reference(c,2,'ASK','83000'));result=observe(c,tmp_path/'raw')
-    assert result.source_verified,result.discrepancies
-    assert len(result.fills)==1 and result.fills[0].fill.quantity.value==D('.4')
-    assert result.raw_report.orders[0].runtime.activation_event_id=='reference-2'
+def test_unsupported_spot_bid_ask_source_is_denied_before_any_venue_command(database,venue_v2,tmp_path):
+    import psycopg
+    from trading_system.intents.semantic_validation import ProposalRejected
+    with psycopg.connect(venue_v2.runtime_dsn) as db:
+        before=db.execute('SELECT count(*) FROM public.paper_engine_commands').fetchone()[0]
+    # The actual compiler permits LAST only for Spot. Keep this capability
+    # explicitly unqualified; never fabricate an admitted fixture to test it.
+    with pytest.raises(ProposalRejected,match='SPOT_TRIGGER_SOURCE_UNSUPPORTED'):
+        advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,
+            trigger=TriggerSpec(kind='STATIC',purpose='STOP_LOSS',source='BID_ASK',price='83000',
+                activation_price=None,offset=None,offset_unit=None,price_protect=False)))
+    with psycopg.connect(venue_v2.runtime_dsn) as db:
+        assert db.execute('SELECT count(*) FROM public.paper_engine_commands').fetchone()[0]==before
 
 
 def test_actual_gtd_clock_expiry_after_original_creation_window_is_not_new_submission(database,venue_v2,tmp_path):
@@ -451,3 +455,58 @@ def test_actual_gtd_clock_expiry_after_original_creation_window_is_not_new_submi
     assert result.source_verified,result.discrepancies
     assert not result.fills and result.raw_report.dispositions[-1].reason=='VENUE_GTD_EXPIRED'
     assert result.orders[0].leaves_quantity.value==0 and not result.funds_release_authorized
+
+
+def competing_oco(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path,template='OCO',actual='1',target='0',side='SELL',
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(replace(event(c,ask='83001',quantity='1'),bids=(DepthLevel(price='83000',quantity='.4'),)))
+    matcher.apply_market_event(reference(c,2,'LAST','83000'))
+    matcher.apply_market_event(reference(c,3,'LAST','79000'))
+    matcher.apply_market_event(replace(event(c,sequence=4,ask='83001',quantity='1'),bids=(DepthLevel(price='83000',quantity='1'),)))
+    return c
+
+
+def test_actual_competing_oco_trigger_attempts_execute_only_the_unique_winner_with_complete_sibling_cancel(database,venue_v2,tmp_path):
+    c=competing_oco(database,venue_v2,tmp_path);result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    assert len(result.fills)==2 and {f.raw.node_id for f in result.fills}=={'above'}
+    assert sum((f.fill.quantity.value for f in result.fills),D(0))==1
+    peer=next(o for o in result.raw_report.orders if o.node_id=='below')
+    assert peer.status=='CANCELED' and peer.filled_quantity==peer.runtime.prevented_quantity==0
+    assert len([d for d in result.raw_report.dispositions if d.client_id==peer.client_id])==1
+
+
+@pytest.mark.parametrize('fault',['omit_sibling','duplicate_sibling','omit_cancel','duplicate_cancel',
+    'unfinished_cancel','missing_winner','foreign_winner','prevented_peer','second_leg_fill'])
+def test_actual_native_exclusivity_needs_complete_unique_source_witness_not_membership_or_one_cancel(
+        database,venue_v2,tmp_path,fault):
+    import json
+    from hashlib import sha256
+    from trading_system.contracts.canonical import canonical_json
+    c=competing_oco(database,venue_v2,tmp_path);report=c.engine.query_creation(c.write.command_id)
+    peer=next(o for o in report.orders if o.node_id=='below');winner=next(o for o in report.orders if o.node_id=='above')
+    cancel=next(d for d in report.dispositions if d.client_id==peer.client_id)
+    changed=report
+    if fault=='omit_sibling':changed=replace(report,orders=(winner,))
+    if fault=='duplicate_sibling':changed=replace(report,orders=(peer,peer))
+    if fault=='omit_cancel':changed=replace(report,dispositions=())
+    if fault=='duplicate_cancel':changed=replace(report,dispositions=(cancel,cancel))
+    if fault=='unfinished_cancel':changed=replace(report,dispositions=(replace(cancel,status='SUBMITTED'),))
+    if fault in ('missing_winner','foreign_winner'):
+        raw=json.loads(cancel.raw_payload_json)
+        if fault=='missing_winner':raw.pop('winner_client_id')
+        else:raw['winner_client_id']='foreign-winner'
+        text=canonical_json(raw);altered=replace(cancel,raw_payload_json=text,evidence=replace(cancel.evidence,hash=sha256(text.encode('utf-8')).hexdigest()))
+        changed=replace(report,dispositions=(altered,))
+    if fault=='prevented_peer':changed=replace(report,orders=tuple(replace(o,runtime=replace(o.runtime,prevented_quantity=D('.4'))) if o.client_id==peer.client_id else o for o in report.orders))
+    if fault=='second_leg_fill':
+        # Reattribute the second genuine venue-produced winner fill in the
+        # returned observation; never insert a fake venue fill or alter raw SQL.
+        changed=replace(report,fills=(report.fills[0],replace(report.fills[1],client_id=peer.client_id,node_id=peer.node_id)))
+    c.engine.query_creation=lambda _:reseal_report(changed)
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and not result.fills and result.raw_refs,result.discrepancies
+    assert 'RESERVATION_RECONCILIATION_REQUIRED' in result.retained_duties and not result.funds_release_authorized

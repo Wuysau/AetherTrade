@@ -105,7 +105,7 @@ class PaperProgramV2ReportVerifier:
             events=db.execute('SELECT client_id,event_id,payload::text AS raw,payload_hash FROM public.paper_engine_events '
                 'WHERE scope_key=%s AND client_id=ANY(%s) ORDER BY occurred_at,event_id LIMIT 4097',
                 (self.engine._scope_key,clients)).fetchall()
-            orders=db.execute('SELECT o.client_id,o.order_id,o.revision,o.lifecycle,t.terms,jsonb_build_object('
+            orders=db.execute('SELECT o.client_id,o.order_id,o.revision,o.lifecycle,o.filled::text AS source_filled,t.terms,jsonb_build_object('
                 "'active',r.active,'phase',r.phase,'activation_event_id',r.activation_event_id,'high_water',r.high_water::text,"
                 "'low_water',r.low_water::text,'effective_limit',r.effective_limit::text,'visible_remaining',r.visible_remaining::text,"
                 "'queue_priority',r.queue_priority,'prevented_quantity',r.prevented_quantity::text,'parent_activation_fill_id',r.parent_activation_fill_id) AS runtime "
@@ -119,9 +119,6 @@ class PaperProgramV2ReportVerifier:
                 parent['members']=[dict(m) for m in db.execute('SELECT client_id,node_id,ordinal FROM public.paper_native_members_v2 '
                     'WHERE scope_key=%s AND parent_client_id=%s ORDER BY ordinal LIMIT 513',
                     (self.engine._scope_key,parent['parent_client_id'])).fetchall()]
-                exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
-                    'WHERE scope_key=%s AND parent_client_id=%s',(self.engine._scope_key,parent['parent_client_id'])).fetchone()
-                parent['exclusive']=None if exclusive is None else dict(exclusive)
             event_ids=sorted({d['event_id'] for d in deps})
             market_keys=sorted({d['market_key'] for d in deps})
             inputs=db.execute('SELECT market_key,event_id,payload,before_levels,observed_clock FROM public.paper_market_inputs '
@@ -240,10 +237,6 @@ class PaperProgramV2ReportVerifier:
             _check([(m['node_id'],m['client_id'],m['ordinal']) for m in source_parent['members']]==[
                 (m.node_id,m.client_id,index) for index,m in enumerate(request.assigned_ids.members)],
                 'PAPER_V2_NATIVE_PARENT_MEMBERSHIP_CHANGED')
-            groups=plan.original_program.exclusive_groups;exclusive=source_parent['exclusive']
-            _check((not groups and exclusive is None) or len(groups)==1 and exclusive is not None
-                and exclusive['node_ids']==list(groups[0]) and exclusive['winner_client_id'] in
-                    (None,*(assigned[node] for node in groups[0])),'PAPER_V2_NATIVE_EXCLUSIVITY_SOURCE_CHANGED')
         else:_check(report.native_parent is None,'PAPER_V2_UNEXPECTED_PARENT')
         _check({f.fill_id for f in report.fills}|{d.event_id for d in report.dispositions}==set(events),
             'PAPER_V2_COMPLETE_EVENT_SET_CHANGED')
@@ -384,14 +377,50 @@ class PaperProgramV2ReportVerifier:
                 and max(exact_time(accepted.terms.accepted_clock.utc_now),exact_time(source.observed_clock.utc_now),exact_time(source.event.occurred_at))
                     <=exact_time(d.occurred_at)<=exact_time(clock.utc_now),'PAPER_V2_DISPOSITION_SOURCE_CHANGED')
             if d.reason=='NATIVE_EXCLUSIVE_SIBLING_ACTIVATED':
-                exclusive=source_parent['exclusive'] if source_parent is not None else None
-                _check(exclusive is not None and raw.get('parent_client_id')==request.assigned_ids.parent_client_id
-                    and raw.get('winner_client_id')==exclusive['winner_client_id']!=d.client_id
-                    and d.status=='CANCELED' and any(o.client_id==d.client_id and o.node_id in exclusive['node_ids'] for o in report.orders),
+                groups=plan.original_program.exclusive_groups
+                group=groups[0] if len(groups)==1 else ()
+                _check(source_parent is not None and raw.get('parent_client_id')==request.assigned_ids.parent_client_id
+                    and raw.get('winner_client_id') in tuple(assigned[node] for node in group)
+                    and raw.get('winner_client_id')!=d.client_id and d.status=='CANCELED'
+                    and any(o.client_id==d.client_id and o.node_id in group for o in report.orders),
                     'PAPER_V2_NATIVE_SIBLING_CAUSALITY_CHANGED')
         for group in plan.original_program.exclusive_groups:
             executed={f.raw.node_id for f in normalized if f.raw.node_id in group}
-            if len(executed)>1:economics.append('NATIVE_EXCLUSIVITY_VIOLATED')
+            _check(len(executed)<=1,'PAPER_V2_NATIVE_EXCLUSIVITY_NOT_PROVEN')
+            # The frozen producer intentionally exposes no runtime SELECT on
+            # its mutable winner row. Its immutable sibling cancellation is
+            # the trusted observation witness; never grant broader SQL access.
+            witnesses=[(d,_raw_object(d.raw_payload_json,d.evidence)) for d in report.dispositions
+                if d.reason=='NATIVE_EXCLUSIVE_SIBLING_ACTIVATED' and d.client_id in {assigned[n] for n in group}]
+            winners={raw['winner_client_id'] for _,raw in witnesses}
+            _check(len(winners)<=1 and (not executed or witnesses),'PAPER_V2_NATIVE_EXCLUSIVITY_NOT_PROVEN')
+            if witnesses:
+                winner=next(iter(winners));winner_order=next(o for o in report.orders if o.client_id==winner)
+                _check(all(f.raw.client_id==winner for f in normalized if f.raw.node_id in group),
+                    'PAPER_V2_NATIVE_EXCLUSIVITY_NOT_PROVEN')
+                winner_fills=tuple(f.raw for f in normalized if f.raw.client_id==winner)
+                activation=winner_order.runtime.activation_event_id
+                _check(winner_fills or activation is not None,'PAPER_V2_NATIVE_EXCLUSIVITY_NOT_PROVEN')
+                peer_ids={assigned[node] for node in group}-{winner}
+                _check(Counter(d.client_id for d,_ in witnesses)==Counter(peer_ids),'PAPER_V2_NATIVE_EXCLUSIVITY_NOT_PROVEN')
+                for peer in report.orders:
+                    if peer.client_id not in peer_ids:continue
+                    _check(source_orders[peer.client_id]['lifecycle']=='CANCELED'
+                        and Decimal(source_orders[peer.client_id]['source_filled'])==0 and peer.status=='CANCELED'
+                        and peer.filled_quantity==0 and peer.runtime.prevented_quantity==0
+                        and not any(p.scope==self.scope and p.client_id==peer.client_id for p in market.preventions),
+                        'PAPER_V2_NATIVE_EXCLUSIVITY_NOT_PROVEN')
+                for d,_ in witnesses:
+                    _check(any(key[1]==d.market_event_id for key in client_dependencies[winner]),
+                        'PAPER_V2_NATIVE_EXCLUSIVITY_NOT_PROVEN')
+                    if activation is not None:
+                        active_input=next(i for i in market.inputs if i.event.event_id==activation)
+                        _check(exact_time(active_input.observed_clock.utc_now)<=exact_time(d.occurred_at),
+                            'PAPER_V2_NATIVE_EXCLUSIVITY_NOT_PROVEN')
+                    elif winner_fills:
+                        first=min(winner_fills,key=lambda f:(exact_time(f.occurred_at),f.fill_id))
+                        _check(first.market_event_id==d.market_event_id and exact_time(d.occurred_at)<=exact_time(first.occurred_at),
+                            'PAPER_V2_NATIVE_EXCLUSIVITY_NOT_PROVEN')
         return tuple(normalized),tuple(projections),tuple(dict.fromkeys(economics)),graph,graph_hash
 
     def _working_lineage(self,node,order,nodes,report,deps,events):
@@ -421,7 +450,7 @@ class PaperProgramV2ReportVerifier:
     def _trigger(self,spec,order,inputs,fills,accepted_at):
         if spec.trigger.kind=='NONE':return
         source=spec.trigger.source
-        if source=='BID_ASK':source='ASK' if spec.side=='BUY' else 'BID'
+        _check(source!='BID_ASK','PAPER_V2_TRIGGER_INTERFACE_UNSUPPORTED')
         active=False;started=False;high=low=None;activation=None
         for item in inputs:
             if type(item.event) is not PaperReferenceEventV2:continue
