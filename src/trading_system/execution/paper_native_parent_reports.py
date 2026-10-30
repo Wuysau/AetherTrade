@@ -117,7 +117,7 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
             if db.execute("SELECT to_regclass('public.paper_quote_allocations_v1') AS relation").fetchone()['relation'] is not None:
                 allocation_sql+=(' UNION ALL SELECT c.market_key,c.event_id,c.scope_key,t.client_id,c.fill_id,c.side,c.price,c.quantity '
                     'FROM public.paper_quote_allocations_v1 c JOIN public.paper_quote_terms_v1 t USING(scope_key,command_id) '
-                    'JOIN public.paper_native_parent_input_dependencies_v2 d USING(market_key,event_id) '
+                    'JOIN public.paper_native_parent_input_dependencies_v2 d ON d.market_key=c.market_key AND d.event_id=c.event_id '
                     'WHERE d.scope_key=%s AND d.parent_client_id=%s')
                 allocation_args+=params
             consumptions=db.execute(allocation_sql+' ORDER BY fill_id LIMIT 100001',allocation_args).fetchall()
