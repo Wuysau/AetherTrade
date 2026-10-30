@@ -108,11 +108,12 @@ def validate_stored_program_binding(tx,original,current):
 
 class ProgramCommandRepository:
     def __init__(self,tx,*,load_clock=None,load_lease=None,load_current_facts=None,
-                 load_qualification=None,load_action_proof=None,load_wallet_selection=None):
+                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None):
         self.tx=tx;self.load_clock=load_clock;self.load_lease=load_lease
         self.load_current_facts=load_current_facts;self.load_qualification=load_qualification
         self.load_action_proof=load_action_proof
         self.load_wallet_selection=load_wallet_selection
+        self.load_execution_bounds=load_execution_bounds
 
     def _raw_binding(self,command_id):
         return self.tx._latest('program_request_bindings',command_id,ProgramRequestBinding)
@@ -282,8 +283,12 @@ class ProgramCommandRepository:
         fence=current_fence(self.tx,source.context)
         book=self.tx.projections.book(self.tx.scope)
         before=digest(book)
-        inputs=self.load_current_facts(self.tx,source,intake,book,clock) if self.load_current_facts else None
-        intent,basis=validate_current_inputs(self.tx,source,intake,book,inputs,clock)
+        from trading_system.risk.quote_financial_admission import (QuoteProgramFinancialBundleV1,
+            current_quote_financial_book,quote_quantity_reservation_ids,validate_current_quote_bounds)
+        quote=type(bundle) is QuoteProgramFinancialBundleV1
+        financial_book=current_quote_financial_book(self.tx,bundle,book) if quote else book
+        inputs=self.load_current_facts(self.tx,source,intake,financial_book,clock) if self.load_current_facts else None
+        intent,basis=validate_current_inputs(self.tx,source,intake,financial_book,inputs,clock,self.load_execution_bounds)
         a=inputs.archive
         require(digest(a.compilation)==write.compilation_hash and digest(a.source)==digest(bundle.archive.source)
             and intent.hashes.program==write.canonical_program_hash,'PROGRAM_CURRENT_ECONOMICS_CHANGED')
@@ -307,7 +312,13 @@ class ProgramCommandRepository:
         require(digest(actual_own)==digest(bundle.reservations),'PROGRAM_RESERVATION_CHANGED')
         holds=merge_holds(reservations.group(),book)
         others=tuple(p for p in holds if p.reservation.reservation_id not in own_ids)
-        require(digest(others)==digest(a.budget_facts.reservations),'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
+        require(digest(others)==digest(inputs.reconciled_holds if quote else a.budget_facts.reservations),
+            'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
+        if quote:
+            require(digest(current_quote_financial_book(self.tx,bundle,book))==digest(financial_book),
+                'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
+            require(a.risk_facts.target_facts.quantity_reservation_ids==
+                quote_quantity_reservation_ids(self.tx,financial_book,book),'QUOTE_CURRENT_QUANTITY_RESERVATION_MAP_CHANGED')
         obligations=application_write_obligations(self.tx)
         exclusions=tuple(o.original for o in obligations if type(o.original) is ApplicationWriteV3
             and o.original.scope==write.scope and o.original.intent_id==write.intent_id
@@ -322,10 +333,14 @@ class ProgramCommandRepository:
             'PROGRAM_TARGET_ALLOCATION_REQUIRED')
         local_ids={row[0] for row in self.tx.execute('SELECT record_id FROM ledger.reservations WHERE scope_id=%s',
             (scope_id(self.tx.scope),)).fetchall()}
-        external_ids={p.reservation.reservation_id for p in book.reservations}-{p.reservation.reservation_id for p in reservations.group()}
+        persisted_ids={p.reservation.reservation_id for p in reservations.group()}
+        external_ids={p.reservation.reservation_id for p in book.reservations
+            if (not quote or p.reservation.venue_account_id==self.tx.scope.venue_account_id)
+                and p.reservation.reservation_id not in persisted_ids}
         pending=_legacy_target_obligations(self.tx,intent,book,tuple(p for p in others
             if p.reservation.reservation_id in local_ids|external_ids),clock.utc_now)
-        require(digest(pending)==digest(a.target_facts.inputs.pending),'PROGRAM_CURRENT_QUANTITY_OBLIGATIONS_CHANGED')
+        sf=a.risk_facts.target_facts.scope_facts if quote else a.target_facts
+        require(digest(pending)==digest(sf.inputs.pending),'PROGRAM_CURRENT_QUANTITY_OBLIGATIONS_CHANGED')
         held=amounts(bundle.basis.incremental_requirements)
         require(all(m.amount<=held.get(m.currency,-1) for m in basis.incremental_requirements),'PROGRAM_RESERVED_BUDGET_EXCEEDED')
         capacity=check_capacity(CapacityInputs(incremental_requirements=basis.incremental_requirements,
@@ -333,13 +348,17 @@ class ProgramCommandRepository:
             remaining_strategy_capacity=inputs.strategy_capacity,buffers=inputs.buffer,reconciled_group_holds=others,
             owner_strategy_id=intent.owner_strategy_id))
         require(capacity.sufficient,'PROGRAM_CURRENT_CAPACITY_DENIED')
-        duty=LockedActionVerifier().verify_program(self.tx,intent,a,clock.utc_now,book=book,read_proof=self.load_action_proof)
+        duty=LockedActionVerifier().verify_program(self.tx,intent,a,clock.utc_now,book=financial_book,read_proof=self.load_action_proof)
         require(duty is not None,'PROGRAM_ACTIVE_RISK_LOCK')
         # The original immutable request was validated by write() and the one
         # complete obligation snapshot above in this SAME transaction. Do not
         # replay that archive eight times inside the <=5 second permit budget.
         request=self._raw_binding(write.command_id).request
         self._verify_current_request(request,a,clock)
+        if quote:
+            validate_current_quote_bounds(self.tx,source,intake,financial_book,clock,a,self.load_execution_bounds)
+            require(digest(current_quote_financial_book(self.tx,bundle,self.tx.projections.book(self.tx.scope)))==digest(financial_book),
+                'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
         require(before==digest(self.tx.projections.book(self.tx.scope)) and
             digest(current_fence(self.tx,source.context))==digest(fence),'PROGRAM_CURRENT_STATE_CHANGED')
         end_clock,end_lease=self._clock_lease(write)
@@ -355,6 +374,9 @@ class ProgramCommandRepository:
             'lease':domain_payload(lease),'clock':domain_payload(end_clock),'fence':domain_payload(fence),
             'fence_record_id':revision_key(source.context),'assessment':domain_payload(a),
             'qualification':domain_payload(qualification),'valid_until':expires.isoformat()}
+        if quote:
+            context.update(source_book_hash=before,financial_book_hash=digest(financial_book),
+                execution_bounds_hash=digest(a.risk_facts.target_facts.bounds))
         return context,end_clock,lease,expires,request
 
     @atomic_write
@@ -411,10 +433,11 @@ class ProgramCommandBoundary:
     nothing. No UNKNOWN replay mints or renews a permit.
     """
     def __init__(self,uow,scope,*,load_clock=None,load_lease=None,load_current_facts=None,
-                 load_qualification=None,load_action_proof=None,load_wallet_selection=None):
+                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None):
         self.uow,self.scope=uow,scope
         self.readers=dict(load_clock=load_clock,load_lease=load_lease,load_current_facts=load_current_facts,
-            load_qualification=load_qualification,load_action_proof=load_action_proof,load_wallet_selection=load_wallet_selection)
+            load_qualification=load_qualification,load_action_proof=load_action_proof,load_wallet_selection=load_wallet_selection,
+            load_execution_bounds=load_execution_bounds)
 
     def mark_may_have_sent(self,command_id,lease):
         token=secrets.token_urlsafe(32)
