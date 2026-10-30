@@ -280,9 +280,25 @@ def test_two_real_commands_same_account_can_post_own_scope_then_reconcile_withou
     balances,proof=inputs(first)
     ProgramAccountOpeningService(provision_uow(database),first.scope).initialize(balances,evidence=proof)
     group=first.c.terms.collateral_group_id
+    def current_loader(c):
+        from trading_system.contracts.canonical import canonical_hash
+        from trading_system.risk.reservation_repository import ReservationRepository
+        from trading_system.risk.program_exposure import derive_program_exposure
+        original=c.load
+        def load(tx,source,intake,book,clock):
+            others=tuple(p for p in ReservationRepository(tx).group() if p.reservation.intent_id!=intake.intent_id)
+            target=replace(c.c.facts.target_facts,book_sequence=book.sequence,book_hash=canonical_hash(domain_payload(book)))
+            budget=replace(c.c.facts.budget_facts,reservations=others)
+            c.c.facts=replace(c.c.facts,target_facts=target,budget_facts=budget)
+            c.c.exposure=derive_program_exposure(c.c.plan,budget,now=clock.utc_now)
+            return original(tx,source,intake,book,clock)
+        c.load=load
+    current_loader(first)
+    first=case(database,venue,tmp_path,prepared_case=first)
     second=real_case(database,venue_account_id=first.scope.venue_account_id,collateral_group_id=group,
         instrument_uid='peer-b-'+uuid4().hex)
-    cases=[case(database,venue,tmp_path,prepared_case=initial) for initial in (first,second)]
+    current_loader(second)
+    cases=[first,case(database,venue,tmp_path,prepared_case=second)]
     services=[];codecs=[]
     try:
         for index,c in enumerate(cases):
