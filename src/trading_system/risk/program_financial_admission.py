@@ -276,6 +276,8 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     require(tx.intents.get(intake.intent_id) is None,'PROGRAM_FINANCIAL_ALREADY_ADMITTED')
     book=tx.projections.book(tx.scope)
     original_book_hash=digest(book)
+    from trading_system.risk.program_cash_guard import require_funded_program_account_book
+    require_funded_program_account_book(tx,book)
     collateral=service._prepare_collateral(tx,book)
     require(not collateral.rejection_codes,','.join(collateral.rejection_codes))
     book=collateral.book

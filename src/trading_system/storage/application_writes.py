@@ -18,6 +18,7 @@ class ApplicationWriteObligation:
     original: ApplicationWrite|ApplicationWriteV3
     current: ApplicationWrite|ApplicationWriteV3
     collateral_group_id: str
+    submission_observation: object|None = None
 
     @property
     def identity(self):
@@ -28,7 +29,10 @@ class ApplicationWriteObligation:
     def unresolved(self):
         # An ACK/terminal/abort label alone is not complete authoritative
         # reconciliation. A future qualified resolver must discharge it.
-        return self.current.state != 'DURABLE_READY'
+        if self.current.state=='DURABLE_READY':return False
+        from trading_system.execution.program_submission_observation import ProgramSubmissionObservationView
+        return not(type(self.submission_observation) is ProgramSubmissionObservationView
+            and self.submission_observation.submission_known)
 
 
 def _require(condition, reason):
@@ -108,8 +112,12 @@ def application_write_obligations(tx, *, scope_only=False):
                 validate_stored_program_binding(tx, original, current)
             except Exception as exc:
                 raise MissingEvidence('PROGRAM_WRITE_BINDING_INVALID') from exc
+        observed=None
+        if type(original) is ApplicationWriteV3 and current.state!='DURABLE_READY':
+            from trading_system.execution.program_submission_observation import read_program_submission_observation
+            observed=read_program_submission_observation(tx,original)
         selected[(physical_scope, identifier)] = ApplicationWriteObligation(original=original,
-            current=current, collateral_group_id=bindings[key])
+            current=current, collateral_group_id=bindings[key],submission_observation=observed)
     # Application children remain independent local writes. Native children
     # live only in observation tables and never enter this command reader.
     for (physical_scope, identifier), obligation in selected.items():

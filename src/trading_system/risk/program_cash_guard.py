@@ -12,3 +12,11 @@ def require_current_account_book(tx,book):
     # The exact registered local reader rereads protected0019/0020 provenance;
     # no caller DTO, callback, binding marker or preview supplies cash authority.
     return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+
+
+def require_funded_program_account_book(tx,book):
+    """Trusted generic path only; absence is not initial virtual capital."""
+    frame=require_current_account_book(tx,book)
+    if frame is None:
+        raise MissingEvidence('ACCOUNT_OPENING_REQUIRED')
+    return frame

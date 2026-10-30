@@ -46,7 +46,7 @@ def test_provisioned_first_generic_full_chain_binds_capital_without_creating_inv
         assert tx.execute('SELECT count(*) FROM ledger.positions WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
     submit(c)
     raw=c.engine.query_creation(c.write.command_id)
-    assert raw.status=='NEW' and not raw.fills and raw.remaining_quantity==1
+    assert raw.status=='SUBMITTED' and not raw.fills and raw.remaining_quantity==1
     with c.service.uow.transaction(c.scope) as tx:
         context=tx.execute('SELECT context FROM ledger.program_permit_consumptions WHERE scope_id=%s AND command_id=%s',
             (scope_id(c.scope),c.write.command_id)).fetchone()[0]

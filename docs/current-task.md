@@ -40,6 +40,21 @@ to60; no case/target was removed or promoted. Strict owned readiness remains
 blocked on the separate cash review (including marker transition reuse), with
 no atomic writer/host enabled. ROOT+D sole writer remains integration_fresh.
 
+First-capital bb7da71 actual3-case RED original75101/run784f1376cd47 TERMINAL:
+1pass2fail0error/skip8.03s. Genuine missing-opening financial admission DID NOT
+RAISE despite funded-looking book. Other failure was a new test's raw lifecycle
+NEW expectation; actual venue SUBMITTED is the existing unfilled accepted state.
+The test now preserves this actual state. Candidate strict generic helper rejects
+None at actual _reserve_program/rawbook, mark/consume _current and afterwait;
+legacy numerical/maintenance helper keeps None compatibility. New protected
+MAY/consume context records opening_id/cash_revision, final guard requires exact
+original values rather than upgrading old tokens. No old row/hash/schema changed.
+0021 candidate independently binds actual source command/order/accepted terms,
+persists STARTED/UNKNOWN before query and COMPLETE after source fsync; privileged
+table rows preserve acceptance history and never replace original write states.
+Focused170 reader/command/locked-action/version unit checks passed12.78s. Candidate
+actual first-capital/knownness PG remains due; no qualified source claim yet.
+
 Original61823 fixedfb8c62b first actual5-case run TERMINALexit1,5fail0error/skip
 9.72s, runede428e447d0. It stopped earlier than planned: the positive source
 fixture installed16–18 but not19, so the actual dispatch role lacked19's readonly

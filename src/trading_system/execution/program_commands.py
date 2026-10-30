@@ -282,8 +282,8 @@ class ProgramCommandRepository:
         require(digest(source)==digest(bundle.intent.source),'PROGRAM_SOURCE_CHANGED')
         fence=current_fence(self.tx,source.context)
         book=self.tx.projections.book(self.tx.scope)
-        from trading_system.risk.program_cash_guard import require_current_account_book
-        require_current_account_book(self.tx,book)
+        from trading_system.risk.program_cash_guard import require_funded_program_account_book
+        account_cash=require_funded_program_account_book(self.tx,book)
         before=digest(book)
         from trading_system.risk.quote_financial_admission import (QuoteProgramFinancialBundleV1,
             current_quote_financial_book,quote_quantity_reservation_ids,validate_current_quote_bounds)
@@ -375,7 +375,8 @@ class ProgramCommandRepository:
             'assessment_hash':digest(a),'basis_hash':digest(basis),'qualification_hash':digest(qualification),
             'lease':domain_payload(lease),'clock':domain_payload(end_clock),'fence':domain_payload(fence),
             'fence_record_id':revision_key(source.context),'assessment':domain_payload(a),
-            'qualification':domain_payload(qualification),'valid_until':expires.isoformat()}
+            'qualification':domain_payload(qualification),'valid_until':expires.isoformat(),
+            'account_opening_id':account_cash.opening_id,'account_cash_revision':account_cash.economic_revision}
         if quote:
             context.update(source_book_hash=before,financial_book_hash=digest(financial_book),
                 execution_bounds_hash=digest(a.risk_facts.target_facts.bounds))
