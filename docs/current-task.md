@@ -12,6 +12,34 @@ same-ledger accounting work; activation_fresh owns OP-D matcher; reports_fresh
 owns controlled native adapter/consumed-current guard. Main/archive untouched.
 Goal ACTIVE: all46 capabilities/56 cases, complete OP-C→D/E/F→G remain required.
 
+Latest complete fixed28af8b3 gate93372 is TERMINAL exit0:48mandatory PostgreSQL
+suites1155 passed/0fail/error/skip; ordinary3526passed709explicit environmental
+skips96deselected1existing warning95.54s. Complete launcher/XML at
+.runtime/paper-qualification-bebee97f3eb4/evidence. It does not cover later code.
+RootPAPER6b83371 separate23PG GREEN covers mutablepermitlabels, actualfuture
+sourceclock rejection and exact .1119 feebound copy underprec3. Native8c89490
+separate8PG GREEN/67pure preserves originalrequests afterqueue/recheck; all
+externalpaths remain disabled, oldglobalinventory unchanged/additiveofflineindex.
+
+Protectedsource migrations0016/17/18 and actualrawaccounting have been reviewed
+and integrated28af8b3 (parent289rawsource-specific artifacts preserved). No cash/
+ownership/position credit or release exists yet; parent owns actualasset/account
+cash/sharedopening work and0019. KnownSourceOnly/rawdata keepreconciliationlocks
+and legacycash/bookrefreshblocks, includinghistoricalmissingforeignbinding.
+
+Pending native-member perorder policy fixc85f53d is actual18PG GREEN after
+correctedrealOTO/OPO16pass2DIDNOTRAISE RED. It usesmaxeverymember includingfunded
+futurelegs, never cumulative turnover or extra cash. OldRiskMetrics planned_loss
+keepspost-full-fill semantics; newcontinuation record isseparate.
+
+NewProgramContinuationRiskV1 at2f69562 has10unitGREEN and actual3PG GREEN24717,
+after7missingmodule/3missingwriter RED (3priorfixtureERROR separately). It derives
+exactactual/NOFILL/partialquantity ranges, Fractionlotresidual, honestUNKNOWNhard
+loss/protection andseparatefee/fundingduties; actualfinancialtransientwitness
+required to persistSAMEphysicalTX withbundle/request. No newpermission/position
+assignment. Currentobservedpost-fill refresh stillparent-ownedpositionhook work.
+Independentreview requested. Broadcurrentcomponents92690 RUNNING; nootherownjobs.
+
 Latest0015 actual current-quote cohort:58a36a1 fixed12 PG passed/0fail/error/skip
 after6 initial REDs and an actual SQL downgrade RED (10pass/1DID NOT RAISE).
 The new predicate binds current archive kind/version to immutable sequence1
