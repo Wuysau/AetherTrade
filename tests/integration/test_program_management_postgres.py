@@ -448,3 +448,52 @@ def test_reader_wait_advancing_current_clock_cannot_authorize_expired_write(mana
         if phase=='admit':s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
         elif phase=='mark':s.boundary.mark_may_have_sent(w.command_id,c.lease)
         else:s.boundary.consume(permit,c.lease)
+
+
+def test_expired_permit_cannot_cancel_after_actual_venue_mutex_wait(
+        management_database, venue_v2, management_venue, tmp_path):
+    """Original independent P1 counterexample; real venue lock and DB expiry."""
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
+    from trading_system.execution.program_management_paper import submit_management
+    c, service, write = admitted(management_database, venue_v2, tmp_path)
+    permit = service.boundary.mark_may_have_sent(write.command_id, c.lease)
+    admin = make_conninfo(**{**conninfo_to_dict(management_database),
+        'dbname': conninfo_to_dict(venue_v2.runtime_dsn)['dbname']})
+    with c.engine._connect() as blocker:
+        market = blocker.execute('SELECT market_key FROM public.paper_order_terms WHERE scope_key=%s AND client_id=%s',
+            (c.engine._scope_key, write.original_client_id)).fetchone()['market_key']
+        blocker.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))', (market,))
+        def dispatch():
+            with c.owner.session(c.lease.shard):
+                return submit_management(c.engine, write, permit, boundary=service.boundary,
+                    lease=c.lease, owner=c.owner, bridge=management_venue)
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(dispatch)
+            deadline = time.monotonic() + 4
+            waiting = False
+            with psycopg.connect(admin, autocommit=True) as monitor:
+                while time.monotonic() < deadline:
+                    waiting = monitor.execute("SELECT EXISTS(SELECT FROM pg_stat_activity WHERE datname=current_database() AND wait_event='advisory' AND query LIKE 'SELECT public.paper_manage_order_v4%')").fetchone()[0]
+                    if waiting:break
+                    if future.done():
+                        future.result()
+                        raise AssertionError('dispatch finished before venue lock wait')
+                    time.sleep(.02)
+                assert waiting, 'actual venue advisory wait was not observed'
+                remaining = monitor.execute('SELECT greatest(0,extract(epoch from expires_at-clock_timestamp())) FROM public.paper_management_authorizations_v4 WHERE scope_key=%s AND command_id=%s',
+                    (c.engine._scope_key, write.command_id)).fetchone()[0]
+                time.sleep(float(remaining) + .15)
+                assert monitor.execute('SELECT expires_at<clock_timestamp() FROM public.paper_management_authorizations_v4 WHERE scope_key=%s AND command_id=%s',
+                    (c.engine._scope_key, write.command_id)).fetchone() == (True,)
+                print('CONFIRMED: actual venue mutex wait observed; private authorization expired before unlock', flush=True)
+            blocker.commit()
+            try:result = future.result(timeout=10)
+            except Exception as exc:
+                print('Dispatch denied after wait:', type(exc).__name__, flush=True)
+                result = None
+    report = c.engine.query_creation(c.write.command_id)
+    print('ACTUAL AFTER WAIT:', result, 'original_status=', report.status, flush=True)
+    assert report.status == 'SUBMITTED', 'expired one-use permit canceled the actual original order after venue mutex wait'
