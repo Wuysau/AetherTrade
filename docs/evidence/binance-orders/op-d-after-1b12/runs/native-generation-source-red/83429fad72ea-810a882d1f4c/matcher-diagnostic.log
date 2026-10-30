@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_native_generation_cannot_execute_after_a_mutable_pool_ceiling_diverges_from_immutable_parent_source _
+tests/integration/test_paper_market_matcher_v2.py:518: in test_native_generation_cannot_execute_after_a_mutable_pool_ceiling_diverges_from_immutable_parent_source
+    with pytest.raises(psycopg.errors.RaiseException,match='native pool immutable source changed'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE RaiseException
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_native_generation_cannot_execute_after_a_mutable_pool_ceiling_diverges_from_immutable_parent_source
+1 failed in 4.89s

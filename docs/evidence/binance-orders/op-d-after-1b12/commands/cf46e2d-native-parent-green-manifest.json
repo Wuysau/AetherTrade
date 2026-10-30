@@ -1,0 +1,79 @@
+{
+  "commit": "cf46e2dcf15f20228bd928a5cc76f9aec6267e60",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "native-parent-green",
+  "finished_utc": "2026-10-30T03:28:16.412475+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-cf46e2d.bundle",
+        "HEAD",
+        "cf46e2dcf15f20228bd928a5cc76f9aec6267e60"
+      ],
+      "log": "cf46e2d-native-parent-green-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "cf46e2d-native-parent-green-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-cf46e2d.bundle",
+        "cf46e2dcf15f20228bd928a5cc76f9aec6267e60"
+      ],
+      "log": "cf46e2d-native-parent-green-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "cf46e2dcf15f20228bd928a5cc76f9aec6267e60"
+      ],
+      "log": "cf46e2d-native-parent-green-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=cf46e2dcf15f20228bd928a5cc76f9aec6267e60",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/native-parent-green"
+      ],
+      "log": "cf46e2d-native-parent-green.txt",
+      "exit_code": 0
+    }
+  ]
+}

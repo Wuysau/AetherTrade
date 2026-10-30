@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position _
+tests/integration/test_paper_market_matcher_v2.py:564: in test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position
+    assert row['quantity']==D('0.8') and row['known']
+E   AssertionError: assert (Decimal('1') == Decimal('0.8'))
+E    +  where Decimal('0.8') = D('0.8')
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position
+1 failed in 4.92s

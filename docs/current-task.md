@@ -2,7 +2,15 @@
 
 ## OP_D_MATCHER_V2_OWN_WORKTREE — 2026-10-30
 
-This isolated `binance-opd-matcher` worktree is owned only by activation_fresh.
+**WRITE OWNERSHIP RELEASED after this handoff commit, by explicit parent request.**
+See `docs/orders/OP-D-RELEASE-HANDOFF-2026-10-30.md`. Current codeca57f79 is clean
+committed WIP with position-projection RED (real0.2 fill, projection1 vs0.8).
+Last whole advanced checkpoint89469c8 is30 V2 PG GREEN; verifier baseline1b12ed9
+remains frozen separately. No tests are live; the verified idle own runner was
+stopped, private ownPG kept. Full OP-D/46/56 is ACTIVE, incomplete, not paused.
+Fresh root lead must assign the next writer; this agent will not write cash/root.
+
+This isolated `binance-opd-matcher` worktree was owned only by activation_fresh.
 The inherited integration-tree history below does not grant root write ownership.
 Full46 capabilities/56 scenarios and OP-D/E/F/G remain ACTIVE and incomplete.
 Frozen0013/V1 and its actual17 PG proof remain intact. Additive SIM-only0014 is

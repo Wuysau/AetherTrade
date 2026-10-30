@@ -1,0 +1,79 @@
+{
+  "commit": "0dfb90903209f42c0618813dd1a1676b1d6e33c9",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "admission-fee-precision-red",
+  "finished_utc": "2026-10-30T03:39:30.674975+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-0dfb909.bundle",
+        "HEAD",
+        "0dfb90903209f42c0618813dd1a1676b1d6e33c9"
+      ],
+      "log": "0dfb909-admission-fee-precision-red-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "0dfb909-admission-fee-precision-red-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-0dfb909.bundle",
+        "0dfb90903209f42c0618813dd1a1676b1d6e33c9"
+      ],
+      "log": "0dfb909-admission-fee-precision-red-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "0dfb90903209f42c0618813dd1a1676b1d6e33c9"
+      ],
+      "log": "0dfb909-admission-fee-precision-red-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=0dfb90903209f42c0618813dd1a1676b1d6e33c9",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/admission-fee-precision-red"
+      ],
+      "log": "0dfb909-admission-fee-precision-red.txt",
+      "exit_code": 1
+    }
+  ]
+}

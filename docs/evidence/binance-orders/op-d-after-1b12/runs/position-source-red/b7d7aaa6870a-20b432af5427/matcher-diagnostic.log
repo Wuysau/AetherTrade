@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position _
+tests/integration/test_paper_market_matcher_v2.py:557: in test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position
+    matcher.apply_market_event(position_source(c,1,'1',0))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher_v2.py:545: in position_source
+    from trading_system.engine.paper_market_v2 import PaperPositionEventV2
+E   ImportError: cannot import name 'PaperPositionEventV2' from 'trading_system.engine.paper_market_v2' (/tmp/source/src/trading_system/engine/paper_market_v2.py)
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position
+1 failed in 4.74s

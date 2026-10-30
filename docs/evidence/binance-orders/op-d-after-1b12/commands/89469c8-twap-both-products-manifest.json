@@ -1,0 +1,79 @@
+{
+  "commit": "89469c81136be6fb63cc509c4aae1181c4d4aa4d",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "twap-both-products",
+  "finished_utc": "2026-10-30T04:08:53.175044+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-89469c8.bundle",
+        "HEAD",
+        "89469c81136be6fb63cc509c4aae1181c4d4aa4d"
+      ],
+      "log": "89469c8-twap-both-products-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "89469c8-twap-both-products-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-89469c8.bundle",
+        "89469c81136be6fb63cc509c4aae1181c4d4aa4d"
+      ],
+      "log": "89469c8-twap-both-products-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "89469c81136be6fb63cc509c4aae1181c4d4aa4d"
+      ],
+      "log": "89469c8-twap-both-products-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=89469c81136be6fb63cc509c4aae1181c4d4aa4d",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/twap-both-products"
+      ],
+      "log": "89469c8-twap-both-products.txt",
+      "exit_code": 0
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "commit": "babcb656dabbe683e446ec052dffb6b912448b9e",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "native-target-constraints",
+  "finished_utc": "2026-10-30T03:34:16.460818+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-babcb65.bundle",
+        "HEAD",
+        "babcb656dabbe683e446ec052dffb6b912448b9e"
+      ],
+      "log": "babcb65-native-target-constraints-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "babcb65-native-target-constraints-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-babcb65.bundle",
+        "babcb656dabbe683e446ec052dffb6b912448b9e"
+      ],
+      "log": "babcb65-native-target-constraints-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "babcb656dabbe683e446ec052dffb6b912448b9e"
+      ],
+      "log": "babcb65-native-target-constraints-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=babcb656dabbe683e446ec052dffb6b912448b9e",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_nullable_native_target_does_not_weaken_ordinary_or_incomplete_parent_command_constraints'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/native-target-constraints"
+      ],
+      "log": "babcb65-native-target-constraints.txt",
+      "exit_code": 0
+    }
+  ]
+}

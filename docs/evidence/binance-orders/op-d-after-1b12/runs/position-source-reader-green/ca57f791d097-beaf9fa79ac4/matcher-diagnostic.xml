@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.922" timestamp="2026-10-30T04:56:26.699578+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position" time="4.592"><failure message="AssertionError: assert (Decimal('1') == Decimal('0.8'))&#10; +  where Decimal('0.8') = D('0.8')">tests/integration/test_paper_market_matcher_v2.py:564: in test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position
+    assert row['quantity']==D('0.8') and row['known']
+E   AssertionError: assert (Decimal('1') == Decimal('0.8'))
+E    +  where Decimal('0.8') = D('0.8')</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,79 @@
+{
+  "commit": "3185c643836a25021176992482bc8c778325420b",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "native-generation-source-green",
+  "finished_utc": "2026-10-30T04:05:29.829445+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-3185c64.bundle",
+        "HEAD",
+        "3185c643836a25021176992482bc8c778325420b"
+      ],
+      "log": "3185c64-native-generation-source-green-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "3185c64-native-generation-source-green-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-3185c64.bundle",
+        "3185c643836a25021176992482bc8c778325420b"
+      ],
+      "log": "3185c64-native-generation-source-green-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "3185c643836a25021176992482bc8c778325420b"
+      ],
+      "log": "3185c64-native-generation-source-green-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=3185c643836a25021176992482bc8c778325420b",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_generation_cannot_execute_after_a_mutable_pool_ceiling_diverges_from_immutable_parent_source'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/native-generation-source-green"
+      ],
+      "log": "3185c64-native-generation-source-green.txt",
+      "exit_code": 0
+    }
+  ]
+}

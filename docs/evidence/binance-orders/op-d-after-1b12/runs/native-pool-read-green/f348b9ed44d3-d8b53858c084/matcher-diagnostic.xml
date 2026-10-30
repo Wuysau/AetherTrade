@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.738" timestamp="2026-10-30T03:32:44.115995+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read" time="4.401"><failure message="ValueError: expected domain record">tests/integration/test_paper_market_matcher_v2.py:432: in test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+                                                                           ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:400: in submit_creation
+    return submit_native_program(engine,write,request,permit,boundary=boundary,lease=lease,owner=owner,
+src/trading_system/engine/paper_native_programs.py:158: in submit_native_program
+    report=engine.query_creation(write.command_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:161: in query_creation
+    return query_creation(self,command_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:529: in query_creation
+    return query_native_program(engine,db,command)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_native_programs.py:181: in query_native_program
+    and digest(pool.fee_ceilings)==digest(context.execution_envelope.fee_ceilings)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:33: in digest
+    def digest(value):return canonical_hash(domain_payload(value))
+                                            ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase></testsuite></testsuites>

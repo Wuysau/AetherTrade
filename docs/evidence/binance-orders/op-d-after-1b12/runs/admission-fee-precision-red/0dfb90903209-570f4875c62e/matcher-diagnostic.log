@@ -1,0 +1,20 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision[ATOMIC] _
+tests/integration/test_paper_market_matcher_v2.py:474: in test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision
+    assert report.accepted_contexts[0].execution_envelope.fee_ceilings[0].amount=='0.1119'
+E   AssertionError: assert '0.112' == '0.1119'
+E     
+E     - 0.1119
+E     + 0.112
+_ test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision[TWAP] _
+tests/integration/test_paper_market_matcher_v2.py:474: in test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision
+    assert report.accepted_contexts[0].execution_envelope.fee_ceilings[0].amount=='0.1119'
+E   AssertionError: assert '0.112' == '0.1119'
+E     
+E     - 0.1119
+E     + 0.112
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision[ATOMIC]
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision[TWAP]
+2 failed in 9.49s

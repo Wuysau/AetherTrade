@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.979" timestamp="2026-10-30T03:31:48.612607+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read" time="4.642"><failure message="Failed: DID NOT RAISE ValueError">tests/integration/test_paper_market_matcher_v2.py:437: in test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read
+    with pytest.raises(ValueError,match='PAPER_NATIVE_POOL_SOURCE_CHANGED'):c.engine.query_creation(c.write.command_id)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.579" timestamp="2026-10-30T04:24:25.585413+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_facts_are_missing" time="4.242"><failure message="AssertionError: assert ('EXECUTING' == 'WAITING_POSITION_SOURCE'&#10;  &#10;  - WAITING_POSITION_SOURCE&#10;  + EXECUTING)">tests/integration/test_paper_market_matcher_v2.py:539: in test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_facts_are_missing
+    assert report.status=='WAITING_POSITION_SOURCE' and not report.orders and not report.fills
+E   AssertionError: assert ('EXECUTING' == 'WAITING_POSITION_SOURCE'
+E     
+E     - WAITING_POSITION_SOURCE
+E     + EXECUTING)</failure></testcase></testsuite></testsuites>
