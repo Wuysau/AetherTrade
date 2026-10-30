@@ -178,3 +178,115 @@ def test_raw_paper_runtime_cannot_forge_consumed_bridge_authorization(management
             (c.engine._scope_key,w.command_id,canonical_json(domain_payload(b))))
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with c.engine._connect() as db:db.execute('INSERT INTO public.paper_management_authorizations_v4 DEFAULT VALUES')
+
+def test_lost_cancel_ack_recovers_original_id_without_retry_or_release(management_database,venue_v2,management_venue,tmp_path):
+    from trading_system.execution.program_management_paper import submit_management
+    from trading_system.execution.program_management_outcomes import observe_paper_management
+    from trading_system.execution.program_management_commands import ManagementRepository
+    c,s,w=admitted(management_database,venue_v2,tmp_path);permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    original=c.engine._connect
+    class LostAck:
+        def __init__(self):self.db=original();self.wrote=False
+        def __getattr__(self,name):return getattr(self.db,name)
+        def __enter__(self):self.db.__enter__();return self
+        def execute(self,sql,*args,**kwargs):
+            self.wrote=self.wrote or 'SELECT public.paper_manage_order_v4' in sql
+            return self.db.execute(sql,*args,**kwargs)
+        def __exit__(self,*args):
+            result=self.db.__exit__(*args)
+            if self.wrote and args[0] is None:raise OSError('lost ACK after actual SIM commit')
+            return result
+    c.engine._connect=LostAck
+    with c.owner.session(c.lease.shard):
+        with pytest.raises(OSError,match='lost ACK'):
+            submit_management(c.engine,w,permit,boundary=s.boundary,lease=c.lease,owner=c.owner,bridge=management_venue)
+    c.engine._connect=original
+    with s.verifier_uow.transaction(c.scope) as tx:assert ManagementRepository(tx).read(w.command_id).write.state=='UNKNOWN'
+    result=observe_paper_management(s,w.command_id)
+    assert result.cancel_result=='CANCELED' and result.command_id==w.command_id and not result.funds_released
+    with pytest.raises(ValueError):s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    assert c.engine.query_creation(c.write.command_id).status=='CANCELED'
+
+def test_expiry_after_consumption_cannot_be_renewed_after_wait(management_database,venue_v2,tmp_path):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    c,s,w=admitted(management_database,venue_v2,tmp_path);permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    s.boundary.consume(permit,c.lease)
+    previous=c.engine._clock()
+    c.engine._clock=lambda:replace(previous,utc_now=(utc_timestamp(previous.utc_now)+timedelta(seconds=6)).isoformat(),
+        monotonic_ns=previous.monotonic_ns+6*10**9)
+    with pytest.raises(ValueError,match='PERMIT_EXPIRED'):s.boundary.recheck_consumed(permit,c.lease)
+    assert c.engine.query_creation(c.write.command_id).status=='SUBMITTED'
+
+def test_actual_login_is_restricted_and_has_no_role_memberships(management_database):
+    import psycopg
+    with psycopg.connect(_VERIFIER_DSNS[management_database]) as db:
+        name=db.execute('SELECT current_user').fetchone()[0]
+        assert db.execute('SELECT rolsuper,rolcreatedb,rolcreaterole,rolinherit,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=%s',(name,)).fetchone()==(False,)*6
+        assert db.execute('SELECT count(*) FROM pg_auth_members WHERE member=(SELECT oid FROM pg_roles WHERE rolname=%s)',(name,)).fetchone()==(0,)
+        assert db.execute("SELECT has_schema_privilege(current_user,'ledger','CREATE')").fetchone()==(False,)
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):db.execute('INSERT INTO ledger.management_dispatch_marks DEFAULT VALUES')
+
+def test_existing_gtc_management_outlives_creation_ttl_with_fresh_current_grant(management_database,venue_v2,management_venue,tmp_path):
+    from unittest.mock import patch
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    from trading_system.execution.program_management_paper import submit_management
+    import integration.test_paper_market_matcher as fixture_module
+    original_case=fixture_module.real_case
+    short='2026-10-28T10:00:01Z'
+    def short_case(*args,proposal_transform=None,**kwargs):
+        def transform(p):
+            p=proposal_transform(p) if proposal_transform else p
+            return replace(p,valid_until=short,program=replace(p.program,submit_valid_until=short))
+        return original_case(*args,proposal_transform=transform,**kwargs)
+    with patch.object(fixture_module,'real_case',short_case):c=advanced_case(management_database,venue_v2,tmp_path)
+    submit(c)
+    base=c.engine._clock();later=replace(base,utc_now='2026-10-28T10:00:02Z',monotonic_ns=base.monotonic_ns+2*10**9)
+    assert utc_timestamp(c.write.valid_until)<utc_timestamp(later.utc_now)
+    c.engine._clock=lambda:later
+    c.lease=replace(c.lease,expires_at='2026-10-28T10:01:00Z');c.owner.lease=c.lease
+    s=management(c);read=s.load_inputs
+    def current_grant(*args):
+        inputs=read(*args)
+        return replace(inputs,authorization=replace(inputs.authorization,authorization=replace(
+            inputs.authorization.authorization,expires_at='2026-10-28T10:01:00Z')))
+    s.load_inputs=current_grant
+    w=s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+    permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    with c.owner.session(c.lease.shard):
+        result=submit_management(c.engine,w,permit,boundary=s.boundary,lease=c.lease,owner=c.owner,bridge=management_venue)
+    assert result['cancel_result']=='CANCELED' and c.engine.query_creation(c.write.command_id).filled_quantity==0
+
+@pytest.mark.parametrize('phase',['mark','consume','after_wait'])
+def test_current_owner_policy_change_denies_each_boundary(management_database,venue_v2,tmp_path,phase):
+    import psycopg
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+    permit=s.boundary.mark_may_have_sent(w.command_id,c.lease) if phase!='mark' else None
+    if phase=='after_wait':s.boundary.consume(permit,c.lease)
+    with psycopg.connect(management_database) as db:
+        db.execute('ALTER TABLE ledger.active_owners DISABLE TRIGGER owner_immutable')
+        db.execute('UPDATE ledger.active_owners SET policy_revision=policy_revision+1 WHERE account_id=%s',(c.scope.venue_account_id,))
+        db.execute('ALTER TABLE ledger.active_owners ENABLE TRIGGER owner_immutable')
+    with pytest.raises(ValueError,match='STALE_OWNER'):
+        if phase=='mark':s.boundary.mark_may_have_sent(w.command_id,c.lease)
+        elif phase=='consume':s.boundary.consume(permit,c.lease)
+        else:s.boundary.recheck_consumed(permit,c.lease)
+
+def test_protected_binding_and_marks_are_immutable_even_to_verifier(management_database,venue_v2,tmp_path):
+    import psycopg
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+    s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    for table in ('management_bindings','management_writes','management_dispatch_marks'):
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            with s.verifier_uow.transaction(c.scope) as tx:tx.execute('DELETE FROM ledger.'+table)
+
+def test_foreign_actual_venue_target_is_never_claimed(management_database,venue_v2,tmp_path):
+    from trading_system.execution.program_management_paper import PaperManagementTargetReader
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    c=advanced_case(management_database,venue_v2,tmp_path);submit(c)
+    other=advanced_case(management_database,venue_v2,tmp_path);submit(other)
+    s=management(c);s.target_reader=PaperManagementTargetReader(other.engine)
+    with pytest.raises(ValueError,match='ORIGINAL_SCOPE_REQUIRED'):
+        s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)

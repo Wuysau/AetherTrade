@@ -99,6 +99,9 @@ class ProgramManagementService:
         require(not locks,'MANAGEMENT_LOCKED_ACTION_PROOF_UNCONFIGURED')
         require(book.coverage.query_succeeded is True and book.coverage.pagination_complete is True
             and book.coverage.supported is True and not book.coverage.missing,'MANAGEMENT_CURRENT_BOOK_REQUIRED')
+        from trading_system.recovery.reconciler import valid_ref
+        require(book.evidence and all(valid_ref(ref,self.scope,clock.utc_now,60) for ref in book.evidence),
+            'MANAGEMENT_CURRENT_BOOK_EVIDENCE_REQUIRED')
         repo=ReservationRepository(tx)
         own=tuple(repo.get(p.reservation.reservation_id) for p in bundle.reservations)
         require(own and all(p.held>=prior.held for p,prior in zip(own,bundle.reservations)),
