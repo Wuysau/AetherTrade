@@ -1,0 +1,16 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price _
+tests/integration/test_paper_market_matcher_v2.py:83: in test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price
+    assert {i.event.sequence for i in proof.inputs}=={1,2,3,4,5}
+E   assert {5} == {1, 2, 3, 4, 5}
+E     
+E     Extra items in the right set:
+E     1
+E     2
+E     3
+E     4
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price
+1 failed in 5.35s

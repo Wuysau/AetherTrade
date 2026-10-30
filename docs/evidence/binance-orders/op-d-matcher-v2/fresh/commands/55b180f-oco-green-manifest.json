@@ -1,0 +1,79 @@
+{
+  "commit": "55b180f842a0db9460a57e5b171f0904047391a1",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "oco-green",
+  "finished_utc": "2026-10-30T02:45:05.586398+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-55b180f.bundle",
+        "HEAD",
+        "55b180f842a0db9460a57e5b171f0904047391a1"
+      ],
+      "log": "55b180f-oco-green-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "55b180f-oco-green-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-55b180f.bundle",
+        "55b180f842a0db9460a57e5b171f0904047391a1"
+      ],
+      "log": "55b180f-oco-green-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "55b180f842a0db9460a57e5b171f0904047391a1"
+      ],
+      "log": "55b180f-oco-green-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=55b180f842a0db9460a57e5b171f0904047391a1",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_oco_has_one_real_parent_command_and_observed_member_cancellation_on_activation'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/oco-green"
+      ],
+      "log": "55b180f-oco-green.txt",
+      "exit_code": 1
+    }
+  ]
+}

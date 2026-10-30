@@ -1,0 +1,19 @@
+.....F.                                                                  [100%]
+=================================== FAILURES ===================================
+____ test_primary_peg_latches_placement_price_without_rewriting_native_spec ____
+tests/integration/test_paper_market_matcher_v2.py:119: in test_primary_peg_latches_placement_price_without_rewriting_native_spec
+    moved=replace(event(c,sequence=2,ask='81488',quantity='.4'),bids=(DepthLevel(price='81487',quantity='1'),))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:73: in event
+    return PaperMarketEvent(contract_version='2026-10-29',event_id=event_id or uuid4().hex,stream_id=c.scope.instrument_uid,
+<string>:14: in __init__
+    ???
+src/trading_system/engine/paper_market.py:83: in __post_init__
+    require(max(number(l.price) for l in self.bids)<min(number(l.price) for l in self.asks),'PAPER_CROSSED_SOURCE_BOOK')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_CROSSED_SOURCE_BOOK
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_primary_peg_latches_placement_price_without_rewriting_native_spec
+1 failed, 6 passed in 74.59s (0:01:14)

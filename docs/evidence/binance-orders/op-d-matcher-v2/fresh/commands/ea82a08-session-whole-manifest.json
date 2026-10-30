@@ -1,0 +1,78 @@
+{
+  "commit": "ea82a085efb4afb1b5f1bf0ce2ccdfc499699e89",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "session-whole",
+  "finished_utc": "2026-10-30T02:23:02.356964+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-ea82a08.bundle",
+        "HEAD",
+        "ea82a085efb4afb1b5f1bf0ce2ccdfc499699e89"
+      ],
+      "log": "ea82a08-session-whole-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "ea82a08-session-whole-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-ea82a08.bundle",
+        "ea82a085efb4afb1b5f1bf0ce2ccdfc499699e89"
+      ],
+      "log": "ea82a08-session-whole-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "ea82a085efb4afb1b5f1bf0ce2ccdfc499699e89"
+      ],
+      "log": "ea82a08-session-whole-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=ea82a085efb4afb1b5f1bf0ce2ccdfc499699e89",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "paper-market-matcher-v2",
+        "--evidence-dir",
+        "/handoff/evidence/session-whole"
+      ],
+      "log": "ea82a08-session-whole.txt",
+      "exit_code": 1
+    }
+  ]
+}

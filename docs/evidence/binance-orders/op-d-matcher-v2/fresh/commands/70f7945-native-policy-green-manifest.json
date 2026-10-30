@@ -1,0 +1,79 @@
+{
+  "commit": "70f79456db589498ebcbc78777c381eb2d0cd874",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "native-policy-green",
+  "finished_utc": "2026-10-30T02:59:26.381734+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-70f7945.bundle",
+        "HEAD",
+        "70f79456db589498ebcbc78777c381eb2d0cd874"
+      ],
+      "log": "70f7945-native-policy-green-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "70f7945-native-policy-green-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-70f7945.bundle",
+        "70f79456db589498ebcbc78777c381eb2d0cd874"
+      ],
+      "log": "70f7945-native-policy-green-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "70f79456db589498ebcbc78777c381eb2d0cd874"
+      ],
+      "log": "70f7945-native-policy-green-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=70f79456db589498ebcbc78777c381eb2d0cd874",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_pending_node_cannot_borrow_program_gross_to_exceed_its_individual_policy_limit'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/native-policy-green"
+      ],
+      "log": "70f7945-native-policy-green.txt",
+      "exit_code": 0
+    }
+  ]
+}

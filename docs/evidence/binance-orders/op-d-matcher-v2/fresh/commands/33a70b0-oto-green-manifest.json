@@ -1,0 +1,79 @@
+{
+  "commit": "33a70b00a2f4c3ab84c876dd2ef980442707e038",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "oto-green",
+  "finished_utc": "2026-10-30T02:51:26.160940+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-33a70b0.bundle",
+        "HEAD",
+        "33a70b00a2f4c3ab84c876dd2ef980442707e038"
+      ],
+      "log": "33a70b0-oto-green-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "33a70b0-oto-green-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-33a70b0.bundle",
+        "33a70b00a2f4c3ab84c876dd2ef980442707e038"
+      ],
+      "log": "33a70b0-oto-green-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "33a70b00a2f4c3ab84c876dd2ef980442707e038"
+      ],
+      "log": "33a70b0-oto-green-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=33a70b00a2f4c3ab84c876dd2ef980442707e038",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_pending_members_wait_for_actual_full_working_fill_then_activate_without_application_commands'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/oto-green"
+      ],
+      "log": "33a70b0-oto-green.txt",
+      "exit_code": 1
+    }
+  ]
+}

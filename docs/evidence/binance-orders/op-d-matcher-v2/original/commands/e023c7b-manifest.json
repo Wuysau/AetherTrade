@@ -1,0 +1,67 @@
+{
+  "commit": "e023c7bd5bebc44bff12797da5a239b8b1aefc08",
+  "scope": "FIXED_SOURCE_FRESH_TEST_DATABASE_EXISTING_OWN_ISOLATED_CLUSTER",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-2a1fe1d2f68b\\source-e023c7b.bundle",
+        "HEAD",
+        "e023c7bd5bebc44bff12797da5a239b8b1aefc08"
+      ],
+      "exit_code": 0,
+      "log": "e023c7b-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-e023c7b.bundle",
+        "e023c7bd5bebc44bff12797da5a239b8b1aefc08"
+      ],
+      "exit_code": 0,
+      "log": "e023c7b-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "e023c7bd5bebc44bff12797da5a239b8b1aefc08"
+      ],
+      "exit_code": 0,
+      "log": "e023c7b-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=e023c7bd5bebc44bff12797da5a239b8b1aefc08",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "paper-market-matcher-v2",
+        "--evidence-dir",
+        "/handoff/evidence/peg-iceberg-red"
+      ],
+      "exit_code": 1,
+      "log": "e023c7b-v2-red.txt"
+    }
+  ]
+}

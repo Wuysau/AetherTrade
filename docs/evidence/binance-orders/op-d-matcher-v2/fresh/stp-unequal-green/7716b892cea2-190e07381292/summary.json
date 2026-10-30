@@ -1,0 +1,53 @@
+{
+  "commit": "7716b892cea28d77ac667a6d3e6411b18810932f",
+  "postgres_version_num": 170011,
+  "migrations": {
+    "0001_business_ledger.sql": "b3bfbaaec9dbeeb207297a395290dd4083d5b6101c98a11e240d36a9b32b5dc6",
+    "0002_risk_resolution_authority.sql": "f2597dd09832aef2b4fa1a82f0152c10226b613cdbb5ffce24285ffc6b0793a4",
+    "0003_paper_engine.sql": "4028e5495f2f6fa8973d8e1d3f3ae9cdfada83b1c3032db08303a5a41e725692",
+    "0004_command_abort_guard.sql": "19017e040298f0a0f814312252d4c3f3bce25298f3e58512c6d9e8efcf4b73b6",
+    "0005_owner_cas_authority.sql": "47e977e6406b117f058af38b0d3aeed4ae038d2e368609023e9b59589bacb5ac",
+    "0006_proposal_intake_role.sql": "57636b05884734e6abfe805a2749399b4e069750e268f5995cf2b38e8ff0d101",
+    "0007_owner_controller_ddl_guard.sql": "e2d82d0892c5b510b0966832ecd3587ce96939c097f9ee7c768a4d1b74f3e4ec",
+    "0008_order_program_records.sql": "1ab95792a488dd471a2451050e3fe02e642cbf6f858b92246caf7cbbeb0749c8",
+    "0009_order_program_closure.sql": "d716937224421b366a1f930a7209784609c6d1609d2d40c789aa87a8635b8106",
+    "0010_order_program_intake.sql": "f3a4ddebe21426d4d1949df85d42411d990e9cb681890c219d1d941546d885d6",
+    "0011_order_program_financial_credit_guard.sql": "577f33d29e504c5ff49b075549e7f468e716937c7ae3f4e7a56b79959629ff62",
+    "0012_program_command_boundary.sql": "9913beb56b02302a087741262f69b94a2a94b12dc74dd24b945aee0ee6e2c891",
+    "0013_paper_market_matcher.sql": "efd0a3a2edc1cca12de47baa60be5e7ec90abae155f7a014404a3aadc14f80d2",
+    "0014_paper_market_matcher_v2.sql": "4f6f0c183895de1ec6dc6284d49c5b4b979852bd28df692bdfdd6f69a19e3551"
+  },
+  "provisioning_sources": {
+    "deploy/db/roles.sql": "23b35ef98b0e8dfb4cebd3645035b19b61c3e667cd90060a42a05a5c2f68b3cd",
+    "scripts/provision_paper_engine_roles.py": "bde936855349843384ec10c0e373b78a5307d7313631fe1c2349729dc74e4e20"
+  },
+  "qualification": "NOT_RUN",
+  "suites": [
+    {
+      "suite": "matcher-diagnostic",
+      "database": "ip03_test_190e07381292_matcher_diagnostic",
+      "command": [
+        "/usr/local/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "--tb=short",
+        "--rootdir=/tmp/source",
+        "--junitxml=/handoff/evidence/stp-unequal-green/7716b892cea2-190e07381292/matcher-diagnostic.xml",
+        "/tmp/source/tests/integration/test_paper_market_matcher_v2.py::test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill"
+      ],
+      "isolation_flag": "IP03_ISOLATED_DATABASE",
+      "results": {
+        "passed": 3,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "accepted": true
+      },
+      "output": "matcher-diagnostic.log",
+      "junit": "matcher-diagnostic.xml",
+      "timeout_seconds": 300
+    }
+  ]
+}

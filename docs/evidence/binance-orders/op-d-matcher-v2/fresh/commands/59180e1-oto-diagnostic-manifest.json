@@ -1,0 +1,79 @@
+{
+  "commit": "59180e1fe799493ad062c0575401eea46e0ebe2a",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "oto-diagnostic",
+  "finished_utc": "2026-10-30T02:53:27.544918+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-59180e1.bundle",
+        "HEAD",
+        "59180e1fe799493ad062c0575401eea46e0ebe2a"
+      ],
+      "log": "59180e1-oto-diagnostic-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "59180e1-oto-diagnostic-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-59180e1.bundle",
+        "59180e1fe799493ad062c0575401eea46e0ebe2a"
+      ],
+      "log": "59180e1-oto-diagnostic-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "59180e1fe799493ad062c0575401eea46e0ebe2a"
+      ],
+      "log": "59180e1-oto-diagnostic-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=59180e1fe799493ad062c0575401eea46e0ebe2a",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_pending_members_wait_for_actual_full_working_fill_then_activate_without_application_commands'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/oto-diagnostic"
+      ],
+      "log": "59180e1-oto-diagnostic.txt",
+      "exit_code": 1
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="5.714" timestamp="2026-10-30T02:45:50.721630+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_native_oco_has_one_real_parent_command_and_observed_member_cancellation_on_activation" time="5.367"><failure message="psycopg.errors.RaiseException: invalid original PAPER execution terms&#10;CONTEXT:  PL/pgSQL function public.paper_match_order(text,text) line 35 at RAISE">tests/integration/test_paper_market_matcher_v2.py:325: in test_native_oco_has_one_real_parent_command_and_observed_member_cancellation_on_activation
+    submit(c);matcher=PaperMatcher(c.engine)
+    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:482: in submit_creation
+    db.execute('SELECT public.paper_match_order(%s,%s)',(engine._scope_key,anchor))
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.RaiseException: invalid original PAPER execution terms
+E   CONTEXT:  PL/pgSQL function public.paper_match_order(text,text) line 35 at RAISE</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,24 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority ___
+tests/integration/test_paper_market_matcher_v2.py:132: in test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority
+    submit(c);submit(other);matcher=PaperMatcher(c.engine)
+    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:401: in submit_creation
+    if v2:validate_atomic_v2(engine.scope,node)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market_v2.py:106: in validate_atomic_v2
+    require(o.price.kind in ('FIXED_LIMIT','MARKET') and o.trigger.kind in ('NONE','STATIC','TRAILING')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_V2_EXECUTION_STAGE_REQUIRED
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority
+1 failed in 13.02s

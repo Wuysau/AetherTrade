@@ -1,0 +1,17 @@
+.........F.                                                              [100%]
+=================================== FAILURES ===================================
+_ test_equity_rth_day_waits_for_published_window_and_expires_without_consuming_closed_depth _
+tests/integration/test_paper_market_matcher_v2.py:227: in test_equity_rth_day_waits_for_published_window_and_expires_without_consuming_closed_depth
+    other_matcher.apply_market_event(event(other,quantity='1'))
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:626: in apply_market_event
+    require(book is None or (book['stream_id']==event.stream_id and event.sequence>book['sequence']
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_MARKET_SEQUENCE_CONFLICT
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_equity_rth_day_waits_for_published_window_and_expires_without_consuming_closed_depth
+1 failed, 10 passed in 49.28s

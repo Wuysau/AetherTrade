@@ -1,5 +1,43 @@
 # Current task
 
+## OP_D_MATCHER_V2_OWN_WORKTREE — 2026-10-30
+
+This isolated `binance-opd-matcher` worktree is owned only by activation_fresh.
+The inherited integration-tree history below does not grant root write ownership.
+Full46 capabilities/56 scenarios and OP-D/E/F/G remain ACTIVE and incomplete.
+Frozen0013/V1 and its actual17 PG proof remain intact. Additive SIM-only0014 is
+reserved for V2; it reuses the existing orders/events and shared liquidity pool.
+
+Fixed27e3add fresh isolated PostgreSQL9/9 passed without failures/errors/skips,
+including exact-source conditional/trailing state, peg, iceberg, mixed V1/V2
+liquidity, terminal identity and GTD CLOCK expiry. Original interrupted63725 is
+preserved as8pass/1 lost-PG-connection, not counted as green. New handle10796 is
+terminal exit0; artifacts `.runtime/paper-qualification-c533ccc29867/evidence`.
+
+Calendar/session/DAY focused b8e9248 actual PG1 passed. Full ea82a08 run had10pass
+and1 test-fixture source sequence failure, now corrected to use the same AAPL
+stream for both accounts. Synthetic controller calendars retain timezone,
+revision, actual UTC windows and DAY close; they grant no financial authority.
+Functional checkpoint1b12ed9 is now actual21 V2 PG,19 unchanged V1-under0014 PG,
+59 legacy PG and1525 Python unit/contracts/intents checks, all green/no PG skips.
+All original handles are terminal. Raw178-artifact evidence/source hashes are in
+`docs/evidence/binance-orders/op-d-matcher-v2/`. Native OCO/OTO/OTOCO use one real
+mother request and actual member/source rows; pending needs complete working
+fills. Native per-node gross and individual policy are independently enforced.
+Same-account STP expiry/decrement preserves prevented quantity separately from
+fills; unequal maker/taker RED and actual fixes are retained.
+
+Still required: priceProtect rule/source
+membership, all STP modes/groups and combinations, richer fee/receipt models,
+native lists/batch/net-receipt membership, cancel/amend/races, actual algorithm
+models and separately admitted local children, V2 report/host integration and
+final full46/56 evidence. No native/Testnet/LIVE qualification is asserted.
+Root's newer immutable permit-window/recheck API/quote/shared risk fixes must be
+adapted serially at final integration and requalified on the combined source.
+Integrator approved nullable SIM command targets ONLY for genuine native-parent
+namespaces with original parent IDs/empty member set; native algorithm/conditional
+implementation continues next, without fictitious initial ordinary order rows.
+
 ## OP_C_INTEGRATION_NEXT_SOLE_WRITER — 2026-10-29
 
 Parent root delegated sole write ownership of this binance-orders worktree to

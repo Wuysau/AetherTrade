@@ -53,11 +53,11 @@ accepted_contexts, dispositions and a SYNTHETIC evidence reference.
 - Each `PaperMarketFill` contains stable structured IDs, native unit/price asset,
   gross notional, complete actual per-asset FeeV3 vector, exact market ID/SHA,
   execution occurred_at, raw_payload_json and evidence. The raw string is
-  canonical_json of the actual SQL JSONB payload, with every producer field;
+  original SQL JSONB `payload::text`, with every producer field;
   SHA256(UTF8(raw_payload_json)) equals evidence.hash. It is synthetic internal
   venue data, not fabricated Binance wire data.
 - Nonfill `PaperMarketDisposition` includes status/reason, causal market ID/SHA,
-  raw canonical payload and evidence. EXPIRED/REJECTED without fills still retain
+  raw SQL payload and evidence. EXPIRED/REJECTED without fills still retain
   their original venue identity and source event.
 - `PaperAcceptedContext` includes the actual original write, request, compilation,
   rules, explicit model, normalized PaperExecutionTerms and PaperExecutionEnvelope.
