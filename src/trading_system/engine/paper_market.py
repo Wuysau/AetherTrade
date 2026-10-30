@@ -427,12 +427,25 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                 ceilings[fee.amount.currency]=ceilings.get(fee.amount.currency,Decimal(0))+fee.amount.amount
             require(assessment.assessment.metrics.maximum_order_notional.currency==assessment.rules.quote_asset,
                 'PAPER_GROSS_BOUND_CURRENCY_CHANGED')
+            gross_limit=assessment.assessment.metrics.maximum_order_notional.amount
+            if native_list:
+                # The scalar metric limits the initial target order. Pending
+                # native exits have their own already admitted node budgets;
+                # using the initial BUY cap would erase legitimate SELL upside.
+                require(bound.maximum_price is not None and node.worst_case_quote_notional is not None
+                    and assessment.exposure.gross_program is not None
+                    and assessment.exposure.gross_program.currency==assessment.rules.quote_asset,
+                    'PAPER_NATIVE_NODE_GROSS_SOURCE_REQUIRED')
+                with localcontext() as arithmetic:
+                    arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
+                    gross_limit=min(qty*bound.maximum_price.value*number(node.quantity_multiplier),number(node.worst_case_quote_notional))
+                require(0<gross_limit<=assessment.exposure.gross_program.amount,'PAPER_NATIVE_NODE_GROSS_EXCEEDS_PROGRAM')
             envelope=PaperExecutionEnvelope(contract_version='2026-10-29',record_kind='PAPER_EXECUTION_ENVELOPE',scope=engine.scope,
                 command_id=write.command_id,request_hash=digest(request),consumption_context_hash=canonical_hash(consumption),
                 assessment_hash=digest(assessment),source_ref='ledger.program_permit_consumptions:'+scope_id(engine.scope)+':'+write.command_id,
                 node_id=node.original.node_id,minimum_price=None if bound.minimum_price is None else format(bound.minimum_price.value,'f'),
                 maximum_price=None if bound.maximum_price is None else format(bound.maximum_price.value,'f'),
-                maximum_gross_notional=format(assessment.assessment.metrics.maximum_order_notional.amount,'f'),
+                maximum_gross_notional=format(gross_limit,'f'),
                 fee_ceilings=tuple(AssetBudget(asset=asset,amount=format(value,'f')) for asset,value in sorted(ceilings.items())))
             if v2 and order.price.kind=='MARKET':
                 require(envelope.minimum_price is not None and envelope.maximum_price is not None,'PAPER_MARKET_EXECUTION_ENVELOPE_REQUIRED')
