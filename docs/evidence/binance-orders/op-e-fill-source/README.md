@@ -21,6 +21,17 @@ balance posting, whole-branch qualification or the complete 46/56 acceptance.
 | legacy-refresh-green | fdecbc5 | 7 passed, 0 failures/errors/skips; 33.33 seconds |
 | console-contract-green | fdecbc5 | 56 passed, 497 ordinary cases deselected; zero failures/errors/skips; 208.01 seconds |
 | source-upgrade-green | 3d13721 | 15 passed, 0 failures/errors/skips; 65.23 seconds |
+| binding-fixture-guarded | 942d42a | 7 passed, 2 precondition failures: normal binding DELETE rejected by immutable guard |
+| binding-corruption-red | 8f30748 | 7 passed, 2 DID NOT RAISE: foreign missing-binding history hidden by INNER JOIN |
+| binding-corruption-green | cb49007 | 9 passed, 0 failures/errors/skips; 42.85 seconds |
+
+The corruption probe is an explicitly isolated testadmin fixture, not evidence
+that ordinary runtime permissions can delete a binding. It confirms normal
+DELETE remains rejected, injects missing historical data with only the named
+trigger temporarily disabled within the admin transaction, re-enables it before
+runtime reads, and restores the original row in finally. Fixed tests also assert
+the isolated marker/database name and enabled guard state. No production safety
+constraint was weakened; the reader now fails closed for unresolved membership.
 
 The SQL resource probe reads actual PostgreSQL heap/TOAST counters with a
 positive control proving that the collector exposes the reads. Before0018,
@@ -88,6 +99,6 @@ not counted as a pass.
 Expanded local regression at08cc9b1 added locked-action and original-ID recovery
 modules:167 passed in9.80seconds, with no skips/failures.
 
-copy-map.json binds 241 original runtime evidence files to their byte copies and
+copy-map.json binds 289 original runtime evidence files to their byte copies and
 SHA256. Publication also compares the actual committed Git blobs, since a
 working-tree comparison alone does not detect newline normalization.

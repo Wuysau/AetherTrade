@@ -1,5 +1,45 @@
 # Current task
 
+## OP_E_MISSING_BINDING_REVIEW_CLOSED_SPOT_MATH_STARTED — 2026-10-30
+
+Parent/root remains sole accounting writer. Latest productc12c840 adds only
+Spot arithmetic after raw/source/runtime safety; source modules/migrations are
+still3d13721/fdecbc5. Runtime missing-binding correction iscb49007. All parent
+jobs14743/64237/40437/18730 are TERMINAL; no parent live qualification remains.
+
+Root review found INNER JOIN could hide a source approval after incomplete
+historical restore lost a foreign account binding. Normal DELETE is actually
+blocked by binding_immutable even for testadmin:942d42 actual7pass/2precondition
+FAIL retained (not a runtime-owner bypass). Approved fault injection in isolated
+testdb disables ONLY the named guard on a test-owned source binding in adminTX,
+deletes it, re-enables BEFORE runtime read, finally restores exact row and verifies
+trigger enabled. Isolated IP03 marker/dbprefix and normal DELETE denial are
+asserted. Actual8f30748 gave7pass/2DID NOT RAISE in receiver cash/book refresh;
+fixcb49007 LEFTJOIN +sameenvironment unknown-binding deny gave9PG pass42.85s,
+zero failures/errors/skips. Unknown group is restricted, never assigned to ours.
+
+Current pure Spotasset effects derive native principal and exact base/quote/third
+asset fees withoutFX or cash authority.8 missing-module mathREDs precededc12c840;
+related175unit passed11.82s. Cash unit binding retains existing compiler's Spot
+ratio/multipliers=1 restriction. Futures cannot use this principal path; unknown
+fees/discrepant gross deny. These RESEARCH math fixtures are explicitly NOT venue
+or source qualification. No balances/positions have yet been posted.
+
+Latest evidence publication expands raw preserved source/PGfiles241→289 with
+binding precondition/trueRED/GREEN and exact copy map. Root integration_next has
+all prior15sourcePG/7rawPG/56mandatoryconsole results plus9-case fix notification;
+selected source/accounting serial integration awaits final review. Do not replace
+root checkpoint with this file.0016/0017/0018 historical data/hash semantics stay
+additive; no account/model/LIVE/Testnet/main/archive operations occurred.
+
+NEXT actual implementation: authenticated stable-native-identity asset postings,
+current owner/allocation/position/book writer and shared contribution reader.
+The financial writer MUST inspect global protected verification discrepancies/
+retained duties as well as per-fill economics, actual fee completeness and source
+commit; the pure Spot calculation cannot grant credit. Preserve raw facts/locks
+on missing ownership/cost/futures margin/PnL/funding/Equity wallet provenance.
+Keep all46/56 OP-C→D/E/F→G ACTIVE; raw ingested is not financial completion.
+
 ## OP_E_SOURCE_RESOURCE_AND_LEGACY_REFRESH_VERIFIED — 2026-10-30
 
 Accounting tree parent/root remains sole writer, current product3d13721 (only

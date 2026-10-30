@@ -1,0 +1,20 @@
+.......FF                                                                [100%]
+=================================== FAILURES ===================================
+_ test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[cash] _
+tests/integration/test_program_accounting_postgres.py:177: in test_missing_foreign_source_binding_cannot_hide_unreconciled_execution
+    binding=db.execute('DELETE FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: ledger history is append-only
+E   CONTEXT:  PL/pgSQL function ledger.reject_mutation() line 2 at RAISE
+_ test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[book] _
+tests/integration/test_program_accounting_postgres.py:177: in test_missing_foreign_source_binding_cannot_hide_unreconciled_execution
+    binding=db.execute('DELETE FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: ledger history is append-only
+E   CONTEXT:  PL/pgSQL function ledger.reject_mutation() line 2 at RAISE
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_accounting_postgres.py::test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[cash]
+FAILED tests/integration/test_program_accounting_postgres.py::test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[book]
+2 failed, 7 passed in 43.74s
