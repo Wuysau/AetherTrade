@@ -22,7 +22,30 @@ regressions also actual GREEN5.17s/2.19s/44.98s, zero failures/errors/skips at
 9f1994c. Originals38793/74145/95345 are all terminalexit0; there is no live
 cash-chain qualification handle. Five fresh runs/80 raw artifacts are preserved
 separately in op-e-cash-chain with source-bound original/copy SHA map; actual
-committed Git-blob proof follows publication. Old evidence remains untouched.
+committed Git-blob proof a9f041a verified80 files with zero SHA mismatch. Parent
+read-only review of9f1994c closed this bounded historical-reader issue; actual
+ROOT first-capital/V2/twoScope/full56 remains outstanding. Old evidence untouched.
+
+Parent/ROOT then froze a NEW scalar scopedquantity contract. Productc30c632 plus
+strengtheningc9b3fe4 adds inline ProgramScopedTargetFactsV2(ProgramTargetFacts),
+literal2026-10-30/PROGRAM_SCOPED_TARGET_FACTS_V2, explicit quantity_scope and
+quantity_reservation_ids. Original ProgramTargetFacts and baseProgramFinancialArchive
+fieldsets/annotation stay unchanged; only fullAssessmentArchive subclass and
+ProgramRiskFacts use the static union. Full financialbook validates/hashes intact;
+program_target_quantity_book(book,facts) returns SAME V1book or projects V2 IDs
+only for SAME TargetCompiler. Pure subset declarations grant no SQL authority.
+Actual14focused/196focused+oldtarget/risk/archive GREEN17.78s. Actual prechange
+a9f041a Gitcompiler executed against V1 yielded identical allocation payload;
+facts672b30af and oldarchiveaf609a2f golden hashes pinned. Initial13missingAPI RED,
+12fixtureAttributeErrors, one wrong-path/no-tests invocation and corrected runs
+are retained honestly. No real-PG scopedsubset authority claim is made here.
+
+ROOT owns validate_current_program_quantity_scope(tx,raw_source_book,financial_book,
+target_facts): physicalscope SQL plus authenticated original external snapshot
+IDs, reserve/current rechecks and actual A+B tests. Await its stable selected
+dependency before importing ROOT runtime code; frozen producer6adc2f9 needs
+actual consumed-boundary bundlecodec/continuation APIs absent this old CASHbase.
+Do not synthesize a parallel compatibility stack or bypass any guard.
 
 ROOT dependencies are being coordinated before serial import. No fabrication
 of permits/accepted states/fees, no relaxed cross-command or cash guard, no

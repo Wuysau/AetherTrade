@@ -1,0 +1,148 @@
+FFFFFFFFFFFF.                                                            [100%]
+================================== FAILURES ===================================
+__ test_explicit_subset_keeps_full_financial_book_hash_and_foreign_cash_hold __
+tests\unit\test_program_scoped_target.py:40: in test_explicit_subset_keeps_full_financial_book_hash_and_foreign_cash_hold
+    plan,book,facts,money=setup();current=scoped(facts)
+                          ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+__ test_selected_local_quantity_reuses_existing_target_mapping_and_equation ___
+tests\unit\test_program_scoped_target.py:50: in test_selected_local_quantity_reuses_existing_target_mapping_and_equation
+    plan,book,facts,money=setup(local_pending=True)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+_________ test_forged_subset_never_creates_a_quantity_plan[duplicate] _________
+tests\unit\test_program_scoped_target.py:61: in test_forged_subset_never_creates_a_quantity_plan
+    plan,book,facts,money=setup();identifier=money.reservation.reservation_id
+                          ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+__________ test_forged_subset_never_creates_a_quantity_plan[unknown] __________
+tests\unit\test_program_scoped_target.py:61: in test_forged_subset_never_creates_a_quantity_plan
+    plan,book,facts,money=setup();identifier=money.reservation.reservation_id
+                          ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+_____ test_forged_subset_never_creates_a_quantity_plan[selected_foreign] ______
+tests\unit\test_program_scoped_target.py:61: in test_forged_subset_never_creates_a_quantity_plan
+    plan,book,facts,money=setup();identifier=money.reservation.reservation_id
+                          ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+______ test_forged_subset_never_creates_a_quantity_plan[duplicate_book] _______
+tests\unit\test_program_scoped_target.py:61: in test_forged_subset_never_creates_a_quantity_plan
+    plan,book,facts,money=setup();identifier=money.reservation.reservation_id
+                          ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+_____ test_v1_exact_bytes_and_target_behavior_do_not_gain_implicit_subset _____
+tests\unit\test_program_scoped_target.py:74: in test_v1_exact_bytes_and_target_behavior_do_not_gain_implicit_subset
+    plan,book,facts,_=setup();before=domain_payload(facts);digest=canonical_hash(before)
+                      ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+______ test_unknown_or_partial_tags_cannot_decode_as_old_facts[version] _______
+tests\unit\test_program_scoped_target.py:85: in test_unknown_or_partial_tags_cannot_decode_as_old_facts
+    _,_,facts,_=setup();payload=domain_payload(scoped(facts))
+                ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+________ test_unknown_or_partial_tags_cannot_decode_as_old_facts[kind] ________
+tests\unit\test_program_scoped_target.py:85: in test_unknown_or_partial_tags_cannot_decode_as_old_facts
+    _,_,facts,_=setup();payload=domain_payload(scoped(facts))
+                ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+______ test_unknown_or_partial_tags_cannot_decode_as_old_facts[partial] _______
+tests\unit\test_program_scoped_target.py:85: in test_unknown_or_partial_tags_cannot_decode_as_old_facts
+    _,_,facts,_=setup();payload=domain_payload(scoped(facts))
+                ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+_______ test_unknown_or_partial_tags_cannot_decode_as_old_facts[extra] ________
+tests\unit\test_program_scoped_target.py:85: in test_unknown_or_partial_tags_cannot_decode_as_old_facts
+    _,_,facts,_=setup();payload=domain_payload(scoped(facts))
+                ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+______ test_unknown_or_partial_tags_cannot_decode_as_old_facts[bool_id] _______
+tests\unit\test_program_scoped_target.py:85: in test_unknown_or_partial_tags_cannot_decode_as_old_facts
+    _,_,facts,_=setup();payload=domain_payload(scoped(facts))
+                ^^^^^^^
+tests\unit\test_program_scoped_target.py:25: in setup
+    money=reservation(book.scope)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\support_ip_09.py:67: in reservation
+    r = t.CapitalReservation(reservation_id=identifier, environment=case.book.scope.environment,
+                                                                    ^^^^^^^^^
+E   AttributeError: 'ScopeKey' object has no attribute 'book'
+=========================== short test summary info ===========================
+FAILED tests/unit/test_program_scoped_target.py::test_explicit_subset_keeps_full_financial_book_hash_and_foreign_cash_hold
+FAILED tests/unit/test_program_scoped_target.py::test_selected_local_quantity_reuses_existing_target_mapping_and_equation
+FAILED tests/unit/test_program_scoped_target.py::test_forged_subset_never_creates_a_quantity_plan[duplicate]
+FAILED tests/unit/test_program_scoped_target.py::test_forged_subset_never_creates_a_quantity_plan[unknown]
+FAILED tests/unit/test_program_scoped_target.py::test_forged_subset_never_creates_a_quantity_plan[selected_foreign]
+FAILED tests/unit/test_program_scoped_target.py::test_forged_subset_never_creates_a_quantity_plan[duplicate_book]
+FAILED tests/unit/test_program_scoped_target.py::test_v1_exact_bytes_and_target_behavior_do_not_gain_implicit_subset
+FAILED tests/unit/test_program_scoped_target.py::test_unknown_or_partial_tags_cannot_decode_as_old_facts[version]
+FAILED tests/unit/test_program_scoped_target.py::test_unknown_or_partial_tags_cannot_decode_as_old_facts[kind]
+FAILED tests/unit/test_program_scoped_target.py::test_unknown_or_partial_tags_cannot_decode_as_old_facts[partial]
+FAILED tests/unit/test_program_scoped_target.py::test_unknown_or_partial_tags_cannot_decode_as_old_facts[extra]
+FAILED tests/unit/test_program_scoped_target.py::test_unknown_or_partial_tags_cannot_decode_as_old_facts[bool_id]
+12 failed, 1 passed in 1.30s

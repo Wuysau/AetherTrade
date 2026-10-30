@@ -1,5 +1,13 @@
 # Project state
 
+Fresh accounting solewriter2026-10-30 is cash_chain_fresh in the existing tree.
+Historical dualproof direct-reader ambiguity is confirmed RED and bounded-review
+closed at9f1994c (9+9cash+5legacy+9opening PGgreen);80original/copy/committed
+artifacts verified0SHA mismatch. NEW scoped scalarfacts c30c632/c9b3fe4 is typed
+projection only,196focusedunitgreen/V1hashes intact; actual physicalscope SQL
+authentication belongs to ROOT and is not yet installed here. Actual2Scope/V2
+financial chain and full46/56 remain ACTIVE and unfinished. No trading resumed.
+
 Accounting branch checkpoint2026-10-30: fresh writer released after product
 f0707c5/evidence0c13a96; exact continuation/ownership lives at current-task.md top.
 Protected initial proof0019/0020+additive0024, observed-only versus strict cash
