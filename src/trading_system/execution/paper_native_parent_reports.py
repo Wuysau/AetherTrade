@@ -6,7 +6,7 @@ from dataclasses import dataclass,replace
 from decimal import Decimal,localcontext,Inexact,Rounded
 from typing import Literal
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import canonical_hash,domain_payload
+from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload
 from trading_system.execution.paper_program_reports import (PaperProgramReportVerifier,
     PaperProgramVerification,NormalizedPaperFill,normalize_native_economics,_check,_SourceError,_raw_object,digest)
 from trading_system.storage.models import scope_id
@@ -64,7 +64,7 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
         _check(report.record_kind=='PAPER_NATIVE_EXECUTION_REPORT_V2' and report.record_revision==2,'PAPER_NATIVE_TAG_CHANGED')
         with self.engine._connect() as db:
             db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
-            params=(scope_id(self.scope),parent_id)
+            params=(canonical_json(domain_payload(self.scope)),parent_id)
             parent=db.execute('SELECT p.*,t.terms,g.* FROM public.paper_native_parents_v2 p '
                 'JOIN public.paper_native_parent_terms_v2 t USING(scope_key,parent_client_id,command_id) '
                 'JOIN public.paper_native_algorithm_progress_v2 g USING(scope_key,parent_client_id) '
@@ -143,7 +143,7 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
                 and domain_payload(i.observed_clock)==s['observed_clock']
                 and [domain_payload(v) for v in i.before_levels]==s['before_levels'],'PAPER_NATIVE_INPUT_CHANGED')
         def key(c):return (c['market_key'],c['event_id'],c['scope_key'],c['client_id'],c['fill_id'],c['side'],c['price'],c['quantity'])
-        observed=[dict(market_key=c.market_key,event_id=c.event_id,scope_key=scope_id(c.scope),client_id=c.client_id,
+        observed=[dict(market_key=c.market_key,event_id=c.event_id,scope_key=canonical_json(domain_payload(c.scope)),client_id=c.client_id,
             fill_id=c.fill_id,side=c.side,price=c.price,quantity=c.quantity) for c in market.consumptions]
         _check(sorted(map(key,consumptions))==sorted(map(key,observed)),'PAPER_NATIVE_LIQUIDITY_CHANGED')
         events={e['event_id']:e for e in events};fills=[];codes=[]
@@ -156,7 +156,7 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
                 and raw['fees']==[domain_payload(v) for v in f.fees] and f.namespace==c.terms.namespace
                 and f.node_id==c.terms.node_id and f.quantity_unit==bundle.intent.unit.native_unit,
                 'PAPER_NATIVE_FILL_CHANGED')
-            _check(any(r['fill_id']==f.fill_id and r['scope_key']==scope_id(self.scope) and r['client_id']==f.client_id
+            _check(any(r['fill_id']==f.fill_id and r['scope_key']==canonical_json(domain_payload(self.scope)) and r['client_id']==f.client_id
                 and r['quantity']==f.quantity and r['price']==f.price for r in consumptions),'PAPER_NATIVE_FILL_ALLOCATION_REQUIRED')
             economics=normalize_native_economics(quantity=t.Quantity(value=f.quantity,unit=f.quantity_unit),
                 price=t.Price(value=f.price,currency=f.price_asset),fees=tuple(t.Money(currency=v.asset,amount=Decimal(v.amount)) for v in f.fees),
