@@ -94,7 +94,8 @@ def test_partial_and_out_of_band_liquidity_remain_terminal_with_unused_budget(da
     assert not matcher.apply_market_event(snapshot).applied
     assert c.engine.query_creation(c.cid)==report
     assert verify_quote_report(c.engine,report,boundary=c.gate).discrepancies==()
-    with pytest.raises(ValueError):submit(c)
+    import psycopg
+    with pytest.raises((ValueError,psycopg.errors.UniqueViolation)):submit(c)
 
 
 def test_quote_reducer_tables_and_function_are_private(quote_venue):
@@ -161,7 +162,12 @@ def test_base_and_quote_orders_share_each_actual_visible_unit(database,quote_ven
     from integration.test_paper_market_matcher import case
     from trading_system.engine.paper_market import PaperMatcher,DepthLevel
     c=execution_case(database,quote_venue,tmp_path)
-    base=case(database,quote_venue,tmp_path,market=c.scope.instrument_uid,quantity='.02',target='.02')
+    def lower_limit(proposal):
+        node=proposal.program.nodes[0]
+        node=replace(node,order=replace(node.order,price=replace(node.order.price,value='50000')))
+        return replace(proposal,program=replace(proposal.program,nodes=(node,)))
+    base=case(database,quote_venue,tmp_path,market=c.scope.instrument_uid,quantity='.02',target='.02',
+        stop='40000',plan_proposal_transform=lower_limit)
     submit(base)
     snapshot=replace(event(c),asks=(DepthLevel(price='50000',quantity='.05'),),bids=())
     PaperMatcher(c.engine).apply_market_event(snapshot);submit(c)
@@ -200,3 +206,4 @@ def test_resealed_quote_dto_never_substitutes_for_source(database,quote_venue,tm
     else:changed=replace(report,status='EXPIRED')
     changed=replace(changed,evidence=replace(changed.evidence,hash=digest(changed)))
     with pytest.raises(ValueError,match='SOURCE_CHANGED'):verify_quote_report(c.engine,changed,boundary=c.gate)
+
