@@ -57,7 +57,7 @@ def quote_case(database, *, real_options=None, quote_options=None, quote_assets=
         from trading_system.risk.quote_financial_admission import QuoteFinancialInputsV1
         from trading_system.risk.evaluator import RiskEvaluator
         from trading_system.accounts.authorization import AuthorizationService
-        current=replace(c.c.facts.inputs,intent_id=intake.intent_id,clock=clock,allow_round_down=True)
+        current=replace(c.c.facts.inputs,intent_id=intake.intent_id,clock=clock,allow_round_down=True,fee_reserve=q.facts.inputs.fee_reserve)
         sf=replace(s,transaction_id=tx.transaction_id,book_hash=digest(book),inputs=replace(s.inputs,clock=clock))
         tf=replace(target,scope_facts=sf)
         q.allocation=compile_quote_target(q.plan,book,tf);q.book=book
@@ -157,5 +157,6 @@ def test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier(data
     assert len(calls)==2
     with c.owner.transaction(c.scope) as tx:
         assert tx.intents.get(c.qrecord.intent_id) is None and tx.reservations.for_intent(c.qrecord.intent_id)==()
+
 
 
