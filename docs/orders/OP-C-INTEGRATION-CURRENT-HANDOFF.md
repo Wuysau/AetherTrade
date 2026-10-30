@@ -1,5 +1,47 @@
 # Current root and cash continuation
 
+## Current full serial-integration checkpoint — 2026-10-30
+
+Authoritative product2b94894f815b131c4e5f6be73f15ce5ce918f567; parent requests
+integration_fresh idle after pure proof checkpoint, retaining ROOT+D soleownership.
+D remains clean d75cc14. Main/public-snapshot/archives untouched. No own job live.
+
+ROOT actual serial components (all0fail/error/skip, separate exact source identities):
+
+- Quote46bf284: quote30/190.063s, mixed3/33.843s, physical16/42.175s, V2source51/
+  254.984s.64raw originals/copies/actual731e1fc Gitblobs verified0mismatch.
+- Native+quote9d8dd5c: genuine combined2/35.862s plus native27/128.351s,quote30/
+  191.605s,V2source51/259.222s,V2compat23/120.737s.160raw original/copy/actual
+  06e75d2 Gitblob hashes verified0mismatch. Genuine sourceRED236 and SQL0657 fail
+  plus three prior fixture failures all retained/labeled. Fixed9d8 integration
+  review is ongoing in the parent-created fresh context. No new authority tag
+  was registered or aliased as oldV1/V2.
+- Management2b94894:51PG/260.764s original21158/run995fb20f8954 terminal0;89unit/
+  12.72s.12NEW runtime/schema files exact revieweda6d7dddbc8f39d1d2648a71a2649a472a05834c4
+  (peer runtimefc2/e248), all covering test-function ASTs unchanged. Only positive
+  fixture initialization adapts to currentROOT: its own actual protected opening/
+  binding precedes first financial intent, without double provisioning.16existing
+  native/quote/financial/send/migration blobs unchanged. EarlierNoSuite3654 setup
+  ran0tests/exit2/noJUnit and is NOT a productRED. Two runs29safe raw preserved.
+
+Exact dependency manifests ROOT-QUOTE-DEPENDENCY-46bf284,
+ROOT-NATIVE-QUOTE-DEPENDENCY-9d8dd5c and ROOT-MANAGEMENT-DEPENDENCY-2b94894 record
+paths/source hashes, original handles and current interface boundaries. There are
+67mandatory suites, all prior entries retained; no complete new67-suite gate has
+been claimed. Originala0 full50 proof remains its own historical source-bound gate.
+
+No executable host/default qualification enabled. Management is conservative
+nonprotective/nonreduce ATOMIC entry cancellation only. V4 neutral creation/
+current/afterwait obligations, typed protectedaction, KEEP_PRIORITY/effective
+terms, replacement overlap and native stop remain required. Parent branches fresh
+management fromexact2b to implement on the26 matcher, coordinating new migration
+numbers>=27; never overwrite frozen14 or existing26. Quote/native0021/source/
+owned cash bridges remain distinct unimplemented qualifications. CASH owns its
+new strict source-leaf/raw-ledger visibility and working-order/newintake proofs;
+ROOT never overwrites those modules with older copies. SDK postqueue/build work
+is separately parent-coordinated with externalmodes harddisabled. Full46/56 active,
+onlyORD47 formally complete. Idle is no pause, release, blocker or completion.
+
 ## Current ROOT quote integration — 2026-10-30
 
 Functional46bf284dbb2145287068d7f92761511ada3202c3 selects exact reviewed quote
