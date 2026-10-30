@@ -1,0 +1,10 @@
+..F..............                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_effective_source_tables_are_not_runtime_writable _____________
+tests/integration/test_effective_orders_postgres.py:66: in test_effective_source_tables_are_not_runtime_writable
+    with c.owner.transaction(c.scope) as tx:tx.execute('INSERT INTO ledger.management_effective_resolutions_v1 DEFAULT VALUES')
+         ^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'ExecutionOwner' object has no attribute 'transaction'
+=========================== short test summary info ============================
+FAILED tests/integration/test_effective_orders_postgres.py::test_effective_source_tables_are_not_runtime_writable
+1 failed, 16 passed in 119.89s (0:01:59)
