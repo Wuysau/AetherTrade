@@ -15,7 +15,7 @@ from trading_system.ownership.registry import OwnershipRegistry,RegistryTx
 from trading_system.storage.models import scope_id
 
 
-def setup(database,venue,tmp_path,*,owned=True):
+def setup(database,venue,tmp_path,*,owned=True,source_version=1):
     from trading_system.execution.program_accounting import ProgramPaperAccountingService
     from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
     from trading_system.execution.program_fill_source import ProgramFillSourceService
@@ -29,6 +29,12 @@ def setup(database,venue,tmp_path,*,owned=True):
     balances,proof=inputs(initial)
     ProgramAccountOpeningService(provision_uow(database),initial.scope).initialize(balances,evidence=proof)
     c=case(database,venue,tmp_path,prepared_case=initial,quote_fee_rate='.001')
+    if source_version==2:
+        from psycopg.conninfo import conninfo_to_dict,make_conninfo
+        from trading_system.engine.paper_market_v2 import provision_paper_market_v2,PaperMatchingModelV2
+        provision_paper_market_v2(make_conninfo(**{**conninfo_to_dict(database),
+            'dbname':conninfo_to_dict(venue.runtime_dsn)['dbname']}),venue)
+        c.engine._matching_model=PaperMatchingModelV2(model_id='OWNED_V2_EXACT_NATIVE_SOURCE',quote_fee_rate='.001')
     if owned:
         # Existing trusted ownership registration of a genuinely empty owned
         # book; the account's initial BTC10 is intentionally not allocated.
@@ -39,7 +45,14 @@ def setup(database,venue,tmp_path,*,owned=True):
             active_exit_plan_id=None,risk_locks=())
         OwnershipRegistry(c.service.uow).register(p,c.c.terms.policy_revision)
     submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
-    verifier,codec=actual_verifier(c,tmp_path/'archive')
+    if source_version==1:verifier,codec=actual_verifier(c,tmp_path/'archive')
+    else:
+        from trading_system.engine.nautilus.id_codec import VenueIdCodec
+        from trading_system.engine.nautilus.native_events import NativeEventBridge
+        from trading_system.execution.paper_program_v2_reports import PaperProgramV2ReportVerifier
+        codec=VenueIdCodec(c.scope)
+        verifier=PaperProgramV2ReportVerifier(c.service.uow,c.scope,engine=c.engine,
+            archive_bridge=NativeEventBridge(codec,tmp_path/'archive'))
     source=ProgramFillSourceService(source_uow(database),c.scope,verifier=verifier)
     writer=ProgramOwnedSpotPosting(read_opening=read_program_account_opening)
     s=ProgramPaperAccountingService(c.service.uow,c.scope,source_service=source,trade_id_scope='INSTRUMENT',financial_posting=writer)
