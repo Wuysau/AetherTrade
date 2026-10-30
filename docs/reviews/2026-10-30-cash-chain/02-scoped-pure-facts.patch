@@ -1,0 +1,232 @@
+diff --git a/src/trading_system/intents/program_assessment_archive.py b/src/trading_system/intents/program_assessment_archive.py
+index 09d958b..d3d48e3 100644
+--- a/src/trading_system/intents/program_assessment_archive.py
++++ b/src/trading_system/intents/program_assessment_archive.py
+@@ -20,7 +20,7 @@ from trading_system.risk.reduction import ReductionRiskMetrics
+ from trading_system.risk.valuation import Valuation
+ from trading_system.storage.models import decode
+ from .program_compilation import compile_order_program
+-from .program_target_allocation import compile_program_target
++from .program_target_allocation import compile_program_target,ProgramTargetFacts,ProgramScopedTargetFactsV2
+ from .program_financial_records import ProgramFinancialArchive
+ 
+ 
+@@ -38,6 +38,7 @@ def _same(left,right):
+ class ProgramFinancialAssessmentArchive(ProgramFinancialArchive):
+     record_kind: Literal['PROGRAM_FINANCIAL_ASSESSMENT_ARCHIVE']
+     archive_revision: Literal[1]
++    target_facts: ProgramTargetFacts|ProgramScopedTargetFactsV2
+     risk_metrics: RiskMetrics | ReductionRiskMetrics | None
+     risk_facts: ProgramRiskFacts
+     assessment: ProgramRiskDecision
+diff --git a/src/trading_system/intents/program_target_allocation.py b/src/trading_system/intents/program_target_allocation.py
+index e30be8f..836385e 100644
+--- a/src/trading_system/intents/program_target_allocation.py
++++ b/src/trading_system/intents/program_target_allocation.py
+@@ -5,7 +5,7 @@ This module verifies snapshot bindings, not database authority; transaction IDs
+ and evidence labels supplied by an untrusted caller prove nothing. It creates
+ no TradeIntent projection, risk decision, reservation, command or permit.
+ """
+-from dataclasses import dataclass
++from dataclasses import dataclass,replace
+ from decimal import Decimal, localcontext, Inexact, Rounded, DecimalException
+ from typing import Literal
+ 
+@@ -69,6 +69,38 @@ class ProgramTargetFacts:
+     valid_until:str
+ 
+ 
++@dataclass(frozen=True,slots=True,kw_only=True)
++class ProgramScopedTargetFactsV2(ProgramTargetFacts):
++    contract_version:Literal['2026-10-30']
++    record_kind:Literal['PROGRAM_SCOPED_TARGET_FACTS_V2']
++    quantity_scope:t.ScopeKey
++    quantity_reservation_ids:tuple[str,...]
++
++    def __post_init__(self):
++        require(self.contract_version=='2026-10-30' and self.record_kind=='PROGRAM_SCOPED_TARGET_FACTS_V2',
++            'PROGRAM_SCOPED_TARGET_VERSION_REQUIRED')
++        ids=self.quantity_reservation_ids
++        require(type(self.quantity_scope) is t.ScopeKey and type(ids) is tuple
++            and all(type(i) is str and bool(i) for i in ids) and len(set(ids))==len(ids),
++            'PROGRAM_QUANTITY_RESERVATION_MAP_REQUIRED')
++
++
++def program_target_quantity_book(book,facts):
++    """Pure projection; host must authenticate IDs against physical scope SQL.
++
++    The full financial book remains validated/hashed by the caller. This helper
++    cannot prove an omitted hold is foreign or grant authority to exclude cash.
++    """
++    if type(facts) is ProgramTargetFacts:return book
++    require(type(facts) is ProgramScopedTargetFactsV2,'PROGRAM_TARGET_TYPED_FACTS_REQUIRED')
++    facts.__post_init__()
++    require(facts.quantity_scope==book.scope,'PROGRAM_QUANTITY_SCOPE_CHANGED')
++    originals={p.reservation.reservation_id:p for p in book.reservations}
++    require(len(originals)==len(book.reservations) and set(facts.quantity_reservation_ids)<=set(originals),
++        'PROGRAM_QUANTITY_RESERVATION_MAP_CHANGED')
++    return replace(book,reservations=tuple(originals[i] for i in facts.quantity_reservation_ids))
++
++
+ @dataclass(frozen=True,slots=True,kw_only=True)
+ class NodeTargetAllocation:
+     node_id:str
+@@ -235,7 +267,7 @@ def _compile_program_target(plan,book,facts):
+         basis_fingerprint=book.basis_fingerprint,action=proposal.action,target_side=proposal.target_side,
+         target=t.Quantity(value=target,unit=bridge.ledger_unit),valid_until=min(valid_until,key=time_key),
+         submission_deadline=program.submit_valid_until)
+-    delta=TargetCompiler(facts.inputs).compile_terms(terms,book)
++    delta=TargetCompiler(facts.inputs).compile_terms(terms,program_target_quantity_book(book,facts))
+     blockers=[]
+     if delta.cancel_first:blockers.append('TARGET_CANCEL_AND_RECONCILE_REQUIRED')
+     # Preserve the existing exposure core's exact target equation. Explicit
+diff --git a/src/trading_system/risk/program_assessment.py b/src/trading_system/risk/program_assessment.py
+index 4efade3..12ed707 100644
+--- a/src/trading_system/risk/program_assessment.py
++++ b/src/trading_system/risk/program_assessment.py
+@@ -11,7 +11,7 @@ from typing import Literal
+ from trading_system.contracts import types as t
+ from trading_system.contracts.order_snapshots import OrderRuleSnapshot,OrderCapabilitySnapshot
+ from trading_system.intents.product_rules import TrustedProductRules
+-from trading_system.intents.program_target_allocation import ProgramTargetFacts
++from trading_system.intents.program_target_allocation import ProgramTargetFacts,ProgramScopedTargetFactsV2
+ from .evaluator import RiskInputs
+ from .program_exposure import ProgramBudgetFacts,FeeBound,derive_program_exposure
+ from .terms import RiskMetrics,RiskSource,RiskTerms,metric_binding_codes
+@@ -110,7 +110,7 @@ class ProgramRiskFacts:
+     inputs:RiskInputs
+     market:t.SnapshotPacket
+     authorization:t.AuthorizationDecision
+-    target_facts:ProgramTargetFacts
++    target_facts:ProgramTargetFacts|ProgramScopedTargetFactsV2
+     budget_facts:ProgramBudgetFacts
+     rules:OrderRuleSnapshot
+     capabilities:OrderCapabilitySnapshot
+diff --git a/tests/unit/test_program_scoped_target.py b/tests/unit/test_program_scoped_target.py
+new file mode 100644
+index 0000000..3f94e26
+--- /dev/null
++++ b/tests/unit/test_program_scoped_target.py
+@@ -0,0 +1,122 @@
++"""Scoped quantity facts are declarations; ROOT authenticates physical IDs."""
++from dataclasses import fields,replace
++from decimal import Decimal as D
++
++import pytest
++
++from unit.support_program_financial import financial_case
++from trading_system.contracts.canonical import canonical_hash,domain_payload
++from trading_system.storage.models import decode
++
++
++def scoped(facts,ids=(),**changes):
++    from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
++    return ProgramScopedTargetFactsV2(**{f.name:getattr(facts,f.name) for f in fields(facts)},
++        contract_version='2026-10-30',record_kind='PROGRAM_SCOPED_TARGET_FACTS_V2',
++        quantity_scope=changes.pop('quantity_scope',facts.rules.scope),quantity_reservation_ids=ids,**changes)
++
++
++def setup(*,local_pending=False):
++    financial_case()
++    from test_program_target_allocation import plan_for,scenario
++    from unit.support_ip_09 import reservation,make_case
++    from trading_system.intents.target_compiler import PendingQuantity
++    plan,rules=plan_for(quantity='.8' if local_pending else '1');book,facts=scenario(plan,rules)
++    money=reservation(make_case())
++    money=replace(money,reservation=replace(money.reservation,environment=book.scope.environment,
++        venue_account_id=book.scope.venue_account_id,collateral_group_id=facts.collateral_group_id,
++        owner_strategy_id=facts.owner.owner_strategy_id))
++    if not local_pending:
++        money=replace(money,reservation=replace(money.reservation,venue_account_id='foreign-collateral-account'))
++    book=replace(book,reservations=(money,))
++    facts=replace(facts,book_hash=canonical_hash(domain_payload(book)))
++    if local_pending:
++        facts=replace(facts,inputs=replace(facts.inputs,pending=(PendingQuantity(intent_id=money.reservation.intent_id,
++            signed_quantity=replace(facts.inputs.instrument.quantity_step,value=D('.2')),
++            reservation_ids=(money.reservation.reservation_id,),command_refs=money.reservation.command_refs),)))
++    return plan,book,facts,money
++
++
++def test_explicit_subset_keeps_full_financial_book_hash_and_foreign_cash_hold():
++    from trading_system.intents.program_target_allocation import compile_program_target
++    from trading_system.intents.program_target_allocation import program_target_quantity_book
++    plan,book,facts,money=setup();current=scoped(facts)
++    result=compile_program_target(plan,book,current)
++    assert result.delta.remaining.value==1 and not result.blockers
++    assert result.book_hash==current.book_hash==canonical_hash(domain_payload(book))
++    assert book.reservations==(money,) and program_target_quantity_book(book,current).balances==book.balances
++    assert program_target_quantity_book(book,current).reservations==()
++    projected_hash=canonical_hash(domain_payload(program_target_quantity_book(book,current)))
++    with pytest.raises(ValueError,match='TARGET_BOOK_OR_COMPILATION_CHANGED'):
++        compile_program_target(plan,book,replace(current,book_hash=projected_hash))
++
++
++def test_selected_local_quantity_reuses_existing_target_mapping_and_equation():
++    from trading_system.intents.program_target_allocation import compile_program_target
++    plan,book,facts,money=setup(local_pending=True)
++    result=compile_program_target(plan,book,scoped(facts,(money.reservation.reservation_id,)))
++    assert result.delta.working.value==D('.2') and result.delta.remaining.value==D('.8')
++    assert result.nodes[0].ledger_quantity.value==D('.8')
++    with pytest.raises(ValueError,match='RESERVATION_MAPPING_INVALID'):
++        compile_program_target(plan,book,scoped(facts))
++
++
++@pytest.mark.parametrize('fault',('duplicate','unknown','selected_foreign','duplicate_book','wrong_scope'))
++def test_forged_subset_never_creates_a_quantity_plan(fault):
++    from trading_system.intents.program_target_allocation import compile_program_target
++    plan,book,facts,money=setup();identifier=money.reservation.reservation_id
++    if fault=='duplicate':ids=(identifier,identifier)
++    elif fault=='unknown':ids=('missing-physical-id',)
++    elif fault=='selected_foreign':ids=(identifier,)
++    elif fault=='duplicate_book':
++        ids=();book=replace(book,reservations=book.reservations*2)
++        facts=replace(facts,book_hash=canonical_hash(domain_payload(book)))
++    else:
++        ids=();facts=scoped(facts,quantity_scope=replace(book.scope,instrument_uid='foreign-instrument'))
++    with pytest.raises(ValueError):
++        compile_program_target(plan,book,facts if fault=='wrong_scope' else scoped(facts,ids))
++
++
++def test_v1_exact_bytes_and_target_behavior_do_not_gain_implicit_subset():
++    from trading_system.intents.program_target_allocation import compile_program_target,ProgramTargetFacts
++    from trading_system.intents.program_target_allocation import program_target_quantity_book
++    plan,book,facts,_=setup();before=domain_payload(facts);digest=canonical_hash(before)
++    assert program_target_quantity_book(book,facts) is book
++    assert decode(ProgramTargetFacts,before)==facts and canonical_hash(domain_payload(facts))==digest
++    with pytest.raises(ValueError,match='RESERVATION_QUANTITY_REQUIRED'):compile_program_target(plan,book,facts)
++    with pytest.raises(ValueError):decode(ProgramTargetFacts,domain_payload(scoped(facts)))
++
++
++@pytest.mark.parametrize('fault',('version','kind','partial','extra','bool_id'))
++def test_unknown_or_partial_tags_cannot_decode_as_old_facts(fault):
++    from trading_system.intents.program_target_allocation import ProgramTargetFacts
++    from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
++    _,_,facts,_=setup();payload=domain_payload(scoped(facts))
++    if fault=='version':payload['contract_version']='2099-01-01'
++    elif fault=='kind':payload['record_kind']='UNTRUSTED_TARGET_FACTS'
++    elif fault=='partial':del payload['quantity_reservation_ids']
++    elif fault=='extra':payload['trusted']=True
++    else:payload['quantity_reservation_ids']=[True]
++    with pytest.raises(ValueError):decode(ProgramTargetFacts|ProgramScopedTargetFactsV2,payload)
++
++
++def test_full_actual_assessment_replay_and_static_union_restore_new_facts():
++    from unit.test_assessment_archive import archive_from_case
++    from test_program_risk_assessment import risk_case
++    from trading_system.intents.program_target_allocation import compile_program_target
++    from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
++    from trading_system.intents.program_assessment_archive import ProgramFinancialAssessmentArchiveCodec
++    from trading_system.intents.program_financial_records import ProgramFinancialArchive,ProgramFinancialArchiveCodec
++    c=risk_case();c.facts=replace(c.facts,target_facts=scoped(c.facts.target_facts))
++    c.allocation=compile_program_target(c.plan,c.book,c.facts.target_facts)
++    c.facts=replace(c.facts,protection=tuple(replace(p,allocation_hash=canonical_hash(domain_payload(c.allocation))) for p in c.facts.protection))
++    archive=archive_from_case(c);codec=ProgramFinancialAssessmentArchiveCodec()
++    restored=codec.decode(codec.encode(archive))
++    assert type(restored.target_facts) is type(restored.risk_facts.target_facts) is ProgramScopedTargetFactsV2
++    assert restored==archive and restored.assessment.verdict=='ALLOW'
++    old=financial_case().archive;payload=domain_payload(old);digest=canonical_hash(payload)
++    assert canonical_hash(domain_payload(old.target_facts))=='672b30af9aafb6f8d2e5250655a18ba2f94123b828f61110c33a9161275ff3d7'
++    assert digest=='af609a2fbb961ea54368134289e1e6e20c30f2f6fb6aff0b05a020f8c932af60'
++    assert ProgramFinancialArchiveCodec().decode(payload)==old
++    assert canonical_hash(ProgramFinancialArchiveCodec().encode(old))==digest
++    assert decode(ProgramFinancialArchive,payload)==old

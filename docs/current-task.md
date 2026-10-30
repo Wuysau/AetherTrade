@@ -1,5 +1,22 @@
 # Current task
 
+## CASH checkpoint — ownership retained, ROOT dependency next
+
+`cash_chain_fresh` remains sole writer of this worktree. Runtime product081d76e;
+final exact reviewed legacy fixture5803976; evidence898fc28 checks all335 raw
+artifacts across20 terminal runs against original/copy/actual Git blobs. No live
+cash/proof handle. V2financial2PG, knownness8PG, historical source16PG and initial
+capital3PG are bounded green; physical scalar subset/A+B finance still unproved.
+Parent authorized this turn's idle checkpoint pending ROOT's minimal stable
+physicalscope/current-loader slice; ownership is NOT released and full46/56
+remains ACTIVE. No old job/setup should restart. Resume the same tree and heads.
+
+Bounded review bases/heads,5 exact diff artifacts, source-specific results and
+the genuine accepted-unfilled A/B preparation are in
+`docs/reviews/2026-10-30-cash-chain/README.md` / DIFF-MANIFEST.json. ROOT will
+follow up with the stable dependency. Do not fabricate a scope adapter, permit,
+fill, replan, legacy history/fees or financial completion while it is pending.
+
 ## Fresh accounting chain writer — 2026-10-30
 
 Parent assigned `cash_chain_fresh` sole write ownership of THIS existing worktree
