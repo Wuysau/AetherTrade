@@ -15,8 +15,8 @@ remain unchanged. ROOT-MANAGEMENT-DEPENDENCY-2b94894.json records the exact path
 Earlier9365/run a8ea2bfd0105 is retained SETUP failure: HEAD selected old3654
 before a test+commit shell finished, so no managementsuite/0tests/noJUnit/exit2.
 It is neither productRED nor qualification. The fixed run explicitly selects2b;
-no live job was restarted. Two runs29safe raw originals/copies are preserved in
-op-e-root-management-integration; actual committed-blob verification follows.
+no live job was restarted. All29safe raw originals/copies/actuale7c550b committed Gitblobs independently
+match SHA,0mismatch under op-e-root-management-integration/COMMITTED-BYTES.json.
 
 ROOT quote46bf has actual30+3+16+51 proof; combined native/quote9d8 has genuine
 sourceRED→GREEN2 plus27native/30quote/51source/23compat. Their original64 and160
