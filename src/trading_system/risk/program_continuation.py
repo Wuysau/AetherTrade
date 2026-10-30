@@ -66,7 +66,7 @@ class ProgramContinuationRiskV1:
 def derive_position_lot_residual(quantity,step):
     require(type(quantity) is t.Quantity and type(step) is t.Quantity and quantity.unit==step.unit
         and quantity.value.is_finite() and step.value.is_finite() and step.value>0,'CONTINUATION_LOT_UNITS_REQUIRED')
-    units=Fraction(abs(quantity.value))//Fraction(step.value)
+    units=abs(Fraction(quantity.value))//Fraction(step.value)
     with exact_risk_arithmetic():
         executable=D(units)*step.value*(-1 if quantity.value<0 else 1)
         return t.Quantity(unit=quantity.unit,value=executable),t.Quantity(unit=quantity.unit,value=quantity.value-executable)

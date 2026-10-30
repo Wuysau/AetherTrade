@@ -64,6 +64,17 @@ def test_sub_lot_owned_inventory_is_preserved_exactly_even_when_no_order_can_tra
     assert executable.value==0 and residual==qty and qty.value!=0
 
 
+@pytest.mark.parametrize('value',['1.23456789','-1.23456789'])
+def test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context(value):
+    from decimal import localcontext
+    from trading_system.risk.program_continuation import derive_position_lot_residual
+    qty=t.Quantity(unit='BASE',value=D(value));step=t.Quantity(unit='BASE',value=D('.00000001'))
+    with localcontext() as ambient:
+        ambient.prec=3
+        executable,residual=derive_position_lot_residual(qty,step)
+    assert executable==qty and residual.value==0
+
+
 def test_changed_archived_position_cannot_be_hidden_behind_an_allocation_actual():
     a=actual_archive(actual='2',target='1',quantity='1',side='SELL')
     p=a.book.positions[0];a=replace(a,book=replace(a.book,positions=(replace(p,actual_quantity=replace(p.actual_quantity,value=D('3'))),)))
