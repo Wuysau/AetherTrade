@@ -1,0 +1,10 @@
+......F                                                                  [100%]
+=================================== FAILURES ===================================
+______ test_unknown_source_retains_current_book_and_creates_no_new_token _______
+tests/integration/test_program_paper_host.py:145: in test_unknown_source_retains_current_book_and_creates_no_new_token
+    with pytest.raises(MissingEvidence,match='PROGRAM_ORDER_QUERY_UNKNOWN'):runtime.working_inputs()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_paper_host.py::test_unknown_source_retains_current_book_and_creates_no_new_token
+1 failed, 6 passed in 46.47s

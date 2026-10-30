@@ -1,5 +1,72 @@
 # Current task
 
+## CURRENT_CASH_HOST_GREEN_EFFECTIVE_NEXT — 2026-10-30
+
+Reviewed CASH933/805 selected at03298138287fd1e39fbac95b28629e6fe0dd9859;12affected
+actualPG cohorts all terminal0/zero fail/error/skip (140cases; not full72gate).
+Counts/times/source IDs are in op-f-root-cash-host-integration/runs.json. Nine
+5ef physical/currentguard paths and all25/26/22/23/sourceUNION preserved. Current
+cash/owned/observed-leaf/working routes now use reviewed strict components, including
+9f opening ambiguity and additive24. Only exactV1/V2 financial sources qualify.
+
+Explicit isolated ProgramPaperHost sourcea799f19a2b963d33f9d638ffdd08d68d8b183ee9
+actual7PG GREEN0fail/error/skip51.117s original23641/run2c7c5a2421cf TERMINAL0.
+Real V1/V2 original dispatch→nofill snapshot→finite.4 fill/.001fee→nativeRawLedger/
+owned.4/FEE32.596/working.6/fullbookvector+binding/replay pass. Missing owner keeps
+raw/unclaimed inventory; historical GTC query never renews oldpermit; quote/native
+fail before mark. Generic newwrite/cost POSITION_EVIDENCE remain unchanged.
+
+PersonalRED6a04 had7missinghost failures13.20s. Host788f had6pass1DIDNOTRAISE46.47s:
+blocked accounting query skipped current protectedUNKNOWN and oldAccepted could
+supplyworking. Fixa799 invokes existing source observer on SOURCE_BLOCKED. The
+new test requires currentUNKNOWN/workingdenial, unchangedbook/token and historical
+everaccepted. All originalhandles terminal; no restart or defaultactivation.
+24+15 focusedunit passed1.86s/0.46s. Qualifier only adds explicit historical fullSHA
+bundle transport for actual pre18 fixture; source16 exercised exact3d offline.
+
+Fifteen runs240safe raw originals/copies preserved, SHA equal; actual committed
+blob proof follows. ROOT-CASH-HOST-DEPENDENCY-a799f19 binds27CASH and23preserved
+Root paths. Fresh independent host/composition review remains required before
+operational promotion. No consoleDB/router/scheduler/model/account/externalmode
+enabled. Effective31031874 reviewedclear27/28/29 is the next serial selection;
+newregistry migrations30+ coordinated. Full46/56 ACTIVE, onlyORD47 formally complete.
+
+## CURRENT_STRICT_CASH_MERGED_HOST_VERIFICATION — 2026-10-30
+
+Reviewed CASH933040b/runtime805aa53 integrated at exactROOT03298138287fd1e39fbac95b28629e6fe0dd9859.
+22CASH-owned product/test paths selected byte-identically. Existing9ROOT5ef physical/
+codec/reservation/current/afterwait files remain exact, as do Root25/26/22/23 and
+shared quote/native source UNION/capacity. Includes strict owned transition proof,
+allinstrument0018observed-leaf completeness, seq1working order source, readonly
+replay, allregisteredopening ambiguity denial and additive0024. No older neutral
+cash implementation remains on these routes. Only exactV1/V2 sources are funded;
+quote/native/managed remain separate unregistered bridges, no host activation.
+
+All12 fixed032 actualPG cohorts terminal0/zero fail/error/skip:owned11,working17,
+accountcash9,source16,firstcapital3,knownness8,physical16,oldexecution37,raw9,
+V2owned2,openinghistory/exclusivity9,bookcash3 (140actual component cases,NOTfull72).
+24focusedunit1.86s plus15source/math/offlineunit0.46s. Historical source3d is not
+Rootancestor; optional qualifier --historical-source-commit fullSHA explicitly
+carries exact3d in the offline bundle, recorded in manifest. Actual isolated
+bundle clone and final source16 prove availability; no rewrittenhistory or skip.
+
+New thin runtime/ProgramPaperHost has no route/startup/defaultactivation. It uses
+actual ExecutionOwner session and original mark/consume/submit once; existing raw/
+owned/order/book services and exact local opening reader. It rejects native/quote
+families before mark and pending managed sources, observes original IDs, and never
+invents intake/NO_ACTION or new permission. Existing cost/history POSITION_EVIDENCE
+and generic newwrite structural guard stay intact. Plan OP-F-PAPER-HOST-COMPOSITION-PLAN.
+
+Actual initialhost6a04 RED7missingmodule13.20s after real funded commands. New
+host788f actual6pass1DIDNOTRAISE46.47s exposed failure to persist currentUNKNOWN
+when accounting-source query failed: olderAccepted still suppliedworkinginputs.
+Fixa799 calls existing observer on SOURCE_BLOCKED, preserving book/oldacceptance/
+reserves/oldtoken while durably blocking currentworking. Original23641 is RUNNING
+at this checkpoint, no restart; all other ownhandles terminal. New effective
+management31031874 reviewedclear27/28/29 may be selected only after host proof;
+newmigration30+ coordinated withparent. CASH/SDK trees remain untouched here.
+
+
 ## CURRENT_MANAGEMENT_ROOT_GREEN_CHECKPOINT — 2026-10-30
 
 Exact ROOT product2b94894f815b131c4e5f6be73f15ce5ce918f567 actual management51PG
