@@ -1,5 +1,36 @@
 # Current root and cash continuation
 
+## Current host IO fix round1 checkpoint — 2026-10-30
+
+Product1e8fd3748cea2b356d2ce94c55cdf27c95308716 implements the independent host
+P1, on fixBASE19548ce/mergeddae. Only observer, host and its covering test changed.
+Existing privateSTARTED SQL is shared via begin_query and committed before the
+accounting verifier's first sourceIO. Incomplete attempts remain UNKNOWN; only
+the subsequent independent full observer can establish knownness. Host's later
+order observer also records UNKNOWN then propagates the original IOerror; the
+default existing recovery observer remains softUNKNOWN. No schema/role/hash/
+current financial or newwrite authority changes, no stale ALLOW/noAction.
+
+Real priorAccepted→controlledIOfailure RED56183381:24PG,7originalpass17newfail,
+0error/skip158.834s. Twelve firstquery variants leave staleAccepted, four later
+queries swallowOSError and commitfailure still performsIO. Fixed1e8 actual
+host24/202.688s,knownness8/45.952s,working17/110.422s all0fail/error/skip.24unit/
+4.33s pass. Tests read real committedUNKNOWN before fault, preserve original
+exception identity, everAccepted, book/reservation/token row+xmin and real
+recovery; no failedbarriercommit may query. These are PAPER fault injections,
+not real exchange outage or fullcatalog qualification.
+
+All4originalqualifierhandles terminal; solePGslot explicitly handed to Cost.
+64safe raw originals/copies and4new terminalbundle backups (45124403bytes)
+are in op-f-host-fix-round1. Approved single-file Cbackup leaves raw evidence/env/
+otherwriters untouched; old107map unchanged. Source manifest ROOT-HOST-FIX1-
+DEPENDENCY-1e8fd37, external scopedpatch/report in PaperHostReview-a799f19.
+Implementation is green but original independent scoped re-review remains due.
+
+ROOT+D ownership retained; no own live jobs or default/operational activation.
+Effective earlier4infra attempts remain0tests/unqualified.30Cost and31+registry
+coordination unchanged; full46/56 active, original formal acceptance not promoted.
+
 ## Current cash/host/effective and infrastructure checkpoint — 2026-10-30
 
 integration_fresh retains sole ROOT+D ownership; parent read-only. Cash933/805

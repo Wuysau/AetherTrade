@@ -1,5 +1,91 @@
 # Current task
 
+## CURRENT_HOST_IO_FIX_ROUND1_GREEN_REVIEW_PENDING — 2026-10-30
+
+Host ImportantP1 personally reproduced in real PG and implemented at exact
+1e8fd3748cea2b356d2ce94c55cdf27c95308716, fixBASE19548ce (mergeddae retained).
+PersonalRED56183381 host24=7pass17fail/0error/skip158.834s. Original7 unchanged;
+12first financialquery IOfailures retained staleAccepted,4laterquery failures
+swallowedOSError,1failedbarriercommit still allowedIO. These are actual prior
+V1/V2Accepted ledger scenarios with controlled transport exception injection,
+not the external pure AST probe or native exchange outage qualification.
+
+Fixedhost24GREEN202.688s, knownness8GREEN45.952s, working17GREEN110.422s,
+all0fail/error/skip at same1e8 source. Original45019/54656/68697/43603 TERMINAL;
+solequalifier slot explicitly RELEASED to cost_history_fresh. No own live job or
+new runner.24focusedunitGREEN4.33s. Fixed source extracts existing protected
+STARTED commit as begin_query before accounting's first sourceIO. A start alone
+is onlyUNKNOWN; the later independent observer restores currentknownness. Host
+observer raises original IOerror only after durableUNKNOWN, while default
+recovery callers retain old softUNKNOWN behavior. No schema, role, source payload/
+hash, funds, newrisk permission or TTL change. Book/hold/token/xmin, everAccepted
+and genuine later recovery are checked; barriercommit failure performs zeroIO.
+
+Four runs64safe raw originals/copies matchSHA under op-f-host-fix-round1;
+committedblob verification follows. Four terminal newsource.bundle files,
+45124403bytes, copy/size/SHA-verified to approvedCbackup in separate round1map,
+original single files removed only after proof; evidence/env/old107map unchanged.
+DFree~2.42GB maintained, serial cached/offline only; no build/pull/reset/cleanup.
+Exact3changedpaths and testedheads: ROOT-HOST-FIX1-DEPENDENCY-1e8fd37.json.
+External PaperHostReview-a799f19/review.md retains finding and receives implementer
+round1report plus scopedfixpatch; originalreviewer verdict remains pending.
+
+Previous effective27/28/29 Root attempts remain infra0tests/NOTqualified; no
+full74gate/46_56 promotion or host/default/external activation.30reserved Cost,
+registry31+ coordinates. ROOT+D soleownership retained; parent controls next work.
+
+## CURRENT_HOST_FIX_ROUND1_FIXED_RUNNING — 2026-10-30
+
+PersonalRED56183381 actualhost24PG original45019/run48b61a7d5a9a TERMINAL1:
+7originalpass17coveringfail,0error/skip158.84s. Twelve first financial IO failures
+leave priorAccepted current; four later observer IO failures swallow OSError;
+failed barriercommit still allows a venuequery. All are behavioral failures after
+real priorAccepted with liveledger, not fixture/setup failures. REDsource.bundle
+11284465bytes hash-verified/Cbacked up per whitelist, evidence/env unchanged.
+
+Fixed1e8fd3748cea2b356d2ce94c55cdf27c95308716 extracts observer.begin_query from
+existing protectedSTARTED SQL and commits it before hostaccounting I/O. A start
+is only UNKNOWN, never acceptance; later independent orderobserver establishes
+current knownness. Hostobserver uses strict error propagation only AFTER durable
+UNKNOWN completion; default recovery observers retain prior return behavior.
+No schema/role/financialpolicy/sourcehash/permissions changed.24focusedunit pass
+4.33s. Original54656/rune6f267fb1d4c is soleactive host24PG, nootherqualifier.
+Only cached images/offline; no new build/pull. Dfree2.415GB, serialbudget/2GB floor.
+
+After fixedhost, only affectedknownness8 andworking17 serialactualPG are due.
+Then release solequalification slot to Cost; full74gate and earlierEffective
+0test attempts remain unqualified. Original reviewfile will receive exact tests,
+commands/results andBASE19548ce..fixedHEAD diff before scopedre-review request.
+ROOT+D ownership retained; no activation/account/model/native mode or newrisk.
+
+
+## CURRENT_HOST_REVIEW_FIX_ROUND1_RED_RUNNING — 2026-10-30
+
+Parent resumed ROOT solewriter from clean19548ce (productdae). Independent
+PaperHostReview-a799f19 reports ImportantP1: accounting sourcequery raises IO
+before any observer STARTED, leaving priorAccepted/currentworking. Original7
+only covered a normal None-return. Fresh fix round1/5 required, no host promotion.
+Original finding/report unchanged. Parent restored Desktop without reset; actual
+readonly29.7.2/linux and cached Postgres18cfe3/runner768aad images verified.
+Only ONE active qualifier permitted, no builds/pulls/fullgate. Dfree2.55GB.
+
+PersonalRED source56183381af99ae228f8b7ec0337012fa87d8597e has original7 plus
+16real-ledger V1/V2 exception variants (creation/market reads, OSError/Timeout/
+OperationalError, first accounting/later order reads) and a barrier-commit case.
+Actual priorAccepted/working is established, then controlled source IO fails
+while actual ledger remains available. CurrentUNKNOWN beforefault, same exception,
+no book/hold/token row/xmin change, everAccepted and genuine recovery are required.
+Original45019/run48b61a7d5a9a is RUNNING; no implementation fix until genuineRED.
+
+Planned narrow correction reuses existing observerSTARTED transaction before
+accounting IO and preserves original errors after durableUNKNOWN for later order
+queries. Default recovery observe semantics stay; no source-provenance/schema/
+permission weakening. After actualfixedhost, only affectedknownness/working PG
+serial checks, then solequalification slot returns Cost. Allnew terminal bundles
+hash-preserved to approvedCbackup; evidence/env unchanged. Effective earlier4
+infra0test attempts still unqualified; source30reservedCost,registry31+coord.
+
+
 ## CURRENT_EFFECTIVE_SELECTED_INFRA_BLOCK — 2026-10-30
 
 ROOT productdae9863663383628099110bab7c371dfa0af81ce serialselects reviewed
