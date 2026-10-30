@@ -66,6 +66,7 @@ def require_owned_program_posting(tx,fact):
         and posted.position_sequence>0 and posted.book_sequence>0 and bool(posted.source_approval_ids)
         and posted.identity_hash==identity and posted.source_economic_hash==economic_signature(fact)
         and after.sequence==before.sequence+1
+        and before.mode=='ACTIVE' and not before.intervention_ids
         and replace(after,position=before.position,sequence=before.sequence)==before,
         'OWNED_POSTING_HISTORY_REQUIRED')
     oldrow=_history_row(tx,'audit_events','ip16:owner',before.sequence)
@@ -89,10 +90,17 @@ def require_owned_program_posting(tx,fact):
                 before.position.owner_strategy_id,before.position.ownership_epoch)
                 and member.effects.position_delta.unit==before.position.actual_quantity.unit,'OWNED_POSTING_HISTORY_REQUIRED')
             ids.add(key);facts.append(member);quantity+=member.effects.position_delta.value
-        need(identity in ids and after.position.actual_quantity==replace(before.position.actual_quantity,value=quantity)
+        need(quantity>=0 and identity in ids and after.position.actual_quantity==replace(before.position.actual_quantity,value=quantity)
             and after.position.owner_strategy_id==before.position.owner_strategy_id
             and after.position.owner_book_id==before.position.owner_book_id
             and after.position.ownership_epoch==before.position.ownership_epoch,'OWNED_POSTING_HISTORY_REQUIRED')
+    transition=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND sequence=1 '
+        "AND record_id LIKE 'program-owned-posting:%%' AND payload#>>'{owner_after,sequence}'=%s",
+        (scope_id(tx.scope),str(after.sequence))).fetchall()
+    # Equal quantities are not interchangeable executions. Every native fact
+    # using this actual owner revision must belong to the ONE declared batch.
+    need(len(transition)==len(ids) and {r[0].get('identity_hash') for r in transition}==ids,
+        'OWNED_POSTING_TRANSITION_REUSED')
     for member in facts:
         batch=_history_row(tx,'audit_events','program-owned-posting:'+member.approval.identity_hash,1)
         expected=replace(posted,identity_hash=member.approval.identity_hash,source_economic_hash=economic_signature(member))
