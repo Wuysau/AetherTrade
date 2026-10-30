@@ -147,7 +147,7 @@ def _derive(tx):
     for f in facts.values():
         sides_by_time.setdefault(utc_timestamp(f.fill.occurred_at),set()).add(f.approval.normalized.side)
     need(all(len(sides)==1 for sides in sides_by_time.values()),'COST_NATIVE_ORDER_REQUIRED')
-    state=SpotCost();applied=[];quote=None;last_time=None;last_proof=None
+    state=SpotCost();applied=[];quote=None;native_base=None;last_time=None;last_proof=None
     for before,after in zip(owners,owners[1:]):
         need(after.mode=='ACTIVE' and not after.intervention_ids and after.transfer_id is None
             and replace(after,position=before.position,sequence=before.sequence)==before,'COST_OWNER_TRANSITION_REQUIRED')
@@ -163,6 +163,7 @@ def _derive(tx):
                 last_time=now
                 base=f.approval.normalized.economics.unit.native_unit
                 currency=f.effects.gross_notional.currency
+                need(native_base is None or native_base==base,'COST_BASE_UNIT_CHANGED');native_base=base
                 need(quote is None or quote==currency,'COST_QUOTE_UNIT_CHANGED');quote=currency
                 delta={m.currency:m.amount for m in f.effects.asset_deltas}
                 state=apply_spot_cost(state,side=f.approval.normalized.side,base_delta=delta[base],quote_delta=delta[currency],

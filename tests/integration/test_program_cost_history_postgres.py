@@ -155,3 +155,40 @@ def test_nonzero_initial_owner_is_never_zero_cost_genesis(database,venue_v2,tmp_
         with c.service.uow.transaction(c.scope) as tx:
             assert RegistryTx(tx).owner().position.actual_quantity.value==D(1)
     finally:codec.close()
+
+
+def test_process_restart_and_same_account_peer_are_read_only(database,venue_v2,tmp_path):
+    import os
+    from integration.test_program_financial_admission import real_case
+    c,service,codec=setup(database,venue_v2,tmp_path,source_version=2)
+    try:
+        service.apply(c.write.command_id)
+        peer=real_case(database,venue_account_id=c.scope.venue_account_id,
+            collateral_group_id=c.c.terms.collateral_group_id,instrument_uid='cost-peer-'+uuid4().hex,
+            provision_opening=False)
+        def peer_rows():
+            with peer.service.uow.transaction(peer.scope) as tx:
+                return tuple((table,tx.execute('SELECT row_to_json(r)::text,xmin::text FROM ledger.'+table+
+                    ' r WHERE scope_id=%s ORDER BY row_to_json(r)::text',(scope_id(peer.scope),)).fetchall()) for table in
+                    ('book_snapshots','audit_events','positions','cashflows','risk_locks','domain_events','outbox'))
+        before=peer_rows()
+        with c.service.uow.transaction(c.scope) as tx:
+            proof=reconcile_program_cost_history(tx,read_opening=read_program_account_opening)
+            book=tx.projections.book(c.scope)
+        assert peer_rows()==before
+        read_end,write_end=os.pipe();child=os.fork()
+        if child==0:
+            os.close(read_end)
+            try:
+                with c.service.uow.transaction(c.scope) as tx:
+                    assert require_program_cost_history(tx)==proof
+                    assert reconcile_program_cost_history(tx,read_opening=read_program_account_opening)==proof
+                    assert tx.projections.book(c.scope)==book
+                with os.fdopen(write_end,'w') as stream:stream.write('verified')
+            except BaseException:os._exit(71)
+            os._exit(0)
+        os.close(write_end)
+        with os.fdopen(read_end) as stream:assert stream.read(32)=='verified'
+        _,status=os.waitpid(child,0)
+        assert os.waitstatus_to_exitcode(status)==0 and peer_rows()==before
+    finally:codec.close()

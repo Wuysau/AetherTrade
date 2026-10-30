@@ -33,3 +33,15 @@ def test_finite_conversion_ignores_decimal_context():
     with localcontext() as ctx:
         ctx.prec=2
         assert exact_decimal(F(32628596,1000))==D('32628.596')
+
+
+def test_homogeneous_same_time_economics_commute_but_mixed_side_does_not():
+    # This algebra justifies accepting equal native timestamps for one side.
+    a=dict(side='BUY',base_delta=D(3),quote_delta=D(-10))
+    b=dict(side='BUY',base_delta=D(2),quote_delta=D(-9))
+    assert apply_spot_cost(apply_spot_cost(SpotCost(),**a),**b)==apply_spot_cost(apply_spot_cost(SpotCost(),**b),**a)
+    initial=SpotCost(F(5),F(19),F(0))
+    x=dict(side='SELL',base_delta=D(-1),quote_delta=D(5))
+    y=dict(side='SELL',base_delta=D('-1.1'),quote_delta=D('5.7'))
+    assert apply_spot_cost(apply_spot_cost(initial,**x),**y)==apply_spot_cost(apply_spot_cost(initial,**y),**x)
+    assert apply_spot_cost(apply_spot_cost(initial,**a),**x)!=apply_spot_cost(apply_spot_cost(initial,**x),**a)

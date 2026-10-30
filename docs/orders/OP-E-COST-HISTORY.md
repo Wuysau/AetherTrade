@@ -27,8 +27,8 @@ Recovery requires running the same read/reconcile functions in the current autho
 
 ## Evidence and qualification limits
 
-Pure arithmetic: `python -X utf8 -m pytest tests/test_program_cost_math.py -q`: 4 passed. Syntax compile check passed.
+Pure arithmetic: `python -X utf8 -m pytest tests/test_program_cost_math.py -q`: 5 passed. Syntax compile check passed.
 
 First fixed-source PG attempt: `a2dd0a1`, suite `program-cost-history`, requested immutable runner `sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7`, timeout 1200, offline dependencies. Launcher `3ff7b768ae4d` exited 1 during postgres-start with Docker Desktop LinuxEngine /_ping HTTP 500. Zero tests ran. This is infrastructure evidence, not genuine RED or qualification.
 
-Pending: actual native source reconciliation PG RED/GREEN; affected owned, working, source, cash cohorts; authentic SELL/base-fee native cycles; restart/peer nonmutation. No LIVE, TESTNET, derivative, historical migration, external-FX or protection qualification is claimed.
+Pending: actual native source reconciliation PG RED/GREEN; affected owned, working, source, cash cohorts; authentic SELL/base-fee native cycles; restart/peer nonmutation execution (tests authored). No LIVE, TESTNET, derivative, historical migration, external-FX or protection qualification is claimed.
