@@ -306,23 +306,15 @@ def _consumed_permit_clock(engine,permit,*,after=None,created_at=None):
     return clock
 
 
-def _current_consumed_owner(boundary,write,lease,consumption,assessment):
+def _current_consumed_owner(boundary,write,lease,consumption,assessment,permit):
     """Fresh owner/fence/book check; never consume twice or renew authority.
 
     The short business read commits before returning to each SIM write barrier.
     The host additionally serializes revocations with its side-effect guard.
     """
-    from trading_system.execution.program_commands import ProgramCommandRepository
-    from trading_system.intents.generic_program_intake import current_fence
-    with boundary.uow.transaction(write.scope) as tx:
-        latest=tx._latest('order_writes_v2',write.command_id,ApplicationWriteV3)
-        require(latest is not None and digest(latest)==digest(write),'PAPER_CURRENT_COMMAND_CHANGED')
-        _,current_lease=ProgramCommandRepository(tx,**boundary.readers)._clock_lease(latest)
-        require(digest(current_lease)==digest(lease),'PAPER_CURRENT_OWNER_CHANGED')
-        fence=current_fence(tx,assessment.source.context)
-        require(digest(fence)==canonical_hash(consumption['fence']),'PAPER_CURRENT_FENCE_CHANGED')
-        book=tx.projections.book(write.scope)
-        require(book is not None and digest(book)==digest(assessment.book),'PAPER_CURRENT_BOOK_CHANGED')
+    current=boundary.recheck_consumed(permit,lease)
+    require(digest(current.write)==digest(write) and current.request.command_id==write.command_id
+        and current.consumption_context_hash==canonical_hash(consumption),'PAPER_CURRENT_CONSUMED_CONTEXT_CHANGED')
 
 
 def _accepted_context(payload,request):
@@ -439,7 +431,7 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                 key=market_key(engine.scope.product,engine.scope.instrument_uid)
                 db.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(key,))
                 with owner.guard(lease):
-                    _current_consumed_owner(boundary,original,lease,consumption,assessment)
+                    _current_consumed_owner(boundary,original,lease,consumption,assessment,permit)
                     clock=_consumed_permit_clock(engine,permit,after=clock,created_at=original.created_at)
                 terms['accepted_clock']=domain_payload(clock)
                 require(db.execute('SELECT 1 FROM public.paper_engine_commands WHERE scope_key=%s AND command_id=%s',
@@ -455,7 +447,7 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                 db.execute('SELECT public.paper_match_order(%s,%s)',(engine._scope_key,client))
                 # Owner clock/lease remains held and current through SIM commit.
                 with owner.guard(lease):
-                    _current_consumed_owner(boundary,original,lease,consumption,assessment)
+                    _current_consumed_owner(boundary,original,lease,consumption,assessment,permit)
                     _consumed_permit_clock(engine,permit,after=clock,created_at=original.created_at)
         report=query_creation(engine,write.command_id)
         return PaperCreationReceipt(command_id=write.command_id,request_hash=digest(request),scope=engine.scope,
