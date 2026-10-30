@@ -10,6 +10,7 @@ from integration.test_program_financial_admission import real_case
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash
 from trading_system.storage.uow import UnitOfWork
+from trading_system.storage.models import scope_id
 
 
 @pytest.fixture(scope='module')
@@ -64,7 +65,7 @@ def test_explicit_full_vector_is_committed_without_position_or_send_authority(da
         assert actual==proof and {m.currency:m.amount for m in actual.balances}==dict(USDT=D('1000000'),BTC=D(10))
         assert actual.collateral_group_id==tx.group_id and not actual.execution_authorized
         assert tx.execute('SELECT count(*) FROM ledger.positions WHERE scope_id=%s',
-            (__import__('trading_system.storage.models',fromlist=['scope_id']).scope_id(c.scope),)).fetchone()==(0,)
+            (scope_id(c.scope),)).fetchone()==(0,)
 
 
 def test_owner_cannot_turn_an_opening_dto_into_capital(database):
