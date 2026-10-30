@@ -539,3 +539,51 @@ def test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_f
     assert report.status=='WAITING_POSITION_SOURCE' and not report.orders and not report.fills
     assert report.pool.original_quantity==report.pool.remaining_pool_quantity==1 and report.pool.allocated_quantity==0
     assert report.accepted_contexts[0].compilation.nodes[0].original.order.reduce_only is True
+
+
+def position_source(c,sequence,quantity,through):
+    from trading_system.engine.paper_market_v2 import PaperPositionEventV2
+    return PaperPositionEventV2(contract_version='2026-10-30',event_id='position-'+str(sequence),stream_id=c.scope.instrument_uid,
+        product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=sequence,kind='ACCOUNT_POSITION',
+        venue_account_id=c.scope.venue_account_id,venue_leg=c.scope.venue_leg,quantity_unit=c.bundle.intent.unit.native_unit,
+        notional_multiplier=c.bundle.archive.compilation.nodes[0].quantity_multiplier,reported_quantity=quantity,through_sequence=through,
+        occurred_at=c.c.facts.inputs.clock.utc_now,source='PAPER_MARKET_REPLAY_SYNTHETIC')
+
+
+def test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE',product=t.Product.USD_M_PERP,
+        actual='1',target='0',side='SELL',reduce_only=True);submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(position_source(c,1,'1',0))
+    matcher.apply_market_event(replace(event(c,sequence=2,ask='81500',quantity='1'),bids=(DepthLevel(price='81490',quantity='1'),)))
+    partial=c.engine.query_creation(c.write.command_id)
+    assert partial.pool.executed_quantity==D('0.2') and len(partial.fills)==1
+    with c.engine._connect() as db:
+        row=db.execute('SELECT quantity,known FROM public.paper_venue_positions_v2 WHERE account_id=%s',
+            (c.scope.venue_account_id,)).fetchone()
+        assert row['quantity']==D('0.8') and row['known']
+    matcher.apply_market_event(position_source(c,3,'0',2))
+    stopped=c.engine.query_creation(c.write.command_id)
+    assert stopped.status=='STOPPED_NO_POSITION' and len(stopped.orders)==1 and stopped.pool.executed_quantity==D('0.2')
+    assert stopped.pool.remaining_pool_quantity==D('0.8')
+    proof=c.engine.query_market_evidence(c.write.command_id)
+    assert {i.event.event_id for i in proof.inputs if i.event.kind=='ACCOUNT_POSITION'}=={'position-1','position-3'}
+
+
+def test_stale_position_snapshot_replays_actual_fill_tail_and_conflicting_watermark_retains_unknown_facts(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE',product=t.Product.USD_M_PERP,
+        actual='1',target='0',side='SELL',reduce_only=True);submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(position_source(c,1,'1',0))
+    matcher.apply_market_event(replace(event(c,sequence=2,ask='81500',quantity='1'),bids=(DepthLevel(price='81490',quantity='1'),)))
+    matcher.apply_market_event(position_source(c,3,'1',0))
+    with c.engine._connect() as db:
+        row=db.execute('SELECT quantity,known FROM public.paper_venue_positions_v2 WHERE account_id=%s',(c.scope.venue_account_id,)).fetchone()
+        assert row['quantity']==D('0.8') and row['known']
+    matcher.apply_market_event(position_source(c,4,'0.9',0))
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.status=='WAITING_POSITION_SOURCE' and report.pool.executed_quantity==D('0.2')
+    with c.engine._connect() as db:
+        row=db.execute('SELECT quantity,known FROM public.paper_venue_positions_v2 WHERE account_id=%s',(c.scope.venue_account_id,)).fetchone()
+        assert row['quantity']==D('0.8') and not row['known']
+    assert any(i.event.event_id=='position-4' for i in c.engine.query_market_evidence(c.write.command_id).inputs)
