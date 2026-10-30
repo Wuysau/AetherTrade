@@ -69,6 +69,8 @@ def test_actual_quote_mark_commits_and_consumes_exact_original_request_once(data
     c=admitted(database);g=gate(c);permit=g.mark_may_have_sent(c.cid,lease(c))
     request=g.consume(permit,lease(c))
     assert dict(request.form_parameters())['quoteOrderQty']=='4000'
+    checked=g.recheck_consumed(permit,lease(c))
+    assert checked.request==request and not checked.execution_authorized
     with pytest.raises((ValueError,psycopg.errors.UniqueViolation)):g.consume(permit,lease(c))
     with c.owner.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
@@ -87,6 +89,7 @@ def test_real_foreign_financial_write_counts_cash_once_without_becoming_quote_qu
     c.qload=load
     receipt=public(c).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan);c.cid=receipt.attachment.command_ids[0]
     g=gate(c);permit=g.mark_may_have_sent(c.cid,lease(c));request=g.consume(permit,lease(c))
+    assert g.recheck_consumed(permit,lease(c)).request==request
     assert dict(request.form_parameters())['quoteOrderQty']=='4000'
     assert c.q.allocation.scope_state.working.value==0
     with c.owner.transaction(c.scope) as tx:
@@ -97,6 +100,12 @@ def test_real_foreign_financial_write_counts_cash_once_without_becoming_quote_qu
         assert len(actual)==len(foreign.reservations)==1
         assert actual[0]['reservation']['reservation_id']==foreign.reservations[0].reservation.reservation_id
         assert canonical_hash(context['assessment']['book'])!=context['source_book_hash']
+
+
+def test_quote_consumed_guard_independently_requires_the_current_execution_reader(database):
+    c=admitted(database);g=gate(c);permit=g.mark_may_have_sent(c.cid,lease(c));g.consume(permit,lease(c))
+    g.readers['load_execution_bounds']=None
+    with pytest.raises(ValueError,match='QUOTE_CURRENT_ENFORCEMENT_REQUIRED'):g.recheck_consumed(permit,lease(c))
 
 
 @pytest.mark.parametrize('fault',['missing_reader','changed_bound','changed_raw_book'])
