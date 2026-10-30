@@ -1,5 +1,54 @@
 # Current root and cash continuation
 
+## Current active writer and component checkpoint — 2026-10-30
+
+This section supersedes historical ownership/test instructions below. Parent
+explicitly assigned integration_fresh sole ROOT and D ownership. Root current
+product43ba29c, fixture/proof93efd36; D product6543655/final tests6133034,
+proofd75cc14. Both trees clean at this checkpoint; all own test handles terminal.
+Parent coordinates read-only; cash_fresh/cash_review own separate cash work.
+Full46/56 C–G stays ACTIVE. Main/public-snapshot/archives remain untouched.
+
+Actual root components: frozen producer6adc with exact0014df9e has21V2PG and
+23unchangedV1PG green; reviewed verifierbc4b3d6 has51PG green238.15s. Its320raw
+peer artifacts were imported with exact8a83a58 Git blobs. Neutral cash/opening
+files were selected from reviewed1de1e5c (including reader-is fix), excluding
+ownedwriter/preview. Raw-book cash rederivation43ba is installed at collateral,
+mark/consume _current and original-permit post-wait recheck:3PGgreen12.46s,
+accountcash7PG/crossscopebookcash3PG each green. Parent scoped hooks review clear.
+After genuine1770pass26fixturefails, the explicit old-schema fake was extended;
+full93efd36 unit/contracts/intents1796pass61.87s. All86 source/guard raw artifacts
+are preserved under op-e-root-source-and-cash-guards. These are components,
+not a replacement for originala0ca274 full50/source-specific gate.
+
+D evolving nullable position fix: whole-row IS NOT NULL skipped healthy rows
+with nullable discrepancy; new reported local shadowed depth column. Six key
+presence predicates and qualified depth column fixed genuine28pass5fail RED.
+Final6133034 actual34PG green157.49s, with all six source runs/96raw originals
+retained and independently verified againstCURRENTd75cc14 Git blobs. NEW test
+fixture corrections retain actual GTC0.85 and zero asset holds. This evolving
+0014 SHA8d80... remains OUTSIDE root/frozen V2 source registration.
+
+Important open boundaries: source registry still V1-only pending cash_fresh's
+reviewed exact verifier/result/tagged normalized decoder. Current neutral cash
+components are NOT ownership-ready: fresh review found economic-marker-only
+readiness and forged owned replay defects, with EventStore/outbox/two-scope
+preview fixes still under peer implementation/review. Never promote current
+frame/binding to a spendable grant. Preview is financial-only and cannot pass
+neutral admission/send checks. After B completes, A requires its OWN owner-TX
+reconcile/bind and a fresh bounded intake; no cross-scope saves or nested UoWs.
+Legacy runtime uses active_owners/books rather than RegistryTx.owner; whole
+account vector refresh and explicit trusted owner adaptation need real PG proof.
+
+Next serial root work: select ONLY reviewed strict ownership-ready cash and V2
+source decoder changes; actual private approval/old codec/accounting regression;
+legacy host whole-vector refresh; actual observed continuation/protection/fees;
+management durableV4 and true parent_activation_ref local children; remaining
+native/local families and full host/API/model-cross/RULE/HYBRID; real source-bound
+full59 mandatory PG+ordinary/web gates and truthful original46/56 matrices.
+No cohort count promotes a complete scenario. All old rows/Schemas/hashes,
+UNKNOWN/original IDs/reservations and hard external-disable gates remain.
+
 EXPLICIT FINAL WRITE RELEASE: parent approved and integration_next RELEASES root
 write ownership after this checkpoint. No root livejobs remain;96697 completed
 successfully,125 original fullgate artifacts verified againstCURRENT committed

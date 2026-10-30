@@ -23,6 +23,10 @@ Legacy host owner representation/whole vector refresh remains an actual PG gap.
 
 D6133034 actual34PG GREEN157.49s/d75cc14 evidence96 files; frozen root producer
 6adc exact0014df9e actual21+23PG and V2 verifierbc4 actual51PG stay separate.
+Original17776 fixed93efd36 complete unit/contracts/intents now TERMINALexit0:
+1796pass/0fail/error/skip61.87s. Three new original log/XML/manifest files bring
+the source/guard component map to86 raw files. D96 original/copy/CURRENTd75cc14
+Git blobs were independently reverified with0mismatch. All listed jobs terminal.
 No root/D testjob currently live. Full46/56 and OP-C→D/E/F→G remain ACTIVE; original
 fulla0ca gate and later13f exact-lot component keep their source identities.
 
