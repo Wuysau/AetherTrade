@@ -1,5 +1,99 @@
 # Current task
 
+## WRITE OWNERSHIP RELEASED — accounting fresh handoff
+
+Parent/root explicitly requested this checkpoint handoff. `cash_fresh` releases
+all write ownership of THIS accounting worktree after this commit. There is no
+writer until parent assigns a fresh implementer; `cash_review` is read-only.
+No root/orders tree was written. Full46/56 remains ACTIVE: this is neither goal
+completion nor a user-requested pause. All40 qualification jobs and the644-file
+original/copy/committed-Git-blob proof are TERMINAL; no live job should be resumed
+or restarted. Last clean pre-release checkpoint0c13a96; productf0707c5.
+
+Concrete installed APIs for the next implementer (preserve exact static routes):
+
+- `program_account_cash.read_program_account_cash(tx, *, read_opening=None)` is
+  the STRICT neutral reader. Generic ROOT callsites must require nonNone BEFORE
+  first admission/mark/consume/afterwait; None only preserves legacy/no-generic
+  compatibility. Protected0019/0020 readers are exact-identity registered.
+- `observe_program_account_cash(tx, *, read_opening=None)` is FINANCIAL-ONLY
+  observed native economics; NEVER supply it to neutral guards, permissions,
+  BookCashBinding, admission or plan renewal. It still checks real source and
+  FillLedger; it cannot invent capital, fees, owned inventory or history.
+- `program_book_cash.require_current_program_book_cash(tx, book, *, read_opening)`
+  rereads the actual raw current book, complete financial transitions and exact
+  account revision/vector in the existing collateral transaction.
+  `bind_program_book_cash` uses that strict reconstruction. Owner-only
+  `reconcile_program_book_cash(tx, *, read_opening)` writes only tx.scope and
+  increments book sequence/basis before binding; old bounded intake must replan.
+- `ProgramPaperAccountingService(..., financial_posting=None)` defaults to the
+  original raw-facts/retained-duty transaction. Concrete opt-in is
+  `ProgramOwnedSpotPosting(read_opening=read_program_local_account_opening)`.
+  `post(tx, approvals, fill_ledger)` returns `(duties, complete_bool)`; a peer
+  pending projection commits this scope with NO cash binding and returns
+  OWN_SCOPE_POSTED_ACCOUNT_RECONCILIATION_REQUIRED. Replays do not silently bind.
+- `require_owned_program_posting(tx, fact)` validates versioned complete/exclusive
+  native batch→owner transition plus actual position/book/EventStore/outbox/FEE
+  rows. V1 candidate markers are unqualified. FEE leg evidence IDs are unique;
+  copy_negate preserves exact native fee precision. Cost/history/protection and
+  locks remain unresolved; no order outcome, reservation release or FLAT grant.
+- `program_fill_source.save_verification_snapshot(tx, verified)` returns
+  `(snapshot_hash, normalized_hashes)` and can preserve a genuine accepted,
+  unfilled GTC query. Verifier/archive work is outside that protected transaction.
+  `_source_context` is unchanged. Static actual V1/V2 verifier/result/normalized
+  routes keep untagged V1 bytes and tagged V2 with genuine unchanged PaperMarketFill.
+  Unknown/partial tags fail; V2 cannot masquerade under the old full V1 wrapper.
+  `approve()` still returns NO_FILLS without fill approvals on the zero-fill path.
+- `read_program_local_account_opening` selects protected initial proof only.
+  0024 adds bilateral/concurrent exclusivity;0019/original0020 proofs and bytes
+  stay intact. Root reserved0021 knownness,0022/0023 management; do not reuse them.
+
+Exact unfinished scenes/dependencies, not to be dropped or faked:
+
+1. `test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes`
+   in tests/integration/test_program_owned_posting.py remains the ONE failing
+   latest PG case (10pass/1fail). CASH old generic target adapter includes group
+   holds in scope quantity compilation and fails RESERVATION_QUANTITY_REQUIRED
+   while attaching B. Earlier TARGET_BOOK_OR_COMPILATION_CHANGED and every raw
+   precondition failure are preserved. This has NOT reached either native
+   financial-livelock assertion. Root owns the current typed scope/group quantity
+   filtering and independently protected submission knownness. Do not bypass
+   PROGRAM_OTHER_COMMAND_UNRESOLVED, weaken holds, transplant approvals, fabricate
+   fills, or fake permits to make this fixture reach finance.
+2. Obtain parent/lead's FIXED reviewed ROOT dependency commit before importing
+   producer/target/knownness support into this sole-write tree. Lead proposed
+   ProgramSubmissionObservationService.observe(command_id) and protected latest/
+   ever-accepted observation reads; confirm final API/path from that commit.
+   Construct A then B with actual current group holds; prove accepted-unfilled
+   GTCs under separate commands, genuine matcher fills/source/raw for BOTH, A
+   own-scope projection without binding, B completion, then A's OWN transaction
+   reconcile/bind/new bounded intake. Prove B never writes A; retain all duties.
+3. FIRST generic financial/send barriers require actual committed local opening
+   even without fills. ROOT implements the exact nonNone check and correct
+   management/history exceptions. Qualified query/original-ID recovery remains
+   available; no management exception may increase exposure or capital.
+4. Actual V2 source→protected approval→raw/owned transaction PG proof is still
+   pending ROOT frozen producer integration. This tree only pins four reviewed
+   provider blobs equal7925851; its old paper_market.py does not activate V2.
+   Root owns the actual frozen1b12 producer/consumed recheck dependencies. Do not
+   promote evolving native-parent/execution families or USD-M/Equity settlement
+   from the V2 verifier/source/component tests.
+5. Legacy mixed history lacks an authenticated complete source/fee adapter.
+   Fail LEGACY_AUTHENTICATED_SOURCE_REQUIRED and preserve the old book. Existing
+   original raw.zip fees=[] /missing wrappers is compatibility/rejection evidence;
+   never invent wrappers, .001 fees, sourceVerified or opening assets. Positive
+   mixed-history credit needs real independently bound historical facts.
+6. Fresh read-only review of final replay/static source paths, actual combined
+   ROOT mandatory PG gate, all requested fee/unit/product/dust/reduction cases
+   and full46/56 integration remain outstanding. Current scoped PG/unit results
+   below cannot certify those. No host/models/accounts/Testnet/LIVE were enabled.
+
+Recommended first action for the next assigned writer: read this entire handoff
+and current-task reconstruction section, parent/lead reviewed fixed dependency
+commit and cash_review findings; inspect clean HEAD; import ONLY coordinated
+product/test dependencies; continue the existing failing2command case with actual
+source pipeline. Original40jobs/644files are terminal and already SHA-verified.
+
 ## Fresh cash/source/replay checkpoint — 2026-10-30
 
 `cash_fresh` remains sole accounting writer; current productf0707c5. No live

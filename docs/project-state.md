@@ -1,5 +1,13 @@
 # Project state
 
+Accounting branch checkpoint2026-10-30: fresh writer released after product
+f0707c5/evidence0c13a96; exact continuation/ownership lives at current-task.md top.
+Protected initial proof0019/0020+additive0024, observed-only versus strict cash
+readers, and versioned native→owner/position/book transition proof exist in this
+branch. Full Root integration, legal2command and actual V2 financial proof remain
+unfinished; latest ownedPG10pass/1fixture prerequisite is not a green full gate.
+Full Binance46/56 goal remains ACTIVE; no operational trading was resumed.
+
 Latest engineering2026-10-29: ACTIVE full Binance46-target/56-case OP-C→D/E/F→G
 continuation. Implementation tree is TradingHandoff/AutoDispatchWorktrees/binance-orders;
 sole writer integration_next, parent coordinates/reviews (and may own separate
