@@ -117,3 +117,29 @@ def test_later_longer_policy_cannot_authenticate_relabelled_original_shorter_tok
     changed=replace(c.permit,expires_at=(utc_timestamp(c.permit.expires_at)+timedelta(milliseconds=1000)).isoformat(),
         deadline_monotonic_ns=c.permit.deadline_monotonic_ns+1_000_000_000)
     with pytest.raises(ValueError):check(c,permit=changed)
+
+
+def test_genuine_historical_mark_without_window_keeps_original_query_but_cannot_clear_send(database):
+    import secrets
+    from trading_system.execution.program_commands import ProgramCommandRepository,ProgramWritePermit,_token_hash
+    from trading_system.contracts.canonical import canonical_json
+    from trading_system.recovery.original_creation import read_original_creation
+    c=real_case(database);c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+    c.gate=boundary(c);c.lease=lease(c);token=secrets.token_urlsafe(32)
+    # Reproduce the historical server implementation through the genuine
+    # restricted SQL function and current financial verifier, never forged rows.
+    with c.gate.uow.transaction(c.scope) as tx:
+        repo=ProgramCommandRepository(tx,**c.gate.readers)
+        context,clock,current,expires,request=repo._current(c.write,c.lease)
+        assert 'permit_window' not in context
+        ttl=min(tx.permit_ttl_ms,int((expires-utc_timestamp(clock.utc_now)).total_seconds()*1000),
+            (current.deadline_monotonic_ns-clock.monotonic_ns)//1_000_000)
+        tx.execute('SELECT ledger.mark_program_may(%s,%s,%s::jsonb,%s,%s,%s)',
+            (scope_id(c.scope),c.write.command_id,canonical_json(context),_token_hash(token),ttl,tx.transaction_id))
+    c.permit=ProgramWritePermit(command_id=c.write.command_id,scope=c.scope,request_hash=c.write.request_hash,
+        binding_hash=c.write.binding_hash,token=token,expires_at=(utc_timestamp(clock.utc_now)+timedelta(milliseconds=ttl)).isoformat(),
+        deadline_monotonic_ns=clock.monotonic_ns+ttl*1_000_000)
+    c.gate.consume(c.permit,c.lease)
+    with pytest.raises(ValueError):check(c)
+    with c.owner.transaction(c.scope) as tx:restored=read_original_creation(tx,c.write.command_id)
+    assert restored.request==c.request and restored.current_state=='MAY_HAVE_SENT' and not restored.can_resubmit
