@@ -2,7 +2,7 @@
 from decimal import Decimal as D
 import pytest
 
-from integration.test_program_owned_posting import isolated_postgres,command_database,source_database,database,venue,setup
+from integration.test_program_owned_posting import isolated_postgres,command_database,source_database,cash_database,database,venue,setup
 from integration.test_paper_market_matcher import event
 from trading_system.engine.paper_market import PaperMatcher,PaperMarketFill
 from trading_system.execution.program_account_cash import read_program_account_cash
