@@ -76,4 +76,7 @@ with discrepancies and reconciliation duties. Source gross/fee conflicts and
 nonzero-model missing fees preserve native facts; unknown fees remain unknown.
 The51-case fixed7925851 PG cohort includes an actual admitted USD-M nonidentity
 FinancialUnit and preserves separate native and ledger quantities; Spot cash
-admission invariants remain unchanged. Independent review is still required.
+admission invariants remain unchanged. Independent read-only review of the
+source-binding fix and stated economic cohort at8a83a58 completed with no
+findings. Parent registry/accounting integration and broader qualification
+remain separate required steps.

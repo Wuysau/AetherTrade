@@ -1,6 +1,6 @@
 # Current task
 
-## OP_E_V2_SOURCE_CURRENCY_FIX_REVIEW_PENDING — 2026-10-30
+## OP_E_V2_SOURCE_CURRENCY_FIX_REVIEWED_RELEASED — 2026-10-30
 
 Parent assigned v2_source_fix sole writes in this V2 worktree from clean34e952c;
 all other worktrees, shared registry/decoder, producer, V1 and migrations remain
@@ -38,9 +38,19 @@ SHA mappings. Actual committed blob verification is recorded separately after
 publication. Frozen producer/V1/0013/0014 hashes remain unchanged. Prior producer
 21 and V1 compatibility23 remain honestly attributed to0d41c50, not this51 run.
 
-NEXT REQUIRED: independent read-only review of7925851 source/51-case evidence,
-then parent alone decides static registry/decoder/accounting integration and
-actual combined root gates. Source approval is NOT enabled. Full46/56 remains
+Independent integration_fresh read-only review of34e952c..8a83a58 completed:
+no Critical/Important/Minor findings for the requested source-binding repair
+and stated economic coverage. Reviewer independently reverified all320 original/
+copy/CURRENT committed SHA hashes with zero mismatches and XML51/0/0/0 239.116s.
+No fresh PG run was performed by the reviewer. The exact reviewed source is
+7925851;8a83a58 includes the committed evidence/proof. This final checkpoint
+changes documentation only, leaving reviewed source/tests/evidence unchanged.
+
+v2_source_fix releases sole write ownership of this CLEAN worktree to parent;
+no live jobs or uncommitted changes remain and no further writes are planned.
+Parent alone assigns the next writer and decides static registry/decoder/
+accounting integration and actual combined root gates. Source approval is NOT
+enabled. Full46/56 remains
 ACTIVE, and evolving native-parent/execution contracts remain blocked until
 their actual producer contract is adapted. SourceVerified supplies no economics,
 cash, ownership, protection, account history, reservation release or new permit.
