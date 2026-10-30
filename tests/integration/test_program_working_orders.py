@@ -38,7 +38,7 @@ def test_actual_accepted_unfilled_order_is_working_quantity_without_inventory_or
     finally:codec.close()
 
 
-def test_owned_plus_real_working_leaves_new_bounded_intake_is_no_action_and_replay_stable(database,venue,tmp_path):
+def test_owned_plus_real_working_leaves_new_bounded_intake_retains_cost_block_and_replay_stable(database,venue,tmp_path):
     from trading_system.execution.program_order_projection import read_program_working_inputs
     from trading_system.intents.program_target_allocation import compile_program_target
     from trading_system.intents.generic_program_intake import GenericProgramIngress
@@ -81,9 +81,11 @@ def test_owned_plus_real_working_leaves_new_bounded_intake_is_no_action_and_repl
                 inputs=replace(old.inputs,pending=working.pending,order_sides=working.order_sides))
             scoped=ProgramScopedTargetFactsV2(**values,contract_version='2026-10-30',record_kind='PROGRAM_SCOPED_TARGET_FACTS_V2',
                 quantity_scope=c.scope,quantity_reservation_ids=current_program_quantity_reservation_ids(tx,raw,financial))
-            result=compile_program_target(facts.compilation,financial,scoped)
-            assert result.delta.actual.value==D('.4') and result.delta.working.value==D('.6')
-            assert result.delta.remaining.value==0 and result.blockers==('TARGET_ALREADY_SATISFIED',) and not result.requests
+            # Quantity facts cover the requested target, but the existing core
+            # still requires complete cost evidence even for a no-action plan.
+            assert raw.positions[0].actual_quantity.value+raw.active_orders[0].leaves_quantity.value==D(1)
+            with pytest.raises(ValueError,match='POSITION_EVIDENCE'):
+                compile_program_target(facts.compilation,financial,scoped)
             assert tx.intents.get(intake.intent_id) is None and tx.reservations.for_intent(intake.intent_id)==()
             assert tx.execute('SELECT count(*) FROM ledger.order_writes_v2 WHERE scope_id=%s AND sequence=1',
                 (scope_id(c.scope),)).fetchone()==(1,)

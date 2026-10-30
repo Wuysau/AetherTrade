@@ -43,6 +43,25 @@ class OrderProjector:
         self.require_evidence = require_evidence
 
     def apply(self, event: t.DomainEvent, previous: t.OrderProjection) -> t.ProjectionUpdate:
+        return self._apply(event,previous,expected_event_revision=previous.sequence,
+            projection_sequence=event.revision)
+
+    def apply_observation(self,event:t.DomainEvent,previous:t.OrderProjection,*,expected_event_revision:int)->t.ProjectionUpdate:
+        """Apply a verified cumulative snapshot with a separate projection row.
+
+        FillLedger can commit native events before the first order snapshot.
+        The caller binds the real shared event head and complete fill coverage;
+        this method retains that event object/revision for evidence validation.
+        It does not consume unseen incremental fills or invent a prior snapshot.
+        The original apply entry point still requires its contiguous revision.
+        """
+        if not isinstance(event.payload,t.OrderProjection):raise TypeError('observation requires an order snapshot')
+        if type(expected_event_revision) is not int or expected_event_revision<0 or type(event.revision) is not int:
+            raise ValueError('actual event revision required')
+        return self._apply(event,previous,expected_event_revision=expected_event_revision,
+            projection_sequence=previous.sequence+1)
+
+    def _apply(self,event,previous,*,expected_event_revision,projection_sequence):
         scope = previous.order.identity.scope
         if scope.environment == t.Environment.LIVE:
             raise ValueError('LIVE is not enabled in this stage')
@@ -50,7 +69,7 @@ class OrderProjector:
             raise ScopeMismatch('projection scope mismatch')
         if event.aggregate_id != 'order:' + previous.order.identity.logical_client_order_id:
             raise ScopeMismatch('projection aggregate mismatch')
-        if event.revision != previous.sequence + 1:
+        if event.revision != expected_event_revision + 1:
             raise SequenceConflict('projection requires contiguous aggregate sequence')
         utc_timestamp(event.occurred_at)
         if any(ref.environment != scope.environment for ref in event.evidence):
@@ -94,7 +113,7 @@ class OrderProjector:
                                     and provenance in VENUE else previous.lifecycle_revision),
                 filled_quantity=t.Quantity(value=value, unit=total.unit),
                 leaves_quantity=t.Quantity(value=leaves, unit=total.unit),
-                sequence=event.revision)
+                sequence=projection_sequence)
         elif isinstance(payload, t.OrderProjection):
             if payload.order != previous.order:
                 raise ScopeMismatch('order identity or ownership mismatch')
@@ -139,7 +158,7 @@ class OrderProjector:
                 filled_quantity=t.Quantity(value=filled, unit=previous.filled_quantity.unit),
                 leaves_quantity=t.Quantity(value=leaves, unit=previous.leaves_quantity.unit),
                 lifecycle_revision=payload.lifecycle_revision if accept_lifecycle else previous.lifecycle_revision,
-                sequence=event.revision)
+                sequence=projection_sequence)
         else:
             raise TypeError('unsupported order event payload')
         # Inputs are already ledger events. Returning them in events would make

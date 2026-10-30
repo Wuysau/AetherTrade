@@ -15,7 +15,7 @@ from trading_system.intents.target_compiler import PendingQuantity
 from trading_system.ownership.registry import RegistryTx
 from trading_system.recovery.original_creation import read_original_creation
 from trading_system.risk.exposure import WorkingOrder
-from trading_system.risk.program_financial_admission import read_program_bundle
+from trading_system.risk.program_financial_admission import BUNDLE_PREFIX,decode_program_bundle
 from trading_system.risk.program_quantity_scope import current_program_quantity_reservation_ids
 from trading_system.risk.reservations import prepare_collateral
 from trading_system.storage.events import EventStore
@@ -39,10 +39,13 @@ def marker_id(logical):return 'program-order-source:'+logical
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramOrderSource:
+    contract_version:Literal['2026-10-30']
+    record_kind:Literal['PROGRAM_ORDER_SOURCE_V1']
     command_id:str
     source_snapshot_hash:str
     projection_hash:str
     event_id:str
+    applied_event_revision:int
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -62,12 +65,22 @@ class ProgramWorkingInputs:
     pending:tuple[PendingQuantity,...]
 
 
+def _original_bundle(tx,original):
+    row=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
+        (scope_id(tx.scope),BUNDLE_PREFIX+original.initial.intent_id)).fetchone()
+    need(row is not None,'PROGRAM_ORDER_ORIGINAL_FUNDING_CHANGED')
+    bundle=decode_program_bundle(row[0])
+    need(digest(bundle.intent)==original.initial.intent_hash and digest(bundle.archive)==original.initial.archive_hash,
+        'PROGRAM_ORDER_ORIGINAL_FUNDING_CHANGED')
+    return bundle
+
+
 def _source(tx,command_id,reader):
     original=read_original_creation(tx,command_id)
     need(original is not None,'PROGRAM_ORDER_ORIGINAL_REQUIRED')
     view=read_program_submission_observation(tx,original.initial)
     need(view is not None and view.submission_known,'PROGRAM_ORDER_QUERY_UNKNOWN')
-    bundle=read_program_bundle(tx,original.initial.intent_id)
+    bundle=_original_bundle(tx,original)
     need(bundle is not None and bundle.archive.compilation.original_program.template=='ATOMIC'
         and tx.scope.product==t.Product.SPOT,'PROGRAM_ORDER_EXECUTION_FAMILY_UNQUALIFIED')
     need(tx.execute('SELECT ledger.program_binding_current(%s,%s,%s::jsonb)',
@@ -128,7 +141,7 @@ def _persisted(tx,command_id,derived,reader):
     # Historical proof remains valid on an identical fresh query, but cannot be
     # replaced by a flag or a marker referring to another command's snapshot.
     source=reader.read_snapshot(command_id,binding.source_snapshot_hash)
-    original=read_original_creation(tx,command_id);bundle=read_program_bundle(tx,original.initial.intent_id)
+    original=read_original_creation(tx,command_id);bundle=_original_bundle(tx,original)
     native=tuple(decode(t.OrderProjection,p) for p in source['verification']['orders'])
     need(len(native)==1 and source['verification']['source_verified'] is True
         and source['verification']['status']=='VERIFIED' and source['verification']['discrepancies']==[],
@@ -146,6 +159,7 @@ def _persisted(tx,command_id,derived,reader):
         and event[0]['payload']==domain_payload(projection) and event[0]['scope']==domain_payload(tx.scope)
         and event[0]['aggregate_id']=='order:'+logical and event[0]['evidence']==source['verification']['raw_refs'],
         'PROGRAM_ORDER_PROJECTION_PROOF_REQUIRED')
+    need(event[0]['revision']==binding.applied_event_revision,'PROGRAM_ORDER_PROJECTION_PROOF_REQUIRED')
     need(tx.execute("SELECT xmin::text,transaction_id FROM ledger.outbox WHERE event_id=%s AND kind='DOMAIN_EVENT'",
         (binding.event_id,)).fetchall()==[row[1:]],'PROGRAM_ORDER_PROJECTION_PROOF_REQUIRED')
     return projection
@@ -167,6 +181,7 @@ class ProgramPaperOrderProjectionService:
             need(view.observation_id==observed.observation_id,'PROGRAM_ORDER_QUERY_CHANGED')
             book=tx.projections.book(self.scope);logical=derived.order.identity.logical_client_order_id
             previous=tx._latest('order_projections',logical,t.OrderProjection)
+            if previous is not None:_persisted(tx,command_id,previous,reader)
             if previous is not None and replace(derived,sequence=previous.sequence)==previous:
                 _persisted(tx,command_id,derived,reader)
                 return ProgramOrderProjectionResult(status='ORDER_BOOK_PROJECTED_DUTIES_RETAINED',reasons=('ORDER_HISTORY_AND_PROTECTION_DUTIES_RETAINED',))
@@ -179,19 +194,16 @@ class ProgramPaperOrderProjectionService:
                 logical=logical,sequence=projection.sequence)),scope=self.scope,aggregate_id='order:'+logical,
                 revision=event_sequence+1,occurred_at=view.record.observed_clock.utc_now,evidence=refs,payload=projection)
             if previous is not None:
-                # FillLedger events already occupy this actual order aggregate.
-                # The reducer's contiguous view counts snapshot projections;
-                # EventStore retains the real aggregate revision including fills.
-                # Source and complete native fills above authenticate the view.
-                reducer_event=replace(event,revision=projection.sequence)
-                projection=OrderProjector(require_evidence=lambda e:need(e==reducer_event,
-                    'PROGRAM_ORDER_SOURCE_CONFLICT')).apply(reducer_event,previous).projection
+                projection=OrderProjector(require_evidence=lambda e:need(e==event,
+                    'PROGRAM_ORDER_SOURCE_CONFLICT')).apply_observation(event,previous,
+                        expected_event_revision=event_sequence).projection
                 need(projection==replace(derived,sequence=projection.sequence),'PROGRAM_ORDER_SOURCE_CONFLICT')
             event=replace(event,payload=projection)
             EventStore(received_at=view.record.observed_clock.utc_now).append(tx,event,event_sequence)
             tx.projections.append(t.ProjectionUpdate(projection=projection,events=()),expected)
-            tx._append('audit_events',marker_id(logical),ProgramOrderSource(command_id=command_id,
-                source_snapshot_hash=view.source_snapshot_hash,projection_hash=digest(projection),event_id=event.event_id),expected)
+            tx._append('audit_events',marker_id(logical),ProgramOrderSource(contract_version='2026-10-30',
+                record_kind='PROGRAM_ORDER_SOURCE_V1',command_id=command_id,source_snapshot_hash=view.source_snapshot_hash,
+                projection_hash=digest(projection),event_id=event.event_id,applied_event_revision=event.revision),expected)
             orders={p.order.identity.logical_client_order_id:p for p in book.active_orders}
             if projection.lifecycle_state in TERMINAL:orders.pop(logical,None)
             else:orders[logical]=projection
