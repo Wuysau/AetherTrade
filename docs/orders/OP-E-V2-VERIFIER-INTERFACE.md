@@ -66,3 +66,14 @@ unchanged. Final source-specific PG results and every intermediate RED/fixture
 failure are recorded in `docs/evidence/binance-orders/op-e-v2-report-progress`.
 Review and root integration are separate required steps; this document supplies
 no registry-ready or complete-goal claim.
+
+The restricted source manifest also reads actual order quantity/unit/currency
+and event fill_delta/price columns. Fill currency/unit/quantity/price must match
+their genuine producer source columns before economic normalization. A resealed
+invented currency or unit is blocked even if its raw fill JSON is unchanged.
+Actual stored currency contradictory to accepted rules is retained unchanged
+with discrepancies and reconciliation duties. Source gross/fee conflicts and
+nonzero-model missing fees preserve native facts; unknown fees remain unknown.
+The51-case fixed7925851 PG cohort includes an actual admitted USD-M nonidentity
+FinancialUnit and preserves separate native and ledger quantities; Spot cash
+admission invariants remain unchanged. Independent review is still required.

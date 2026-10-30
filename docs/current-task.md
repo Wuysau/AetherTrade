@@ -1,5 +1,50 @@
 # Current task
 
+## OP_E_V2_SOURCE_CURRENCY_FIX_REVIEW_PENDING — 2026-10-30
+
+Parent assigned v2_source_fix sole writes in this V2 worktree from clean34e952c;
+all other worktrees, shared registry/decoder, producer, V1 and migrations remain
+outside this assignment. Fresh review found that a resealed invented fill
+price_asset could still be source_verified=True because actual order currency
+was absent from the independent restricted SQL manifest.
+
+Genuine RED22b2fac:50 PG,46pass4fail/0error/0skip250.28s. The currency reseal
+was accepted; altered native unit lacked the direct source diagnostic. Two new
+test fixture assertions incorrectly equated native empty known-zero fees with
+the ledger's explicit zero fee; corrected assertions separately preserve both.
+Every original RED byte is retained, never relabeled as green.
+
+Fix7925851 independently reads actual order quantity/unit/currency and event
+fill_delta/price, binds native DTO fields to those source columns before economics,
+and binds projected order unit to actual stored unit and the financial bridge.
+Actual stored foreign currency remains unchanged with economic discrepancy;
+resealing it back to the rules quote is rejected. No actual currency is guessed.
+
+Original5124 TERMINAL: fixed7925851 actual51 PG GREEN/0fail/error/skip239.12s.
+The eight additional cases include currency/unit reseals, actual source currency
+conflict, source gross mismatch/gross-cap/fee-cap/missing-fee conflicts, and a
+genuine admitted USD-M LOT→CONTRACT nonidentity FinancialUnit (ratio0.1,
+native multiplier0.1, ledger multiplier1). Native0.4LOT and price81490 remain
+unchanged, ledger quantity0.04CONTRACT and gross3259.6 are explicit. Trusted
+test inputs are established before actual ingress/admission/MAY/consume/matcher;
+no report/bundle/accepted DTO is substituted for that positive bridge case.
+Nonzero model known fees32.596 are proven before their source removal; unknown
+fees remain empty with fee reconciliation duty. Source contradictions preserve
+raw observations, original native quantities/prices and uncapped gross/fees.
+Fresh standalone economics unit suite12passed0.40s. No ledger fill was posted.
+
+All20 qualification jobs are TERMINAL;320 raw artifacts retain original/copy
+SHA mappings. Actual committed blob verification is recorded separately after
+publication. Frozen producer/V1/0013/0014 hashes remain unchanged. Prior producer
+21 and V1 compatibility23 remain honestly attributed to0d41c50, not this51 run.
+
+NEXT REQUIRED: independent read-only review of7925851 source/51-case evidence,
+then parent alone decides static registry/decoder/accounting integration and
+actual combined root gates. Source approval is NOT enabled. Full46/56 remains
+ACTIVE, and evolving native-parent/execution contracts remain blocked until
+their actual producer contract is adapted. SourceVerified supplies no economics,
+cash, ownership, protection, account history, reservation release or new permit.
+
 ## OP_E_V2_ACTUAL43_REVIEW_PENDING — 2026-10-30
 
 reports_v2_fresh completed sole writes from78b84f0 and releases this CLEAN tree

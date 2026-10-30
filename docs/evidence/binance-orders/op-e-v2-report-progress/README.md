@@ -84,3 +84,31 @@ ownership. See [the exact interface](../../../orders/OP-E-V2-VERIFIER-INTERFACE.
 Root owns static exact-type/decoder/source approval integration, no V1 fallback
 for new V2 shapes. Evolving native-parent/execution families remain unqualified
 until the actual producer contract is adapted; no capability row is deleted.
+
+Fresh independent review found actual order price_currency was missing from the
+restricted manifest, allowing a resealed fill price_asset to be source-verified.
+The follow-up preserves both complete original runs and all earlier288 artifacts:
+
+- 22b2fac genuine RED:50PG/46pass4fail/0error/0skip250.28s (XML250.270s).
+  Invented currency was accepted. Altered unit was blocked generically instead
+  of by actual source binding. Two new fixture assertions confused genuine empty
+  zero-model native fees with the normalized explicit known-zero ledger fee;
+  corrected assertions preserve both exact representations separately.
+- 7925851 fix: independently bind actual order unit/currency and event native
+  fill_delta/price before economics. Native order quantity is also archived.
+  Actual foreign source currency stays native; resealing it to rules quote fails.
+- 7925851 fresh51PG GREEN/0fail/error/skip239.12s (XML239.116s). New actual-source
+  cases cover gross mismatch, gross cap, fee cap and missing nonzero-model fees.
+  Known actual quote fees32.596 are verified before their source removal; empty
+  unknown fees remain empty with reconciliation duty. Actual USD-M LOT→CONTRACT
+  admission uses ratio0.1/native multiplier0.1/ledger multiplier1: native0.4LOT,
+  price81490, ledger0.04CONTRACT and gross3259.6 remain explicit. Trusted fixture
+  unit inputs precede actual financial admission and producer execution; no Spot
+  cash rule is weakened. No ledger fill/cash/ownership posting occurs.
+
+Original4045 and5124 are TERMINAL. All20 runs/320 raw artifacts are mapped with
+original/copy SHA; actual committed Git blobs are independently checked in
+COMMITTED-BYTES.json. Frozen producer/V1/0013/0014 remain byte-identical; their
+21/23-case proof stays attributed to0d41c50. Fresh unit economics12passed0.40s.
+Independent review of7925851 and parent integration remain required. This is
+not full46/56/native qualification and supplies no permission or release.
