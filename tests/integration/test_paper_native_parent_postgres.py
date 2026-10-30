@@ -300,3 +300,32 @@ def test_native_parent_cannot_start_after_actual_sim_lock_wait(database,venue_v2
     with c.service.uow.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',
             (c.write.command_id,)).fetchone()==(1,)
+
+
+@pytest.mark.parametrize('field,value',[
+    ('market_event_id','invented-market-event'),
+    ('market_hash','a'*64),
+    ('occurred_at','2000-01-01T00:00:00+00:00'),
+])
+def test_native_disposition_projection_requires_authenticated_source(database,venue_v2,tmp_path,monkeypatch,field,value):
+    from trading_system.engine.paper_market import PaperMatcher
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.1'))
+    report=c.engine.query_creation(c.write.command_id)
+    assert len(report.fills)==len(report.dispositions)==1
+    assert report.fills[0].quantity==D('.1')
+    original=report.dispositions[0]
+    assert original.reason=='IMMEDIATE_RESIDUAL_EXPIRED'
+    service,codec=native_verifier(c,tmp_path/'disposition-raw')
+    try:
+        baseline=service.verify(c.write.command_id)
+        assert baseline.source_verified and baseline.status=='VERIFIED',baseline.discrepancies
+        changed=replace(report,dispositions=(replace(original,**{field:value}),))
+        monkeypatch.setattr(c.engine,'query_creation',lambda _:changed)
+        result=service.verify(c.write.command_id)
+        assert result.status=='BLOCKED' and not result.source_verified
+        assert result.raw_report==changed and result.raw_refs
+        assert any(ref.hash==original.evidence.hash for ref in result.raw_refs)
+        assert result.discrepancies==('PAPER_NATIVE_DISPOSITION_CHANGED',)
+        assert not result.execution_authorized and not result.funds_release_authorized
+    finally:codec.close()
