@@ -1,5 +1,40 @@
 # Current task
 
+## CURRENT_EFFECTIVE_SELECTED_INFRA_BLOCK — 2026-10-30
+
+ROOT productdae9863663383628099110bab7c371dfa0af81ce serialselects reviewed
+effective3103187469151572e5664bdd84281397009a51b7:12source/test/migration paths
+byte-identical, including27/28/29 independent source-attestation fix. All27Cash
+paths and newhost preserved; no oldneutral/component overwrite.89relatedunit
+GREEN12.43s. Two suites added (74total retaining72). ROOT-EFFECTIVE-DEPENDENCY-dae9863
+binds exact selected/preserved paths. No effective ROOTPG qualification exists yet.
+
+Four attempted fixeddae suites (effective21,sourceboundary4,management51,host7)
+all TERMINAL at bundle before any container/PG/test: fatalOutofdiskspace.
+Runs843043b9ab4b/2cbc42db4769/905edf29a660/cc1aa20a5e6c are INFRA0tests/noJUnit,
+not productRED/GREEN/skip qualification. Raw8files retained under
+op-e-root-effective-infra. No active qualifier or automatic retry remains.
+
+Parent explicitly authorized reversible single-file backup of terminal ROOT
+source.bundle only.107 finished-manifest+runner-stop0 bundles (995976264bytes)
+copied to C:/Users/Wuysa/AppData/Local/Temp/AetherTrade-root-bundle-backup-20261030,
+size/SHA verified before individual nonrecursive original removal; all107 backup
+hashes rechecked0mismatch. C migration-map records paths/size/hash/time/original
+terminal/sourcecommit and is copied into this proof directory. Unconfirmed
+f5be1013bf70 source.bundle remains in place. Evidence/env/gitobjects/main/archives/
+otherwriters unchanged. Only~1GB existed, so no scope expansion to reach10GB.
+DFree2.72GB after parentSDK also moved its own wheel. ReadonlyDocker version/ping
+returns "Docker Desktop is unable to start"; earlierinspect returnedAPI500.
+
+Infrastructure ruling forbids reset/restart/global cleanup and new qualification
+until daemon health plus explicit parent single-cohort budget. Do not rerun the
+four known failed attempts or claim combined qualification. Prior Cash032140PG
+and hosta7997PG51.117s remain independently source-bound, with240 actuale66Gitblob
+proof0mismatch at clean16fce88. Fresh hostreview packet PaperHostReview-a799f19.
+Current effective confirmation grants no funds/global duty release or financial
+tag registration; default host/router/scheduler/externalmodes stay off.30reserved
+independent cost/history, registry31+ must coordinate. Full46/56 remains ACTIVE.
+
 ## CURRENT_CASH_HOST_GREEN_EFFECTIVE_NEXT — 2026-10-30
 
 Reviewed CASH933/805 selected at03298138287fd1e39fbac95b28629e6fe0dd9859;12affected

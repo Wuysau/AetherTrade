@@ -1,0 +1,36 @@
+{
+  "source_commit": "dae9863663383628099110bab7c371dfa0af81ce",
+  "historical_source_commits": [],
+  "started_utc": "2026-10-30T12:25:59.759307+00:00",
+  "postgres_container": "aethertrade-qualification-pg-2cbc42db4769",
+  "runner_container": "aethertrade-qualification-runner-2cbc42db4769",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "-c",
+        "core.longpaths=true",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-orders\\.runtime\\paper-qualification-2cbc42db4769\\source.bundle",
+        "HEAD",
+        "dae9863663383628099110bab7c371dfa0af81ce"
+      ],
+      "log": "bundle.txt",
+      "timeout_seconds": 600,
+      "exit_code": 1
+    }
+  ],
+  "launcher_sha256": "25ea8463903389d47a7aec51eebcb8d985d1d2562252d96898a9c440c2a943d2",
+  "scope": "LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION",
+  "diagnostic_suite": "effective-source-boundary",
+  "deadline_seconds": 1200,
+  "runner_image": "sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7",
+  "offline_dependencies": true,
+  "failure_type": "RuntimeError",
+  "exit_code": 1,
+  "finished_utc": "2026-10-30T12:26:00.808848+00:00",
+  "files_sha256": {
+    "bundle.txt": "99b4564fcaea1b9ba16077a26f3a4d3cae190542a1c17c82a378c23f2c807c10"
+  }
+}

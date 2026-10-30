@@ -1,5 +1,48 @@
 # Current root and cash continuation
 
+## Current cash/host/effective and infrastructure checkpoint — 2026-10-30
+
+integration_fresh retains sole ROOT+D ownership; parent read-only. Cash933/805
+components integrated at0329813 and real isolated thin host at a799f19.12actual
+affectedPG cohorts140pass/0fail/error/skip, plus host7/51.117s, all originalhandles
+terminal. Host unknown-query6pass/1DIDNOTRAISE RED788f and missing-host7RED6a04
+retained. CurrentUNKNOWN now persists via existing observer, oldAccepted cannot
+provide current working inputs.240safe raw original/copy/actuale66edb1 Gitblobs
+verified0mismatch. Selected/preserved manifest ROOT-CASH-HOST-DEPENDENCY-a799f19.
+No server/default activation; cost/POSITION_EVIDENCE/newwrite guards remain.
+
+Latest productdae9863663383628099110bab7c371dfa0af81ce imports exact reviewed
+effective31031874 twelve files plus two suiteentries, preserving current Cash/
+owned/source-leaf/order/host and5ef/root25/26 lineage.89relatedunit12.43s pass.
+Independent sourceUoW/role attestation29 is mandatory before confirming an applied
+action; dispatch consumption/legacy resolution alone cannot authorize another
+management write. Global funds/protection/history/late-fill duties remain, and
+managed financial sources have no V1/V2 alias. All new31+registry migration work
+coordinates;30 is reserved for independent cost/history worker.
+
+ROOT effective qualification is NOT RUN: four fixeddae attempts843043b9ab4b,
+2cbc42db4769,905edf29a660,cc1aa20a5e6c terminated at sourcebundle Outofdiskspace,
+0tests/noJUnit/noPG. Raw8files retained asinfra evidence, not productRED/GREEN.
+At this checkpoint Docker readonlyversion says Desktopunabletostart (earlier
+inspectAPI500). Parent forbids Docker reset/restart, globalcleanup and any new
+qualifier until daemon healthy plus explicit single-cohort space budget.
+
+Under explicit parent whitelist,107 terminal-manifest/runner-stop0 ROOT ignored
+source.bundle files (995976264bytes) were reversibly copied to privateC backup,
+size/SHA checked then only each originalfile removed nonrecursively. All107
+backups rechecked0mismatch. Map is in op-e-root-effective-infra and
+C:/Users/Wuysa/AppData/Local/Temp/AetherTrade-root-bundle-backup-20261030.
+Unconfirmedf5be bundle stays; originalraw evidence/env/gitobjects/main/archives/
+otherwriter data untouched. About2.72GB Dfree after parentSDK own-wheel relocation;
+no10GB cleanup expansion was attempted. Sourcebundle moves change no original
+sourcecommit/evidencehash. No active ownPG jobs; originalfailedjobs never restarted.
+
+All74 mandatory entries retained/added, but no new full74gate or full46/56 claim.
+OnlyORD47 is formally complete. Main/archives untouched and externalmodes off.
+Once parent restores infrastructure, run exactdae singlecohorts first; then
+affected managed/host/working/shared matcher combinations, preserve every source
+identity, and obtain fresh host/composition review before operational promotion.
+
 ## Current full serial-integration checkpoint — 2026-10-30
 
 Authoritative product2b94894f815b131c4e5f6be73f15ce5ce918f567; parent requests
