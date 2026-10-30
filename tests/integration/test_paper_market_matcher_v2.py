@@ -186,6 +186,7 @@ def test_equity_rth_day_waits_for_published_window_and_expires_without_consuming
     from trading_system.contracts.canonical import utc_timestamp
     from trading_system.engine.paper_market import PaperMatcher
     from trading_system.engine.paper_market_v2 import PaperCalendarEventV2,PaperSessionWindowV2,PaperClockEventV2
+    from trading_system.engine.paper_market import DepthLevel
     def rth_day(p):
         n=p.program.nodes[0]
         return replace(p,program=replace(p.program,nodes=(replace(n,order=replace(n.order,trading_session='RTH',
@@ -194,7 +195,8 @@ def test_equity_rth_day_waits_for_published_window_and_expires_without_consuming
         plan_proposal_transform=rth_day,
         financial_capacity=(t.Money(currency='USD',amount=D('1000000')),t.Money(currency='AAPL',amount=D('10'))),
         financial_buffer=(t.Money(currency='USD',amount=D(0)),t.Money(currency='AAPL',amount=D(0))))
-    submit(c);matcher=PaperMatcher(c.engine);matcher.apply_market_event(event(c,quantity='1'))
+    submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(replace(event(c,ask='81500',quantity='1'),bids=(DepthLevel(price='81490',quantity='1'),)))
     assert not c.engine.query_creation(c.write.command_id).fills
     calendar=PaperCalendarEventV2(contract_version='2026-10-30',event_id='calendar-rth',stream_id=c.scope.instrument_uid,
         product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=2,kind='SESSION_CALENDAR',
@@ -213,7 +215,7 @@ def test_equity_rth_day_waits_for_published_window_and_expires_without_consuming
             source='PAPER_MARKET_REPLAY_SYNTHETIC')
     matcher.apply_market_event(clock(3,'2026-10-28T13:30:00Z'))
     report=c.engine.query_creation(c.write.command_id)
-    assert report.filled_quantity==1 and report.fills[0].price==D('81489')
+    assert report.filled_quantity==1 and report.fills[0].price==D('81490')
     proof=c.engine.query_market_evidence(c.write.command_id)
     assert any(i.event.event_id=='calendar-rth' for i in proof.inputs)
     # A separate real admitted DAY order cannot trade after its associated close.
