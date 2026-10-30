@@ -459,3 +459,16 @@ def test_nullable_native_target_does_not_weaken_ordinary_or_incomplete_parent_co
                     digest(unsigned),Jsonb(domain_payload(unsigned))))
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with psycopg.connect(venue_v2.runtime_dsn) as db:db.execute('UPDATE public.paper_native_algorithm_progress_v2 SET allocated_quantity=0')
+
+
+@pytest.mark.parametrize('template',['ATOMIC','TWAP'])
+def test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision(database,venue_v2,tmp_path,template):
+    from decimal import localcontext
+    from trading_system.risk.program_exposure import FeeBound
+    c=advanced_case(database,venue_v2,tmp_path,template=template,tif='NONE' if template=='TWAP' else 'GTC',
+        node_fees=(FeeBound(amount=t.Money(currency='USDT',amount=D('0.1119')),debit='EXTERNAL_BALANCE'),))
+    with localcontext() as arithmetic:
+        arithmetic.prec=3
+        submit(c)
+        report=c.engine.query_creation(c.write.command_id)
+    assert report.accepted_contexts[0].execution_envelope.fee_ceilings[0].amount=='0.1119'
