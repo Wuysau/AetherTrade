@@ -1,5 +1,31 @@
 # Current task
 
+## CURRENT_STRICT_CASH_COMPONENT_CHECKPOINT — 2026-10-30
+
+ROOT+D sole writer remains integration_fresh. Root43ba29c neutral raw-book cash
+guards actual3PG GREEN12.46s; accountcash7PG and crossscopebookcash3PG each GREEN
+with0fail/error/skip. Parent independently reviewed the scoped hooks. Broad
+ordinary43ba source had1770pass26fail66.25s: all26 one legacy locked-action fake
+transaction lacking require_scope/new source-table absence. Only that fixture
+now declares the missing schema and checks scope; focused119GREEN4.12s. New
+complete ordinary rerun is due after this test-only commit. All original handles
+19864/25908/59401/46703/20629 are TERMINAL.83 raw files/maps preserve source51,
+cash3RED/3GREEN/account7/book3 and broadRED under
+docs/evidence/binance-orders/op-e-root-source-and-cash-guards.
+
+CRITICAL SCOPE: no executable host or owned financial writer is installed. Cash
+fresh review found forged owned replay markers and economic-marker-only neutral
+readiness defects; fixes/EventStore closure/two-scope preview are still peer
+work. Current root neutral readers are revision components, not ownership-ready
+promotion. Root must select reviewed strict readiness and tagged V2 source
+decoder before enabling financial integration. Neutral guards never use preview.
+Legacy host owner representation/whole vector refresh remains an actual PG gap.
+
+D6133034 actual34PG GREEN157.49s/d75cc14 evidence96 files; frozen root producer
+6adc exact0014df9e actual21+23PG and V2 verifierbc4 actual51PG stay separate.
+No root/D testjob currently live. Full46/56 and OP-C→D/E/F→G remain ACTIVE; original
+fulla0ca gate and later13f exact-lot component keep their source identities.
+
 ## CURRENT_FRESH_INTEGRATION_OWNER — 2026-10-30
 
 Parent explicitly assigned integration_fresh sole write ownership of

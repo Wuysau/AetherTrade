@@ -1,0 +1,1538 @@
+........................................................................ [  4%]
+........................................................................ [  8%]
+........................................................................ [ 12%]
+........................................................................ [ 16%]
+........................................................................ [ 20%]
+......................................FFFFFFF.FFF......................F [ 24%]
+F......FFFFFFFFFFFFFF................................................... [ 28%]
+........................................................................ [ 32%]
+........................................................................ [ 36%]
+........................................................................ [ 40%]
+........................................................................ [ 44%]
+........................................................................ [ 48%]
+........................................................................ [ 52%]
+........................................................................ [ 56%]
+........................................................................ [ 60%]
+........................................................................ [ 64%]
+........................................................................ [ 68%]
+........................................................................ [ 72%]
+........................................................................ [ 76%]
+........................................................................ [ 80%]
+........................................................................ [ 84%]
+........................................................................ [ 88%]
+........................................................................ [ 92%]
+........................................................................ [ 96%]
+....................................................................     [100%]
+================================== FAILURES ===================================
+_ test_reservation_uses_verified_reduction_policy_and_preserves_holds[NO_NEW_RISK] _
+
+permission = <RiskPermission.NO_NEW_RISK: 'NO_NEW_RISK'>
+
+    @pytest.mark.parametrize('permission', [t.RiskPermission.NO_NEW_RISK, t.RiskPermission.EXIT_ONLY])
+    def test_reservation_uses_verified_reduction_policy_and_preserves_holds(permission):
+        case = reservation_case(permission)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:376: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35341A6C0>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D35341A610>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_uses_verified_reduction_policy_and_preserves_holds[EXIT_ONLY] _
+
+permission = <RiskPermission.EXIT_ONLY: 'EXIT_ONLY'>
+
+    @pytest.mark.parametrize('permission', [t.RiskPermission.NO_NEW_RISK, t.RiskPermission.EXIT_ONLY])
+    def test_reservation_uses_verified_reduction_policy_and_preserves_holds(permission):
+        case = reservation_case(permission)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:376: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3532FBE20>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D3532FBD70>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_______ test_locked_reservation_denials_write_no_bundle[missing_proof] ________
+
+fault = 'missing_proof'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D352563AD0>
+
+    @pytest.mark.parametrize('fault', ['missing_proof', 'wrong_side', 'oversized', 'new_risk',
+                                      'unknown', 'owner', 'authorization', 'capacity', 'recovery'])
+    def test_locked_reservation_denials_write_no_bundle(fault, monkeypatch):
+        case = reservation_case()
+        if fault == 'missing_proof':
+            case.service.load_action_proof = None
+        elif fault == 'wrong_side':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, side='BUY'))
+            case.rehash()
+        elif fault == 'oversized':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, quantity='3'))
+            case.rehash()
+        elif fault == 'new_risk':
+            case.book = replace(case.book, positions=())
+            case.intent = replace(case.intent, target_quantity='2', target_side='LONG')
+            case.command = replace(case.command, operation='SUBMIT', canonical_payload=replace(
+                case.command.canonical_payload, side='BUY', reduce_only=False))
+            case.rehash()
+        elif fault == 'unknown':
+            monkeypatch.setattr(CommandRepository, 'unresolved_in_group', lambda *args: ('unknown',))
+        elif fault == 'owner':
+            case.owner = ('foreign', 1, 1)
+        elif fault == 'authorization':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), authorization=replace(
+                load(*args).authorization, allowed=False))
+        elif fault == 'capacity':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), group_capacity=())
+        else:
+            case.locks = (replace(case.locks[0], permission=t.RiskPermission.RECOVERY_REQUIRED),)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:415: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3532FACF0>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D3532FAB90>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_________ test_locked_reservation_denials_write_no_bundle[wrong_side] _________
+
+fault = 'wrong_side'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D352EE5050>
+
+    @pytest.mark.parametrize('fault', ['missing_proof', 'wrong_side', 'oversized', 'new_risk',
+                                      'unknown', 'owner', 'authorization', 'capacity', 'recovery'])
+    def test_locked_reservation_denials_write_no_bundle(fault, monkeypatch):
+        case = reservation_case()
+        if fault == 'missing_proof':
+            case.service.load_action_proof = None
+        elif fault == 'wrong_side':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, side='BUY'))
+            case.rehash()
+        elif fault == 'oversized':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, quantity='3'))
+            case.rehash()
+        elif fault == 'new_risk':
+            case.book = replace(case.book, positions=())
+            case.intent = replace(case.intent, target_quantity='2', target_side='LONG')
+            case.command = replace(case.command, operation='SUBMIT', canonical_payload=replace(
+                case.command.canonical_payload, side='BUY', reduce_only=False))
+            case.rehash()
+        elif fault == 'unknown':
+            monkeypatch.setattr(CommandRepository, 'unresolved_in_group', lambda *args: ('unknown',))
+        elif fault == 'owner':
+            case.owner = ('foreign', 1, 1)
+        elif fault == 'authorization':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), authorization=replace(
+                load(*args).authorization, allowed=False))
+        elif fault == 'capacity':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), group_capacity=())
+        else:
+            case.locks = (replace(case.locks[0], permission=t.RiskPermission.RECOVERY_REQUIRED),)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:415: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3532F9010>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D3532F9430>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_________ test_locked_reservation_denials_write_no_bundle[oversized] __________
+
+fault = 'oversized'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D352EC68D0>
+
+    @pytest.mark.parametrize('fault', ['missing_proof', 'wrong_side', 'oversized', 'new_risk',
+                                      'unknown', 'owner', 'authorization', 'capacity', 'recovery'])
+    def test_locked_reservation_denials_write_no_bundle(fault, monkeypatch):
+        case = reservation_case()
+        if fault == 'missing_proof':
+            case.service.load_action_proof = None
+        elif fault == 'wrong_side':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, side='BUY'))
+            case.rehash()
+        elif fault == 'oversized':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, quantity='3'))
+            case.rehash()
+        elif fault == 'new_risk':
+            case.book = replace(case.book, positions=())
+            case.intent = replace(case.intent, target_quantity='2', target_side='LONG')
+            case.command = replace(case.command, operation='SUBMIT', canonical_payload=replace(
+                case.command.canonical_payload, side='BUY', reduce_only=False))
+            case.rehash()
+        elif fault == 'unknown':
+            monkeypatch.setattr(CommandRepository, 'unresolved_in_group', lambda *args: ('unknown',))
+        elif fault == 'owner':
+            case.owner = ('foreign', 1, 1)
+        elif fault == 'authorization':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), authorization=replace(
+                load(*args).authorization, allowed=False))
+        elif fault == 'capacity':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), group_capacity=())
+        else:
+            case.locks = (replace(case.locks[0], permission=t.RiskPermission.RECOVERY_REQUIRED),)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:415: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35341A980>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D35341AB90>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+__________ test_locked_reservation_denials_write_no_bundle[new_risk] __________
+
+fault = 'new_risk'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D352D117F0>
+
+    @pytest.mark.parametrize('fault', ['missing_proof', 'wrong_side', 'oversized', 'new_risk',
+                                      'unknown', 'owner', 'authorization', 'capacity', 'recovery'])
+    def test_locked_reservation_denials_write_no_bundle(fault, monkeypatch):
+        case = reservation_case()
+        if fault == 'missing_proof':
+            case.service.load_action_proof = None
+        elif fault == 'wrong_side':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, side='BUY'))
+            case.rehash()
+        elif fault == 'oversized':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, quantity='3'))
+            case.rehash()
+        elif fault == 'new_risk':
+            case.book = replace(case.book, positions=())
+            case.intent = replace(case.intent, target_quantity='2', target_side='LONG')
+            case.command = replace(case.command, operation='SUBMIT', canonical_payload=replace(
+                case.command.canonical_payload, side='BUY', reduce_only=False))
+            case.rehash()
+        elif fault == 'unknown':
+            monkeypatch.setattr(CommandRepository, 'unresolved_in_group', lambda *args: ('unknown',))
+        elif fault == 'owner':
+            case.owner = ('foreign', 1, 1)
+        elif fault == 'authorization':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), authorization=replace(
+                load(*args).authorization, allowed=False))
+        elif fault == 'capacity':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), group_capacity=())
+        else:
+            case.locks = (replace(case.locks[0], permission=t.RiskPermission.RECOVERY_REQUIRED),)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:415: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D353420460>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D353420300>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+__________ test_locked_reservation_denials_write_no_bundle[unknown] ___________
+
+fault = 'unknown'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D352D116A0>
+
+    @pytest.mark.parametrize('fault', ['missing_proof', 'wrong_side', 'oversized', 'new_risk',
+                                      'unknown', 'owner', 'authorization', 'capacity', 'recovery'])
+    def test_locked_reservation_denials_write_no_bundle(fault, monkeypatch):
+        case = reservation_case()
+        if fault == 'missing_proof':
+            case.service.load_action_proof = None
+        elif fault == 'wrong_side':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, side='BUY'))
+            case.rehash()
+        elif fault == 'oversized':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, quantity='3'))
+            case.rehash()
+        elif fault == 'new_risk':
+            case.book = replace(case.book, positions=())
+            case.intent = replace(case.intent, target_quantity='2', target_side='LONG')
+            case.command = replace(case.command, operation='SUBMIT', canonical_payload=replace(
+                case.command.canonical_payload, side='BUY', reduce_only=False))
+            case.rehash()
+        elif fault == 'unknown':
+            monkeypatch.setattr(CommandRepository, 'unresolved_in_group', lambda *args: ('unknown',))
+        elif fault == 'owner':
+            case.owner = ('foreign', 1, 1)
+        elif fault == 'authorization':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), authorization=replace(
+                load(*args).authorization, allowed=False))
+        elif fault == 'capacity':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), group_capacity=())
+        else:
+            case.locks = (replace(case.locks[0], permission=t.RiskPermission.RECOVERY_REQUIRED),)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:415: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D353421E80>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D353421C70>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_______ test_locked_reservation_denials_write_no_bundle[authorization] ________
+
+fault = 'authorization'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D352D132A0>
+
+    @pytest.mark.parametrize('fault', ['missing_proof', 'wrong_side', 'oversized', 'new_risk',
+                                      'unknown', 'owner', 'authorization', 'capacity', 'recovery'])
+    def test_locked_reservation_denials_write_no_bundle(fault, monkeypatch):
+        case = reservation_case()
+        if fault == 'missing_proof':
+            case.service.load_action_proof = None
+        elif fault == 'wrong_side':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, side='BUY'))
+            case.rehash()
+        elif fault == 'oversized':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, quantity='3'))
+            case.rehash()
+        elif fault == 'new_risk':
+            case.book = replace(case.book, positions=())
+            case.intent = replace(case.intent, target_quantity='2', target_side='LONG')
+            case.command = replace(case.command, operation='SUBMIT', canonical_payload=replace(
+                case.command.canonical_payload, side='BUY', reduce_only=False))
+            case.rehash()
+        elif fault == 'unknown':
+            monkeypatch.setattr(CommandRepository, 'unresolved_in_group', lambda *args: ('unknown',))
+        elif fault == 'owner':
+            case.owner = ('foreign', 1, 1)
+        elif fault == 'authorization':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), authorization=replace(
+                load(*args).authorization, allowed=False))
+        elif fault == 'capacity':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), group_capacity=())
+        else:
+            case.locks = (replace(case.locks[0], permission=t.RiskPermission.RECOVERY_REQUIRED),)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:415: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3534341A0>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D353434250>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+__________ test_locked_reservation_denials_write_no_bundle[capacity] __________
+
+fault = 'capacity'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D352968210>
+
+    @pytest.mark.parametrize('fault', ['missing_proof', 'wrong_side', 'oversized', 'new_risk',
+                                      'unknown', 'owner', 'authorization', 'capacity', 'recovery'])
+    def test_locked_reservation_denials_write_no_bundle(fault, monkeypatch):
+        case = reservation_case()
+        if fault == 'missing_proof':
+            case.service.load_action_proof = None
+        elif fault == 'wrong_side':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, side='BUY'))
+            case.rehash()
+        elif fault == 'oversized':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, quantity='3'))
+            case.rehash()
+        elif fault == 'new_risk':
+            case.book = replace(case.book, positions=())
+            case.intent = replace(case.intent, target_quantity='2', target_side='LONG')
+            case.command = replace(case.command, operation='SUBMIT', canonical_payload=replace(
+                case.command.canonical_payload, side='BUY', reduce_only=False))
+            case.rehash()
+        elif fault == 'unknown':
+            monkeypatch.setattr(CommandRepository, 'unresolved_in_group', lambda *args: ('unknown',))
+        elif fault == 'owner':
+            case.owner = ('foreign', 1, 1)
+        elif fault == 'authorization':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), authorization=replace(
+                load(*args).authorization, allowed=False))
+        elif fault == 'capacity':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), group_capacity=())
+        else:
+            case.locks = (replace(case.locks[0], permission=t.RiskPermission.RECOVERY_REQUIRED),)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:415: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D353435C70>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D353435D20>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+__________ test_locked_reservation_denials_write_no_bundle[recovery] __________
+
+fault = 'recovery'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D352B72190>
+
+    @pytest.mark.parametrize('fault', ['missing_proof', 'wrong_side', 'oversized', 'new_risk',
+                                      'unknown', 'owner', 'authorization', 'capacity', 'recovery'])
+    def test_locked_reservation_denials_write_no_bundle(fault, monkeypatch):
+        case = reservation_case()
+        if fault == 'missing_proof':
+            case.service.load_action_proof = None
+        elif fault == 'wrong_side':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, side='BUY'))
+            case.rehash()
+        elif fault == 'oversized':
+            case.command = replace(case.command, canonical_payload=replace(case.command.canonical_payload, quantity='3'))
+            case.rehash()
+        elif fault == 'new_risk':
+            case.book = replace(case.book, positions=())
+            case.intent = replace(case.intent, target_quantity='2', target_side='LONG')
+            case.command = replace(case.command, operation='SUBMIT', canonical_payload=replace(
+                case.command.canonical_payload, side='BUY', reduce_only=False))
+            case.rehash()
+        elif fault == 'unknown':
+            monkeypatch.setattr(CommandRepository, 'unresolved_in_group', lambda *args: ('unknown',))
+        elif fault == 'owner':
+            case.owner = ('foreign', 1, 1)
+        elif fault == 'authorization':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), authorization=replace(
+                load(*args).authorization, allowed=False))
+        elif fault == 'capacity':
+            load = case.service.load_inputs
+            case.service.load_inputs = lambda *args: replace(load(*args), group_capacity=())
+        else:
+            case.locks = (replace(case.locks[0], permission=t.RiskPermission.RECOVERY_REQUIRED),)
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:415: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D353437A00>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D353437AB0>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+____ test_reservation_rechecks_clock_after_proof_and_before_writes[proof] _____
+
+boundary = 'proof'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    def test_reservation_rechecks_clock_after_proof_and_before_writes(boundary):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = END
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = END
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:605: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3532F9FE0>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D3532FB480>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+__ test_reservation_rechecks_clock_after_proof_and_before_writes[owner_read] __
+
+boundary = 'owner_read'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    def test_reservation_rechecks_clock_after_proof_and_before_writes(boundary):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = END
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = END
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:605: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3532FBE20>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D3532FBED0>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[proof-proof] _
+
+boundary = 'proof', expiry = 'proof'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3532ACB40>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D3532ACA90>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[proof-owner_read] _
+
+boundary = 'owner_read', expiry = 'proof'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D353293480>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D3532933D0>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[evidence-proof] _
+
+boundary = 'proof', expiry = 'evidence'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D353291D20>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D353291BC0>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:01Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[evidence-owner_read] _
+
+boundary = 'owner_read', expiry = 'evidence'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3532909E0>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D353290930>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:01Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[intent-proof] _
+
+boundary = 'proof', expiry = 'intent'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35321F950>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D35321F7F0>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[intent-owner_read] _
+
+boundary = 'owner_read', expiry = 'intent'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35321E4B0>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D35321E400>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[risk-proof] _
+
+boundary = 'proof', expiry = 'risk'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35321CF60>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D35321CEB0>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[risk-owner_read] _
+
+boundary = 'owner_read', expiry = 'risk'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3531BC880>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D3531BC7D0>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[quote-proof] _
+
+boundary = 'proof', expiry = 'quote'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D3531CB060>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D3531CAF00>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_retains_earliest_validity_across_slow_local_reads[quote-owner_read] _
+
+boundary = 'owner_read', expiry = 'quote'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('expiry', ['proof', 'evidence', 'intent', 'risk', 'quote'])
+    def test_reservation_retains_earliest_validity_across_slow_local_reads(boundary, expiry):
+        case = reservation_case()
+        current = [NOW]
+        case.service.clock = lambda: current[0]
+        # All cases expire before the ordinary one-minute intent/risk deadline.
+        due = '2026-10-22T12:00:01Z'
+        if expiry == 'proof':
+            case.proof_transform = lambda proof: replace(proof, valid_until=due)
+        elif expiry == 'evidence':
+            case.book = replace(case.book, evidence=(replace(case.book.evidence[0], visible_at='2026-10-22T11:59:01Z'),))
+        elif expiry == 'intent':
+            case.intent = replace(case.intent, valid_until=due)
+        elif expiry == 'risk':
+            case.risk.inputs = replace(case.risk.inputs, expires_at=due)
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                current[0] = due
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    current[0] = due
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:672: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35321DBC0>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D35321F110>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension[expired-proof] _
+
+boundary = 'proof', clock_fault = 'expired'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('clock_fault', ['expired', 'backwards'])
+    def test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension(boundary, clock_fault):
+        case = reservation_case()
+        current_ns = [1]
+        case.service.monotonic_clock = lambda: current_ns[0]
+        def advance():
+            current_ns[0] = 61_000_000_001 if clock_fault == 'expired' else 0
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                advance()
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    advance()
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:700: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35321D6F0>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D35321EF00>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension[expired-owner_read] _
+
+boundary = 'owner_read', clock_fault = 'expired'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('clock_fault', ['expired', 'backwards'])
+    def test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension(boundary, clock_fault):
+        case = reservation_case()
+        current_ns = [1]
+        case.service.monotonic_clock = lambda: current_ns[0]
+        def advance():
+            current_ns[0] = 61_000_000_001 if clock_fault == 'expired' else 0
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                advance()
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    advance()
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:700: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35341A770>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D35341A610>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension[backwards-proof] _
+
+boundary = 'proof', clock_fault = 'backwards'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('clock_fault', ['expired', 'backwards'])
+    def test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension(boundary, clock_fault):
+        case = reservation_case()
+        current_ns = [1]
+        case.service.monotonic_clock = lambda: current_ns[0]
+        def advance():
+            current_ns[0] = 61_000_000_001 if clock_fault == 'expired' else 0
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                advance()
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    advance()
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:700: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35321EAE0>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D35321E820>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+_ test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension[backwards-owner_read] _
+
+boundary = 'owner_read', clock_fault = 'backwards'
+
+    @pytest.mark.parametrize('boundary', ['proof', 'owner_read'])
+    @pytest.mark.parametrize('clock_fault', ['expired', 'backwards'])
+    def test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension(boundary, clock_fault):
+        case = reservation_case()
+        current_ns = [1]
+        case.service.monotonic_clock = lambda: current_ns[0]
+        def advance():
+            current_ns[0] = 61_000_000_001 if clock_fault == 'expired' else 0
+        if boundary == 'proof':
+            proof = case.service.load_action_proof
+            def advance_after_proof(*args):
+                result = proof(*args)
+                advance()
+                return result
+            case.service.load_action_proof = advance_after_proof
+        else:
+            execute = case.tx.execute
+            def advance_during_owner_read(sql, args=()):
+                result = execute(sql, args)
+                if 'FROM ledger.active_owners' in sql:
+                    advance()
+                return result
+            case.tx.execute = advance_during_owner_read
+>       result = case.service._reserve(case.tx, case.intent, 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_locked_actions.py:700: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\trading_system\risk\reservations.py:331: in _reserve
+    collateral = self._prepare_collateral(tx, book)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\risk\reservations.py:199: in _prepare_collateral
+    require_current_account_book(tx,book)
+src\trading_system\risk\program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tx = namespace(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<Pro...000001D35321DE80>), reservations=namespace(append=<function reservation_case.<locals>.<lambda> at 0x000001D353291640>))
+book = BookSnapshot(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='paper-account-demo', product=<...aaaaaaaaaaaa', environment=<Environment.PAPER: 'PAPER'>, source='synthetic-test', visible_at='2026-10-22T11:59:59Z'),))
+read_opening = <function read_program_local_account_opening at 0x000001D3533D52D0>
+
+    def require_current_program_book_cash(tx,book,*,read_opening=None):
+        """Neutral reservation/mark/consume guard; no writes, new UoW or permits."""
+>       tx.require_scope(book.scope)
+        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'require_scope'
+
+src\trading_system\execution\program_book_cash.py:60: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_locked_actions.py::test_reservation_uses_verified_reduction_policy_and_preserves_holds[NO_NEW_RISK]
+FAILED tests/unit/test_locked_actions.py::test_reservation_uses_verified_reduction_policy_and_preserves_holds[EXIT_ONLY]
+FAILED tests/unit/test_locked_actions.py::test_locked_reservation_denials_write_no_bundle[missing_proof]
+FAILED tests/unit/test_locked_actions.py::test_locked_reservation_denials_write_no_bundle[wrong_side]
+FAILED tests/unit/test_locked_actions.py::test_locked_reservation_denials_write_no_bundle[oversized]
+FAILED tests/unit/test_locked_actions.py::test_locked_reservation_denials_write_no_bundle[new_risk]
+FAILED tests/unit/test_locked_actions.py::test_locked_reservation_denials_write_no_bundle[unknown]
+FAILED tests/unit/test_locked_actions.py::test_locked_reservation_denials_write_no_bundle[authorization]
+FAILED tests/unit/test_locked_actions.py::test_locked_reservation_denials_write_no_bundle[capacity]
+FAILED tests/unit/test_locked_actions.py::test_locked_reservation_denials_write_no_bundle[recovery]
+FAILED tests/unit/test_locked_actions.py::test_reservation_rechecks_clock_after_proof_and_before_writes[proof]
+FAILED tests/unit/test_locked_actions.py::test_reservation_rechecks_clock_after_proof_and_before_writes[owner_read]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[proof-proof]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[proof-owner_read]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[evidence-proof]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[evidence-owner_read]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[intent-proof]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[intent-owner_read]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[risk-proof]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[risk-owner_read]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[quote-proof]
+FAILED tests/unit/test_locked_actions.py::test_reservation_retains_earliest_validity_across_slow_local_reads[quote-owner_read]
+FAILED tests/unit/test_locked_actions.py::test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension[expired-proof]
+FAILED tests/unit/test_locked_actions.py::test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension[expired-owner_read]
+FAILED tests/unit/test_locked_actions.py::test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension[backwards-proof]
+FAILED tests/unit/test_locked_actions.py::test_reservation_monotonic_clock_prevents_stalled_wall_clock_extension[backwards-owner_read]
+26 failed, 1770 passed in 66.25s (0:01:06)

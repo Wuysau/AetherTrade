@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="13.100" timestamp="2026-10-30T05:42:13.434818+00:00" hostname="2f3d68be83e1"><testcase classname="tests.integration.test_program_cash_guards" name="test_collateral_preparation_requires_an_actual_current_account_binding" time="0.652"><failure message="AssertionError: assert () == ('BOOK_CASH_B...NG_REQUIRED',)&#10;  &#10;  Right contains one more item: 'BOOK_CASH_BINDING_REQUIRED'&#10;  Use -v to get more diff">tests/integration/test_program_cash_guards.py:17: in test_collateral_preparation_requires_an_actual_current_account_binding
+    assert denied.rejection_codes==('BOOK_CASH_BINDING_REQUIRED',)
+E   AssertionError: assert () == ('BOOK_CASH_B...NG_REQUIRED',)
+E     
+E     Right contains one more item: 'BOOK_CASH_BINDING_REQUIRED'
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.integration.test_program_cash_guards" name="test_actual_recorded_native_economics_invalidate_all_current_send_boundaries[mark_consume_current]" time="6.179"><failure message="ValueError: PROGRAM_ACTIVE_RISK_LOCK">tests/integration/test_program_cash_guards.py:35: in test_actual_recorded_native_economics_invalidate_all_current_send_boundaries
+    ProgramCommandRepository(tx,**c.gate.readers)._current(c.write,c.lease)
+src/trading_system/execution/program_commands.py:352: in _current
+    require(duty is not None,'PROGRAM_ACTIVE_RISK_LOCK')
+src/trading_system/execution/program_commands.py:28: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_ACTIVE_RISK_LOCK</failure></testcase><testcase classname="tests.integration.test_program_cash_guards" name="test_actual_recorded_native_economics_invalidate_all_current_send_boundaries[consumed_after_wait]" time="5.402"><failure message="ValueError: PROGRAM_ACTIVE_RISK_LOCK">tests/integration/test_program_cash_guards.py:32: in test_actual_recorded_native_economics_invalidate_all_current_send_boundaries
+    c.gate.recheck_consumed(c.permit,c.lease)
+src/trading_system/execution/program_commands.py:461: in recheck_consumed
+    return recheck_consumed(self,permit,lease)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_consumed_boundary.py:162: in recheck_consumed
+    require(duty is not None,'PROGRAM_ACTIVE_RISK_LOCK')
+src/trading_system/execution/program_consumed_boundary.py:26: in require
+    if not condition:raise ValueError(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_ACTIVE_RISK_LOCK</failure></testcase></testsuite></testsuites>

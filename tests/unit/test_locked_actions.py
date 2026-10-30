@@ -55,7 +55,7 @@ class LockedCase:
             transaction_id='fixture-transaction',
             projections=SimpleNamespace(book=lambda scope: self.book),
             risk_locks=SimpleNamespace(active=lambda scope: self.locks, applicable=lambda scope: self.locks),
-            _latest=self.latest, execute=self.execute)
+            _latest=self.latest, execute=self.execute,require_scope=self.require_scope)
         self.lease = t.OwnerLease(shard=t.ExecutionShard(environment=self.scope.environment,
             venue_account_id=self.scope.venue_account_id, product=self.scope.product,
             node_id='fixture-node', execution_epoch=self.command.execution_epoch),
@@ -84,8 +84,15 @@ class LockedCase:
         return None
 
     def execute(self, sql, args=()):
+        # This legacy numerical fixture has no generic source schema. Real
+        # protected opening/source/binding behavior is exercised by the PG suite.
+        if sql=="SELECT to_regclass('ledger.program_fill_source_approvals')":
+            return SimpleNamespace(fetchone=lambda:(None,))
         rows = self.queued if "='DURABLE_READY'" in sql else self.unresolved
         return SimpleNamespace(fetchone=lambda: self.owner, fetchall=lambda: rows)
+
+    def require_scope(self,scope):
+        assert scope==self.scope
 
     def facts(self, tx, command, intent):
         return DispatchFacts(binding=self.binding, lease=self.lease,
