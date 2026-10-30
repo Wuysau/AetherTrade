@@ -46,12 +46,15 @@ BEGIN
   OR p_payload#>>'{evidence,environment}' IS DISTINCT FROM 'PAPER'
   OR COALESCE(p_payload#>>'{evidence,id}','')='' OR COALESCE(p_payload#>>'{evidence,source}','')=''
   OR COALESCE(p_payload#>>'{evidence,hash}','')!~'^[0-9a-f]{64}$'
+  OR jsonb_typeof(p_payload->'as_of') IS DISTINCT FROM 'string'
+  OR jsonb_typeof(p_payload#>'{evidence,visible_at}') IS DISTINCT FROM 'string'
   OR p_payload->>'as_of' IS DISTINCT FROM p_payload#>>'{evidence,visible_at}'
   OR (p_payload->>'as_of')::timestamptz>clock_timestamp()
   OR jsonb_typeof(p_payload->'balances') IS DISTINCT FROM 'array' OR jsonb_array_length(p_payload->'balances')<1 THEN
   RAISE EXCEPTION 'INVALID_EXPLICIT_PAPER_OPENING' USING ERRCODE='23514';
  END IF;
  IF EXISTS(SELECT 1 FROM jsonb_array_elements(p_payload->'balances') b WHERE jsonb_typeof(b->'amount') IS DISTINCT FROM 'string'
+   OR jsonb_typeof(b->'currency') IS DISTINCT FROM 'string'
    OR COALESCE(b->>'amount','')!~'^[0-9]+(\.[0-9]+)?$' OR COALESCE(b->>'currency','')='')
   OR (SELECT count(DISTINCT b->>'currency') FROM jsonb_array_elements(p_payload->'balances') b)
     <>jsonb_array_length(p_payload->'balances') THEN
