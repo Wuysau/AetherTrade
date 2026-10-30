@@ -2,6 +2,14 @@
 
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
+ROOT WRITE RELEASE: parent-approved checkpoint complete; integration_next now
+EXPLICITLY RELEASES binance-orders write ownership and will make no further
+root edits. Successor PENDING parent assignment. All root testjobs TERMINAL;
+original96697 complete exit0 as below, no restart.125 copied original fullgate
+files match CURRENT COMMITTED blobs with0mismatch. Parent coordinates freshROOT
+and separatefreshCASH(baa34ab), no doublewriters. FullgoalACTIVE/notcomplete.
+Start fresh continuation at docs/orders/OP-C-INTEGRATION-CURRENT-HANDOFF.md.
+
 FINAL PRE-RELEASE CHECKPOINT: original96697 TERMINALexit0, fixeda0ca274 full50
 mandatory PostgreSQL suites1167pass/0fail/error/skip. Ordinary3594pass721explicit
 environmentalskips96deselected1existingwarning96.40s. Complete launcher/XML and
@@ -11,7 +19,7 @@ All ROOT testjobs TERMINAL, no restart. Later13f8914 exactlot precisionfix is
 outsidea0 source, separately12unitGREEN+parentindependentreview. No productWIP.
 Freshlead handoff: OP-C-INTEGRATION-CURRENT-HANDOFF.md. Fullgoal staysACTIVE.
 
-Parent explicitly REASSIGNED root SOLE WRITE ownership to integration_next after
+Historical: parent explicitly REASSIGNED root SOLE WRITE ownership to integration_next after
 fresh-agent creation was rejected by the platform thread limit; no successor was
 created. The prior release below is historical. Implement0015/currentquote now.
 Original57061 is INTERRUPTED (runner137 at2026-10-29T16:42:10Z, qualifier absent).

@@ -1,8 +1,15 @@
 # Current root and cash continuation
 
+EXPLICIT FINAL WRITE RELEASE: parent approved and integration_next RELEASES root
+write ownership after this checkpoint. No root livejobs remain;96697 completed
+successfully,125 original fullgate artifacts verified againstCURRENT committed
+Git blobs with0mismatch. Fresh ROOT successor PENDING parent assignment; separate
+fresh CASH owner will receivebaa34ab. Oldintegration_next stops root writes now.
+Fullgoal ACTIVE. Parent mayresume this agent only for explicit read-only review.
+
 Prepared for parent-approved fresh implementer handoff2026-10-30. This file is a
-checkpoint, not WRITE RELEASE by itself. integration_next remains root sole
-writer until explicit release; parent remains cash-tree writer until assignment.
+checkpoint whose release is now explicitly recorded above. Parent remains
+cash-tree writer until its separate assignment.
 Full46 capabilities/56 cases, OP-C→D/E/F→G ACTIVE. No LIVE/TESTNET/account/paid
 model calls, main/archive changes, publication or push. No weakened/deleted/skipped
 safety tests. Venue-generated children are observations only, never resent.
