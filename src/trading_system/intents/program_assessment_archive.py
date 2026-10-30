@@ -20,7 +20,7 @@ from trading_system.risk.reduction import ReductionRiskMetrics
 from trading_system.risk.valuation import Valuation
 from trading_system.storage.models import decode
 from .program_compilation import compile_order_program
-from .program_target_allocation import compile_program_target
+from .program_target_allocation import compile_program_target,ProgramTargetFacts,ProgramScopedTargetFactsV2
 from .program_financial_records import ProgramFinancialArchive
 
 
@@ -38,6 +38,7 @@ def _same(left,right):
 class ProgramFinancialAssessmentArchive(ProgramFinancialArchive):
     record_kind: Literal['PROGRAM_FINANCIAL_ASSESSMENT_ARCHIVE']
     archive_revision: Literal[1]
+    target_facts: ProgramTargetFacts|ProgramScopedTargetFactsV2
     risk_metrics: RiskMetrics | ReductionRiskMetrics | None
     risk_facts: ProgramRiskFacts
     assessment: ProgramRiskDecision

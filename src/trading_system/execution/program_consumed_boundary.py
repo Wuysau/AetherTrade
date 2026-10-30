@@ -143,6 +143,10 @@ def recheck_consumed(boundary,permit,lease):
         from trading_system.risk.quote_financial_admission import (QuoteProgramFinancialBundleV1,
             current_quote_financial_book,validate_current_quote_bounds)
         quote=type(bundle) is QuoteProgramFinancialBundleV1
+        from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
+        from trading_system.risk.program_quantity_scope import (
+            current_scoped_program_financial_book,validate_current_program_quantity_scope)
+        scoped=not quote and type(bundle.archive.target_facts) is ProgramScopedTargetFactsV2
         financial_book=book
         if quote:
             from trading_system.intents.generic_program_intake import read_program_source
@@ -160,6 +164,12 @@ def recheck_consumed(boundary,permit,lease):
                 and digest(current_quote_financial_book(tx,bundle,tx.projections.book(write.scope)))==digest(financial_book)
                 and digest(current_fence(tx,assessment.source.context))==canonical_hash(consumed['fence']),
                 'PROGRAM_CONSUMED_CURRENT_STATE_CHANGED')
+        elif scoped:
+            require(digest(book)==consumed.get('source_book_hash'),'PROGRAM_CONSUMED_BOOK_CHANGED')
+            financial_book=current_scoped_program_financial_book(tx,bundle,book)
+            require(digest(financial_book)==consumed.get('financial_book_hash')==digest(assessment.book),
+                'PROGRAM_CONSUMED_FINANCIAL_BOOK_CHANGED')
+            validate_current_program_quantity_scope(tx,book,financial_book,assessment.target_facts,bundle=bundle)
         else:
             require(book is not None and digest(book)==digest(assessment.book),'PROGRAM_CONSUMED_BOOK_CHANGED')
         duty=LockedActionVerifier().verify_program(tx,bundle.intent,assessment,clock.utc_now,

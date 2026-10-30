@@ -1,5 +1,26 @@
 # Current task
 
+## CURRENT_PHYSICAL_SCOPE_CANDIDATE — 2026-10-30
+
+StableROOTb7f6d85 actual0021 source-knownness8PG GREEN0fail/error/skip49.69s;
+original10800 TERMINAL. Stablefirst-capitala9 actual3PG GREEN6.46s. Complete27path
+product/dependency manifest is committedd4db300 at
+docs/orders/ROOT-CASH-DEPENDENCY-b7f6d85.json and sent to CASH. Cash owns all its
+source513/initial/owned/book modules; no root financial writer/host promotion.
+
+Current physical-scope product candidate integrates ONLY reviewedc9 pure tagged
+facts/compiler/full-assessment+RiskFacts union hunks (oldbaseArchive/V1 unchanged).
+NEW program_quantity_scope rederives actual physicalscope/id/immutablecreation/
+latestprojection and contiguoushistory, permits legitimate state/reflected/
+watermark changes, checks fullfinancial projection payload, exact actualstored
+bundle exclusion only, and authenticates raw external legacy refs or rejects.
+reserve/_current/post-wait hooks preserve fullgroup cash and distinct raw/financial
+hashes. Trusted pytest scoped_quantities loader rederives actualdata eachcall.
+50focused typed/archive tests passed7.02s; physical11-case PG is prepared but NOT
+yet executed. It covers genuineA/Baccepted-unfilled, fullcashonce/localqty0,
+forged/omitted/scopemaps/financialvalue and5same-ID immutableprojection corruptions.
+No pure projection is authority; no62-suite/full46/56/owned/quote producer claim.
+
 Latest0021b188c87 actual5PG original62259/run9fae0de28dbd TERMINALexit1:
 4pass1fixturefail29.17s. Genuine V1/V2 accepted-unfilled/historicalTTL, true
 post-only rejection, and laterUNKNOWN preserving acceptance history passed.

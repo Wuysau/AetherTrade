@@ -288,10 +288,17 @@ class ProgramCommandRepository:
         from trading_system.risk.quote_financial_admission import (QuoteProgramFinancialBundleV1,
             current_quote_financial_book,quote_quantity_reservation_ids,validate_current_quote_bounds)
         quote=type(bundle) is QuoteProgramFinancialBundleV1
-        financial_book=current_quote_financial_book(self.tx,bundle,book) if quote else book
+        from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
+        from trading_system.risk.program_quantity_scope import (
+            current_scoped_program_financial_book,validate_current_program_quantity_scope)
+        scoped=not quote and type(bundle.archive.target_facts) is ProgramScopedTargetFactsV2
+        financial_book=current_quote_financial_book(self.tx,bundle,book) if quote else (
+            current_scoped_program_financial_book(self.tx,bundle,book) if scoped else book)
         inputs=self.load_current_facts(self.tx,source,intake,financial_book,clock) if self.load_current_facts else None
+        if scoped:validate_current_program_quantity_scope(self.tx,book,financial_book,inputs.archive.target_facts,bundle=bundle)
         intent,basis=validate_current_inputs(self.tx,source,intake,financial_book,inputs,clock,self.load_execution_bounds)
         a=inputs.archive
+        require(quote or type(a.target_facts) is type(bundle.archive.target_facts),'PROGRAM_CURRENT_TARGET_FACT_KIND_CHANGED')
         require(digest(a.compilation)==write.compilation_hash and digest(a.source)==digest(bundle.archive.source)
             and intent.hashes.program==write.canonical_program_hash,'PROGRAM_CURRENT_ECONOMICS_CHANGED')
         require((intent.owner_strategy_id,intent.ownership_epoch,intent.risk_policy_revision)==(
@@ -361,6 +368,10 @@ class ProgramCommandRepository:
             validate_current_quote_bounds(self.tx,source,intake,financial_book,clock,a,self.load_execution_bounds)
             require(digest(current_quote_financial_book(self.tx,bundle,self.tx.projections.book(self.tx.scope)))==digest(financial_book),
                 'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
+        if scoped:
+            validate_current_program_quantity_scope(self.tx,book,financial_book,a.target_facts,bundle=bundle)
+            require(digest(current_scoped_program_financial_book(self.tx,bundle,book))==digest(financial_book),
+                'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
         require(before==digest(self.tx.projections.book(self.tx.scope)) and
             digest(current_fence(self.tx,source.context))==digest(fence),'PROGRAM_CURRENT_STATE_CHANGED')
         end_clock,end_lease=self._clock_lease(write)
@@ -377,9 +388,9 @@ class ProgramCommandRepository:
             'fence_record_id':revision_key(source.context),'assessment':domain_payload(a),
             'qualification':domain_payload(qualification),'valid_until':expires.isoformat(),
             'account_opening_id':account_cash.opening_id,'account_cash_revision':account_cash.economic_revision}
-        if quote:
+        if quote or scoped:
             context.update(source_book_hash=before,financial_book_hash=digest(financial_book),
-                execution_bounds_hash=digest(a.risk_facts.target_facts.bounds))
+                **({'execution_bounds_hash':digest(a.risk_facts.target_facts.bounds)} if quote else {}))
         return context,end_clock,lease,expires,request
 
     @atomic_write

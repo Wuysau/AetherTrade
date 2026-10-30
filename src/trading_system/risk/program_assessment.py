@@ -11,7 +11,7 @@ from typing import Literal
 from trading_system.contracts import types as t
 from trading_system.contracts.order_snapshots import OrderRuleSnapshot,OrderCapabilitySnapshot
 from trading_system.intents.product_rules import TrustedProductRules
-from trading_system.intents.program_target_allocation import ProgramTargetFacts
+from trading_system.intents.program_target_allocation import ProgramTargetFacts,ProgramScopedTargetFactsV2
 from .evaluator import RiskInputs
 from .program_exposure import ProgramBudgetFacts,FeeBound,derive_program_exposure
 from .terms import RiskMetrics,RiskSource,RiskTerms,metric_binding_codes
@@ -110,7 +110,7 @@ class ProgramRiskFacts:
     inputs:RiskInputs
     market:t.SnapshotPacket
     authorization:t.AuthorizationDecision
-    target_facts:ProgramTargetFacts
+    target_facts:ProgramTargetFacts|ProgramScopedTargetFactsV2
     budget_facts:ProgramBudgetFacts
     rules:OrderRuleSnapshot
     capabilities:OrderCapabilitySnapshot

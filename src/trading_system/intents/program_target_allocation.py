@@ -5,7 +5,7 @@ This module verifies snapshot bindings, not database authority; transaction IDs
 and evidence labels supplied by an untrusted caller prove nothing. It creates
 no TradeIntent projection, risk decision, reservation, command or permit.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass,replace
 from decimal import Decimal, localcontext, Inexact, Rounded, DecimalException
 from typing import Literal
 
@@ -67,6 +67,38 @@ class ProgramTargetFacts:
     unknown_command_ids:tuple[str,...]
     evidence:t.EvidenceRef
     valid_until:str
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class ProgramScopedTargetFactsV2(ProgramTargetFacts):
+    contract_version:Literal['2026-10-30']
+    record_kind:Literal['PROGRAM_SCOPED_TARGET_FACTS_V2']
+    quantity_scope:t.ScopeKey
+    quantity_reservation_ids:tuple[str,...]
+
+    def __post_init__(self):
+        require(self.contract_version=='2026-10-30' and self.record_kind=='PROGRAM_SCOPED_TARGET_FACTS_V2',
+            'PROGRAM_SCOPED_TARGET_VERSION_REQUIRED')
+        ids=self.quantity_reservation_ids
+        require(type(self.quantity_scope) is t.ScopeKey and type(ids) is tuple
+            and all(type(i) is str and bool(i) for i in ids) and len(set(ids))==len(ids),
+            'PROGRAM_QUANTITY_RESERVATION_MAP_REQUIRED')
+
+
+def program_target_quantity_book(book,facts):
+    """Pure projection; host must authenticate IDs against physical scope SQL.
+
+    The full financial book remains validated/hashed by the caller. This helper
+    cannot prove an omitted hold is foreign or grant authority to exclude cash.
+    """
+    if type(facts) is ProgramTargetFacts:return book
+    require(type(facts) is ProgramScopedTargetFactsV2,'PROGRAM_TARGET_TYPED_FACTS_REQUIRED')
+    facts.__post_init__()
+    require(facts.quantity_scope==book.scope,'PROGRAM_QUANTITY_SCOPE_CHANGED')
+    originals={p.reservation.reservation_id:p for p in book.reservations}
+    require(len(originals)==len(book.reservations) and set(facts.quantity_reservation_ids)<=set(originals),
+        'PROGRAM_QUANTITY_RESERVATION_MAP_CHANGED')
+    return replace(book,reservations=tuple(originals[i] for i in facts.quantity_reservation_ids))
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -235,7 +267,7 @@ def _compile_program_target(plan,book,facts):
         basis_fingerprint=book.basis_fingerprint,action=proposal.action,target_side=proposal.target_side,
         target=t.Quantity(value=target,unit=bridge.ledger_unit),valid_until=min(valid_until,key=time_key),
         submission_deadline=program.submit_valid_until)
-    delta=TargetCompiler(facts.inputs).compile_terms(terms,book)
+    delta=TargetCompiler(facts.inputs).compile_terms(terms,program_target_quantity_book(book,facts))
     blockers=[]
     if delta.cancel_first:blockers.append('TARGET_CANCEL_AND_RECONCILE_REQUIRED')
     # Preserve the existing exposure core's exact target equation. Explicit
