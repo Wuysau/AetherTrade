@@ -1,5 +1,18 @@
 # Current task
 
+## CURRENT_FIRST_CAPITAL_GREEN_SUBMISSION_REPAIR — 2026-10-30
+
+Fixeda9a076f actual first-capital3PG GREEN0fail/error/skip6.46s original59820,
+run9a5871a3ac78. Actualmissing-opening RED is denied, forgedbook remains denied,
+full first funded MAY/consume/venue chain stores opening_id/revision while no
+inventory/fill is created. Historical original hashes remain untouched.
+Parallel0021 actual5PG original40751/run7449935a3f97 TERMINALexit1,5fail20.89s:
+new obligation reader demanded consumed context for an own MAY before consume,
+despite no query probe existing yet. Minimal correction first checks protected
+STARTED rows; absent probe returnsNone/UNKNOWN and preserves pre-consume duties.
+Only existing probes rederive committed consumption context. No denial is waived;
+fresh actual0021 run is due after this candidate correction. All own jobs terminal.
+
 ## CURRENT_SUBMISSION_OBSERVATION_IMPLEMENTATION — 2026-10-30
 
 Current parent ruling: FIRST generic financial entry, V3 mark/consume and final

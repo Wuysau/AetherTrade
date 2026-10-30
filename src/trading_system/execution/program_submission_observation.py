@@ -88,6 +88,12 @@ def read_program_submission_observation(tx,original):
     initial=tx.execute('SELECT payload FROM ledger.order_writes_v2 WHERE scope_id=%s AND record_id=%s AND sequence=1',
         (sid,original.command_id)).fetchone()
     need(initial is not None and canonical_hash(initial[0])==_hash(original),'SUBMISSION_OBSERVATION_ORIGINAL_CHANGED')
+    fields='payload,payload_hash,database_transaction::text,xmin::text,pg_current_xact_id()::text'
+    started=tx.execute('SELECT '+fields+' FROM ledger.program_submission_observations WHERE scope_id=%s AND command_id=%s '
+        "AND phase='STARTED' ORDER BY sequence DESC LIMIT 1",(sid,original.command_id)).fetchone()
+    # A newly marked MAY has not consumed yet. With no protected query probe it
+    # remains unknown; it must not require a consumption merely to read duties.
+    if started is None:return None
     view=SimpleNamespace(scope=original.scope,execute=tx.execute)
     context=_source_context(view,original.command_id)
     def checked(row):
@@ -105,10 +111,6 @@ def read_program_submission_observation(tx,original):
                 and record.manifest_ref.environment==t.Environment.PAPER and record.manifest_ref.source==SOURCE
                 and bool(record.members),'SUBMISSION_OBSERVATION_SOURCE_REQUIRED')
         return record
-    fields='payload,payload_hash,database_transaction::text,xmin::text,pg_current_xact_id()::text'
-    started=tx.execute('SELECT '+fields+' FROM ledger.program_submission_observations WHERE scope_id=%s AND command_id=%s '
-        "AND phase='STARTED' ORDER BY sequence DESC LIMIT 1",(sid,original.command_id)).fetchone()
-    if started is None:return None
     start=checked(started)
     completed=tx.execute('SELECT '+fields+' FROM ledger.program_submission_observations WHERE scope_id=%s AND command_id=%s '
         "AND probe_id=%s AND phase='COMPLETED'",(sid,original.command_id,start.probe_id)).fetchone()
