@@ -225,6 +225,9 @@ def test_raw_paper_runtime_cannot_forge_consumed_bridge_authorization(management
             (c.engine._scope_key,w.command_id,canonical_json(domain_payload(b))))
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with c.engine._connect() as db:db.execute('INSERT INTO public.paper_management_authorizations_v4 DEFAULT VALUES')
+    with c.engine._connect() as db:
+        role=db.execute("SELECT r.rolname,r.rolsuper,r.rolcanlogin,r.rolcreatedb,r.rolcreaterole FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.paper_manage_order_v4(text,text,jsonb)'::regprocedure").fetchone()
+        assert tuple(role.values())==('paper_matcher_definer',False,False,False,False)
 
 def test_lost_cancel_ack_recovers_original_id_without_retry_or_release(management_database,venue_v2,management_venue,tmp_path):
     from trading_system.execution.program_management_paper import submit_management

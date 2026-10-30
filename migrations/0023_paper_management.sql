@@ -48,5 +48,10 @@ DECLARE w jsonb;target jsonb;ord public.paper_engine_orders;market text;result j
  RETURN result;
 END $$;
 REVOKE ALL ON FUNCTION public.paper_manage_order_v4(text,text,jsonb) FROM PUBLIC;
+GRANT SELECT ON public.paper_management_authorizations_v4 TO paper_matcher_definer;
+GRANT SELECT,INSERT ON public.paper_management_actions_v4 TO paper_matcher_definer;
+GRANT USAGE,CREATE ON SCHEMA public TO paper_matcher_definer;
+ALTER FUNCTION public.paper_manage_order_v4(text,text,jsonb) OWNER TO paper_matcher_definer;
+REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
 -- Runtime cannot author the private cross-database consumed authorization.
 COMMIT;
