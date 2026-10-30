@@ -151,3 +151,79 @@ def test_unknown_source_retains_current_book_and_creates_no_new_token(database,h
             assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
                 (scope_id(c.scope),)).fetchone()==(1,)
     finally:codec.close()
+
+
+def host_state(c):
+    """Actual business rows whose values/xmin cannot change on a failed read."""
+    with c.service.uow.transaction(c.scope) as tx:
+        return tuple((table,tx.execute('SELECT row_to_json(r)::text,xmin::text FROM ledger.'+table+
+            ' r WHERE scope_id=%s ORDER BY row_to_json(r)::text',(scope_id(c.scope),)).fetchall())
+            for table in ('book_snapshots','reservations','order_projections','positions','cashflows',
+                'order_writes_v2','program_dispatch_marks','program_permit_consumptions'))
+
+
+IO_CASES=[(version,point,kind,1) for version in (1,2) for point in ('query_creation','query_market_evidence')
+    for kind in ('os','timeout','postgres')]+[(version,point,'os',2)
+        for version in (1,2) for point in ('query_creation','query_market_evidence')]
+
+
+@pytest.mark.parametrize('version,point,kind,attempt',IO_CASES)
+def test_host_source_io_exception_blocks_current_working_before_io_and_preserves_history(
+        database,host_venue,tmp_path,version,point,kind,attempt):
+    import psycopg
+    from trading_system.execution.program_submission_observation import read_program_submission_observation
+    c=case(database,host_venue,tmp_path,scoped_quantities=True)
+    if version==2:
+        from trading_system.engine.paper_market_v2 import PaperMatchingModelV2
+        c.engine._matching_model=PaperMatchingModelV2(model_id='HOST_IO_V2_ACTUAL_SOURCE',quote_fee_rate='0')
+    runtime,codec=host(c,database,tmp_path/'io-source',version=version)
+    try:
+        runtime.dispatch(c.write.command_id,c.lease)
+        assert runtime.observe(c.write.command_id).orders.status=='ORDER_BOOK_PROJECTED_DUTIES_RETAINED'
+        assert runtime.working_inputs().order_sides
+        with c.service.uow.transaction(c.scope) as tx:
+            prior=read_program_submission_observation(tx,c.write)
+            assert prior.state=='ACCEPTED' and prior.submission_known and prior.ever_accepted
+        before=host_state(c);original=getattr(c.engine,point);calls=[];seen=[]
+        error={'os':OSError,'timeout':TimeoutError,'postgres':psycopg.OperationalError}[kind]('ISOLATED_SOURCE_IO_FAILURE')
+        def failed_query(command_id):
+            calls.append(command_id)
+            if len(calls)!=attempt:return original(command_id)
+            # Only the venue read is fault-injected. This independent actual
+            # ledger read proves the UNKNOWN barrier was committed beforehand.
+            with c.service.uow.transaction(c.scope) as tx:
+                view=read_program_submission_observation(tx,c.write)
+                seen.append(view.submission_known)
+            raise error
+        setattr(c.engine,point,failed_query)
+        with pytest.raises(type(error)) as captured:runtime.observe(c.write.command_id)
+        assert captured.value is error # original exception is not converted or swallowed
+        with c.service.uow.transaction(c.scope) as tx:
+            current=read_program_submission_observation(tx,c.write)
+            assert not current.submission_known and current.state=='UNKNOWN' and current.ever_accepted
+        assert seen==[False]
+        assert host_state(c)==before
+        with pytest.raises(MissingEvidence,match='PROGRAM_ORDER_QUERY_UNKNOWN'):runtime.working_inputs()
+        setattr(c.engine,point,original)
+        assert runtime.observe(c.write.command_id).orders.status=='ORDER_BOOK_PROJECTED_DUTIES_RETAINED'
+        assert runtime.working_inputs().order_sides and host_state(c)==before
+    finally:codec.close()
+
+
+def test_host_commits_source_barrier_before_any_venue_query(database,host_venue,tmp_path):
+    from trading_system.storage.uow import UnitOfWork
+    c=case(database,host_venue,tmp_path,scoped_quantities=True);runtime,codec=host(c,database,tmp_path/'commit-failure')
+    try:
+        runtime.dispatch(c.write.command_id,c.lease);runtime.observe(c.write.command_id)
+        before=host_state(c);source=runtime.orders.observer.uow;calls=[]
+        class FailCommit:
+            def __init__(self,db):self.db=db
+            def __getattr__(self,name):return getattr(self.db,name)
+            def commit(self):raise RuntimeError('SOURCE_BARRIER_COMMIT_FAILED')
+        runtime.orders.observer.uow=UnitOfWork(lambda:FailCommit(source.connection_factory()))
+        original=c.engine.query_creation
+        def query(command_id):calls.append(command_id);return original(command_id)
+        c.engine.query_creation=query
+        with pytest.raises(RuntimeError,match='SOURCE_BARRIER_COMMIT_FAILED'):runtime.observe(c.write.command_id)
+        assert not calls and host_state(c)==before
+    finally:codec.close()
