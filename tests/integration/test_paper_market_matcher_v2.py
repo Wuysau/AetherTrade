@@ -474,19 +474,26 @@ def test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_calle
     assert report.accepted_contexts[0].execution_envelope.fee_ceilings[0].amount=='0.1119'
 
 
-def test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool(database,venue_v2,tmp_path):
+@pytest.mark.parametrize('product',[t.Product.SPOT,t.Product.USD_M_PERP])
+def test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool(database,venue_v2,tmp_path,product):
+    import psycopg
     from datetime import timedelta
     from trading_system.contracts.canonical import utc_timestamp
     from trading_system.engine.paper_market import PaperMatcher
     from trading_system.engine.paper_market_v2 import PaperClockEventV2
-    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE',product=product);submit(c)
     matcher=PaperMatcher(c.engine);snapshot=event(c,quantity='0.4');matcher.apply_market_event(snapshot)
     first=c.engine.query_creation(c.write.command_id)
     assert len(first.orders)==1 and first.fills[0].quantity==D('0.2')
     assert first.pool.allocated_quantity==first.pool.executed_quantity==D('0.2') and first.pool.remaining_pool_quantity==D('0.8')
-    assert first.orders[0].namespace=='BINANCE_SPOT_ORDINARY'
+    assert first.orders[0].namespace==('BINANCE_SPOT_ORDINARY' if product==t.Product.SPOT else 'BINANCE_USD_M_ORDINARY')
+    assert first.orders[0].quantity_unit==c.bundle.intent.unit.native_unit
     assert first.accepted_contexts[0].request==c.request and first.request==c.request
     assert not matcher.apply_market_event(snapshot).applied
+    assert c.engine.query_creation(c.write.command_id)==first
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with c.engine._connect() as db:db.execute('SELECT public.paper_advance_native_algorithms_v2(%s)',(snapshot.market_key,))
+    with c.engine._connect() as db:db.execute('SELECT public.paper_match_order(%s,%s)',(c.engine._scope_key,first.orders[0].client_id))
     assert c.engine.query_creation(c.write.command_id)==first
     base=c.c.facts.inputs.clock
     for sequence,seconds in ((2,60),(3,120)):
