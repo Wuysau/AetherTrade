@@ -341,3 +341,29 @@ def test_native_oco_has_one_real_parent_command_and_observed_member_cancellation
     matcher.apply_market_event(reference(c,3,'LAST','81300'))
     after=c.engine.query_creation(c.write.command_id)
     assert {f.node_id for f in after.fills}=={'above'} and {o.node_id:o for o in after.orders}['below'].status=='CANCELED'
+
+
+@pytest.mark.parametrize('template',['OTO','OTOCO'])
+def test_native_pending_members_wait_for_actual_full_working_fill_then_activate_without_application_commands(
+        database,venue_v2,tmp_path,template):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=advanced_case(database,venue_v2,tmp_path,template=template,
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,quantity='0.4'))
+    partial=c.engine.query_creation(c.write.command_id)
+    working=next(n.original.node_id for n in c.bundle.archive.compilation.nodes if n.original.role=='WORKING')
+    assert {o.node_id:o for o in partial.orders}[working].filled_quantity==D('0.4')
+    assert all(o.filled_quantity==0 and o.runtime.phase=='WAITING_FULL_WORKING_FILL' for o in partial.orders if o.node_id!=working)
+    matcher.apply_market_event(event(c,sequence=2,quantity='0.6',kind='DEPTH_DELTA'))
+    full=c.engine.query_creation(c.write.command_id)
+    assert {o.node_id:o for o in full.orders}[working].status=='FILLED'
+    assert all(o.runtime.parent_activation_fill_id for o in full.orders if o.node_id!=working)
+    matcher.apply_market_event(replace(event(c,sequence=3,ask='83001',quantity='1'),bids=(DepthLevel(price='83000',quantity='1'),)))
+    if template=='OTOCO':matcher.apply_market_event(reference(c,4,'LAST','83000'))
+    after=c.engine.query_creation(c.write.command_id)
+    assert sum((f.quantity for f in after.fills if f.node_id!=working),D(0))==1
+    assert after.native_parent.status=='ALL_DONE'
+    with c.engine._connect() as db:
+        assert db.execute('SELECT count(*) AS n FROM public.paper_engine_commands WHERE scope_key=%s',(c.engine._scope_key,)).fetchone()['n']==1
