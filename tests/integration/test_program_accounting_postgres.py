@@ -9,7 +9,7 @@ from decimal import Decimal as D
 
 import pytest
 
-from integration.test_program_fill_source_approval import isolated_postgres,database,venue,setup_source
+from integration.test_program_fill_source_approval import isolated_postgres,command_database,database,venue,setup_source
 from integration.test_paper_market_matcher import event
 from integration.test_paper_program_reports_postgres import change_observed_fill,reseal_report
 from trading_system.contracts.canonical import utc_timestamp
