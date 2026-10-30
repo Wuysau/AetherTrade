@@ -8,6 +8,7 @@ from integration.test_paper_quote_budget_postgres import (
     isolated_postgres,database,base_database,venue,quote_venue,execution_case,
 )
 from integration.test_paper_market_matcher import event,submit
+from integration.test_program_financial_admission import real_case
 from integration.test_paper_market_matcher_v2 import advanced_case,reference
 from integration.test_paper_native_parent_postgres import native_verifier
 from integration.test_paper_program_v2_reports_postgres import observe
@@ -33,8 +34,13 @@ def lower_limit(proposal):
 @pytest.mark.parametrize('quote_first',[False,True])
 def test_actual_native_quote_and_v2_base_authenticate_one_shared_book(database,combined_venue,tmp_path,quote_first):
     q=execution_case(database,combined_venue,tmp_path)
-    n=advanced_case(database,combined_venue,tmp_path,market=q.scope.instrument_uid,
-        template='TWAP',tif='NONE',stop='40000',plan_proposal_transform=lower_limit)
+    # Native TWAP remains a MARKET program. Its independently admitted model
+    # envelope overlaps the quote model at50000; maximum90000 and the complete
+    # original gross reservation stay intact. No LIMIT variant is fabricated.
+    prepared=real_case(database,instrument_uid=q.scope.instrument_uid,template='TWAP',stop='40000')
+    prepared.c.facts=replace(prepared.c.facts,node_bounds=tuple(replace(bound,
+        minimum_price=replace(bound.minimum_price,value=D('50000'))) for bound in prepared.c.facts.node_bounds))
+    n=advanced_case(database,combined_venue,tmp_path,prepared_case=prepared)
     snapshot=replace(event(q),asks=(DepthLevel(price='50000',quantity='.3'),),bids=())
     matcher=PaperMatcher(q.engine)
     if quote_first:
