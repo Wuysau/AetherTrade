@@ -1,0 +1,33 @@
+...........................................FF.F..F                       [100%]
+=================================== FAILURES ===================================
+_ test_resealed_fill_currency_and_unit_must_match_actual_order_source[price_asset-CALLER_CURRENCY] _
+tests/integration/test_paper_program_v2_reports_postgres.py:521: in test_resealed_fill_currency_and_unit_must_match_actual_order_source
+    assert not result.source_verified and not result.fills and result.raw_refs,result.discrepancies
+E   AssertionError: ('FILL_QUOTE_ASSET_MISMATCH',)
+E   assert (not True)
+E    +  where True = PaperProgramVerificationV2(command_id='isolated-command-d23f0a3e5fef4cbaa27c226674bdbb57', status='DISCREPANCY', sourc...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified
+_ test_resealed_fill_currency_and_unit_must_match_actual_order_source[quantity_unit-CALLER_UNIT] _
+tests/integration/test_paper_program_v2_reports_postgres.py:522: in test_resealed_fill_currency_and_unit_must_match_actual_order_source
+    assert 'PAPER_V2_FILL_ORDER_ECONOMIC_SOURCE_CHANGED' in result.discrepancies
+E   AssertionError: assert 'PAPER_V2_FILL_ORDER_ECONOMIC_SOURCE_CHANGED' in ('PAPER_V2_SOURCE_SHAPE_OR_ECONOMICS_INVALID',)
+E    +  where ('PAPER_V2_SOURCE_SHAPE_OR_ECONOMICS_INVALID',) = PaperProgramVerificationV2(command_id='isolated-command-bed0370cbb9a4d11810dc6082b3b9641', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).discrepancies
+_ test_actual_v2_source_economic_conflicts_retain_uncapped_native_fills[gross-GROSS_NOTIONAL_MISMATCH] _
+tests/integration/test_paper_program_v2_reports_postgres.py:581: in test_actual_v2_source_economic_conflicts_retain_uncapped_native_fills
+    assert result.fills[0].economics.fees==result.fills[0].fill.fees
+E   AssertionError: assert () == (Money(amount...ency='USDT'),)
+E     
+E     Right contains one more item: Money(amount=Decimal('0'), currency='USDT')
+E     Use -v to get more diff
+_ test_actual_v2_source_economic_conflicts_retain_uncapped_native_fills[gross_cap-PROGRAM_GROSS_ENVELOPE_EXCEEDED] _
+tests/integration/test_paper_program_v2_reports_postgres.py:581: in test_actual_v2_source_economic_conflicts_retain_uncapped_native_fills
+    assert result.fills[0].economics.fees==result.fills[0].fill.fees
+E   AssertionError: assert () == (Money(amount...ency='USDT'),)
+E     
+E     Right contains one more item: Money(amount=Decimal('0'), currency='USDT')
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_resealed_fill_currency_and_unit_must_match_actual_order_source[price_asset-CALLER_CURRENCY]
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_resealed_fill_currency_and_unit_must_match_actual_order_source[quantity_unit-CALLER_UNIT]
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_v2_source_economic_conflicts_retain_uncapped_native_fills[gross-GROSS_NOTIONAL_MISMATCH]
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_v2_source_economic_conflicts_retain_uncapped_native_fills[gross_cap-PROGRAM_GROSS_ENVELOPE_EXCEEDED]
+4 failed, 46 passed in 250.28s (0:04:10)

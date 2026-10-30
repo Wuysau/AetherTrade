@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="10" skipped="0" tests="19" time="86.285" timestamp="2026-10-30T04:39:01.399562+00:00" hostname="cd2958ae77cf"><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_v2_market_partial_preserves_native_economics_and_explicit_v2_provenance" time="5.142" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_trailing_observation_survives_creation_window_and_keeps_every_causal_input" time="4.335" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_missing_nonfinal_trailing_dependency_is_archived_but_never_qualified" time="5.489" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_command" time="5.989" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_changed_native_parent_venue_identity_cannot_be_authenticated_by_a_resealed_dto" time="5.622" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_missing_real_competing_account_allocation_cannot_be_hidden_by_resealing_evidence" time="9.109" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_complete_causal_graph_is_stored_once_not_copied_into_every_fill_provenance" time="4.711" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl" time="5.743" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_fake_native_pending_working_fill_link_is_archived_not_accepted" time="4.830" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills[EXPIRE_TAKER-1-0]" time="4.058"><failure message="AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)&#10;assert False&#10; +  where False = PaperProgramVerificationV2(command_id='isolated-command-2cb1a67156d446a0b695d4333f3ba6eb', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_paper_program_v2_reports_postgres.py:212: in test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-2cb1a67156d446a0b695d4333f3ba6eb', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills[EXPIRE_MAKER-0-1]" time="3.812"><failure message="AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)&#10;assert False&#10; +  where False = PaperProgramVerificationV2(command_id='isolated-command-f7eaa51a02164fd68c548d8201202abb', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_paper_program_v2_reports_postgres.py:212: in test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-f7eaa51a02164fd68c548d8201202abb', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills[EXPIRE_BOTH-1-0]" time="3.696"><failure message="AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)&#10;assert False&#10; +  where False = PaperProgramVerificationV2(command_id='isolated-command-9caa4dc74750414a9ef4c7b7b1a68ea9', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_paper_program_v2_reports_postgres.py:212: in test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-9caa4dc74750414a9ef4c7b7b1a68ea9', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills[DECREMENT-.4-.6]" time="3.923"><failure message="AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)&#10;assert False&#10; +  where False = PaperProgramVerificationV2(command_id='isolated-command-b5b6df782663414ba161678e5da06dae', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_paper_program_v2_reports_postgres.py:212: in test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-b5b6df782663414ba161678e5da06dae', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_decrement_restarted_verifier_preserves_original_quantity_and_only_external_fill" time="3.908"><failure message="AssertionError: (('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',), ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',))&#10;assert (False)&#10; +  where False = PaperProgramVerificationV2(command_id='isolated-command-0b7f520784014a1284b523912e5dbddf', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_paper_program_v2_reports_postgres.py:226: in test_actual_decrement_restarted_verifier_preserves_original_quantity_and_only_external_fill
+    assert first.source_verified and second.source_verified,(first.discrepancies,second.discrepancies)
+E   AssertionError: (('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',), ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',))
+E   assert (False)
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-0b7f520784014a1284b523912e5dbddf', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_primary_peg_uses_earlier_placement_depth_not_later_quote" time="3.766"><failure message="ValueError: PAPER_CROSSED_SOURCE_BOOK">tests/integration/test_paper_program_v2_reports_postgres.py:237: in test_actual_primary_peg_uses_earlier_placement_depth_not_later_quote
+    matcher.apply_market_event(replace(event(c,sequence=2,ask='81488',quantity='.4'),bids=(DepthLevel(price='81487',quantity='1'),)))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:73: in event
+    return PaperMarketEvent(contract_version='2026-10-29',event_id=event_id or uuid4().hex,stream_id=c.scope.instrument_uid,
+&lt;string&gt;:14: in __init__
+    ???
+src/trading_system/engine/paper_market.py:83: in __post_init__
+    require(max(number(l.price) for l in self.bids)&lt;min(number(l.price) for l in self.asks),'PAPER_CROSSED_SOURCE_BOOK')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_CROSSED_SOURCE_BOOK</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_iceberg_hidden_quantity_is_not_fill_or_released_reservation" time="0.028"><failure message="ValueError: expected finite plain decimal string">tests/integration/test_paper_program_v2_reports_postgres.py:247: in test_actual_iceberg_hidden_quantity_is_not_fill_or_released_reservation
+    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda o:replace(o,iceberg_quantity='.1'))
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher_v2.py:21: in advanced_case
+    c=case(database,venue_v2,tmp_path,**options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:43: in case
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:76: in real_case
+    c=risk_module.risk_case(**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:67: in selected_plan
+    plan,r=original_plan_for(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:32: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:55: in scoped_inputs
+    if proposal_transform is not None:p=proposal_transform(p)
+                                        ^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:41: in transform
+    if order_transform is not None:order=order_transform(order)
+                                         ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:247: in &lt;lambda&gt;
+    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda o:replace(o,iceberg_quantity='.1'))
+                                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:16: in __init__
+    ???
+src/trading_system/contracts/order_program.py:98: in __post_init__
+    if self.iceberg_quantity is not None:amount(self.iceberg_quantity)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/order_program.py:25: in amount
+    result=decimal_string(value)
+           ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:18: in decimal_string
+    raise ValueError("expected finite plain decimal string")
+E   ValueError: expected finite plain decimal string</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_equity_calendar_clock_can_use_prior_depth_without_replenishing_it" time="3.758"><failure message="AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)&#10;assert False&#10; +  where False = PaperProgramVerificationV2(command_id='isolated-command-7fd7cc0212084893ae30934c8c83ab29', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_paper_program_v2_reports_postgres.py:284: in test_actual_equity_calendar_clock_can_use_prior_depth_without_replenishing_it
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-7fd7cc0212084893ae30934c8c83ab29', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_duplicate_actual_fill_cannot_be_replayed_inside_resealed_report" time="3.663"><failure message="AssertionError: assert (not True)&#10; +  where True = PaperProgramVerificationV2(command_id='isolated-command-49f85609770948d280a0d0a2287c3f05', status='DISCREPANCY', sourc...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_paper_program_v2_reports_postgres.py:295: in test_duplicate_actual_fill_cannot_be_replayed_inside_resealed_report
+    assert not result.source_verified and not result.fills and result.raw_refs
+E   AssertionError: assert (not True)
+E    +  where True = PaperProgramVerificationV2(command_id='isolated-command-49f85609770948d280a0d0a2287c3f05', status='DISCREPANCY', sourc...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_disposition_market_identity_cannot_be_changed_while_actual_raw_is_retained" time="3.843"><failure message="AssertionError: assert (not True)&#10; +  where True = PaperProgramVerificationV2(command_id='isolated-command-d9b5e537b56c474ba3406200f0515db9', status='VERIFIED', source_v...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_paper_program_v2_reports_postgres.py:305: in test_disposition_market_identity_cannot_be_changed_while_actual_raw_is_retained
+    assert not result.source_verified and not result.fills and result.raw_refs
+E   AssertionError: assert (not True)
+E    +  where True = PaperProgramVerificationV2(command_id='isolated-command-d9b5e537b56c474ba3406200f0515db9', status='VERIFIED', source_v...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase></testsuite></testsuites>

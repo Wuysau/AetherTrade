@@ -1,0 +1,114 @@
+...FF..FF.................F....F.                                        [100%]
+=================================== FAILURES ===================================
+_ test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_command _
+tests/integration/test_paper_program_v2_reports_postgres.py:107: in test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_command
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2
+_ test_changed_native_parent_venue_identity_cannot_be_authenticated_by_a_resealed_dto _
+tests/integration/test_paper_program_v2_reports_postgres.py:123: in test_changed_native_parent_venue_identity_cannot_be_authenticated_by_a_resealed_dto
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2
+_ test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl _
+tests/integration/test_paper_program_v2_reports_postgres.py:170: in test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl
+    c=completed_oto(database,venue_v2,tmp_path);result=observe(c,tmp_path/'raw')
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2
+_____ test_fake_native_pending_working_fill_link_is_archived_not_accepted ______
+tests/integration/test_paper_program_v2_reports_postgres.py:186: in test_fake_native_pending_working_fill_link_is_archived_not_accepted
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2
+_ test_actual_otoco_full_working_sum_native_sibling_and_pool_complete_after_creation_window _
+tests/integration/test_paper_program_v2_reports_postgres.py:367: in test_actual_otoco_full_working_sum_native_sibling_and_pool_complete_after_creation_window
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2
+_ test_actual_bid_ask_trigger_selects_side_specific_reference_and_existing_depth _
+tests/integration/test_paper_program_v2_reports_postgres.py:430: in test_actual_bid_ask_trigger_selects_side_specific_reference_and_existing_depth
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,
+tests/integration/test_paper_market_matcher_v2.py:21: in advanced_case
+    c=case(database,venue_v2,tmp_path,**options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:43: in case
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:76: in real_case
+    c=risk_module.risk_case(**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:67: in selected_plan
+    plan,r=original_plan_for(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:36: in plan_for
+    return compile_order_program(p,r,c,**k),r
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_compilation.py:660: in compile_order_program
+    features = requested_order_features(program, scope.product)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/order_features.py:32: in requested_order_features
+    require(order.trigger.source=='LAST','SPOT_TRIGGER_SOURCE_UNSUPPORTED')
+src/trading_system/intents/semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: SPOT_TRIGGER_SOURCE_UNSUPPORTED
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_command
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_changed_native_parent_venue_identity_cannot_be_authenticated_by_a_resealed_dto
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_fake_native_pending_working_fill_link_is_archived_not_accepted
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_otoco_full_working_sum_native_sibling_and_pool_complete_after_creation_window
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_bid_ask_trigger_selects_side_specific_reference_and_existing_depth
+6 failed, 27 passed in 150.99s (0:02:30)

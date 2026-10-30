@@ -1,0 +1,17 @@
+.......FF                                                                [100%]
+=================================== FAILURES ===================================
+_ test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl _
+tests/integration/test_paper_program_v2_reports_postgres.py:170: in test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_NATIVE_LINEAGE_INTERFACE_UNSUPPORTED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-30fe555d52fb459ea2c34670a88a467d', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified
+_____ test_fake_native_pending_working_fill_link_is_archived_not_accepted ______
+tests/integration/test_paper_program_v2_reports_postgres.py:187: in test_fake_native_pending_working_fill_link_is_archived_not_accepted
+    assert 'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED' in result.discrepancies
+E   AssertionError: assert 'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED' in ('PAPER_V2_NATIVE_LINEAGE_INTERFACE_UNSUPPORTED',)
+E    +  where ('PAPER_V2_NATIVE_LINEAGE_INTERFACE_UNSUPPORTED',) = PaperProgramVerificationV2(command_id='isolated-command-95639fc7da0d4caeab69586b02613ea7', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).discrepancies
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_fake_native_pending_working_fill_link_is_archived_not_accepted
+2 failed, 7 passed in 48.63s
