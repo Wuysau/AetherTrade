@@ -90,6 +90,22 @@ def _check_revision(tx,proof,values):
     need(out==[row[1:]],'COST_HISTORY_OUTBOX_REQUIRED')
 
 
+def _source_order(reader,fact,payload):
+    """Read an actual protected market stream sequence, never lexical trade IDs."""
+    if payload.get('record_kind')!='PAPER_PROGRAM_FILL_SOURCE_V2':return None
+    snapshot=reader.sources.read_snapshot(fact.command_id,payload['source_snapshot_hash'])
+    market=snapshot['verification'].get('market_evidence') or {}
+    raw=fact.approval.normalized.raw
+    inputs=[item for item in market.get('inputs',()) if item.get('event_hash')==raw.market_hash
+        and item.get('event',{}).get('event_id')==raw.market_event_id]
+    need(len(inputs)==1,'COST_NATIVE_ORDER_SOURCE_REQUIRED')
+    event=inputs[0]['event']
+    need(type(event.get('sequence')) is int and event['sequence']>0 and bool(event.get('stream_id'))
+        and event.get('product')==str(fact.fill.scope.product)
+        and event.get('instrument_uid')==fact.fill.scope.instrument_uid,'COST_NATIVE_ORDER_SOURCE_REQUIRED')
+    return event['stream_id'],event['sequence']
+
+
 def _derive(tx):
     need(tx.scope.product==t.Product.SPOT,'SPOT_COST_HISTORY_REQUIRED')
     registry=RegistryTx(tx);current=registry.owner()
@@ -105,15 +121,16 @@ def _derive(tx):
     need(initial.position.actual_quantity.value==0 and initial.mode=='ACTIVE' and not initial.intervention_ids
         and initial.transfer_id is None and initial.position.scope==tx.scope,'COST_ZERO_GENESIS_REQUIRED')
     reader=ProgramAssetPostingReader(tx,fill_ledger=FillLedger(None,tx.scope,trade_id_scope='INSTRUMENT'))
-    sources=tx.execute('SELECT approval_id FROM ledger.program_fill_source_approvals WHERE scope_id=%s ORDER BY approval_id',
+    sources=tx.execute('SELECT approval_id,payload FROM ledger.program_fill_source_approvals WHERE scope_id=%s ORDER BY approval_id',
         (scope_id(tx.scope),)).fetchall()
-    facts={};transitions={}
-    for (approval,) in sources:
+    facts={};transitions={};source_order={}
+    for approval,payload in sources:
         f=reader.read(approval);key=f.approval.identity_hash
         need((f.original_owner_strategy_id,f.original_ownership_epoch)==
             (initial.position.owner_strategy_id,initial.position.ownership_epoch),'COST_EPOCH_HISTORY_REQUIRED')
         if key in facts:need(economic_signature(f)==economic_signature(facts[key]),'COST_SOURCE_CONFLICT');continue
         posted=require_owned_program_posting(tx,f)
+        source_order[key]=_source_order(reader,f,payload)
         facts[key]=f;transitions.setdefault(posted.owner_after.sequence,[]).append((f,posted))
     need(facts and transitions,'COST_NATIVE_HISTORY_REQUIRED')
     ledger=tx.execute('SELECT payload FROM ledger.fills WHERE scope_id=%s',(scope_id(tx.scope),)).fetchall()
@@ -143,24 +160,37 @@ def _derive(tx):
     need(write.get('owner_strategy_id')==initial.position.owner_strategy_id
         and write.get('ownership_epoch')==initial.position.ownership_epoch,'COST_GENESIS_OWNER_REQUIRED')
     genesis=canonical_hash(dict(book=genesis_book,owner=domain_payload(initial),consumption=canonical_hash(context)))
-    sides_by_time={}
-    for f in facts.values():
-        sides_by_time.setdefault(utc_timestamp(f.fill.occurred_at),set()).add(f.approval.normalized.side)
-    need(all(len(sides)==1 for sides in sides_by_time.values()),'COST_NATIVE_ORDER_REQUIRED')
-    state=SpotCost();applied=[];quote=None;native_base=None;last_time=None;last_proof=None
+    groups={}
+    for f in facts.values():groups.setdefault(utc_timestamp(f.fill.occurred_at),[]).append(f)
+    mixed_times=set()
+    for when,group in groups.items():
+        if len({f.approval.normalized.side for f in group})==1:continue
+        mixed_times.add(when)
+        orders=[source_order[f.approval.identity_hash] for f in group]
+        need(all(order is not None for order in orders) and len({order[0] for order in orders})==1,
+            'COST_NATIVE_ORDER_REQUIRED')
+        sides={}
+        for f,order in zip(group,orders):sides.setdefault(order[1],set()).add(f.approval.normalized.side)
+        need(all(len(values)==1 for values in sides.values()),'COST_NATIVE_ORDER_REQUIRED')
+    def ordering(f):
+        order=source_order[f.approval.identity_hash]
+        return utc_timestamp(f.fill.occurred_at),0 if order is None else order[1],f.approval.identity_hash
+    state=SpotCost();applied=[];quote=None;native_base=None;last_time=None;last_rank=None;last_proof=None
     for before,after in zip(owners,owners[1:]):
         need(after.mode=='ACTIVE' and not after.intervention_ids and after.transfer_id is None
             and replace(after,position=before.position,sequence=before.sequence)==before,'COST_OWNER_TRANSITION_REQUIRED')
         batch=transitions.get(after.sequence)
         if batch:
-            # Homogeneous equal-time buys/sells commute exactly. Identity order
-            # only stabilizes serialization; mixed equal-time groups fail above.
-            ordered=sorted(batch,key=lambda pair:(utc_timestamp(pair[0].fill.occurred_at),pair[0].approval.identity_hash))
+            # Equal-time mixed sides require the protected native stream order.
+            # Identity only stabilizes serialization inside a commuting group.
+            ordered=sorted(batch,key=lambda pair:ordering(pair[0]))
             for f,posted in ordered:
                 need(posted.owner_before==before and posted.owner_after==after,'COST_OWNER_HISTORY_INCOMPLETE')
                 now=utc_timestamp(f.fill.occurred_at)
                 need(last_time is None or now>=last_time,'COST_NATIVE_ORDER_REQUIRED')
-                last_time=now
+                rank=ordering(f)[1]
+                need(now!=last_time or now not in mixed_times or rank>=last_rank,'COST_NATIVE_ORDER_REQUIRED')
+                last_time=now;last_rank=rank
                 base=f.approval.normalized.economics.unit.native_unit
                 currency=f.effects.gross_notional.currency
                 need(native_base is None or native_base==base,'COST_BASE_UNIT_CHANGED');native_base=base

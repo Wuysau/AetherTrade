@@ -192,3 +192,108 @@ def test_process_restart_and_same_account_peer_are_read_only(database,venue_v2,t
         _,status=os.waitpid(child,0)
         assert os.waitstatus_to_exitcode(status)==0 and peer_rows()==before
     finally:codec.close()
+
+
+@pytest.mark.parametrize('same_timestamp',(False,True))
+def test_actual_native_oto_partial_sell_cost_and_exact_flat(database,venue_v2,tmp_path,same_timestamp):
+    from datetime import timedelta
+    from trading_system.contracts import types as t
+    from trading_system.contracts.canonical import utc_timestamp
+    from integration.test_paper_market_matcher_v2 import advanced_case
+    from integration.test_paper_market_matcher import submit,event
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    from trading_system.ownership.registry import OwnershipRegistry
+    from trading_system.execution.program_accounting import ProgramPaperAccountingService
+    from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
+    from trading_system.execution.program_legacy_opening import read_program_local_account_opening
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+    from trading_system.execution.paper_program_v2_reports import PaperProgramV2ReportVerifier
+    from trading_system.engine.nautilus.id_codec import VenueIdCodec
+    from trading_system.engine.nautilus.native_events import NativeEventBridge
+    from integration.test_program_fill_source_approval import source_uow
+    c=advanced_case(database,venue_v2,tmp_path,template='OTO',
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    p=t.ManagedPosition(position_id='owned:'+c.scope.instrument_uid,scope=c.scope,
+        actual_quantity=t.Quantity(value=D(0),unit='BASE'),owner_strategy_id=c.c.terms.owner_strategy_id,
+        owner_book_id='cost-oto-book',ownership_epoch=c.c.terms.ownership_epoch,cost_evidence=c.c.book.coverage,
+        realized_pnl=None,unrealized_valuation=None,active_exit_plan_id=None,risk_locks=())
+    OwnershipRegistry(c.service.uow).register(p,c.c.terms.policy_revision)
+    codec=VenueIdCodec(c.scope)
+    verifier=PaperProgramV2ReportVerifier(c.service.uow,c.scope,engine=c.engine,
+        archive_bridge=NativeEventBridge(codec,tmp_path/'oto-source'))
+    source=ProgramFillSourceService(source_uow(database),c.scope,verifier=verifier)
+    service=ProgramPaperAccountingService(c.service.uow,c.scope,source_service=source,trade_id_scope='INSTRUMENT',
+        financial_posting=ProgramOwnedSpotPosting(read_opening=read_program_local_account_opening))
+    def reconcile():
+        with c.service.uow.transaction(c.scope) as tx:
+            return reconcile_program_cost_history(tx,read_opening=read_program_local_account_opening)
+    try:
+        submit(c);matcher=PaperMatcher(c.engine)
+        matcher.apply_market_event(event(c,quantity='.4'))
+        assert service.apply(c.write.command_id).status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+        reconcile()
+        matcher.apply_market_event(event(c,sequence=2,quantity='.6',kind='DEPTH_DELTA'))
+        assert service.apply(c.write.command_id).status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+        full=reconcile()
+        assert full.remaining_cost_numerator==81490 and full.remaining_cost_denominator==1
+        clock=c.c.facts.inputs.clock
+        later=replace(clock,utc_now=(utc_timestamp(clock.utc_now)+timedelta(seconds=0 if same_timestamp else 10)).isoformat(),
+            monotonic_ns=clock.monotonic_ns+(0 if same_timestamp else 10**10))
+        c.engine._clock=lambda:later
+        matcher.apply_market_event(replace(event(c,sequence=3,ask='83001',quantity='1'),occurred_at=later.utc_now,
+            bids=(DepthLevel(price='83000',quantity='.4'),)))
+        assert service.apply(c.write.command_id).status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+        partial=reconcile()
+        assert partial.remaining_cost_numerator==48894 and partial.remaining_cost_denominator==1
+        assert partial.realized_numerator==604 and partial.realized_denominator==1
+        matcher.apply_market_event(replace(event(c,sequence=4,ask='83001',quantity='1',kind='DEPTH_DELTA'),
+            occurred_at=later.utc_now,bids=(DepthLevel(price='83000',quantity='.6'),)))
+        assert service.apply(c.write.command_id).status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+        flat=reconcile()
+        assert flat.remaining_cost_numerator==0 and flat.remaining_cost_denominator==1
+        assert flat.realized_numerator==1510 and flat.realized_denominator==1
+        with c.service.uow.transaction(c.scope) as tx:
+            assert RegistryTx(tx).owner().position.actual_quantity.value==0
+            assert tx.execute('SELECT count(*) FROM ledger.order_writes_v2 WHERE scope_id=%s AND sequence=1',
+                (scope_id(c.scope),)).fetchone()==(1,)
+            assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
+                (scope_id(c.scope),)).fetchone()==(1,)
+            assert tx.reservations.for_intent(c.bundle.intent.intent_id) and tx.risk_locks.active(c.scope)
+    finally:codec.close()
+
+
+@pytest.mark.parametrize('earlier_nonzero',(False,True))
+def test_protected_later_pretrade_book_requires_complete_zero_prefix(database,venue_v2,tmp_path,monkeypatch,earlier_nonzero):
+    from trading_system.storage.uow import ProjectionRepository
+    from trading_system.contracts import types as t
+    import integration.test_program_financial_admission as admission
+    original_case=admission.real_case;original_save=ProjectionRepository.save_book
+    def scoped_case(*args,**kwargs):return original_case(*args,**{**kwargs,'scoped_quantities':True})
+    def pretrade_snapshot(repo,book,expected):
+        if expected!=0:return original_save(repo,book,expected)
+        old=book
+        if earlier_nonzero:
+            prior=t.ManagedPosition(position_id='prior-position',scope=book.scope,
+                actual_quantity=t.Quantity(value=D(1),unit='BASE'),owner_strategy_id='prior-owner',
+                owner_book_id='prior-book',ownership_epoch=1,cost_evidence=book.coverage,
+                realized_pnl=None,unrealized_valuation=None,active_exit_plan_id=None,risk_locks=())
+            old=replace(book,positions=(prior,))
+        original_save(repo,old,0)
+        # A real append-only pretrade snapshot revision; the private consumption
+        # later binds sequence 2. No private source or genesis marker is forged.
+        return original_save(repo,replace(book,sequence=2),1)
+    monkeypatch.setattr(admission,'real_case',scoped_case)
+    monkeypatch.setattr(ProjectionRepository,'save_book',pretrade_snapshot)
+    c,service,codec=setup(database,venue_v2,tmp_path,source_version=2)
+    try:
+        assert service.apply(c.write.command_id).status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+        if earlier_nonzero:
+            with pytest.raises(MissingEvidence,match='COST_ZERO_BOOK_HISTORY_REQUIRED'):
+                with c.service.uow.transaction(c.scope) as tx:
+                    reconcile_program_cost_history(tx,read_opening=read_program_account_opening)
+        else:
+            with c.service.uow.transaction(c.scope) as tx:
+                proof=reconcile_program_cost_history(tx,read_opening=read_program_account_opening)
+                assert proof.remaining_cost_numerator==8157149
+    finally:codec.close()
