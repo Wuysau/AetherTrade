@@ -344,3 +344,46 @@ def test_per_fill_approval_does_not_fetch_or_decompress_shared_toast_proof(datab
     record_property('shared_proof_toast_blocks_after',after[1])
     assert len(references)==len(result.approvals)==9
     assert after==before,dict(before=before,after=after,per_fill_calls=len(references))
+
+
+def test_0018_backfills_existing_v2_source_without_rewriting_history(database,venue,tmp_path):
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
+    from uuid import uuid4
+    from trading_system.execution.program_fill_source import ProgramFillSourceService,read_committed_fill_source
+    root=Path(__file__).resolve().parents[2]
+    name='ip03_test_source_upgrade_'+uuid4().hex[:12]
+    with psycopg.connect(database,autocommit=True) as db:
+        db.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(name)))
+    old_dsn=make_conninfo(**{**conninfo_to_dict(database),'dbname':name})
+    with psycopg.connect(old_dsn) as db:
+        for relative in ('migrations/0001_business_ledger.sql','deploy/db/roles.sql',
+            'migrations/0004_command_abort_guard.sql','migrations/0006_proposal_intake_role.sql',
+            'migrations/0008_order_program_records.sql','migrations/0009_order_program_closure.sql',
+            'migrations/0010_order_program_intake.sql','migrations/0011_order_program_financial_credit_guard.sql',
+            'migrations/0012_program_command_boundary.sql','migrations/0016_program_fill_source_approval.sql',
+            'migrations/0017_program_fill_source_snapshots.sql'):
+            db.execute((root/relative).read_text(encoding='utf-8'))
+    c=case(old_dsn,venue,tmp_path);submit(c)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    verifier,codec=actual_verifier(c,tmp_path/'old-source-archive')
+    service=ProgramFillSourceService(source_uow(old_dsn),c.scope,verifier=verifier)
+    try:
+        prior=service.approve(c.write.command_id)
+        with psycopg.connect(old_dsn) as db:
+            assert db.execute("SELECT to_regclass('ledger.program_fill_source_headers')").fetchone()==(None,)
+            snapshots=db.execute('SELECT scope_id,snapshot_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_snapshots').fetchall()
+            approvals=db.execute('SELECT scope_id,approval_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_approvals').fetchall()
+            db.execute((root/'migrations/0018_program_fill_source_leaves.sql').read_text(encoding='utf-8'))
+        with psycopg.connect(old_dsn) as db:
+            assert db.execute('SELECT scope_id,snapshot_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_snapshots').fetchall()==snapshots
+            assert db.execute('SELECT scope_id,approval_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_approvals').fetchall()==approvals
+            assert db.execute('SELECT count(*) FROM ledger.program_fill_source_headers').fetchone()==(1,)
+            assert db.execute('SELECT count(*) FROM ledger.program_fill_source_leaves').fetchone()==(1,)
+        with c.service.uow.transaction(c.scope) as tx:
+            assert read_committed_fill_source(tx,prior.approvals[0].approval_id)==prior.approvals[0]
+        assert service.approve(c.write.command_id).approvals==prior.approvals
+        PaperMatcher(c.engine).apply_market_event(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'))
+        assert len(service.approve(c.write.command_id).approvals)==2
+    finally:codec.close()
