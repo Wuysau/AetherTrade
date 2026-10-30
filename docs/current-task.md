@@ -31,6 +31,8 @@ all prior15sourcePG/7rawPG/56mandatoryconsole results plus9-case fix notificatio
 selected source/accounting serial integration awaits final review. Do not replace
 root checkpoint with this file.0016/0017/0018 historical data/hash semantics stay
 additive; no account/model/LIVE/Testnet/main/archive operations occurred.
+Publicationd9dfd7b was checked against every original runtime file, copy and
+COMMITTED Git blob:289files,0 SHA mismatches. Proof11262 is TERMINALexit0.
 
 NEXT actual implementation: authenticated stable-native-identity asset postings,
 current owner/allocation/position/book writer and shared contribution reader.
