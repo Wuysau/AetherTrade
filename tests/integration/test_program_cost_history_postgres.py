@@ -297,3 +297,26 @@ def test_protected_later_pretrade_book_requires_complete_zero_prefix(database,ve
                 proof=reconcile_program_cost_history(tx,read_opening=read_program_account_opening)
                 assert proof.remaining_cost_numerator==8157149
     finally:codec.close()
+
+
+def test_complete_forged_cost_record_cannot_override_rederived_economics(database,venue_v2,tmp_path):
+    from trading_system.contracts import types as t
+    from trading_system.execution.program_cost_history import ProgramCostHistoryRecord
+    c,service,codec=setup(database,venue_v2,tmp_path,source_version=2)
+    try:
+        service.apply(c.write.command_id)
+        with c.service.uow.transaction(c.scope) as tx:
+            legitimate=reconcile_program_cost_history(tx,read_opening=read_program_account_opening)
+        with c.service.uow.transaction(c.scope) as tx:
+            registry=RegistryTx(tx);owner=registry.owner();book=tx.projections.book(c.scope)
+            forged_owner=replace(owner,sequence=owner.sequence+1,position=replace(owner.position,
+                realized_pnl=t.Money(currency='USDT',amount=D(123))))
+            registry.save_owner(owner,forged_owner)
+            position_sequence=tx._append('positions',owner.position.position_id,forged_owner.position,legitimate.position_sequence)
+            tx.projections.save_book(replace(book,sequence=book.sequence+1,positions=(forged_owner.position,)),book.sequence)
+            forged=replace(legitimate,owner_before=owner,owner_after=forged_owner,realized_numerator=123,
+                realized_denominator=1,position_sequence=position_sequence,book_sequence=book.sequence+1)
+            assert type(forged) is ProgramCostHistoryRecord
+            tx._append('audit_events','program-cost-history:'+str(forged_owner.sequence),forged,0)
+            with pytest.raises(MissingEvidence,match='COST_HISTORY_PROOF_CHANGED'):require_program_cost_history(tx)
+    finally:codec.close()
