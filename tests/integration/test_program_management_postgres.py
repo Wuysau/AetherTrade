@@ -7,6 +7,7 @@ from integration.test_paper_market_matcher_v2 import isolated_postgres,database,
 from integration.test_paper_market_matcher import submit,event
 
 _VERIFIER_DSNS={}
+_SOURCE_DSNS={}
 
 
 @pytest.fixture(scope='module')
@@ -19,6 +20,7 @@ def management_database(database):
             db.execute((ROOT/'migrations'/name).read_text(encoding='utf-8'))
         db.execute((ROOT/'migrations/0022_program_management_boundary.sql').read_text(encoding='utf-8'))
         db.execute((ROOT/'migrations/0027_effective_order_management.sql').read_text(encoding='utf-8'))
+        db.execute((ROOT/'migrations/0029_effective_management_source.sql').read_text(encoding='utf-8'))
         from psycopg import sql
         from psycopg.conninfo import conninfo_to_dict,make_conninfo
         import secrets
@@ -38,6 +40,14 @@ def management_database(database):
             db.execute(sql.SQL('GRANT '+grant+' TO {}').format(sql.Identifier(name)))
         db.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(conninfo_to_dict(database)['dbname']),sql.Identifier(name)))
         _VERIFIER_DSNS[database]=make_conninfo(**{**conninfo_to_dict(database),'user':name,'password':password})
+        source_name='management_source_'+uuid4().hex[:12];source_password=secrets.token_urlsafe(32)
+        db.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS').format(sql.Identifier(source_name),sql.Literal(source_password)))
+        for grant in ('USAGE ON SCHEMA ledger','SELECT ON ledger.account_bindings,ledger.collateral_mutex,ledger.management_permit_consumptions',
+            'UPDATE(group_id) ON ledger.collateral_mutex','UPDATE(collateral_group_id) ON ledger.account_bindings',
+            'INSERT ON ledger.transaction_observations','EXECUTE ON FUNCTION ledger.attest_effective_management_source_v1(text,text,jsonb)'):
+            db.execute(sql.SQL('GRANT '+grant+' TO {}').format(sql.Identifier(source_name)))
+        db.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(conninfo_to_dict(database)['dbname']),sql.Identifier(source_name)))
+        _SOURCE_DSNS[database]=make_conninfo(**{**conninfo_to_dict(database),'user':source_name,'password':source_password})
     return database
 
 def advanced_case(*args,**kwargs):
@@ -103,6 +113,7 @@ def management(c):
     def verifier():
         return psycopg.connect(_VERIFIER_DSNS[c.dsn])
     return ProgramManagementService(c.service,UnitOfWork(verifier,permit_ttl_ms=5000),
+        source_uow=UnitOfWork(lambda:psycopg.connect(_SOURCE_DSNS[c.dsn])),
         target_reader=PaperManagementTargetReader(c.engine),load_clock=lambda _:c.engine._clock(),
         load_lease=lambda _:c.lease,load_inputs=inputs)
 

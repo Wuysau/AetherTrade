@@ -86,7 +86,18 @@ def observe_effective_management(service,command_id):
     require(len(rows)==1,'MANAGED_EXACT_RECEIPT_REQUIRED')
     receipt=json.loads(rows[0].receipt_json)
     require(receipt['binding_hash']==b.write.binding_hash,'MANAGED_BINDING_CHANGED')
-    payload={'receipt':receipt,'source_kind':SOURCE,'source':domain_payload(report)}
+    from trading_system.storage.uow import UnitOfWork
+    require(type(service.source_uow) is UnitOfWork,'MANAGED_INDEPENDENT_SOURCE_UOW_REQUIRED')
+    # Actual SIM query/codec validation finishes before the independently
+    # credentialed source transaction. Dispatch credentials cannot attest.
+    raw=ManagedCreationCodecV1().encode(report)
+    with service.source_uow.transaction(service.scope) as tx:
+        consumed=tx.execute('SELECT context FROM ledger.management_permit_consumptions WHERE scope_id=%s AND command_id=%s',
+            (scope_id(service.scope),command_id)).fetchone()
+        require(consumed is not None,'MANAGED_COMMITTED_CONSUMPTION_REQUIRED')
+        payload={'receipt':receipt,'source_kind':SOURCE,'source':raw,'consumption_hash':canonical_hash(consumed[0])}
+        tx.execute('SELECT ledger.attest_effective_management_source_v1(%s,%s,%s::jsonb)',
+            (scope_id(service.scope),command_id,canonical_json(payload)))
     with service.verifier_uow.transaction(service.scope) as tx:
         current=ManagementRepository(tx).read(command_id)
         require(current.write.binding_hash==b.write.binding_hash,'MANAGED_BINDING_CHANGED')

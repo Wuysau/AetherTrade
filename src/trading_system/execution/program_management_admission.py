@@ -37,10 +37,11 @@ class ManagementInputs:
 
 class ProgramManagementService:
     def __init__(self,reservation_service,verifier_uow,*,target_reader=None,load_clock=None,load_lease=None,
-                 load_inputs=None,load_authorization=None):
+                 load_inputs=None,load_authorization=None,source_uow=None):
         self.reservations=reservation_service;self.scope=reservation_service.scope;self.verifier_uow=verifier_uow
         self.target_reader=target_reader;self.load_clock=load_clock;self.load_lease=load_lease;self.load_inputs=load_inputs
         self.boundary=ManagementBoundary(self)
+        self.source_uow=source_uow
 
     def abort_unsent(self,command_id,lease):
         from trading_system.storage.models import scope_id,decode
