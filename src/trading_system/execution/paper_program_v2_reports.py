@@ -16,6 +16,7 @@ from trading_system.engine.paper_market_v2 import (PaperCreationReportV2,PaperMa
 from .paper_program_reports import (NativeFillEconomics,normalize_native_economics,PaperProgramReportVerifier,
     _SourceError,_check,_raw_object,_raw_decimal)
 from .paper_program_v2_liquidity import v2_market_evidence_codes
+from .paper_program_v2_semantics import check_order_semantics
 
 
 def digest(value):return canonical_hash(domain_payload(value))
@@ -104,12 +105,20 @@ class PaperProgramV2ReportVerifier:
             events=db.execute('SELECT client_id,event_id,payload::text AS raw,payload_hash FROM public.paper_engine_events '
                 'WHERE scope_key=%s AND client_id=ANY(%s) ORDER BY occurred_at,event_id LIMIT 4097',
                 (self.engine._scope_key,clients)).fetchall()
-            orders=db.execute('SELECT client_id,order_id,revision FROM public.paper_engine_orders '
-                'WHERE scope_key=%s AND client_id=ANY(%s) ORDER BY client_id LIMIT 513',(self.engine._scope_key,clients)).fetchall()
+            orders=db.execute('SELECT o.client_id,o.order_id,o.revision,t.terms,jsonb_build_object('
+                "'active',r.active,'phase',r.phase,'activation_event_id',r.activation_event_id,'high_water',r.high_water::text,"
+                "'low_water',r.low_water::text,'effective_limit',r.effective_limit::text,'visible_remaining',r.visible_remaining::text,"
+                "'queue_priority',r.queue_priority,'prevented_quantity',r.prevented_quantity::text,'parent_activation_fill_id',r.parent_activation_fill_id) AS runtime "
+                'FROM public.paper_engine_orders o JOIN public.paper_order_terms t USING(scope_key,client_id) '
+                'JOIN public.paper_order_runtime_v2 r USING(scope_key,client_id) '
+                'WHERE o.scope_key=%s AND o.client_id=ANY(%s) ORDER BY o.client_id LIMIT 513',(self.engine._scope_key,clients)).fetchall()
             parent=db.execute('SELECT * FROM public.paper_native_parents_v2 WHERE scope_key=%s AND command_id=%s',
                 (self.engine._scope_key,original.initial.command_id)).fetchone()
             event_ids=sorted({d['event_id'] for d in deps})
             market_keys=sorted({d['market_key'] for d in deps})
+            inputs=db.execute('SELECT market_key,event_id,payload,before_levels,observed_clock FROM public.paper_market_inputs '
+                'WHERE market_key=ANY(%s) AND event_id=ANY(%s) ORDER BY market_key,sequence,event_id LIMIT 4097',
+                (market_keys,event_ids)).fetchall()
             allocations=db.execute('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price::text AS price,quantity::text AS quantity '
                 'FROM public.paper_market_consumptions WHERE market_key=ANY(%s) AND event_id=ANY(%s) '
                 'ORDER BY market_key,event_id,scope_key,client_id,fill_id LIMIT 100001',(market_keys,event_ids)).fetchall()
@@ -119,11 +128,11 @@ class PaperProgramV2ReportVerifier:
                 'ORDER BY market_key,event_id,prevention_id LIMIT 100001',(market_keys,event_ids)).fetchall()
         snapshot=dict(record_kind='PAPER_V2_RESTRICTED_SOURCE_MANIFEST',dependencies=[dict(d) for d in deps],
             events=[dict(e) for e in events],orders=[dict(o) for o in orders],parent=None if parent is None else dict(parent),
-            all_rival_allocations=[dict(r) for r in allocations],all_rival_preventions=[dict(r) for r in preventions])
+            inputs=[dict(i) for i in inputs],all_rival_allocations=[dict(r) for r in allocations],all_rival_preventions=[dict(r) for r in preventions])
         refs.append(self._archive(snapshot,clock))
         _check(len(deps)<=16384 and len(events)<=4096 and len(orders)<=512
-            and len(allocations)+len(preventions)<=100000,'PAPER_V2_SOURCE_MANIFEST_BOUND')
-        return deps,{e['event_id']:e for e in events},{o['client_id']:o for o in orders},parent,allocations,preventions
+            and len(inputs)<=4096 and len(allocations)+len(preventions)<=100000,'PAPER_V2_SOURCE_MANIFEST_BOUND')
+        return deps,{e['event_id']:e for e in events},{o['client_id']:o for o in orders},parent,allocations,preventions,inputs
 
     def verify(self,command_id):
         from trading_system.engine.paper import PaperEngine
@@ -135,16 +144,19 @@ class PaperProgramV2ReportVerifier:
         report=market=None;refs=[]
         try:
             original,bundle,consumed,assessment=PaperProgramReportVerifier._load(self,command_id)
+            clock=self.engine._clock()
+            _check(type(clock) is t.ClockReading,'PAPER_V2_SOURCE_CLOCK_REQUIRED')
             report=self.engine.query_creation(command_id)
             if report is None:return self._result(command_id,'NOT_OBSERVED',('PAPER_QUERY_ORIGINAL_IDS_REQUIRED',))
-            market=self.engine.query_market_evidence(command_id);clock=self.engine._clock()
-            _check(type(clock) is t.ClockReading,'PAPER_V2_SOURCE_CLOCK_REQUIRED')
             # Full snapshots/raw blobs are durable before model/shape/hash claims.
-            for observed in (report,market):
+            def archive_observed(observed):
                 for item in (*getattr(observed,'fills',()),*getattr(observed,'dispositions',()),*getattr(observed,'inputs',())):
                     raw=getattr(item,'raw_payload_json',None)
                     if type(raw) is str:refs.append(self._archive(raw.encode('utf-8'),clock))
-                refs.append(self._archive(domain_payload(observed),clock))
+                refs.append(self._archive(observed if type(observed) is dict else domain_payload(observed),clock))
+            archive_observed(report)
+            market=self.engine.query_market_evidence(command_id)
+            archive_observed(market)
             _check(type(report) is PaperCreationReportV2 and type(market) is PaperMarketEvidenceV2,'PAPER_V2_SOURCE_INTERFACE_UNSUPPORTED')
             _check(clock.clock_health=='HEALTHY','PAPER_V2_SOURCE_CLOCK_REQUIRED')
             manifest=self._manifest(original,clock,refs)
@@ -158,7 +170,7 @@ class PaperProgramV2ReportVerifier:
     def _normalize(self,original,bundle,consumed,a,report,market,clock,refs,manifest):
         from trading_system.storage.models import scope_id
         write=original.initial;request=original.request;plan=a.compilation
-        deps,events,source_orders,source_parent,source_allocations,source_preventions=manifest
+        deps,events,source_orders,source_parent,source_allocations,source_preventions,source_inputs=manifest
         graph=tuple(PaperCausalDependencyV2(client_id=d['client_id'],market_key=d['market_key'],event_id=d['event_id'],
             event_hash=d['payload_hash']) for d in deps)
         graph_hash=canonical_hash(dict(command_id=write.command_id,request_hash=write.request_hash,
@@ -169,6 +181,11 @@ class PaperProgramV2ReportVerifier:
         _check(expected_inputs=={(i.event.market_key,i.event.event_id) for i in market.inputs},'PAPER_V2_CAUSAL_INPUT_SET_CHANGED')
         _check(all(any(i.event_hash==d['payload_hash'] for i in market.inputs
             if (i.event.market_key,i.event.event_id)==(d['market_key'],d['event_id'])) for d in deps),'PAPER_V2_CAUSAL_INPUT_HASH_CHANGED')
+        input_sources={(i['market_key'],i['event_id']):i for i in source_inputs}
+        for i in market.inputs:
+            stored=input_sources[(i.event.market_key,i.event.event_id)]
+            _check(domain_payload(i.event)==stored['payload'] and [domain_payload(v) for v in i.before_levels]==stored['before_levels']
+                and domain_payload(i.observed_clock)==stored['observed_clock'],'PAPER_V2_CAUSAL_INPUT_SOURCE_CHANGED')
         def allocated(row):
             return (row['market_key'],row['event_id'],row['scope_key'],row['client_id'],row['fill_id'],row['side'],
                 Fraction(Decimal(row['price'])),Fraction(Decimal(row['quantity'])))
@@ -194,7 +211,11 @@ class PaperProgramV2ReportVerifier:
             and report.evidence.source==SOURCE and report.evidence.environment==t.Environment.PAPER,'PAPER_V2_REPORT_HASH_CHANGED')
         nodes={n.original.node_id:n for n in plan.nodes};assigned={m.node_id:m.client_id for m in request.assigned_ids.members}
         _check(plan.original_program.template in ('ATOMIC','OCO','OTO','OTOCO'),'PAPER_V2_NATIVE_LINEAGE_INTERFACE_UNSUPPORTED')
-        _check(set(nodes)==set(assigned) and len(report.orders)==len(report.accepted_contexts)==len(nodes),'PAPER_V2_NODE_INVENTORY_CHANGED')
+        _check(set(nodes)==set(assigned)=={o.node_id for o in report.orders}
+            and len({o.client_id for o in report.orders})==len(report.orders)==len(report.accepted_contexts)==len(nodes),
+            'PAPER_V2_NODE_INVENTORY_CHANGED')
+        event_ids=[f.fill_id for f in report.fills]+[d.event_id for d in report.dispositions]
+        _check(len(event_ids)==len(set(event_ids)),'PAPER_V2_DUPLICATE_EVENT')
         if request.assigned_ids.parent_client_id is not None:
             parent=report.native_parent
             _check(source_parent is not None and parent is not None
@@ -214,10 +235,9 @@ class PaperProgramV2ReportVerifier:
         for order,accepted in zip(report.orders,report.accepted_contexts,strict=True):
             _check(order.node_id in nodes and order.client_id==assigned[order.node_id],'PAPER_V2_ORDER_NODE_CHANGED')
             n=nodes[order.node_id];spec=n.original.order;client=order.client_id
-            # Initial safe supported semantic families; unknown ones stay raw and
-            # blocked until independently pinned by the next actual test cohort.
-            _check(spec.price.kind in ('MARKET','FIXED_LIMIT') and spec.trigger.kind in ('NONE','STATIC','TRAILING')
-                and spec.stp=='NONE' and spec.iceberg_quantity is None and self.scope.product!=t.Product.US_EQUITY,
+            _check(spec.price.kind in ('MARKET','FIXED_LIMIT','PEG','PRICE_MATCH') and spec.trigger.kind in ('NONE','STATIC','TRAILING')
+                and spec.stp in ('NONE','EXPIRE_TAKER','EXPIRE_MAKER','EXPIRE_BOTH','DECREMENT')
+                and not spec.trigger.price_protect,
                 'PAPER_V2_SEMANTIC_INTERFACE_UNSUPPORTED')
             _check(type(accepted) is PaperAcceptedContextV2 and digest(accepted.original_write)==digest(replace(write,state='MAY_HAVE_SENT'))
                 and digest(accepted.request)==write.request_hash and digest(accepted.compilation)==write.compilation_hash
@@ -230,6 +250,10 @@ class PaperProgramV2ReportVerifier:
                 quote_asset=a.rules.quote_asset,quote_fee_rate=accepted.model.quote_fee_rate,accepted_clock=accepted.terms.accepted_clock,
                 contract_version='2026-10-30',record_kind='PAPER_EXECUTION_TERMS_V2',model_revision=2,spec=spec)
             _check(digest(terms)==digest(accepted.terms),'PAPER_V2_ACCEPTED_TERMS_CHANGED')
+            durable={**domain_payload(terms),'write':domain_payload(accepted.original_write),'request':domain_payload(accepted.request),
+                'compilation':domain_payload(accepted.compilation),'rules':domain_payload(accepted.rules),
+                'model':domain_payload(accepted.model),'execution_envelope':domain_payload(accepted.execution_envelope)}
+            _check(durable==source_orders[client]['terms'],'PAPER_V2_ACCEPTED_DURABLE_TERMS_CHANGED')
             bound=next(b for b in a.risk_facts.node_bounds if b.node_id==order.node_id);ceilings={}
             with localcontext() as ctx:
                 ctx.prec=256;ctx.traps[Inexact]=ctx.traps[Rounded]=True
@@ -253,6 +277,7 @@ class PaperProgramV2ReportVerifier:
             _check(terms.accepted_clock.clock_health=='HEALTHY' and exact_time(consumed['clock']['utc_now'])<=accepted_at<exact_time(consumed['valid_until'])
                 and accepted_at<=exact_time(clock.utc_now),'PAPER_V2_ACCEPTED_CLOCK_CHANGED')
             persisted=source_orders[client]
+            _check(domain_payload(order.runtime)==persisted['runtime'],'PAPER_V2_ACTUAL_RUNTIME_CHANGED')
             _check(order.venue_order_id==persisted['order_id'] and order.lifecycle_revision==persisted['revision']
                 and order.namespace==n.namespace.value and order.quantity_unit==bundle.intent.unit.native_unit,'PAPER_V2_ACTUAL_ORDER_ID_CHANGED')
             own_fills=tuple(f for f in report.fills if f.client_id==client)
@@ -261,6 +286,8 @@ class PaperProgramV2ReportVerifier:
             if report.native_parent is not None and n.original.role=='PENDING':
                 self._working_lineage(n,order,nodes,report,deps,events)
             self._trigger(spec,order,own_inputs,own_fills,accepted_at)
+            own_dispositions=tuple(d for d in report.dispositions if d.client_id==client)
+            check_order_semantics(self.scope,spec,order,own_inputs,own_fills,market.preventions,own_dispositions,accepted_at)
             identity=t.OrderIdentity(scope=self.scope,logical_client_order_id=client,native_client_order_id=client,venue_client_order_id=client,venue_order_id=order.venue_order_id)
             total=Decimal(0);gross_total=Decimal(0);fee_totals={}
             for f in own_fills:
@@ -323,8 +350,17 @@ class PaperProgramV2ReportVerifier:
         for d in report.dispositions:
             raw=_raw_object(d.raw_payload_json,d.evidence);stored=events[d.event_id]
             _check(stored['raw']==d.raw_payload_json and stored['payload_hash']==d.evidence.hash and stored['client_id']==d.client_id
-                and raw.get('record_kind')=='PAPER_MARKET_DISPOSITION' and raw.get('status')==d.status and raw.get('reason')==d.reason,
+                and raw.get('record_kind')=='PAPER_MARKET_DISPOSITION' and raw.get('status')==d.status and raw.get('reason')==d.reason
+                and raw.get('market_event_id')==d.market_event_id and raw.get('market_hash')==d.market_hash
+                and d.evidence.source==SOURCE and d.evidence.environment==t.Environment.PAPER,
                 'PAPER_V2_DISPOSITION_SOURCE_CHANGED')
+            source=input_map.get((raw.get('market_key'),d.market_event_id));accepted=next(a for a in report.accepted_contexts if a.terms.client_id==d.client_id)
+            _check(source is not None and source.event_hash==d.market_hash
+                and canonical_hash(raw['model'])==digest(accepted.model)
+                and canonical_hash(raw['execution_envelope'])==digest(accepted.execution_envelope)
+                and exact_time(raw['execution_at'])==exact_time(d.occurred_at)
+                and max(exact_time(accepted.terms.accepted_clock.utc_now),exact_time(source.observed_clock.utc_now),exact_time(source.event.occurred_at))
+                    <=exact_time(d.occurred_at)<=exact_time(clock.utc_now),'PAPER_V2_DISPOSITION_SOURCE_CHANGED')
         return tuple(normalized),tuple(projections),tuple(dict.fromkeys(economics)),graph,graph_hash
 
     def _working_lineage(self,node,order,nodes,report,deps,events):

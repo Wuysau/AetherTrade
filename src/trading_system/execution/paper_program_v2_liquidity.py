@@ -57,7 +57,7 @@ def v2_market_evidence_codes(evidence,*,scope,command_id,request_hash,now):
         seen.add(key)
         target=allocations if type(allocation) is PaperLiquidityConsumption else preventions
         target[(allocation.market_key,allocation.event_id)].append(allocation)
-    known={};last=None;ownership={}
+    known={};last=None;ownership={};current_depth=None
     for item in evidence.inputs:
         try:
             if type(item) is not PaperMarketInput or type(item.event) not in EVENTS:raise ValueError('event type')
@@ -86,6 +86,7 @@ def v2_market_evidence_codes(evidence,*,scope,command_id,request_hash,now):
                 if index in levels or p<=0 or not 0<=a<=r:raise ValueError('depth state')
                 levels[index]=(r,a)
             if type(event) is PaperMarketEvent:
+                current_depth=event.event_id
                 present=set()
                 for side,rows in (('BID',event.bids),('ASK',event.asks)):
                     for row in rows:
@@ -101,9 +102,11 @@ def v2_market_evidence_codes(evidence,*,scope,command_id,request_hash,now):
             # reference or session window is never fresh executable liquidity.
             if type(event) is PaperLiquidityOwnershipEventV2:
                 depth=known.get((market,event.depth_event_id))
-                if depth is None or type(depth.event) is not PaperMarketEvent or depth.event_hash!=event.depth_hash:
+                if depth is None or type(depth.event) is not PaperMarketEvent or depth.event_hash!=event.depth_hash or event.depth_event_id!=current_depth:
                     issue('PAPER_V2_OWNERSHIP_DEPTH_LINK_CHANGED')
                 for owner in event.owners:
+                    if levels.get((owner.side,number(owner.price)),(None,None))[0]!=number(owner.source_quantity):
+                        issue('PAPER_V2_OWNERSHIP_QUANTITY_CHANGED')
                     ownership[(event.depth_event_id,owner.side,number(owner.price))]=owner
             used=defaultdict(Fraction)
             for allocation in allocations.get(key,()):
@@ -114,7 +117,9 @@ def v2_market_evidence_codes(evidence,*,scope,command_id,request_hash,now):
                 price,maker,taker=map(number,(prevention.price,prevention.maker_quantity,prevention.taker_quantity));index=(prevention.side,price)
                 owner=ownership.get((prevention.depth_event_id,prevention.side,price))
                 if (maker<0 or taker<0 or maker+taker<=0 or owner is None
-                        or owner.venue_account_id!=prevention.venue_account_id or owner.venue_order_id!=prevention.venue_order_id):
+                        or owner.venue_account_id!=prevention.venue_account_id or owner.venue_order_id!=prevention.venue_order_id
+                        or prevention.venue_account_id!=prevention.scope.venue_account_id
+                        or prevention.mode not in ('EXPIRE_TAKER','EXPIRE_MAKER','EXPIRE_BOTH','DECREMENT')):
                     issue('PAPER_V2_PREVENTION_SOURCE_CHANGED')
                 used[index]+=maker
             if any(index not in levels or qty>levels[index][1] for index,qty in used.items()):issue('PAPER_V2_LIQUIDITY_OVERSPENT')
