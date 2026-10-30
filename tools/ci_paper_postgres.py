@@ -28,6 +28,8 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('paper-native-quote-combined', '03', 'tests/integration/test_paper_native_quote_combined.py'),
+    ('paper-native-parent', '03', 'tests/integration/test_paper_native_parent_postgres.py'),
     ('quote-review-mixed', '03', 'tests/integration/test_quote_review_mixed.py'),
     ('paper-quote-budget', '03', 'tests/integration/test_paper_quote_budget_postgres.py'),
     ('program-scoped-financial', '03', 'tests/integration/test_program_scoped_financial.py'),
