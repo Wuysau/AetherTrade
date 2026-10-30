@@ -659,4 +659,3 @@ def test_final_guard_rolls_back_actual_venue_mutation_before_commit(
     finally:c.engine._connect=original
     assert executed==[True],'the real venue mutation must precede the late guard failure'
     _assert_wait_failure_retains_original(c,service,write)
-
