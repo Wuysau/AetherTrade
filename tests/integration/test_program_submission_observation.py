@@ -66,7 +66,7 @@ def test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl
 
 def test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold(database,venue,tmp_path):
     c=case(database,venue,tmp_path,post_only=True)
-    PaperMatcher(c.engine).apply_market_event(event(c,ask='81480',quantity='1'));submit(c)
+    PaperMatcher(c.engine).apply_market_event(event(c,ask='81490',quantity='1'));submit(c)
     assert c.engine.query_creation(c.write.command_id).status=='REJECTED'
     service,codec=observer(c,tmp_path/'rejected')
     try:result=service.observe(c.write.command_id)

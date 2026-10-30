@@ -38,8 +38,11 @@ def database(isolated_postgres):
 
 
 def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,
-              plan_proposal_transform=None,profile_transform=None,risk_policy_transform=None,financial_capacity=None,financial_buffer=None,**risk_options):
+              plan_proposal_transform=None,profile_transform=None,risk_policy_transform=None,financial_capacity=None,financial_buffer=None,
+              provision_opening=True,initial_assets=None,venue_account_id=None,**risk_options):
     import psycopg
+    from integration.support_program_capital import ensure_current_capital_schema,initialize_declared_assets
+    ensure_current_capital_schema(dsn)
     from unit.support_program_financial import financial_case
     financial_case()
     import test_program_risk_assessment as risk_module
@@ -47,7 +50,7 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
     import test_program_exposure as exposure_module
     original_inputs=risk_module.inputs;suffix=uuid4().hex
     def scoped_inputs(product):
-        p,r,c,k=original_inputs(product);scope=replace(k['scope'],venue_account_id='isolated-'+suffix)
+        p,r,c,k=original_inputs(product);scope=replace(k['scope'],venue_account_id=venue_account_id or 'isolated-'+suffix)
         if instrument_uid is not None:
             scope=replace(scope,instrument_uid=instrument_uid)
             p=replace(p,instrument_ref=instrument_uid,program=replace(p.program,instrument_ref=instrument_uid))
@@ -74,6 +77,12 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
         return compile_order_program(p,r,c,**k),r
     with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs),patch.object(exposure_module,'inputs',scoped_inputs),patch.object(risk_module,'plan_for',selected_plan):
         c=risk_module.risk_case(**risk_options)
+    declared=initial_assets if initial_assets is not None else (
+        t.Money(currency=c.facts.rules.quote_asset,amount=D('1000000')),
+        t.Money(currency=c.facts.rules.base_asset,amount=D('10')))
+    if initial_assets is not None:
+        c.book=replace(c.book,balances=initial_assets)
+        c.facts=replace(c.facts,target_facts=replace(c.facts.target_facts,book_hash=digest(c.book)))
     if node_fees is not None:
         c.facts=replace(c.facts,budget_facts=replace(c.facts.budget_facts,node_facts=tuple(
             replace(row,fees=node_fees) for row in c.facts.budget_facts.node_facts)),
@@ -105,8 +114,12 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
     owner,intake=role_uow('ledger_owner'),role_uow('ledger_intake')
     with psycopg.connect(dsn) as db:
         db.execute('INSERT INTO ledger.collateral_mutex VALUES(%s,%s) ON CONFLICT DO NOTHING',(scope.environment.value,group))
-        db.execute('INSERT INTO ledger.account_bindings VALUES(%s,%s,%s,%s,NULL)',
-            (scope.environment.value,scope.venue_account_id,scope.product.value,group))
+        prior=db.execute('SELECT collateral_group_id FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s',
+            (scope.environment.value,scope.venue_account_id,scope.product.value)).fetchone()
+        if prior is None:
+            db.execute('INSERT INTO ledger.account_bindings VALUES(%s,%s,%s,%s,NULL)',
+                (scope.environment.value,scope.venue_account_id,scope.product.value,group))
+        else:assert venue_account_id is not None and prior==(group,)
         db.execute('INSERT INTO ledger.active_owners VALUES(%s,%s,%s,%s,%s,%s,%s,%s)',
             (scope.environment.value,scope.venue_account_id,scope.product.value,scope.instrument_uid,scope.venue_leg,
                 c.terms.owner_strategy_id,c.terms.ownership_epoch,c.terms.policy_revision))
@@ -117,6 +130,12 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
     with owner.transaction(scope) as tx:
         tx.projections.save_book(c.book,0)
         tx._append('audit_events',revision_key(context),fence,0)
+    if provision_opening:
+        initialize_declared_assets(role_uow,scope,declared,now)
+        from trading_system.execution.program_book_cash import bind_program_book_cash
+        from trading_system.execution.program_legacy_opening import read_program_local_account_opening
+        with owner.transaction(scope) as tx:
+            assert bind_program_book_cash(tx,tx.projections.book(scope),read_opening=read_program_local_account_opening) is not None
     ingress_facts=ProgramIntakeInputs(compilation=c.plan,rules=c.facts.rules,capabilities=c.facts.capabilities,
         profile=c.facts.profile,authorization=binding,clock=c.facts.inputs.clock,
         expected_build_digest=c.plan.adapter_build_digest,expected_instrument_ref=c.plan.original_proposal.instrument_ref,

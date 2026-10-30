@@ -2,6 +2,20 @@
 
 ## CURRENT_SUBMISSION_OBSERVATION_IMPLEMENTATION — 2026-10-30
 
+Current parent ruling: FIRST generic financial entry, V3 mark/consume and final
+afterwait require nonNone actual protected opening; None compatibility belongs
+only to legacy/no-generic maintenance. A separate trusted generic helper will
+enforce this without model/DTO flags. New three-case actual PG covers missing
+opening with funded-looking book, owner-inflated book, and a fully provisioned
+MAY/consume/venue chain with protected opening/revision in consumed context.
+Positive real_case now explicitly initializes declared1,000,000quote+10base
+through separate provisioner BEFORE first financial intent and binds the initial
+raw book; it never derives capital from latestbook. Controlled negative fixtures
+opt out of provision only. Current positive business schemas are explicit/additive;
+old opening tests retain unprovisioned initialization scenarios, and anti-topup
+now checks immutable original proof after a genuinely funded admission. No
+original migration/role membership/sourcehash was changed. Inventory61 suites.
+
 Parent assigned the next actual ROOT slice: source-backed submission knownness,
 including genuine accepted-unfilled GTC, to unblock legitimate two-command
 composition without weakening UNKNOWN or any cash/working/ownership duties.
@@ -36,6 +50,14 @@ unchanged migrations. Historical schema/hash/privilege assertions stay intact.
 New0021 implementation/module remain uncommitted while a corrected prefeature
 RED is prepared from this fixture-only checkpoint. Global numbering21observation,
 22management business/23managementSIM,24cash opening exclusivity is reserved.
+
+Corrected prefeatureee3adf4 actual5-case run88325 TERMINALexit1,21.11s:
+four ModuleNotFoundError after genuine V1/V2 accepts/no fills and one crossed
+source-book fixture error before post-only rejection. The latter now uses a
+valid81489bid/81490ask source, preserving actual post-only rejection. New0021
+module/private probe SQL/obligation integration remain uncommitted WIP pending
+real PG. Focused51 reader/command/version unit cases passed6.67s. No new source
+or capital gate is claimed green before its actual fixed-source run.
 
 ## CURRENT_STRICT_CASH_COMPONENT_CHECKPOINT — 2026-10-30
 
