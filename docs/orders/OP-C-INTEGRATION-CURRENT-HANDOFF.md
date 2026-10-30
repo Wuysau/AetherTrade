@@ -120,6 +120,14 @@ the complete28af gate includes actual rawsource15/rawaccounting9/atomic4.
 
 ## New continuation-risk record
 
+Independent parent review completed after the initial handoff draft. One actual
+ambient-precision bug in standalone lot residual was reproduced with positive
+and negative1.23456789/step1e-8/precision3:2RED. Fix13f8914 usesabs(Fraction(q))
+beforeDecimalcontext;12unitGREEN and parent independently confirmed exact full
+executableqty/residual0. This one-line fix is OUTSIDE fixeda0ca274 gate. Other
+record review found no new blocker within admission-asof/plannedrange semantics.
+Actual post-fill observed refresh is still NOT implemented by this record.
+
 risk/program_continuation.py ProgrammeContinuationRiskV1 (actual classname
 ProgramContinuationRiskV1) separate2026-10-30 audit kind. Exact ownedqty from
 archivedbook mustmatch actualallocation; independent existingworking/pending
