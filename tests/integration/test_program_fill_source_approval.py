@@ -99,6 +99,26 @@ def test_genuine_fill_source_is_committed_without_posting_or_authorizing(databas
         assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
 
 
+def test_actual_accepted_unfilled_gtc_snapshot_can_be_committed_without_fill_or_credit(database,venue,tmp_path):
+    c=case(database,venue,tmp_path);submit(c)
+    observer,codec=actual_verifier(c,tmp_path/'empty-accepted-archive')
+    try:verified=observer.verify(c.write.command_id)
+    finally:codec.close()
+    assert verified.source_verified and not verified.fills and len(verified.orders)==1
+    assert verified.orders[0].leaves_quantity.value==__import__('decimal').Decimal('1')
+    from trading_system.execution.program_fill_source import save_verification_snapshot
+    with source_uow(database).transaction(c.scope) as tx:
+        snapshot,hashes=save_verification_snapshot(tx,verified)
+    assert hashes==() and len(snapshot)==64
+    with c.service.uow.transaction(c.scope) as tx:
+        row=tx.execute('SELECT payload FROM ledger.program_fill_source_snapshots WHERE scope_id=%s AND snapshot_id=%s',
+            (scope_id(c.scope),snapshot)).fetchone()
+        assert row[0]['verification']['raw_report']['request']['command_id']==c.write.command_id
+        assert row[0]['normalized_fills']=={}
+        assert tx.execute('SELECT count(*) FROM ledger.program_fill_source_approvals WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+        assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+
+
 def test_owner_cannot_mint_or_mutate_source_approval(database,venue,tmp_path):
     import psycopg
     c,service,codec=setup_source(database,venue,tmp_path)
