@@ -330,3 +330,20 @@ def test_complete_forged_cost_record_cannot_override_rederived_economics(databas
             tx._append('audit_events','program-cost-history:'+str(forged_owner.sequence),forged,0)
             with pytest.raises(MissingEvidence,match='COST_HISTORY_PROOF_CHANGED'):require_program_cost_history(tx)
     finally:codec.close()
+
+
+def test_later_actual_unknown_query_blocks_previously_complete_cost(database,venue_v2,tmp_path):
+    c,service,codec=setup(database,venue_v2,tmp_path,source_version=2)
+    observer,query_codec=projector(c,database,tmp_path/'cost-unknown-query')
+    try:
+        service.apply(c.write.command_id)
+        assert observer.observer.observe(c.write.command_id).submission_known
+        with c.service.uow.transaction(c.scope) as tx:
+            reconcile_program_cost_history(tx,read_opening=read_program_account_opening)
+            before=tx.projections.book(c.scope)
+        c.engine.query_creation=lambda _:None
+        assert not observer.observer.observe(c.write.command_id).submission_known
+        with c.service.uow.transaction(c.scope) as tx:
+            with pytest.raises(MissingEvidence,match='COST_CURRENT_QUERY_REQUIRED'):require_program_cost_history(tx)
+            assert tx.projections.book(c.scope)==before
+    finally:query_codec.close();codec.close()
