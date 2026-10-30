@@ -10,7 +10,7 @@ from typing import Literal
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload,utc_timestamp
-from trading_system.storage.models import decode
+from trading_system.storage.models import decode,MissingEvidence
 from trading_system.storage.uow import UnitOfWork
 
 
@@ -71,9 +71,24 @@ class ProgramAccountOpening:
     def funds_release_authorized(self)->Literal[False]:return False
 
 
+def require_unambiguous_program_account_opening(tx):
+    """Historical proof origins remain intact but cannot select capital twice.
+
+    0024 prevents new conflicts; it deliberately does not rewrite pre-existing
+    proofs. Every registered reader checks the same protected origin set, even
+    when its own proof type is absent or inapplicable to this account.
+    """
+    account=account_key(tx.scope);origins=0
+    for table in ('program_account_openings','program_legacy_account_openings'):
+        if tx.execute('SELECT to_regclass(%s)',('ledger.'+table,)).fetchone()[0] is None:continue
+        origins+=tx.execute('SELECT count(*) FROM ledger.'+table+' WHERE account_key=%s',(account.key,)).fetchone()[0]
+    if origins>1:raise MissingEvidence('AMBIGUOUS_ACCOUNT_OPENING')
+    return account
+
+
 def read_program_account_opening(tx):
+    account=require_unambiguous_program_account_opening(tx)
     if tx.execute("SELECT to_regclass('ledger.program_account_openings')").fetchone()[0] is None:return None
-    account=account_key(tx.scope)
     row=tx.execute('SELECT payload,payload_hash,database_transaction::text,xmin::text,pg_current_xact_id()::text '
         'FROM ledger.program_account_openings WHERE account_key=%s',(account.key,)).fetchone()
     if row is None:return None

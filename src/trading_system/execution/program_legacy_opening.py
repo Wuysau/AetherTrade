@@ -11,7 +11,8 @@ from typing import Literal
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload
 from trading_system.storage.models import MissingEvidence,decode,scope_id
-from .program_account_opening import ProgramAccountKey,account_key,read_program_account_opening
+from .program_account_opening import (ProgramAccountKey,account_key,read_program_account_opening,
+    require_unambiguous_program_account_opening)
 
 
 def need(condition,code):
@@ -53,7 +54,7 @@ def _seed(tx):
 
 
 def read_program_legacy_opening(tx):
-    account=account_key(tx.scope)
+    account=require_unambiguous_program_account_opening(tx)
     if account!=account_key(console_seed_scope()):return None
     if tx.execute("SELECT to_regclass('ledger.program_legacy_account_openings')").fetchone()[0] is None:return None
     row=tx.execute('SELECT payload,payload_hash,database_transaction::text,xmin::text,pg_current_xact_id()::text '
