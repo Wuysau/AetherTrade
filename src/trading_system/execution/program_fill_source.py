@@ -10,9 +10,10 @@ from typing import Literal
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload
-from trading_system.storage.models import scope_id
+from trading_system.storage.models import scope_id,decode
 from trading_system.storage.uow import UnitOfWork
-from .paper_program_reports import PaperProgramReportVerifier,PaperProgramVerification,NormalizedPaperFill
+from .paper_program_reports import (PaperProgramReportVerifier,PaperProgramVerification,
+    NormalizedPaperFill,NativeFillEconomics,normalize_native_economics)
 
 
 def require(condition,code):
@@ -24,6 +25,13 @@ class ProgramFillSourceApproval:
     approval_id:str
     identity_hash:str
     normalized:NormalizedPaperFill
+
+    @property
+    def execution_authorized(self)->Literal[False]:return False
+    @property
+    def funds_release_authorized(self)->Literal[False]:return False
+    @property
+    def balance_credit_authorized(self)->Literal[False]:return False
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -53,6 +61,49 @@ def _source_context(tx,command_id):
         and canonical_hash(binding)==write['binding_hash'],'PROGRAM_ORIGINAL_SOURCE_CHANGED')
     return dict(consumption_hash=canonical_hash(consumed),dispatch_mark_hash=canonical_hash(marked),
         original_write_hash=canonical_hash(write),binding_hash=canonical_hash(binding),request_hash=write['request_hash'])
+
+
+def read_committed_fill_source(tx,approval_id):
+    """Read immutable historical facts only, without venue/file IO or new authority.
+
+    An approval inserted by this physical transaction is unusable. Recheck the
+    content and original protected context, rather than trusting owner audit
+    records or a caller's in-memory approval receipt. Economic postings still
+    require the separate fill/book/ownership checks in their owner transaction.
+    """
+    from trading_system.engine.paper_market import PaperMarketFill
+    require(type(approval_id) is str and len(approval_id)==64
+        and all(c in '0123456789abcdef' for c in approval_id),'PROGRAM_COMMITTED_SOURCE_APPROVAL_REQUIRED')
+    row=tx.execute('SELECT command_id,identity_hash,payload,payload_hash,database_transaction::text,xmin::text,'
+        'pg_current_xact_id()::text FROM ledger.program_fill_source_approvals '
+        'WHERE scope_id=%s AND approval_id=%s',(scope_id(tx.scope),approval_id)).fetchone()
+    require(row is not None and row[4]!=row[6] and int(row[4])%(2**32)==int(row[5]),
+        'PROGRAM_COMMITTED_SOURCE_APPROVAL_REQUIRED')
+    command_id,identity,payload,payload_hash,*_=row
+    require(payload_hash==approval_id==canonical_hash(payload)
+        and payload['contract_version']=='2026-10-30' and payload['record_kind']=='PAPER_PROGRAM_FILL_SOURCE_V1'
+        and payload['scope']==domain_payload(tx.scope) and tx.scope.environment==t.Environment.PAPER
+        and payload['command_id']==command_id,'PROGRAM_SOURCE_COMMITMENT_CHANGED')
+    context=_source_context(tx,command_id)
+    require(all(payload[key]==value for key,value in context.items()),'PROGRAM_ORIGINAL_SOURCE_CHANGED')
+    stored=payload['normalized']
+    fill=decode(t.Fill,stored['fill'])
+    economics=decode(NativeFillEconomics,stored['economics'])
+    raw=decode(PaperMarketFill,stored['raw'])
+    normalized=NormalizedPaperFill(fill=fill,side=stored['side'],economics=economics,
+        raw=raw,fees_known=stored['fees_known'])
+    rederived=normalize_native_economics(quantity=economics.native_quantity,price=economics.venue_price,
+        fees=economics.fees,reported_gross=economics.reported_gross,unit=economics.unit)
+    require(domain_payload(normalized)==stored and domain_payload(rederived)==domain_payload(economics)
+        and fill.scope==fill.order.scope==tx.scope and fill.quantity==economics.native_quantity
+        and fill.price==economics.venue_price and fill.native_trade_id==raw.fill_id
+        and fill.quantity.value==raw.quantity and fill.quantity.unit==raw.quantity_unit
+        and fill.price.value==raw.price and fill.price.currency==raw.price_asset
+        and fill.evidence.hash==raw.evidence.hash and normalized.side in ('BUY','SELL')
+        and type(normalized.fees_known) is bool,'PROGRAM_APPROVED_NATIVE_FACTS_CHANGED')
+    require(identity==canonical_hash(dict(scope=domain_payload(tx.scope),venue=fill.venue,
+        native_trade_id=fill.native_trade_id)),'PROGRAM_APPROVED_NATIVE_IDENTITY_CHANGED')
+    return ProgramFillSourceApproval(approval_id=approval_id,identity_hash=identity,normalized=normalized)
 
 
 class ProgramFillSourceService:
