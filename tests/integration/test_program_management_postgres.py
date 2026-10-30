@@ -392,3 +392,23 @@ def test_stale_book_cannot_be_refreshed_by_current_venue_target_alone(management
     s.load_inputs=inputs
     with pytest.raises(ValueError,match='BOOK_EVIDENCE_REQUIRED'):
         s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+
+@pytest.mark.parametrize('phase',['admit','mark','consume'])
+def test_reader_wait_advancing_current_clock_cannot_authorize_expired_write(management_database,venue_v2,tmp_path,phase):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    c=advanced_case(management_database,venue_v2,tmp_path);submit(c);s=management(c)
+    w=None if phase=='admit' else s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+    permit=s.boundary.mark_may_have_sent(w.command_id,c.lease) if phase=='consume' else None
+    read=s.load_inputs;base=c.engine._clock()
+    def waited(*args):
+        result=read(*args)
+        c.engine._clock=lambda:replace(base,utc_now=(utc_timestamp(base.utc_now)+timedelta(seconds=31)).isoformat(),
+            monotonic_ns=base.monotonic_ns+31*10**9)
+        return result
+    s.load_inputs=waited
+    with pytest.raises(ValueError,match='WRITE_EXPIRED'):
+        if phase=='admit':s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+        elif phase=='mark':s.boundary.mark_may_have_sent(w.command_id,c.lease)
+        else:s.boundary.consume(permit,c.lease)
