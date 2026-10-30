@@ -51,6 +51,19 @@ def test_exact_new_quote_context_migration_is_installed_without_old_history_rewr
         assert '2026-10-28' in body and '2026-10-30' not in body
 
 
+def test_original_scalar_v3_permit_and_unknown_identity_survive_additive_quote_migration(database):
+    from integration.test_program_commands_postgres import boundary
+    from trading_system.execution.program_commands import ProgramCommandRepository
+    from trading_system.recovery.original_creation import read_original_creation
+    c=real_case(database);w,r,_=c.service._transaction(lambda tx:attach(c,tx))
+    g=boundary(c);permit=g.mark_may_have_sent(w.command_id,lease(c))
+    assert g.consume(permit,lease(c))==r
+    with c.owner.transaction(c.scope) as tx:
+        ProgramCommandRepository(tx).record_unknown(w.command_id)
+        original=read_original_creation(tx,w.command_id)
+        assert original.current_state=='UNKNOWN' and original.request==r and not original.can_resubmit
+
+
 def test_actual_quote_mark_commits_and_consumes_exact_original_request_once(database):
     import psycopg
     c=admitted(database);g=gate(c);permit=g.mark_may_have_sent(c.cid,lease(c))

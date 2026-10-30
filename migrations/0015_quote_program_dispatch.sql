@@ -40,6 +40,11 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
  AND ledger.program_digest(c->'assessment')=c->>'assessment_hash'
  AND ledger.program_digest(c->'qualification')=c->>'qualification_hash'
  AND c#>>'{assessment,assessment,verdict}'='ALLOW'
+ AND EXISTS(SELECT 1 FROM ledger.audit_events original_bundle
+  WHERE original_bundle.scope_id=p_scope AND original_bundle.record_id='program-financial-bundle:'||(w->>'intent_id')
+   AND original_bundle.sequence=1
+   AND original_bundle.payload#>'{archive,record_kind}'=c#>'{assessment,record_kind}'
+   AND original_bundle.payload#>'{archive,contract_version}'=c#>'{assessment,contract_version}')
  AND ((c#>>'{assessment,record_kind}'='PROGRAM_FINANCIAL_ASSESSMENT_ARCHIVE'
  AND c#>>'{assessment,capabilities,transport}'='PAPER'
  AND c#>>'{assessment,capabilities,qualification}'='PAPER_VERIFIED')
