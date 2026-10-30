@@ -94,3 +94,31 @@ def validate_current_quote_bounds(tx,source,intake,book,clock,archive,load_execu
     require(type(actual) is QuoteExecutionBoundsV1 and digest(actual)==digest(expected)
         and actual.scope==tx.scope and utc_timestamp(clock.utc_now)<utc_timestamp(actual.valid_until),
         'QUOTE_CURRENT_ENFORCEMENT_REQUIRED')
+
+
+def quote_quantity_reservation_ids(tx,financial_book,source_book):
+    """Physical scope mapping, separate from the collateral group's cash holds."""
+    from trading_system.storage.models import scope_id
+    from .reservation_repository import ReservationRepository
+    local={row[0] for row in tx.execute('SELECT record_id FROM ledger.reservations WHERE scope_id=%s',
+        (scope_id(tx.scope),)).fetchall()}
+    persisted={p.reservation.reservation_id for p in ReservationRepository(tx).group()}
+    external={p.reservation.reservation_id for p in source_book.reservations
+        if p.reservation.reservation_id not in persisted
+            and p.reservation.venue_account_id==tx.scope.venue_account_id}
+    return tuple(p.reservation.reservation_id for p in financial_book.reservations
+        if p.reservation.reservation_id in local|external)
+
+
+def current_quote_financial_book(tx,bundle,source_book):
+    """Reconcile actual held funds once; own unchanged reservation is not new cash."""
+    from dataclasses import replace
+    from .reservation_repository import ReservationRepository,merge_holds
+    repo=ReservationRepository(tx)
+    require(type(bundle) is QuoteProgramFinancialBundleV1,'QUOTE_FINANCIAL_BUNDLE_REQUIRED')
+    own=tuple(repo.get(p.reservation.reservation_id) for p in bundle.reservations)
+    require(canonical_hash({'items':[domain_payload(p) for p in own]})==
+        canonical_hash({'items':[domain_payload(p) for p in bundle.reservations]}),'PROGRAM_RESERVATION_CHANGED')
+    own_ids={p.reservation.reservation_id for p in own}
+    others=tuple(p for p in merge_holds(repo.group(),source_book) if p.reservation.reservation_id not in own_ids)
+    return replace(source_book,reservations=others)

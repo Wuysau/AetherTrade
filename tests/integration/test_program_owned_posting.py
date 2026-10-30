@@ -24,7 +24,7 @@ def setup(database,venue,tmp_path,*,owned=True,source_version=1):
     from integration.test_program_account_opening import provision_uow,inputs
     from trading_system.risk.program_exposure import FeeBound
     from trading_system.execution.program_account_opening import ProgramAccountOpeningService
-    initial=real_case(database,instrument_uid='owned-fee-market-'+uuid4().hex,
+    initial=real_case(database,instrument_uid='owned-fee-market-'+uuid4().hex,provision_opening=False,
         node_fees=(FeeBound(amount=t.Money(currency='USDT',amount=D('100')),debit='EXTERNAL_BALANCE'),))
     balances,proof=inputs(initial)
     ProgramAccountOpeningService(provision_uow(database),initial.scope).initialize(balances,evidence=proof)

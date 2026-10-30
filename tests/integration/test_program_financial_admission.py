@@ -37,8 +37,12 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,venue_account_id=None,**risk_options):
+def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,
+              plan_proposal_transform=None,profile_transform=None,risk_policy_transform=None,financial_capacity=None,financial_buffer=None,
+              provision_opening=True,initial_assets=None,venue_account_id=None,**risk_options):
     import psycopg
+    from integration.support_program_capital import ensure_current_capital_schema,initialize_declared_assets
+    ensure_current_capital_schema(dsn)
     from unit.support_program_financial import financial_case
     financial_case()
     import test_program_risk_assessment as risk_module
@@ -58,21 +62,34 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
             evidence=(qualification_ref,) if qualified else ())
         k={**k,'scope':scope,'profile':replace(k['profile'],scope=scope),
             'expected_capabilities_hash':VersionedOrderCodec().hash('order-capability-snapshot',c)}
+        if profile_transform is not None:k={**k,'profile':profile_transform(k['profile'])}
         return p,r,c,k
     original_plan_for=risk_module.plan_for
     def selected_plan(**options):
-        if not preserve_quote_limit:return original_plan_for(**options)
+        if not preserve_quote_limit:
+            plan,r=original_plan_for(**options)
+            if plan_proposal_transform is None:return plan,r
+            _,_,c,k=scoped_inputs(options.get('product',t.Product.SPOT))
+            from trading_system.intents.program_compilation import compile_order_program
+            return compile_order_program(plan_proposal_transform(plan.original_proposal),r,c,**k),r
         from trading_system.intents.program_compilation import compile_order_program
         p,r,c,k=scoped_inputs(options.get('product',t.Product.SPOT))
         return compile_order_program(p,r,c,**k),r
     with patch.object(risk_module,'inputs',scoped_inputs),patch.object(target_module,'inputs',scoped_inputs),patch.object(exposure_module,'inputs',scoped_inputs),patch.object(risk_module,'plan_for',selected_plan):
         c=risk_module.risk_case(**risk_options)
+    declared=initial_assets if initial_assets is not None else (
+        t.Money(currency=c.facts.rules.quote_asset,amount=D('1000000')),
+        t.Money(currency=c.facts.rules.base_asset,amount=D('10')))
+    if initial_assets is not None:
+        c.book=replace(c.book,balances=initial_assets)
+        c.facts=replace(c.facts,target_facts=replace(c.facts.target_facts,book_hash=digest(c.book)))
     if node_fees is not None:
         c.facts=replace(c.facts,budget_facts=replace(c.facts.budget_facts,node_facts=tuple(
             replace(row,fees=node_fees) for row in c.facts.budget_facts.node_facts)),
             node_bounds=tuple(replace(row,execution_fees=node_fees) for row in c.facts.node_bounds),
             inputs=replace(c.facts.inputs,fee_reserve=tuple(f.amount for f in node_fees)))
     group=collateral_group_id or 'program-group-'+suffix
+    if risk_policy_transform is not None:c.policy=risk_policy_transform(c.policy)
     tf=replace(c.facts.target_facts,collateral_group_id=group)
     budget=replace(c.facts.budget_facts,collateral_group_id=group)
     c.terms=replace(c.terms,collateral_group_id=group);c.policy=replace(c.policy,collateral_group_id=group)
@@ -97,12 +114,12 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
     owner,intake=role_uow('ledger_owner'),role_uow('ledger_intake')
     with psycopg.connect(dsn) as db:
         db.execute('INSERT INTO ledger.collateral_mutex VALUES(%s,%s) ON CONFLICT DO NOTHING',(scope.environment.value,group))
-        existing=db.execute('SELECT collateral_group_id FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s',
+        prior=db.execute('SELECT collateral_group_id FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s',
             (scope.environment.value,scope.venue_account_id,scope.product.value)).fetchone()
-        if existing is None:
+        if prior is None:
             db.execute('INSERT INTO ledger.account_bindings VALUES(%s,%s,%s,%s,NULL)',
                 (scope.environment.value,scope.venue_account_id,scope.product.value,group))
-        else:assert venue_account_id is not None and existing==(group,)
+        else:assert venue_account_id is not None and prior==(group,)
         db.execute('INSERT INTO ledger.active_owners VALUES(%s,%s,%s,%s,%s,%s,%s,%s)',
             (scope.environment.value,scope.venue_account_id,scope.product.value,scope.instrument_uid,scope.venue_leg,
                 c.terms.owner_strategy_id,c.terms.ownership_epoch,c.terms.policy_revision))
@@ -113,6 +130,12 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
     with owner.transaction(scope) as tx:
         tx.projections.save_book(c.book,0)
         tx._append('audit_events',revision_key(context),fence,0)
+    if provision_opening:
+        initialize_declared_assets(role_uow,scope,declared,now)
+        from trading_system.execution.program_book_cash import bind_program_book_cash
+        from trading_system.execution.program_legacy_opening import read_program_local_account_opening
+        with owner.transaction(scope) as tx:
+            assert bind_program_book_cash(tx,tx.projections.book(scope),read_opening=read_program_local_account_opening) is not None
     ingress_facts=ProgramIntakeInputs(compilation=c.plan,rules=c.facts.rules,capabilities=c.facts.capabilities,
         profile=c.facts.profile,authorization=binding,clock=c.facts.inputs.clock,
         expected_build_digest=c.plan.adapter_build_digest,expected_instrument_ref=c.plan.original_proposal.instrument_ref,
@@ -120,7 +143,7 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
     ingress=GenericProgramIngress(intake,scope,lambda *args:ingress_facts,clock=lambda:now)
     source,record=ingress.accept(c.plan.original_proposal,context)
     service=ReservationService(owner,scope,None,clock=lambda:now,monotonic_clock=lambda:c.facts.inputs.clock.monotonic_ns)
-    capacity=(t.Money(currency='USDT',amount=D('1000000')),)
+    capacity=financial_capacity if financial_capacity is not None else (t.Money(currency='USDT',amount=D('1000000')),)
     def load(tx,actual_source,intake_record,book,clock):
         current=replace(c.facts.inputs,intent_id=intake_record.intent_id,clock=clock)
         tf=replace(c.facts.target_facts,transaction_id=tx.transaction_id,inputs=replace(
@@ -132,7 +155,7 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
             protection=tuple(replace(p,allocation_hash=digest(c.allocation),book_hash=digest(book)) for p in c.facts.protection))
         a=replace(archive_from_case(c),source=actual_source)
         return ProgramFinancialInputs(archive=a,authorization=binding,group_capacity=capacity,
-            strategy_capacity=capacity,buffer=(t.Money(currency='USDT',amount=D(0)),))
+            strategy_capacity=capacity,buffer=financial_buffer if financial_buffer is not None else (t.Money(currency='USDT',amount=D(0)),))
     def qualify(tx,a,clock):
         return ProgramFinancialQualification(scope=scope,compilation_hash=digest(a.compilation),
             capabilities_hash=a.compilation.capabilities_hash,rules_hash=a.compilation.rules_hash,
@@ -201,6 +224,27 @@ def test_execution_owner_cannot_forge_a_bounded_generic_intake(database):
     c=real_case(database)
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with c.owner.transaction(c.scope) as tx:tx._append('order_program_intakes','forged',c.record,0)
+
+
+@pytest.mark.parametrize('template',['OTO','OPO'])
+def test_native_pending_order_over_policy_never_commits_financial_reservations(database,template):
+    c=real_case(database,template=template)
+    c.c.policy=replace(c.c.policy,maximum_order_notional='82000')
+    original=c.load
+    def load(*args):
+        f=original(*args)
+        # OTO's independently held pending base obligation needs real capacity;
+        # otherwise an unrelated capacity denial masks the per-order policy bug.
+        base=t.Money(currency=c.c.facts.rules.base_asset,amount=D(10))
+        return replace(f,group_capacity=(*f.group_capacity,base),strategy_capacity=(*f.strategy_capacity,base),
+            buffer=(*f.buffer,t.Money(currency=base.currency,amount=D(0))))
+    with pytest.raises(ValueError,match='PROGRAM_RISK_ASSESSMENT_NOT_ALLOW'):
+        c.service._transaction(lambda tx:c.service._reserve_program(tx,c.key,('original-list-request',),
+            load_inputs=load,load_qualification=c.qualify,load_clock=lambda _:c.c.facts.inputs.clock))
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.intents.get(c.record.intent_id) is None
+        assert tx.reservations.for_intent(c.record.intent_id)==()
+        assert tx._latest('order_program_intakes',c.key,type(c.record))==c.record
 
 
 @pytest.mark.parametrize('fault',['missing_clock','unhealthy_clock','missing_lease','lease_reader_failure'])

@@ -55,6 +55,35 @@ def _bundle_type_valid(bundle):
     return type(bundle) in (ProgramFinancialBundle,QuoteProgramFinancialBundleV1)
 
 
+def decode_program_bundle(payload):
+    """Exact static kind dispatch; never downgrade an unknown financial source."""
+    from trading_system.storage.models import decode
+    require(type(payload) is dict,'PROGRAM_FINANCIAL_BUNDLE_REQUIRED')
+    if 'record_kind' in payload:
+        from .quote_financial_admission import QuoteProgramFinancialBundleV1
+        require(payload.get('record_kind')=='QUOTE_PROGRAM_FINANCIAL_BUNDLE_V1'
+            and payload.get('contract_version')=='2026-10-30','PROGRAM_FINANCIAL_BUNDLE_VERSION_UNSUPPORTED')
+        return decode(QuoteProgramFinancialBundleV1,payload)
+    return decode(ProgramFinancialBundle,payload)
+
+
+def read_program_bundle(tx,intent_id):
+    payload=tx._latest('audit_events',BUNDLE_PREFIX+intent_id,dict)
+    return None if payload is None else decode_program_bundle(payload)
+
+
+def restore_assessment_archive(payload):
+    """Static historical restoration, never replay current financial authority."""
+    from trading_system.storage.models import decode
+    from trading_system.intents.quote_assessment_archive import QuoteAssessmentArchiveV1
+    require(type(payload) is dict,'ASSESSMENT_ARCHIVE_TYPE_REQUIRED')
+    key=(payload.get('contract_version'),payload.get('record_kind'))
+    kinds={('2026-10-29','PROGRAM_FINANCIAL_ASSESSMENT_ARCHIVE'):ProgramFinancialAssessmentArchive,
+        ('2026-10-30','QUOTE_ASSESSMENT_ARCHIVE_V1'):QuoteAssessmentArchiveV1}
+    require(key in kinds,'ASSESSMENT_ARCHIVE_VERSION_UNSUPPORTED')
+    return decode(kinds[key],payload)
+
+
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramFinancialInputs:
     archive:ProgramFinancialAssessmentArchive
@@ -247,6 +276,8 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     require(tx.intents.get(intake.intent_id) is None,'PROGRAM_FINANCIAL_ALREADY_ADMITTED')
     book=tx.projections.book(tx.scope)
     original_book_hash=digest(book)
+    from trading_system.risk.program_cash_guard import require_funded_program_account_book
+    require_funded_program_account_book(tx,book)
     collateral=service._prepare_collateral(tx,book)
     require(not collateral.rejection_codes,','.join(collateral.rejection_codes))
     book=collateral.book
@@ -356,6 +387,8 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
     witnesses[intent.intent_id]=_ProgramFinancialWitness(transaction_id=tx.transaction_id,scope=tx.scope,
         bundle_hash=digest(bundle),original_book_hash=original_book_hash,command_ids=command_ids,
         expires_at=expires.isoformat())
+    from .program_continuation import persist_program_continuation
+    persist_program_continuation(tx,bundle)
     return bundle
 
 
