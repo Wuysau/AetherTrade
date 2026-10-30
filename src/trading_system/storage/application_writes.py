@@ -1,9 +1,10 @@
 """Read durable program obligations without inventing quantities or authority.
 
 The source namespace is distinct from legacy commands. No state label or owner-
-authored audit row resolves a program write: a qualified resolution port does
-not exist yet. Older ledgers may lack this additive table; corrupt present rows
-must never disappear through a payload-state filter or collateral inner join.
+authored audit row resolves submission uncertainty. Protected query observations
+can establish acceptance while every target/quantity/funding duty remains in
+this projection. Older ledgers may lack the observation table; corrupt present
+rows never disappear through a state filter or collateral inner join.
 """
 from dataclasses import dataclass, replace
 
@@ -27,8 +28,8 @@ class ApplicationWriteObligation:
 
     @property
     def unresolved(self):
-        # An ACK/terminal/abort label alone is not complete authoritative
-        # reconciliation. A future qualified resolver must discharge it.
+        # Source-backed submission knownness discharges only send uncertainty.
+        # The original write and all other programme duties remain returned.
         if self.current.state=='DURABLE_READY':return False
         from trading_system.execution.program_submission_observation import ProgramSubmissionObservationView
         return not(type(self.submission_observation) is ProgramSubmissionObservationView

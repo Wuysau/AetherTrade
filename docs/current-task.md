@@ -1,5 +1,15 @@
 # Current task
 
+Latest0021b188c87 actual5PG original62259/run9fae0de28dbd TERMINALexit1:
+4pass1fixturefail29.17s. Genuine V1/V2 accepted-unfilled/historicalTTL, true
+post-only rejection, and laterUNKNOWN preserving acceptance history passed.
+Remaining owner-audit negative used dict with domain-only _append and failed
+before the intended authority check; now uses a genuine ordinary SQL audit row.
+Added actual nofillvenue-ID reseal rejection, cross-command source-snapshot
+rejection and delayed actualquery completion versus newer queryfailure race.
+These make8 actualcases; no product logic changed beyond obligation doc wording.
+Fresh fixed8-case PG remains due. First-capital3PG remains sourcea9-only proof.
+
 ## CURRENT_FIRST_CAPITAL_GREEN_SUBMISSION_REPAIR — 2026-10-30
 
 Fixeda9a076f actual first-capital3PG GREEN0fail/error/skip6.46s original59820,

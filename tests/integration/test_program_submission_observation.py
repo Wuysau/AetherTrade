@@ -95,12 +95,91 @@ def test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncer
 
 def test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness(database,venue,tmp_path):
     import psycopg
+    from psycopg.types.json import Jsonb
     c=case(database,venue,tmp_path);submit(c)
     from trading_system.execution.program_submission_observation import read_program_submission_observation
     with c.service.uow.transaction(c.scope) as tx:
-        tx._append('audit_events','fake-submission:'+c.write.command_id,dict(source_verified=True,state='ACCEPTED'),0)
+        tx.execute('INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) VALUES(%s,%s,1,%s,%s)',
+            (scope_id(c.scope),'fake-submission:'+c.write.command_id,Jsonb(dict(source_verified=True,state='ACCEPTED')),tx.transaction_id))
         assert read_program_submission_observation(tx,c.write) is None
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with c.service.uow.transaction(c.scope) as tx:
             tx.execute('SELECT ledger.begin_program_submission_probe(%s,%s,%s::jsonb,%s)',
                 (scope_id(c.scope),c.write.command_id,'{}',tx.transaction_id))
+
+
+def test_resealed_unfilled_venue_identity_never_becomes_known_submission(database,venue,tmp_path):
+    from integration.test_paper_program_reports_postgres import reseal_report
+    c=case(database,venue,tmp_path);submit(c)
+    genuine=c.engine.query_creation(c.write.command_id)
+    c.engine.query_creation=lambda _:reseal_report(replace(genuine,orders=(replace(genuine.orders[0],venue_order_id='invented-venue-id'),)))
+    service,codec=observer(c,tmp_path/'resealed')
+    try:result=service.observe(c.write.command_id)
+    finally:codec.close()
+    assert result.state=='UNKNOWN' and not result.submission_known and result.record.raw_refs
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.program_fill_source_snapshots WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchone()==(0,)
+
+
+def test_private_source_completion_cannot_reuse_another_commands_snapshot(database,venue,tmp_path):
+    import psycopg
+    from uuid import uuid4
+    from trading_system.contracts.canonical import canonical_json
+    a=case(database,venue,tmp_path);b=case(database,venue,tmp_path);submit(a);submit(b)
+    service,codec=observer(a,tmp_path/'a')
+    other,other_codec=observer(b,tmp_path/'b')
+    try:
+        first=service.observe(a.write.command_id);second=other.observe(b.write.command_id)
+    finally:codec.close();other_codec.close()
+    start=replace(first.record,probe_id=uuid4().hex,phase='STARTED',state='UNKNOWN',source_snapshot_hash=None,
+        manifest_ref=None,raw_refs=(),members=(),reasons=('QUERY_IN_PROGRESS',))
+    with service.uow.transaction(a.scope) as tx:
+        tx.execute('SELECT ledger.begin_program_submission_probe(%s,%s,%s::jsonb,%s)',
+            (scope_id(a.scope),a.write.command_id,canonical_json(domain_payload(start)),tx.transaction_id))
+    forged=replace(first.record,probe_id=start.probe_id,source_snapshot_hash=second.source_snapshot_hash)
+    with pytest.raises(psycopg.errors.CheckViolation,match='protected source snapshot'):
+        with service.uow.transaction(a.scope) as tx:
+            tx.execute('SELECT ledger.record_program_submission_observation(%s,%s,%s::jsonb,%s)',
+                (scope_id(a.scope),a.write.command_id,canonical_json(domain_payload(forged)),tx.transaction_id))
+    from trading_system.execution.program_submission_observation import read_program_submission_observation
+    with a.service.uow.transaction(a.scope) as tx:
+        latest=read_program_submission_observation(tx,a.write)
+        assert latest.state=='UNKNOWN' and latest.ever_accepted
+
+
+def test_delayed_actual_acceptance_completion_cannot_override_a_newer_query_failure(database,venue,tmp_path):
+    import threading
+    c=case(database,venue,tmp_path);submit(c)
+    genuine=c.engine.query_creation;entered=threading.Event();release=threading.Event();lock=threading.Lock();calls=0
+    def controlled_query(command_id):
+        nonlocal calls
+        with lock:calls+=1;index=calls
+        if index==1:
+            entered.set()
+            assert release.wait(30),'actual old query was never released'
+            return genuine(command_id)
+        raise ConnectionError('controlled independent query failure')
+    c.engine.query_creation=controlled_query
+    results=[];errors=[]
+    def older_probe():
+        service,codec=observer(c,tmp_path/'older')
+        try:results.append(service.observe(c.write.command_id))
+        except BaseException as error:errors.append(error)
+        finally:codec.close()
+    thread=threading.Thread(target=older_probe);thread.start()
+    try:
+        assert entered.wait(20),'older actual query never started'
+        service,codec=observer(c,tmp_path/'newer')
+        try:assert service.observe(c.write.command_id).state=='UNKNOWN'
+        finally:codec.close()
+    finally:
+        release.set();thread.join(35)
+    assert not thread.is_alive() and not errors and results
+    assert results[0].state=='UNKNOWN' and results[0].ever_accepted
+    from trading_system.execution.program_submission_observation import read_program_submission_observation
+    with c.service.uow.transaction(c.scope) as tx:
+        latest=read_program_submission_observation(tx,c.write)
+        assert latest.state=='UNKNOWN' and latest.ever_accepted and not latest.submission_known
+        assert tx.execute("SELECT count(*) FROM ledger.program_submission_observations WHERE scope_id=%s AND phase='COMPLETED' AND state='ACCEPTED'",
+            (scope_id(c.scope),)).fetchone()==(1,)
