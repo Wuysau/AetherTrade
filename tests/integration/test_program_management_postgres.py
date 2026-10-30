@@ -16,19 +16,24 @@ def management_database(database):
 
 
 def management(c):
-    from trading_system.execution.program_management_admission import ProgramManagementService
+    from trading_system.execution.program_management_admission import ProgramManagementService,ManagementInputs
     from trading_system.execution.program_management_paper import PaperManagementTargetReader
     from trading_system.accounts.authorization import AuthorizationBinding
     from trading_system.storage.uow import UnitOfWork
     import psycopg
     # Current authorization is resolved through the actual existing LOCAL reader.
-    def authorization(tx,source,clock):
-        return c.load(tx,source,c.record,tx.projections.book(c.scope),clock).authorization
+    def inputs(tx,original,target,book,clock):
+        current=c.load(tx,c.source,c.record,book,clock)
+        return ManagementInputs(rules=c.bundle.archive.rules,profile=c.bundle.archive.profile,
+            capabilities=replace(c.bundle.archive.capabilities,capability_ids=(*c.bundle.archive.capabilities.capability_ids,
+                'SPOT-CANCEL_QUERY','SPOT-AMEND','USDM-CANCEL_QUERY','USDM-AMEND')),
+            authorization=current.authorization,group_capacity=current.group_capacity,
+            strategy_capacity=current.strategy_capacity,buffer=current.buffer)
     def verifier():
         db=psycopg.connect(c.dsn);db.execute('SET ROLE ledger_management_dispatch_verifier');db.commit();return db
     return ProgramManagementService(c.service,UnitOfWork(verifier,permit_ttl_ms=5000),
         target_reader=PaperManagementTargetReader(c.engine),load_clock=lambda _:c.engine._clock(),
-        load_lease=lambda _:c.lease,load_authorization=authorization)
+        load_lease=lambda _:c.lease,load_inputs=inputs)
 
 
 def test_actual_management_commits_full_plan_and_real_outbox(management_database,venue_v2,tmp_path):
