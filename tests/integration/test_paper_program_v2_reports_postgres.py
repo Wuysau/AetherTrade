@@ -222,7 +222,7 @@ def test_actual_decrement_restarted_verifier_preserves_original_quantity_and_onl
     delta=event(c,sequence=3,quantity='.6',kind='DEPTH_DELTA');matcher.apply_market_event(delta)
     matcher.apply_market_event(replace(owned,event_id='external-owner',sequence=4,depth_event_id=delta.event_id,depth_hash=digest(delta),
         owners=(replace(owned.owners[0],source_quantity='1',venue_account_id='external-account',venue_order_id='external-maker'),)))
-    first=observe(c,tmp_path/'first');second=observe(c,tmp_path/'second')
+    first=observe(c,tmp_path/'archive');second=observe(c,tmp_path/'archive')
     assert first.source_verified and second.source_verified,(first.discrepancies,second.discrepancies)
     assert first.fills==second.fills and len(first.fills)==1 and first.fills[0].fill.quantity.value==D('.6')
     assert first.raw_report.orders[0].quantity==1 and first.raw_report.orders[0].runtime.prevented_quantity==D('.4')
@@ -412,3 +412,42 @@ def test_unknown_market_shape_retains_actual_report_archive_and_duties(database,
     assert not result.source_verified and not result.fills and result.raw_refs
     assert result.discrepancies==('PAPER_V2_SOURCE_INTERFACE_UNSUPPORTED',)
     assert 'RESERVATION_RECONCILIATION_REQUIRED' in result.retained_duties
+
+
+def test_actual_price_match_uses_original_five_level_book_without_inventing_native_limit(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path,product=t.Product.USD_M_PERP,order_transform=lambda o:replace(o,
+        price=PriceSpec(kind='PRICE_MATCH',value=None,peg_type=None,offset_levels=None,price_match='OPPONENT_5')))
+    matcher=PaperMatcher(c.engine)
+    depth=replace(event(c,quantity='1'),asks=tuple(DepthLevel(price=str(81490+i),quantity='1') for i in range(5)))
+    matcher.apply_market_event(depth);submit(c);result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    assert result.raw_report.orders[0].runtime.effective_limit==D('81494')
+    assert result.fills and result.fills[0].fill.price.value==D('81490')
+    assert all(f.name!='price' for f in result.raw_report.request.fields)
+
+
+def test_actual_bid_ask_trigger_selects_side_specific_reference_and_existing_depth(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,
+        trigger=TriggerSpec(kind='STATIC',purpose='STOP_LOSS',source='BID_ASK',price='83000',
+            activation_price=None,offset=None,offset_unit=None,price_protect=False)))
+    submit(c);matcher=PaperMatcher(c.engine);matcher.apply_market_event(event(c,quantity='.4'))
+    matcher.apply_market_event(reference(c,2,'ASK','83000'));result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    assert len(result.fills)==1 and result.fills[0].fill.quantity.value==D('.4')
+    assert result.raw_report.orders[0].runtime.activation_event_id=='reference-2'
+
+
+def test_actual_gtd_clock_expiry_after_original_creation_window_is_not_new_submission(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market_v2 import PaperClockEventV2
+    expiry='2026-10-28T10:15:00Z'
+    c=advanced_case(database,venue_v2,tmp_path,product=t.Product.USD_M_PERP,
+        order_transform=lambda o:replace(o,tif=TimeInForceSpec(kind='GTD',expires_at=expiry)))
+    submit(c);matcher=PaperMatcher(c.engine);matcher.apply_market_event(event(c,ask='81500',quantity='1'))
+    base=c.c.facts.inputs.clock
+    c.engine._clock=lambda:replace(base,utc_now=expiry,monotonic_ns=base.monotonic_ns+15*60*10**9)
+    matcher.apply_market_event(PaperClockEventV2(contract_version='2026-10-30',event_id='gtd-clock',stream_id=c.scope.instrument_uid,
+        product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=2,kind='CLOCK',occurred_at=expiry,source='PAPER_MARKET_REPLAY_SYNTHETIC'))
+    result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    assert not result.fills and result.raw_report.dispositions[-1].reason=='VENUE_GTD_EXPIRED'
+    assert result.orders[0].leaves_quantity.value==0 and not result.funds_release_authorized

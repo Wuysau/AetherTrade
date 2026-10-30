@@ -105,7 +105,7 @@ class PaperProgramV2ReportVerifier:
             events=db.execute('SELECT client_id,event_id,payload::text AS raw,payload_hash FROM public.paper_engine_events '
                 'WHERE scope_key=%s AND client_id=ANY(%s) ORDER BY occurred_at,event_id LIMIT 4097',
                 (self.engine._scope_key,clients)).fetchall()
-            orders=db.execute('SELECT o.client_id,o.order_id,o.revision,t.terms,jsonb_build_object('
+            orders=db.execute('SELECT o.client_id,o.order_id,o.revision,o.lifecycle,t.terms,jsonb_build_object('
                 "'active',r.active,'phase',r.phase,'activation_event_id',r.activation_event_id,'high_water',r.high_water::text,"
                 "'low_water',r.low_water::text,'effective_limit',r.effective_limit::text,'visible_remaining',r.visible_remaining::text,"
                 "'queue_priority',r.queue_priority,'prevented_quantity',r.prevented_quantity::text,'parent_activation_fill_id',r.parent_activation_fill_id) AS runtime "
@@ -114,6 +114,14 @@ class PaperProgramV2ReportVerifier:
                 'WHERE o.scope_key=%s AND o.client_id=ANY(%s) ORDER BY o.client_id LIMIT 513',(self.engine._scope_key,clients)).fetchall()
             parent=db.execute('SELECT * FROM public.paper_native_parents_v2 WHERE scope_key=%s AND command_id=%s',
                 (self.engine._scope_key,original.initial.command_id)).fetchone()
+            if parent is not None:
+                parent=dict(parent)
+                parent['members']=[dict(m) for m in db.execute('SELECT client_id,node_id,ordinal FROM public.paper_native_members_v2 '
+                    'WHERE scope_key=%s AND parent_client_id=%s ORDER BY ordinal LIMIT 513',
+                    (self.engine._scope_key,parent['parent_client_id'])).fetchall()]
+                exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+                    'WHERE scope_key=%s AND parent_client_id=%s',(self.engine._scope_key,parent['parent_client_id'])).fetchone()
+                parent['exclusive']=None if exclusive is None else dict(exclusive)
             event_ids=sorted({d['event_id'] for d in deps})
             market_keys=sorted({d['market_key'] for d in deps})
             inputs=db.execute('SELECT market_key,event_id,payload,before_levels,observed_clock FROM public.paper_market_inputs '
@@ -179,8 +187,9 @@ class PaperProgramV2ReportVerifier:
             and market.request_hash==write.request_hash,'PAPER_V2_ORIGINAL_REQUEST_CHANGED')
         expected_inputs={(d['market_key'],d['event_id']) for d in deps}
         _check(expected_inputs=={(i.event.market_key,i.event.event_id) for i in market.inputs},'PAPER_V2_CAUSAL_INPUT_SET_CHANGED')
-        _check(all(any(i.event_hash==d['payload_hash'] for i in market.inputs
-            if (i.event.market_key,i.event.event_id)==(d['market_key'],d['event_id'])) for d in deps),'PAPER_V2_CAUSAL_INPUT_HASH_CHANGED')
+        observed_inputs={(i.event.market_key,i.event.event_id):i for i in market.inputs}
+        _check(all(observed_inputs[(d['market_key'],d['event_id'])].event_hash==d['payload_hash'] for d in deps),
+            'PAPER_V2_CAUSAL_INPUT_HASH_CHANGED')
         input_sources={(i['market_key'],i['event_id']):i for i in source_inputs}
         for i in market.inputs:
             stored=input_sources[(i.event.market_key,i.event.event_id)]
@@ -228,10 +237,20 @@ class PaperProgramV2ReportVerifier:
                 and tuple((m.node_id,m.client_id) for m in parent.members)==tuple((m.node_id,m.client_id) for m in request.assigned_ids.members)
                 and all(source_orders[m.client_id]['order_id']==m.venue_order_id for m in parent.members),
                 'PAPER_V2_NATIVE_PARENT_MEMBERSHIP_CHANGED')
+            _check([(m['node_id'],m['client_id'],m['ordinal']) for m in source_parent['members']]==[
+                (m.node_id,m.client_id,index) for index,m in enumerate(request.assigned_ids.members)],
+                'PAPER_V2_NATIVE_PARENT_MEMBERSHIP_CHANGED')
+            groups=plan.original_program.exclusive_groups;exclusive=source_parent['exclusive']
+            _check((not groups and exclusive is None) or len(groups)==1 and exclusive is not None
+                and exclusive['node_ids']==list(groups[0]) and exclusive['winner_client_id'] in
+                    (None,*(assigned[node] for node in groups[0])),'PAPER_V2_NATIVE_EXCLUSIVITY_SOURCE_CHANGED')
         else:_check(report.native_parent is None,'PAPER_V2_UNEXPECTED_PARENT')
         _check({f.fill_id for f in report.fills}|{d.event_id for d in report.dispositions}==set(events),
             'PAPER_V2_COMPLETE_EVENT_SET_CHANGED')
-        input_map={(i.event.market_key,i.event.event_id):i for i in market.inputs};normalized=[];projections=[];economics=[]
+        input_map=observed_inputs;normalized=[];projections=[];economics=[]
+        client_dependencies={client:set() for client in assigned.values()}
+        for d in deps:client_dependencies[d['client_id']].add((d['market_key'],d['event_id']))
+        archived_by_hash={r.hash:r for r in refs}
         for order,accepted in zip(report.orders,report.accepted_contexts,strict=True):
             _check(order.node_id in nodes and order.client_id==assigned[order.node_id],'PAPER_V2_ORDER_NODE_CHANGED')
             n=nodes[order.node_id];spec=n.original.order;client=order.client_id
@@ -277,14 +296,14 @@ class PaperProgramV2ReportVerifier:
             _check(terms.accepted_clock.clock_health=='HEALTHY' and exact_time(consumed['clock']['utc_now'])<=accepted_at<exact_time(consumed['valid_until'])
                 and accepted_at<=exact_time(clock.utc_now),'PAPER_V2_ACCEPTED_CLOCK_CHANGED')
             persisted=source_orders[client]
-            _check(domain_payload(order.runtime)==persisted['runtime'],'PAPER_V2_ACTUAL_RUNTIME_CHANGED')
             _check(order.venue_order_id==persisted['order_id'] and order.lifecycle_revision==persisted['revision']
-                and order.namespace==n.namespace.value and order.quantity_unit==bundle.intent.unit.native_unit,'PAPER_V2_ACTUAL_ORDER_ID_CHANGED')
+                and order.status==persisted['lifecycle'] and order.namespace==n.namespace.value
+                and order.quantity_unit==bundle.intent.unit.native_unit,'PAPER_V2_ACTUAL_ORDER_ID_CHANGED')
             own_fills=tuple(f for f in report.fills if f.client_id==client)
-            own_inputs=tuple(i for i in market.inputs if (i.event.market_key,i.event.event_id) in
-                {(d['market_key'],d['event_id']) for d in deps if d['client_id']==client})
+            own_inputs=tuple(i for i in market.inputs if (i.event.market_key,i.event.event_id) in client_dependencies[client])
             if report.native_parent is not None and n.original.role=='PENDING':
                 self._working_lineage(n,order,nodes,report,deps,events)
+            _check(domain_payload(order.runtime)==persisted['runtime'],'PAPER_V2_ACTUAL_RUNTIME_CHANGED')
             self._trigger(spec,order,own_inputs,own_fills,accepted_at)
             own_dispositions=tuple(d for d in report.dispositions if d.client_id==client)
             check_order_semantics(self.scope,spec,order,own_inputs,own_fills,market.preventions,own_dispositions,accepted_at)
@@ -294,7 +313,10 @@ class PaperProgramV2ReportVerifier:
                 stored=events[f.fill_id];raw=_raw_object(f.raw_payload_json,f.evidence)
                 _check(stored['client_id']==client and stored['raw']==f.raw_payload_json and stored['payload_hash']==f.evidence.hash
                     and f.node_id==order.node_id and f.namespace==n.namespace.value and raw.get('client_id')==client
-                    and raw.get('record_kind')=='PAPER_MARKET_FILL' and raw.get('event_id')==f.fill_id,'PAPER_V2_ACTUAL_FILL_SOURCE_CHANGED')
+                    and raw.get('record_kind')=='PAPER_MARKET_FILL' and raw.get('event_id')==f.fill_id
+                    and raw.get('node_id')==f.node_id and raw.get('namespace')==f.namespace
+                    and f.evidence.source==SOURCE and f.evidence.environment==t.Environment.PAPER
+                    and exact_time(f.evidence.visible_at)<=exact_time(clock.utc_now),'PAPER_V2_ACTUAL_FILL_SOURCE_CHANGED')
                 source=input_map.get((raw.get('market_key'),f.market_event_id))
                 allocations=tuple(c for c in market.consumptions if c.scope==self.scope and c.client_id==client and c.fill_id==f.fill_id)
                 _check(source is not None and len(allocations)==1 and allocations[0].quantity==f.quantity and allocations[0].price==f.price
@@ -324,7 +346,7 @@ class PaperProgramV2ReportVerifier:
                 if bound.minimum_price is not None and f.price<bound.minimum_price.value or bound.maximum_price is not None and f.price>bound.maximum_price.value:
                     economics.append('FILL_OUTSIDE_EXECUTION_ENVELOPE')
                 ledger_fees=e.fees or ((t.Money(amount=Decimal(0),currency=a.rules.quote_asset),) if known else ())
-                ref=next(r for r in refs if r.hash==f.evidence.hash)
+                ref=archived_by_hash[f.evidence.hash]
                 fact=t.Fill(fill_id='paper-program:'+canonical_hash(dict(scope=domain_payload(self.scope),native_trade_id=f.fill_id)),venue='BINANCE',scope=self.scope,
                     native_trade_id=f.fill_id,order=identity,quantity=e.native_quantity,price=e.venue_price,fees=ledger_fees,occurred_at=f.occurred_at,correction_of=None,evidence=ref)
                 immediate_inputs=[(source.event.market_key,source.event.event_id)]
@@ -361,6 +383,15 @@ class PaperProgramV2ReportVerifier:
                 and exact_time(raw['execution_at'])==exact_time(d.occurred_at)
                 and max(exact_time(accepted.terms.accepted_clock.utc_now),exact_time(source.observed_clock.utc_now),exact_time(source.event.occurred_at))
                     <=exact_time(d.occurred_at)<=exact_time(clock.utc_now),'PAPER_V2_DISPOSITION_SOURCE_CHANGED')
+            if d.reason=='NATIVE_EXCLUSIVE_SIBLING_ACTIVATED':
+                exclusive=source_parent['exclusive'] if source_parent is not None else None
+                _check(exclusive is not None and raw.get('parent_client_id')==request.assigned_ids.parent_client_id
+                    and raw.get('winner_client_id')==exclusive['winner_client_id']!=d.client_id
+                    and d.status=='CANCELED' and any(o.client_id==d.client_id and o.node_id in exclusive['node_ids'] for o in report.orders),
+                    'PAPER_V2_NATIVE_SIBLING_CAUSALITY_CHANGED')
+        for group in plan.original_program.exclusive_groups:
+            executed={f.raw.node_id for f in normalized if f.raw.node_id in group}
+            if len(executed)>1:economics.append('NATIVE_EXCLUSIVITY_VIOLATED')
         return tuple(normalized),tuple(projections),tuple(dict.fromkeys(economics)),graph,graph_hash
 
     def _working_lineage(self,node,order,nodes,report,deps,events):
@@ -390,7 +421,7 @@ class PaperProgramV2ReportVerifier:
     def _trigger(self,spec,order,inputs,fills,accepted_at):
         if spec.trigger.kind=='NONE':return
         source=spec.trigger.source
-        _check(source!='BID_ASK','PAPER_V2_TRIGGER_INTERFACE_UNSUPPORTED')
+        if source=='BID_ASK':source='ASK' if spec.side=='BUY' else 'BID'
         active=False;started=False;high=low=None;activation=None
         for item in inputs:
             if type(item.event) is not PaperReferenceEventV2:continue
