@@ -14,15 +14,19 @@ GRANT SELECT,INSERT ON public.paper_effective_orders_v1 TO paper_matcher_definer
 
 CREATE FUNCTION public.paper_effective_quantity_v1(s text,c text,original numeric) RETURNS numeric
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$
-DECLARE e public.paper_effective_orders_v1;BEGIN
- SELECT * INTO e FROM public.paper_effective_orders_v1 WHERE scope_key=s AND client_id=c ORDER BY result_revision DESC LIMIT 1;
- IF e.command_id IS NULL THEN RETURN original;END IF;
+DECLARE e public.paper_effective_orders_v1;effective numeric;revision bigint;BEGIN
+ effective=original;
+ FOR e IN SELECT * FROM public.paper_effective_orders_v1 WHERE scope_key=s AND client_id=c ORDER BY result_revision LOOP
+ IF e.prior_quantity<>effective OR (revision IS NOT NULL AND e.prior_revision<revision) THEN
+  RAISE EXCEPTION 'complete effective history required';END IF;
  IF e.original_quantity<>original OR NOT EXISTS(SELECT FROM public.paper_management_authorizations_v4 a
    WHERE a.scope_key=s AND a.command_id=e.command_id AND a.binding=e.binding)
  OR NOT EXISTS(SELECT FROM public.paper_management_actions_v4 a WHERE a.scope_key=s AND a.command_id=e.command_id
    AND a.binding_hash=e.binding#>>'{write,binding_hash}' AND a.payload=e.receipt) THEN
   RAISE EXCEPTION 'authenticated effective terms required';END IF;
- RETURN e.effective_quantity;
+ effective=e.effective_quantity;revision=e.result_revision;
+ END LOOP;
+ RETURN effective;
 END $$;
 REVOKE ALL ON FUNCTION public.paper_effective_quantity_v1(text,text,numeric) FROM PUBLIC;
 

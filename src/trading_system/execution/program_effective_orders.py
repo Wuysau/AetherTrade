@@ -34,7 +34,6 @@ def decorate_managed_report(engine,db,report):
     if db.execute("SELECT to_regclass('public.paper_effective_orders_v1') AS relation").fetchone()['relation'] is None:return report
     rows=db.execute('SELECT e.*,a.payload AS actual_receipt FROM public.paper_effective_orders_v1 e '
         'JOIN public.paper_management_actions_v4 a USING(scope_key,command_id) '
-        'JOIN public.paper_management_authorizations_v4 z ON z.scope_key=e.scope_key AND z.command_id=e.command_id AND z.binding=e.binding '
         'WHERE e.scope_key=%s AND e.client_id=ANY(%s) ORDER BY e.result_revision LIMIT 4097',
         (engine._scope_key,[o.client_id for o in report.orders])).fetchall()
     if not rows:
