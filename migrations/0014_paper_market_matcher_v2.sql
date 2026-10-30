@@ -499,7 +499,7 @@ BEGIN
      END IF;
      IF liquidity_owner.venue_account_id=ord.terms->'scope'->>'venue_account_id' THEN
       maker_prevented=CASE WHEN stp_mode IN ('EXPIRE_MAKER','EXPIRE_BOTH') THEN level.available ELSE 0 END;
-      taker_prevented=CASE WHEN stp_mode IN ('EXPIRE_TAKER','EXPIRE_BOTH') THEN take_quantity ELSE 0 END;
+      taker_prevented=CASE WHEN stp_mode IN ('EXPIRE_TAKER','EXPIRE_BOTH') THEN need ELSE 0 END;
       prevention_identifier='paper-stp:'||encode(sha256(convert_to(jsonb_build_array(market_id,book.event_id,ord.scope_key::jsonb,
        ord.client_id,depth_identifier,opposite_side,trim_scale(level.price),stp_mode)::text,'UTF8')),'hex');
       INSERT INTO public.paper_market_preventions_v2 VALUES(market_id,book.event_id,ord.scope_key,ord.client_id,prevention_identifier,
