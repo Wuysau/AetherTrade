@@ -194,7 +194,7 @@ def test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow(d
             bids=(DepthLevel(price='559',quantity='1'),),asks=(DepthLevel(price='559.5',quantity='.2'),))
         PaperMatcher(c.engine).apply_market_event(market)
         report=c.engine.query_creation(c.write.command_id)
-        assert D(report.fills[-1].fees[0].amount)==D('.1119')
+        assert sorted(D(fill.fees[0].amount) for fill in report.fills)==[D('.1119'),D('32.596')]
         with localcontext() as arithmetic:
             arithmetic.prec=3
             result=s.apply(c.write.command_id)
