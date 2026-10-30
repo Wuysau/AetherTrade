@@ -38,7 +38,7 @@ Actual later evidence:
   math/legacy compatibility unit tests passed; actual V2 approval/financial path
   still requires ROOT producer proof and fresh review before qualification.
 - Opening exclusivity244d631:1pass/2 trueRED (legacy→new and both concurrent
-  created). Additive0024f0707c5:3PG greenc1adbd2c97c4,1.98s. 0019 and original
+  created). Additive0024f0707c5:3PG greenc1adbd2c97c4,1.89s. 0019 and original
   0020 bytes stay unchanged; no proof deletion/vector mutation/new authority.
 
 Root ruled FIRST generic admission/mark/consume/afterwait requires real local
@@ -49,8 +49,9 @@ Unproved legacy fills continue to block authenticated mixed cash; no complete
 legacy source adapter is registered and no fake import wrapper/fees were created.
 
 Fresh raw publication is under docs/evidence/binance-orders/op-e-cash-fresh;
-COPY-MAP binds original/copy bytes. Final committed-blob SHA validation pending
-the publication commit. All old parent evidence remains untouched. Next continue
+COPY-MAP binds original/copy bytes. Publication0dd1178 preserved40runs/644raw
+files; COMMITTED-BYTES verifies originals/copies/actualGit blobs with zero SHA
+mismatches. All old parent evidence remains untouched. Next continue
 Root knownness/current target integration, actual two-command proof, actual V2
 source→approval→owned proof, fresh review and final combined mandatory gate.
 
