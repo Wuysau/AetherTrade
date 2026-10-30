@@ -1,0 +1,18 @@
+............................F.                                           [100%]
+=================================== FAILURES ===================================
+_ test_fresh_execution_owner_epoch_manages_old_original_without_creation_rewrite _
+tests/integration/test_program_management_postgres.py:309: in test_fresh_execution_owner_epoch_manages_old_original_without_creation_rewrite
+    w=s.admit(old.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:137: in admit
+    bundle,inputs,clock,expires,risk,funding,fence=self._facts(tx,original,target,lease,valid_until=deadline)
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:67: in _facts
+    require(type(lease) is t.OwnerLease and current_lease==lease and lease.shard.environment==self.scope.environment
+src/trading_system/execution/program_management_commands.py:23: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: MANAGEMENT_CURRENT_LEASE_REQUIRED
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_management_postgres.py::test_fresh_execution_owner_epoch_manages_old_original_without_creation_rewrite
+1 failed, 29 passed in 113.73s (0:01:53)

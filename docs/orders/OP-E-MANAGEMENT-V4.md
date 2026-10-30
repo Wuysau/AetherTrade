@@ -25,6 +25,12 @@ Original-ID observation reads the protected management action source, retaining
 raw payload and SHA256. Cancel success grants no FILLED, credit, cash release or
 all-child terminality. Lost ACK remains UNKNOWN until queried using that same ID.
 
+The complete target report and its exact canonical bytes/SHA are durably archived
+with the management binding. Fresh execution ownership uses the current lease's
+epoch while the historical creation epoch and IDs remain immutable. A stale
+READY plan may be aborted only through a separate protected proof that no MAY
+or consumption exists; this local abort never releases original program funds.
+
 The first implemented action is a conservative cancellation of a nonprotective,
 nonreduce ATOMIC order whose actual original financial allocation is INCREASE.
 An expired original creation proposal does not itself remove management duty;
@@ -65,6 +71,10 @@ do not remove the neutral management duty or release original funds.
 | 9cb24d3 | 15pass/4fail | Actual permit consumption SQL operator RED |
 | f0785ae | 19pass/0fail/error/skip,69.42s | First narrow cancel boundary component |
 | 02a76d6 | 26pass/2fail,106.29s | Creation-TTL fixture replay and short initial permit RED |
+| 8ab9520 | 6pass/23fail,103.19s | Missing test-only import; fixture RED |
+| b92daeb | 29pass/1fail,113.73s | Actual fresh execution-epoch management RED |
+| f4e04db | 32pass/0fail/error/skip,128.200s | Actual target archive, oldTTL, lostACK, owner epoch and private boundary |
+| 3db37dc | 32pass/2fail,146.95s | Missing protected unsent-abort methods RED |
 
 Every run uses the fixed immutable offline runner image, fresh private Linux PG,
 no host ports, complete JUnit and original evidence. Original handles are held

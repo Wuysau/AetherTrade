@@ -1,5 +1,33 @@
 # Current task
 
+## CURRENT_MANAGEMENT_V4_COMPONENT — 2026-10-30
+
+Management sole writer owns this binance-ope-management-v4 tree only, basefb8c62b5.
+Full46capabilities/56scenarios remainACTIVE. New V4 contract/codec/private0022
+business boundary and additive0023 existing-PAPER management are isolated from
+creation V3 and frozen0013/0014. No shared host, source/cash or old schemas changed.
+Exact continuation and remaining ROOT hook needs: docs/orders/OP-E-MANAGEMENT-V4.md.
+
+Actualf4e04db32PG GREEN0fail/error/skip128.200s, original79253TERMINALexit0,
+run7fbe62e7d5bb. Genuine new-host executionepoch REDb92daeb29pass1fail113.73s
+precedes it. Source archive, originalIDs/lostACK, oldTTL+freshgrant, currentowner/
+authorization/target, protected singleconsume/directLOGIN and conservative
+protection denial are component proof only. Ordinary130passed7.17s.
+
+New unsent-abort RED3db37dc32pass2missingmethodfail146.95s is TERMINAL85901.
+Fixed96740dd actual36PG original74005 is RUNNING; never restart on an observation
+timeout. Unsent abort has a separate immutable proof and cannot rewrite V4
+history, release funds or abort any MAY. Full edits/evidence/review checkpoint
+are pending that original handle. No other management testjob is live.
+
+ROOT must serially wire neutral management obligations before enabling any host.
+Protection/exit cancellation needs typed shared action proof; KEEP_PRIORITY/
+MODIFY needs reviewed effective-terms overlay preserving original source and
+envelope; cancel-replace needs fresh same-TX actual ReservationService overlap
+funding plus independent cancel/new source outcomes. Those shapes deny until
+proved and remain required continuation, never a reduced final goal. No native,
+TESTNET/LIVE, real accounts, paid models, forced fills or main-checkout changes.
+
 ## CURRENT_SUBMISSION_OBSERVATION_IMPLEMENTATION — 2026-10-30
 
 Parent assigned the next actual ROOT slice: source-backed submission knownness,

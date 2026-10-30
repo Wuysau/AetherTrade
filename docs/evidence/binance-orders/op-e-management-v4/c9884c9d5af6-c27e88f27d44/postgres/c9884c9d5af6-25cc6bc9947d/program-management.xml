@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="10.145" timestamp="2026-10-30T06:30:26.478144+00:00" hostname="2745a0cc43cf"><testcase classname="tests.integration.test_program_management_postgres" name="test_actual_management_commits_full_plan_and_real_outbox" time="5.195"><failure message="ValueError: expected domain record">tests/integration/test_program_management_postgres.py:43: in test_actual_management_commits_full_plan_and_real_outbox
+    write=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:130: in admit
+    bundle,inputs,clock,expires,risk,funding,fence=self._facts(tx,original,target,lease,valid_until=deadline)
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:112: in _facts
+    risk={'original_basis_hash':w.basis_hash,'target':domain_payload(target),'locks':domain_payload(locks),
+                                                                                     ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase><testcase classname="tests.integration.test_program_management_postgres" name="test_queries_never_create_management_commands" time="4.383" /></testsuite></testsuites>
