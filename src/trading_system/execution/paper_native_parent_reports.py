@@ -6,7 +6,7 @@ from dataclasses import dataclass,replace
 from decimal import Decimal,localcontext,Inexact,Rounded
 from typing import Literal
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload
+from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload,utc_timestamp
 from trading_system.execution.paper_program_reports import (PaperProgramReportVerifier,
     PaperProgramVerification,NormalizedPaperFill,normalize_native_economics,_check,_SourceError,_raw_object,digest)
 from trading_system.storage.models import scope_id
@@ -70,9 +70,9 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
                 'JOIN public.paper_native_algorithm_progress_v2 g USING(scope_key,parent_client_id) '
                 'WHERE p.scope_key=%s AND p.parent_client_id=%s',params).fetchone()
             _check(parent is not None,'PAPER_NATIVE_PARENT_SOURCE_REQUIRED')
-            members=db.execute('SELECT m.*,o.order_id,o.quantity,o.filled,o.lifecycle,o.revision,o.quantity_unit,t.terms '
+            members=db.execute('SELECT m.*,o.order_id,o.quantity,o.filled,o.lifecycle,o.revision,o.quantity_unit,t.terms,to_jsonb(r) AS runtime '
                 'FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id) '
-                'JOIN public.paper_order_terms t USING(scope_key,client_id) WHERE m.scope_key=%s AND m.parent_client_id=%s '
+                'JOIN public.paper_order_terms t USING(scope_key,client_id) JOIN public.paper_order_runtime_v2 r USING(scope_key,client_id) WHERE m.scope_key=%s AND m.parent_client_id=%s '
                 'ORDER BY ordinal LIMIT 4097',params).fetchall()
             allocations=db.execute('SELECT * FROM public.paper_native_child_allocations_v2 WHERE scope_key=%s AND parent_client_id=%s '
                 'ORDER BY ordinal LIMIT 4097',params).fetchall()
@@ -123,12 +123,18 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
                 and allocation['parent_client_id']==c.allocation.parent_client_id==parent_id
                 and allocation['ordinal']==c.allocation.ordinal==row['ordinal']
                 and allocation['allocation_id']==c.allocation.allocation_id==c.terms.allocation_id
+                and allocation['quantity']==c.allocation.quantity and allocation['gross_ceiling']==c.allocation.gross_ceiling
+                and allocation['market_key']==c.allocation.market_key and allocation['market_event_id']==c.allocation.market_event_id
+                and c.allocation.scope==self.scope and c.allocation.child_client_id==client and c.allocation.node_id==row['node_id']
                 and order.venue_order_id==member.venue_order_id==row['order_id']
                 and order.quantity==allocation['quantity']==row['quantity'] and order.filled_quantity==row['filled']
                 and order.status==row['lifecycle'] and order.lifecycle_revision==row['revision']
+                and order.remaining_quantity==(Decimal(0) if row['lifecycle'] in ('FILLED','CANCELED','EXPIRED','REJECTED') else row['quantity']-row['filled'])
                 and order.quantity_unit==row['quantity_unit'] and order.node_id==row['node_id']
                 and order.namespace==c.terms.namespace==a.compilation.nodes[0].namespace.value,
                 'PAPER_NATIVE_CHILD_IDENTITY_CHANGED')
+            observed_runtime=domain_payload(order.runtime)
+            _check(observed_runtime=={k:serial(row['runtime'][k]) for k in observed_runtime},'PAPER_NATIVE_CHILD_RUNTIME_CHANGED')
             expected=domain_payload(c.terms)|dict(write=domain_payload(c.original_write),request=domain_payload(c.request),
                 compilation=domain_payload(c.compilation),rules=domain_payload(c.rules),model=domain_payload(c.model),
                 execution_envelope=domain_payload(c.execution_envelope))
@@ -137,6 +143,9 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
                 'PAPER_NATIVE_CHILD_CONTEXT_CHANGED')
         source_map={(s['market_key'],s['event_id']):s for s in sources}
         _check(len(market.inputs)==len(source_map),'PAPER_NATIVE_INPUT_INVENTORY_CHANGED')
+        for c in report.accepted_contexts[1:]:
+            allocation_source=source_map[(c.allocation.market_key,c.allocation.market_event_id)]
+            _check(c.allocation.market_hash==allocation_source['payload_hash'],'PAPER_NATIVE_GENERATION_SOURCE_CHANGED')
         for i in market.inputs:
             s=source_map[(i.event.market_key,i.event.event_id)]
             _check(domain_payload(i.event)==s['payload'] and i.event_hash==s['payload_hash']==digest(i.event)
@@ -154,14 +163,25 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
             _check(e['raw']==f.raw_payload_json and e['payload_hash']==f.evidence.hash and e['client_id']==f.client_id
                 and e['fill_delta']==f.quantity and e['price']==f.price and Decimal(raw['gross_notional'])==f.gross_notional
                 and raw['fees']==[domain_payload(v) for v in f.fees] and f.namespace==c.terms.namespace
-                and f.node_id==c.terms.node_id and f.quantity_unit==bundle.intent.unit.native_unit,
+                and f.node_id==c.terms.node_id and f.quantity_unit==bundle.intent.unit.native_unit
+                and raw['market_event_id']==f.market_event_id and raw['market_hash']==f.market_hash
+                and utc_timestamp(raw['execution_at'])==utc_timestamp(f.occurred_at)
+                and f.price_asset==a.rules.quote_asset,
                 'PAPER_NATIVE_FILL_CHANGED')
             _check(any(r['fill_id']==f.fill_id and r['scope_key']==canonical_json(domain_payload(self.scope)) and r['client_id']==f.client_id
                 and r['quantity']==f.quantity and r['price']==f.price for r in consumptions),'PAPER_NATIVE_FILL_ALLOCATION_REQUIRED')
+            source=source_map[(raw['market_key'],f.market_event_id)]
+            _check(f.market_hash==source['payload_hash'] and utc_timestamp(f.occurred_at)<=utc_timestamp(clock.utc_now),
+                'PAPER_NATIVE_FILL_SOURCE_TIME_CHANGED')
             economics=normalize_native_economics(quantity=t.Quantity(value=f.quantity,unit=f.quantity_unit),
                 price=t.Price(value=f.price,currency=f.price_asset),fees=tuple(t.Money(currency=v.asset,amount=Decimal(v.amount)) for v in f.fees),
                 reported_gross=t.Money(currency=f.price_asset,amount=f.gross_notional),unit=bundle.intent.unit)
             codes.extend(economics.discrepancies)
+            if f.gross_notional*Decimal(c.model.quote_fee_rate)!=sum((fee.amount for fee in economics.fees),Decimal(0)):
+                codes.append('NATIVE_FEE_MODEL_DISCREPANCY')
+            if any(fee.currency!=a.rules.quote_asset for fee in economics.fees):codes.append('NATIVE_FEE_ASSET_CHANGED')
+            if not Decimal(c.execution_envelope.minimum_price)<=f.price<=Decimal(c.execution_envelope.maximum_price):
+                codes.append('NATIVE_EXECUTION_PRICE_OUTSIDE_BOUND')
             identity=t.OrderIdentity(scope=self.scope,logical_client_order_id=f.client_id,native_client_order_id=f.client_id,
                 venue_client_order_id=f.client_id,venue_order_id=next(o.venue_order_id for o in report.orders if o.client_id==f.client_id))
             fact=t.Fill(fill_id='paper-native:'+canonical_hash(dict(scope=domain_payload(self.scope),native_trade_id=f.fill_id)),
