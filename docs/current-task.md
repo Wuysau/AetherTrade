@@ -19,6 +19,16 @@ root0014 promotion. Root cash hooks await actual neutral guard/opening0020 proof
 and review. No competing tree writes, old schema/hash changes or external calls.
 All46 capabilities/56 cases and OP-C→D/E/F→G remain ACTIVE and unfinished.
 
+Frozen producer integration candidate: selected seven source/fixture files from
+V2 checkpoint34e952c preserve exact1b12-compatible0014 SHA
+df9e0709b7ebb12006549c464251b29f1937aed2efd20182319e9d42a13dd565. Root's current
+consumed-permit guard/window and exact submit arithmetic are retained; no native
+adapter paths, old0013, V1 verifier, source registry or evolving D position/native
+parent files were copied. Two mandatory V2 producer/unchanged-V1-on0014 suites
+are added alongside all50 prior suites. Focused78 command/financial/report/
+liquidity unit tests passed8.63s. Fresh actual root PG cohorts are still due;
+peer source21/23 results do not establish a combined root pass.
+
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
 ROOT WRITE RELEASE: parent-approved checkpoint complete; integration_next now
