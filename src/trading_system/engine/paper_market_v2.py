@@ -390,12 +390,14 @@ def provision_paper_market_v2(admin_dsn,roles):
             db.execute(sql.SQL('GRANT SELECT ON public.paper_reference_prices_v2,public.paper_order_runtime_v2,'
                 'public.paper_market_state_v2,public.paper_market_preventions_v2,public.paper_order_input_dependencies_v2,'
                 'public.paper_native_parents_v2,public.paper_native_members_v2,public.paper_native_parent_terms_v2,'
-                'public.paper_native_algorithm_progress_v2 TO {}').format(sql.Identifier(role)))
+                'public.paper_native_algorithm_progress_v2,public.paper_native_child_allocations_v2,'
+                'public.paper_native_parent_input_dependencies_v2 TO {}').format(sql.Identifier(role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_match_order(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_accept_native_program_v2(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_accept_native_algorithm_v2(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT INSERT ON public.paper_native_parent_terms_v2 TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_match_order(text,text) TO {}').format(sql.Identifier(roles.event_role)))
+        db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_advance_native_algorithms_v2(text) TO {}').format(sql.Identifier(roles.event_role)))
 
 
 def apply_reference_event(engine,event):
@@ -425,6 +427,8 @@ def apply_reference_event(engine,event):
         db.execute('INSERT INTO public.paper_market_books VALUES(%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(market_key) DO UPDATE '
             'SET sequence=excluded.sequence,event_id=excluded.event_id,occurred_at=excluded.occurred_at,observed_clock=excluded.observed_clock',
             (event.market_key,str(event.product),event.instrument_uid,event.stream_id,event.sequence,event.event_id,event.occurred_at,Jsonb(domain_payload(now))))
+        from .paper_native_programs import advance_native_programs
+        advance_native_programs(db,event.market_key)
         first=db.execute('SELECT scope_key,client_id FROM public.paper_order_terms WHERE market_key=%s ORDER BY arrival_sequence LIMIT 1',
             (event.market_key,)).fetchone()
         if first:db.execute('SELECT public.paper_match_order(%s,%s)',(first['scope_key'],first['client_id']))

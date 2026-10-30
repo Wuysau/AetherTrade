@@ -53,9 +53,11 @@ CREATE TABLE public.paper_native_parents_v2(
  FOREIGN KEY(scope_key,command_id) REFERENCES public.paper_engine_commands(scope_key,command_id));
 CREATE TABLE public.paper_native_members_v2(
  scope_key text NOT NULL,parent_client_id text NOT NULL,client_id text NOT NULL,node_id text NOT NULL,ordinal integer NOT NULL,
- PRIMARY KEY(scope_key,client_id),UNIQUE(scope_key,parent_client_id,node_id),
+ member_kind text NOT NULL DEFAULT 'FIXED_LEG' CHECK(member_kind IN ('FIXED_LEG','ALGORITHM_CHILD')),
+ PRIMARY KEY(scope_key,client_id),UNIQUE(scope_key,parent_client_id,ordinal),
  FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
  FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
+CREATE UNIQUE INDEX paper_native_fixed_node_v2 ON public.paper_native_members_v2(scope_key,parent_client_id,node_id) WHERE member_kind='FIXED_LEG';
 CREATE TABLE public.paper_native_exclusivity_v2(
  scope_key text NOT NULL,parent_client_id text NOT NULL,winner_client_id text,node_ids jsonb NOT NULL,
  PRIMARY KEY(scope_key,parent_client_id),
@@ -66,15 +68,27 @@ CREATE TABLE public.paper_native_parent_terms_v2(
  PRIMARY KEY(scope_key,parent_client_id),UNIQUE(scope_key,command_id),
  FOREIGN KEY(scope_key,command_id) REFERENCES public.paper_engine_commands(scope_key,command_id));
 CREATE TABLE public.paper_native_algorithm_progress_v2(
- scope_key text NOT NULL,parent_client_id text NOT NULL,original_quantity numeric NOT NULL CHECK(original_quantity>0),
+ scope_key text NOT NULL,parent_client_id text NOT NULL,original_quantity numeric NOT NULL CHECK(original_quantity>0 AND original_quantity<>'NaN' AND original_quantity<>'Infinity'),
  allocated_quantity numeric NOT NULL DEFAULT 0,executed_quantity numeric NOT NULL DEFAULT 0,unused_quantity numeric NOT NULL DEFAULT 0,
- maximum_gross_notional numeric NOT NULL CHECK(maximum_gross_notional>0),allocated_gross_notional numeric NOT NULL DEFAULT 0,
+ maximum_gross_notional numeric NOT NULL CHECK(maximum_gross_notional>0 AND maximum_gross_notional<>'NaN' AND maximum_gross_notional<>'Infinity'),allocated_gross_notional numeric NOT NULL DEFAULT 0,
  cumulative_gross_notional numeric NOT NULL DEFAULT 0,fee_ceilings jsonb NOT NULL,maximum_live_children integer NOT NULL CHECK(maximum_live_children>0),
- accepted_at timestamptz NOT NULL,ending_at timestamptz,
+ accepted_at timestamptz NOT NULL,ending_at timestamptz,accepted_source_sequence bigint NOT NULL,last_generation_event_id text,
  PRIMARY KEY(scope_key,parent_client_id),FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
  CHECK(allocated_quantity>=0 AND allocated_quantity<=original_quantity AND executed_quantity>=0 AND unused_quantity>=0
   AND executed_quantity+unused_quantity<=allocated_quantity AND cumulative_gross_notional>=0
   AND cumulative_gross_notional<=allocated_gross_notional AND allocated_gross_notional<=maximum_gross_notional));
+CREATE TABLE public.paper_native_child_allocations_v2(
+ scope_key text NOT NULL,parent_client_id text NOT NULL,child_client_id text NOT NULL,node_id text NOT NULL,allocation_id text NOT NULL,
+ ordinal integer NOT NULL,market_key text NOT NULL,market_event_id text NOT NULL,quantity numeric NOT NULL CHECK(quantity>0),
+ gross_ceiling numeric NOT NULL CHECK(gross_ceiling>0),PRIMARY KEY(scope_key,allocation_id),UNIQUE(scope_key,child_client_id),
+ UNIQUE(scope_key,parent_client_id,ordinal),FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
+ FOREIGN KEY(scope_key,child_client_id) REFERENCES public.paper_engine_orders(scope_key,client_id),
+ FOREIGN KEY(market_key,market_event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
+CREATE TABLE public.paper_native_parent_input_dependencies_v2(
+ scope_key text NOT NULL,parent_client_id text NOT NULL,market_key text NOT NULL,event_id text NOT NULL,
+ PRIMARY KEY(scope_key,parent_client_id,market_key,event_id),
+ FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
+ FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
 CREATE TABLE public.paper_order_runtime_v2(
  scope_key text NOT NULL,client_id text NOT NULL,active boolean NOT NULL,phase text NOT NULL,
  activation_event_id text,high_water numeric,low_water numeric,trail_started boolean NOT NULL DEFAULT false,
@@ -84,7 +98,8 @@ CREATE TABLE public.paper_order_runtime_v2(
 REVOKE ALL ON public.paper_market_state_v2,public.paper_reference_prices_v2,public.paper_published_rules_v2,
  public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2,public.paper_market_preventions_v2,
  public.paper_order_input_dependencies_v2,public.paper_native_parents_v2,public.paper_native_members_v2,public.paper_native_exclusivity_v2,
- public.paper_native_parent_terms_v2,public.paper_native_algorithm_progress_v2 FROM PUBLIC;
+ public.paper_native_parent_terms_v2,public.paper_native_algorithm_progress_v2,public.paper_native_child_allocations_v2,
+ public.paper_native_parent_input_dependencies_v2 FROM PUBLIC;
 GRANT SELECT,INSERT,UPDATE ON public.paper_market_state_v2,public.paper_reference_prices_v2,
  public.paper_published_rules_v2,public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT ON public.paper_market_preventions_v2 TO paper_matcher_definer;
@@ -94,6 +109,9 @@ GRANT SELECT,INSERT ON public.paper_native_members_v2 TO paper_matcher_definer;
 GRANT SELECT ON public.paper_engine_commands TO paper_matcher_definer;
 GRANT SELECT ON public.paper_native_parent_terms_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT,UPDATE ON public.paper_native_algorithm_progress_v2 TO paper_matcher_definer;
+GRANT SELECT,INSERT ON public.paper_native_child_allocations_v2,public.paper_native_parent_input_dependencies_v2 TO paper_matcher_definer;
+GRANT INSERT ON public.paper_engine_orders,public.paper_order_terms TO paper_matcher_definer;
+GRANT USAGE ON SEQUENCE public.paper_order_terms_arrival_sequence_seq TO paper_matcher_definer;
 CREATE TRIGGER immutable_market_preventions_v2 BEFORE UPDATE OR DELETE ON public.paper_market_preventions_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 CREATE TRIGGER immutable_input_dependencies_v2 BEFORE UPDATE OR DELETE ON public.paper_order_input_dependencies_v2
@@ -101,6 +119,10 @@ CREATE TRIGGER immutable_input_dependencies_v2 BEFORE UPDATE OR DELETE ON public
 CREATE TRIGGER immutable_native_members_v2 BEFORE UPDATE OR DELETE ON public.paper_native_members_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 CREATE TRIGGER immutable_native_parent_terms_v2 BEFORE UPDATE OR DELETE OR TRUNCATE ON public.paper_native_parent_terms_v2
+ FOR EACH STATEMENT EXECUTE FUNCTION public.paper_market_immutable();
+CREATE TRIGGER immutable_native_allocations_v2 BEFORE UPDATE OR DELETE OR TRUNCATE ON public.paper_native_child_allocations_v2
+ FOR EACH STATEMENT EXECUTE FUNCTION public.paper_market_immutable();
+CREATE TRIGGER immutable_native_parent_dependencies_v2 BEFORE UPDATE OR DELETE OR TRUNCATE ON public.paper_native_parent_input_dependencies_v2
  FOR EACH STATEMENT EXECUTE FUNCTION public.paper_market_immutable();
 
 CREATE FUNCTION public.paper_accept_native_algorithm_v2(p_scope text,p_command text) RETURNS void
@@ -111,7 +133,8 @@ BEGIN
  SELECT t.terms INTO terms FROM public.paper_native_parent_terms_v2 t WHERE t.scope_key=p_scope AND t.command_id=p_command;
  IF command IS NULL OR terms IS NULL OR command.target_client_id IS NOT NULL OR command.operation IS DISTINCT FROM 'CREATE_REQUEST'
   OR terms->'request' IS DISTINCT FROM command.request OR terms->'scope' IS DISTINCT FROM p_scope::jsonb
-  OR terms->>'record_kind' IS DISTINCT FROM 'PAPER_NATIVE_PARENT_TERMS_V2' OR terms->>'contract_version' IS DISTINCT FROM '2026-10-30'
+  OR NOT coalesce(terms->>'record_kind' IN ('PAPER_NATIVE_PARENT_TERMS_V2','PAPER_NATIVE_EXECUTION_TERMS_V2'),false)
+  OR terms->>'contract_version' IS DISTINCT FROM '2026-10-30'
   OR NOT coalesce(terms->>'template' IN ('TWAP','VP'),false)
   OR terms->'compilation'->'original_program'->>'execution_mode' IS DISTINCT FROM 'VENUE_NATIVE'
   OR terms->'compilation'->'original_program'->>'template' IS DISTINCT FROM terms->>'template'
@@ -132,8 +155,9 @@ BEGIN
  INSERT INTO public.paper_native_parents_v2 VALUES(p_scope,parent,'paper-native:'||parent,p_command,command.request_hash,
   command.request->>'namespace',terms->>'template','WAITING_MARKET_SOURCE',1);
  INSERT INTO public.paper_native_algorithm_progress_v2(scope_key,parent_client_id,original_quantity,maximum_gross_notional,
-  fee_ceilings,maximum_live_children,accepted_at,ending_at) VALUES(p_scope,parent,quantity,(envelope->>'maximum_gross_notional')::numeric,
-   envelope->'fee_ceilings',(terms->>'maximum_live_children')::integer,accepted,ending);
+  fee_ceilings,maximum_live_children,accepted_at,ending_at,accepted_source_sequence) VALUES(p_scope,parent,quantity,(envelope->>'maximum_gross_notional')::numeric,
+   envelope->'fee_ceilings',(terms->>'maximum_live_children')::integer,accepted,ending,
+   coalesce((SELECT sequence FROM public.paper_market_books WHERE market_key=(SELECT market_key FROM public.paper_native_parent_terms_v2 WHERE scope_key=p_scope AND command_id=p_command)),0));
 END $$;
 CREATE FUNCTION public.paper_check_parent_target_v2() RETURNS trigger
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
@@ -178,7 +202,7 @@ BEGIN
    OR item->'compilation' IS DISTINCT FROM terms->'compilation'
    OR NOT EXISTS(SELECT FROM public.paper_engine_orders WHERE scope_key=p_scope AND client_id=member->>'client_id'
     AND filled=0 AND revision=1 AND lifecycle='SUBMITTED') THEN RAISE EXCEPTION 'actual zero-fill native member required'; END IF;
-  INSERT INTO public.paper_native_members_v2 VALUES(p_scope,parent,member->>'client_id',member->>'node_id',ordinal);ordinal=ordinal+1;
+  INSERT INTO public.paper_native_members_v2 VALUES(p_scope,parent,member->>'client_id',member->>'node_id',ordinal,'FIXED_LEG');ordinal=ordinal+1;
  END LOOP;
  IF jsonb_array_length(terms->'compilation'->'original_program'->'exclusive_groups')=1 THEN
   INSERT INTO public.paper_native_exclusivity_v2 VALUES(p_scope,parent,NULL,terms->'compilation'->'original_program'->'exclusive_groups'->0);
@@ -456,6 +480,115 @@ ALTER FUNCTION public.paper_prepare_order_v2(text,text,text) OWNER TO paper_matc
 ALTER FUNCTION public.paper_resolve_price_v2(text,jsonb) OWNER TO paper_matcher_definer;
 REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
 
+CREATE FUNCTION public.paper_advance_native_algorithms_v2(p_market text) RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE book record;parent record;terms jsonb;model jsonb;node jsonb;spec jsonb;envelope jsonb;child_envelope jsonb;child_terms jsonb;
+ duration integer;slots integer;due_slots integer;units numeric;target_units numeric;quantity numeric;step numeric;gross numeric;fee numeric;
+ ordinal integer;allocation text;client text;current_at timestamptz;elapsed numeric;
+BEGIN
+ PERFORM pg_advisory_xact_lock(hashtextextended(p_market,0));
+ SELECT * INTO book FROM public.paper_market_books WHERE market_key=p_market FOR UPDATE;
+ IF book IS NULL THEN RETURN; END IF;
+ FOR parent IN SELECT p.*,g.*,t.terms FROM public.paper_native_parents_v2 p JOIN public.paper_native_parent_terms_v2 t
+  USING(scope_key,parent_client_id,command_id) JOIN public.paper_native_algorithm_progress_v2 g USING(scope_key,parent_client_id)
+  WHERE t.market_key=p_market AND p.status IN ('WAITING_MARKET_SOURCE','EXECUTING','WAITING_CHILD_SIZE','WAITING_DEPTH')
+  ORDER BY g.accepted_at,p.scope_key,p.parent_client_id FOR UPDATE OF p,g LOOP
+  terms=parent.terms;
+  -- An older parent-only record never silently gains child-generation semantics.
+  CONTINUE WHEN terms->>'record_kind'<>'PAPER_NATIVE_EXECUTION_TERMS_V2' OR book.sequence<=parent.accepted_source_sequence;
+  model=terms->'execution_model';node=terms->'compilation'->'nodes'->0;spec=node->'original'->'order';envelope=terms->'execution_envelope';
+  IF terms->>'template' IS DISTINCT FROM 'TWAP' OR model->>'model_kind' IS DISTINCT FROM 'PAPER_NATIVE_TWAP_CLOCK_MODEL'
+   OR model->>'model_revision' IS DISTINCT FROM '1' OR model->>'slice_seconds' IS DISTINCT FROM '60'
+   OR model->>'child_tif' IS DISTINCT FROM 'IOC' OR model->>'unused_policy' IS DISTINCT FROM 'NO_AUTOMATIC_RECYCLE'
+   THEN RAISE EXCEPTION 'explicit native execution model required'; END IF;
+  current_at=(book.observed_clock->>'utc_now')::timestamptz;
+  CONTINUE WHEN current_at<parent.accepted_at OR book.observed_clock->>'clock_health'<>'HEALTHY';
+  INSERT INTO public.paper_native_parent_input_dependencies_v2 VALUES(parent.scope_key,parent.parent_client_id,p_market,book.event_id) ON CONFLICT DO NOTHING;
+  INSERT INTO public.paper_native_parent_input_dependencies_v2
+   SELECT parent.scope_key,parent.parent_client_id,p_market,depth_event_id FROM public.paper_market_state_v2
+    WHERE market_key=p_market AND depth_event_id IS NOT NULL ON CONFLICT DO NOTHING;
+  IF current_at>=parent.ending_at THEN
+   UPDATE public.paper_native_parents_v2 SET status='STOPPED_WITH_REMAINING_POOL',revision=revision+1
+    WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
+  END IF;
+  IF NOT EXISTS(SELECT FROM public.paper_market_state_v2 WHERE market_key=p_market AND depth_event_id IS NOT NULL) THEN
+   UPDATE public.paper_native_parents_v2 SET status='WAITING_DEPTH' WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
+  END IF;
+  CONTINUE WHEN parent.last_generation_event_id=book.event_id;
+  CONTINUE WHEN (SELECT count(*) FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id)
+   WHERE m.scope_key=parent.scope_key AND m.parent_client_id=parent.parent_client_id
+    AND o.lifecycle NOT IN ('FILLED','CANCELED','EXPIRED','REJECTED'))>=parent.maximum_live_children;
+  duration=(terms->'compilation'->'original_program'->'algorithm'->>'duration_seconds')::integer;
+  IF duration NOT BETWEEN 1 AND 86400 THEN RAISE EXCEPTION 'bounded native duration required'; END IF;
+  slots=(duration+59)/60;elapsed=extract(epoch FROM current_at-parent.accepted_at);due_slots=least(slots,1+floor(elapsed/60)::integer);
+  step=(terms->>'quantity_step')::numeric;units=div(parent.original_quantity,step);
+  IF mod(parent.original_quantity,step)<>0 THEN RAISE EXCEPTION 'native pool quantity grid changed'; END IF;
+  target_units=div(units*due_slots,slots);quantity=target_units*step-parent.allocated_quantity;
+  CONTINUE WHEN quantity<=0;
+  IF quantity<(terms->'rules'->>'minimum_quantity')::numeric OR
+   quantity*(envelope->>'minimum_price')::numeric*(terms->>'multiplier')::numeric<(terms->'rules'->>'minimum_notional')::numeric THEN
+   UPDATE public.paper_native_parents_v2 SET status='WAITING_CHILD_SIZE' WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
+  END IF;
+  gross=quantity*(envelope->>'maximum_price')::numeric*(terms->>'multiplier')::numeric;
+  IF parent.allocated_gross_notional+gross>parent.maximum_gross_notional THEN RAISE EXCEPTION 'native pool allocation budget exceeded'; END IF;
+  SELECT coalesce(max(m.ordinal)+1,0) INTO ordinal FROM public.paper_native_members_v2 m WHERE m.scope_key=parent.scope_key AND m.parent_client_id=parent.parent_client_id;
+  allocation='paper-native-allocation:'||encode(sha256(convert_to(jsonb_build_array(parent.scope_key::jsonb,parent.parent_client_id,ordinal,book.event_id)::text,'UTF8')),'hex');
+  client=substr(encode(sha256(convert_to(jsonb_build_array('native-child',parent.scope_key::jsonb,parent.parent_client_id,ordinal,book.event_id)::text,'UTF8')),'hex'),1,32);
+  fee=gross*(terms->'model'->>'quote_fee_rate')::numeric;
+  child_envelope=envelope||jsonb_build_object('maximum_gross_notional',gross::text,'fee_ceilings',CASE WHEN fee=0 THEN '[]'::jsonb ELSE
+   jsonb_build_array(jsonb_build_object('asset',terms->'rules'->>'quote_asset','amount',fee::text)) END);
+  child_terms=jsonb_build_object('contract_version','2026-10-30','record_kind','PAPER_NATIVE_CHILD_TERMS_V2','model_revision',2,
+   'scope',terms->'scope','client_id',client,'node_id',terms->>'node_id','namespace',node->>'namespace','quantity',quantity::text,
+   'quantity_step',terms->>'quantity_step','side',spec->>'side','order_type',node->>'order_type','limit_price',spec->'price'->>'value',
+   'post_only',false,'tif','IOC','multiplier',terms->>'multiplier','quote_asset',terms->'rules'->>'quote_asset',
+   'quote_fee_rate',terms->'model'->>'quote_fee_rate','accepted_clock',book.observed_clock,'spec',spec,'parent_client_id',parent.parent_client_id,
+   'allocation_id',allocation,'generation_event_id',book.event_id,'allocation_ordinal',ordinal,'write',terms->'write','request',terms->'request',
+   'compilation',terms->'compilation','rules',terms->'rules','model',terms->'model','execution_envelope',child_envelope);
+  INSERT INTO public.paper_engine_orders(environment,scope_key,client_id,order_id,logical_id,owner_strategy_id,ownership_epoch,quantity_unit,price_currency,quantity)
+   VALUES('PAPER',parent.scope_key,client,'paper-native-child:'||allocation,client,terms->'write'->>'owner_strategy_id',
+    (terms->'write'->>'ownership_epoch')::bigint,terms->>'quantity_unit',terms->'rules'->>'quote_asset',quantity);
+  INSERT INTO public.paper_order_terms(scope_key,client_id,market_key,terms) VALUES(parent.scope_key,client,p_market,child_terms);
+  INSERT INTO public.paper_native_members_v2 VALUES(parent.scope_key,parent.parent_client_id,client,terms->>'node_id',ordinal,'ALGORITHM_CHILD');
+  INSERT INTO public.paper_native_child_allocations_v2 VALUES(parent.scope_key,parent.parent_client_id,client,terms->>'node_id',allocation,
+   ordinal,p_market,book.event_id,quantity,gross);
+  UPDATE public.paper_native_algorithm_progress_v2 SET allocated_quantity=allocated_quantity+quantity,
+   allocated_gross_notional=allocated_gross_notional+gross,last_generation_event_id=book.event_id
+   WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;
+  UPDATE public.paper_native_parents_v2 SET status='EXECUTING',revision=revision+1 WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;
+ END LOOP;
+END $$;
+CREATE FUNCTION public.paper_refresh_native_algorithms_v2(p_market text) RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE parent record;allocated numeric;executed numeric;unused numeric;gross numeric;event_quantity numeric;unresolved boolean;
+BEGIN
+ FOR parent IN SELECT p.*,g.original_quantity,g.allocated_quantity,g.maximum_gross_notional FROM public.paper_native_parents_v2 p
+  JOIN public.paper_native_algorithm_progress_v2 g USING(scope_key,parent_client_id) JOIN public.paper_native_parent_terms_v2 t USING(scope_key,parent_client_id,command_id)
+  WHERE t.market_key=p_market FOR UPDATE OF p,g LOOP
+  SELECT coalesce(sum(o.quantity),0),coalesce(sum(o.filled),0),
+   coalesce(sum(CASE WHEN o.lifecycle IN ('CANCELED','EXPIRED','REJECTED') THEN o.quantity-o.filled ELSE 0 END),0),
+   coalesce(bool_or(o.certainty<>'CONFIRMED' OR o.pending<>'NONE' OR o.lifecycle NOT IN ('FILLED','CANCELED','EXPIRED','REJECTED')),false)
+   INTO allocated,executed,unused,unresolved FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id)
+    WHERE m.scope_key=parent.scope_key AND m.parent_client_id=parent.parent_client_id;
+  SELECT coalesce(sum(e.fill_delta),0),coalesce(sum((e.payload->>'gross_notional')::numeric),0) INTO event_quantity,gross
+   FROM public.paper_native_members_v2 m JOIN public.paper_engine_events e USING(scope_key,client_id)
+    WHERE m.scope_key=parent.scope_key AND m.parent_client_id=parent.parent_client_id AND e.payload->>'record_kind'='PAPER_MARKET_FILL';
+  IF allocated<>parent.allocated_quantity OR event_quantity<>executed OR gross>parent.maximum_gross_notional
+   THEN RAISE EXCEPTION 'native pool actual child inventory mismatch'; END IF;
+  UPDATE public.paper_native_algorithm_progress_v2 SET executed_quantity=executed,unused_quantity=unused,cumulative_gross_notional=gross
+   WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;
+  IF NOT unresolved AND allocated=parent.original_quantity THEN
+   UPDATE public.paper_native_parents_v2 SET status=CASE WHEN executed=parent.original_quantity THEN 'COMPLETED' ELSE 'STOPPED_UNFILLED' END,
+    revision=revision+CASE WHEN status=CASE WHEN executed=parent.original_quantity THEN 'COMPLETED' ELSE 'STOPPED_UNFILLED' END THEN 0 ELSE 1 END
+    WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;
+  END IF;
+ END LOOP;
+END $$;
+REVOKE ALL ON FUNCTION public.paper_advance_native_algorithms_v2(text),public.paper_refresh_native_algorithms_v2(text) FROM PUBLIC;
+GRANT USAGE,CREATE ON SCHEMA public TO paper_matcher_definer;
+ALTER FUNCTION public.paper_advance_native_algorithms_v2(text) OWNER TO paper_matcher_definer;
+ALTER FUNCTION public.paper_refresh_native_algorithms_v2(text) OWNER TO paper_matcher_definer;
+REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
+
 -- The upgraded allocator follows below. It replaces the one live venue kernel;
 -- V1 source types and history remain intact and undergo the same exact bounds.
 
@@ -656,10 +789,12 @@ BEGIN
   END IF;
  END LOOP;
  UPDATE public.paper_native_parents_v2 p SET status='ALL_DONE',revision=revision+1 WHERE p.status<>'ALL_DONE'
+  AND p.template IN ('OCO','OTO','OTOCO')
   AND EXISTS(SELECT FROM public.paper_native_members_v2 m JOIN public.paper_order_terms t USING(scope_key,client_id)
    WHERE m.scope_key=p.scope_key AND m.parent_client_id=p.parent_client_id AND t.market_key=market_id)
   AND NOT EXISTS(SELECT FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id)
    WHERE m.scope_key=p.scope_key AND m.parent_client_id=p.parent_client_id AND o.lifecycle NOT IN ('FILLED','CANCELED','EXPIRED','REJECTED'));
+ PERFORM public.paper_refresh_native_algorithms_v2(market_id);
 END $$;
 
 REVOKE ALL ON FUNCTION public.paper_match_order(text,text) FROM PUBLIC;
