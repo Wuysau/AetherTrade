@@ -355,6 +355,7 @@ def _accepted_context(payload,request):
     return context
 
 
+@exact_market_arithmetic
 def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
     from trading_system.contracts.application_write_v3 import ApplicationWriteV3
     from trading_system.execution.creation_requests import VenueCreationRequest
