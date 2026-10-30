@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="18" skipped="0" tests="18" time="0.508" timestamp="2026-10-30T11:27:06.158403+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.intents.test_native_query_candidates" name="test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged[BINANCE_SPOT_EXECUTION_ALGO]" time="0.022"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:33: in test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged
+    current=page(reader,payload=payload);history=page(reader,1,rows=[],size=100)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged[BINANCE_USD_M_EXECUTION_ALGO]" time="0.008"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:33: in test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged
+    current=page(reader,payload=payload);history=page(reader,1,rows=[],size=100)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-missing_history]" time="0.009"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-gap]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-duplicate_identity]" time="0.008"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-huge_remote_total]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-typed_body_forgery]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-wrong_scope]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-raw_tamper]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-missing_history]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-gap]" time="0.007"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-duplicate_identity]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-huge_remote_total]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-typed_body_forgery]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-wrong_scope]" time="0.010"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-raw_tamper]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent[BINANCE_SPOT_EXECUTION_ALGO]" time="0.004"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:59: in test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent
+    result=resolve(reader,(page(reader,rows=[]),page(reader,1,rows=[],size=100)))
+                           ^^^^^^^^^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent[BINANCE_USD_M_EXECUTION_ALGO]" time="0.005"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'">tests\intents\test_native_query_candidates.py:59: in test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent
+    result=resolve(reader,(page(reader,rows=[]),page(reader,1,rows=[],size=100)))
+                           ^^^^^^^^^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'</failure></testcase></testsuite></testsuites>

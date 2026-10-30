@@ -1,0 +1,39 @@
+{
+  "source_commit": "c72d3ecd8504989a873666538851a524ece13372",
+  "command": [
+    "D:/Projects/Python/AetherTrade/AetherTrade/.venv/Scripts/python.exe",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/qualification/test_nautilus_bridge.py",
+    "tests/qualification/test_nautilus_order_target.py",
+    "tests/qualification/test_native_sdk_inspection.py",
+    "tests/intents/test_native_creation_call.py",
+    "tests/intents/test_creation_request_binding.py",
+    "tests/intents/test_program_compilation.py",
+    "tests/intents/test_native_management_call.py",
+    "tests/intents/test_management_requests.py",
+    "tests/intents/test_order_query.py",
+    "tests/intents/test_order_management_compilation.py",
+    "tests/unit/test_program_commands.py",
+    "tests/unit/test_original_creation_recovery.py",
+    "tests/ops/test_paper_ci_gate.py",
+    "tests/intents/test_native_creation_response.py",
+    "tests/intents/test_native_management_response.py",
+    "--tb=short",
+    "tests/intents/test_native_query_candidates.py",
+    "--junitxml=.runtime\\native-adapter\\query-cohort-related.xml"
+  ],
+  "exit_code": 0,
+  "results": {
+    "passed": 483,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "tracked_python_changes_before_and_after": false,
+  "sha256": {
+    "query-cohort-related.txt": "f4673e03f20dfa7213757bb3fba697e721b035f93fe24cdc0008bf900c55f9e1",
+    "query-cohort-related.xml": "3b311e471a6eb0eeab3a022b334be59c7cf622c2660829e42fb49e18d381c491"
+  }
+}
