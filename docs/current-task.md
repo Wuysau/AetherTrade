@@ -1,5 +1,24 @@
 # Current task
 
+## CURRENT_FRESH_INTEGRATION_OWNER — 2026-10-30
+
+Parent explicitly assigned integration_fresh sole write ownership of
+binance-orders at clean8406650 and, after5531aae release, binance-opd-matcher.
+Parent coordinates read-only. cash_fresh owns the separate accounting tree;
+v2_source_fix owns the separate V2 verifier after fresh read-only review found
+unbound fill price_asset versus actual source price_currency. Registry stays
+uninstalled. All288 V2 original/copy/current committed artifacts were freshly
+SHA-verified with zero mismatch; source01e7af7 XML43/0fail/error/skip200.133s
+is a component result, never full46/56. Frozen1b12 producer remains unchanged.
+
+Root50-suite a0ca proof and later13f exact-lot component retain their separate
+source identities. No root livejobs. Fresh D fullca57 run reproduced28pass5fail:
+position projection1vs0.8 and four STP reported-column ambiguity regressions.
+Minimal D6543655 has a fresh34-case PG job in progress; no qualified source or
+root0014 promotion. Root cash hooks await actual neutral guard/opening0020 proof
+and review. No competing tree writes, old schema/hash changes or external calls.
+All46 capabilities/56 cases and OP-C→D/E/F→G remain ACTIVE and unfinished.
+
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
 ROOT WRITE RELEASE: parent-approved checkpoint complete; integration_next now
