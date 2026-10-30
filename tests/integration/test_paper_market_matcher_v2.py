@@ -472,3 +472,35 @@ def test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_calle
         submit(c)
         report=c.engine.query_creation(c.write.command_id)
     assert report.accepted_contexts[0].execution_envelope.fee_ceilings[0].amount=='0.1119'
+
+
+def test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool(database,venue_v2,tmp_path):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.engine.paper_market import PaperMatcher
+    from trading_system.engine.paper_market_v2 import PaperClockEventV2
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+    matcher=PaperMatcher(c.engine);snapshot=event(c,quantity='0.4');matcher.apply_market_event(snapshot)
+    first=c.engine.query_creation(c.write.command_id)
+    assert len(first.orders)==1 and first.fills[0].quantity==D('0.2')
+    assert first.pool.allocated_quantity==first.pool.executed_quantity==D('0.2') and first.pool.remaining_pool_quantity==D('0.8')
+    assert first.orders[0].namespace=='BINANCE_SPOT_ORDINARY'
+    assert first.accepted_contexts[0].request==c.request and first.request==c.request
+    assert not matcher.apply_market_event(snapshot).applied
+    assert c.engine.query_creation(c.write.command_id)==first
+    base=c.c.facts.inputs.clock
+    for sequence,seconds in ((2,60),(3,120)):
+        when=(utc_timestamp(base.utc_now)+timedelta(seconds=seconds)).isoformat()
+        c.engine._clock=lambda when=when,seconds=seconds:replace(base,utc_now=when,monotonic_ns=base.monotonic_ns+seconds*10**9)
+        matcher.apply_market_event(PaperClockEventV2(contract_version='2026-10-30',event_id='twap-clock-'+str(sequence),
+            stream_id=c.scope.instrument_uid,product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=sequence,
+            kind='CLOCK',occurred_at=when,source='PAPER_MARKET_REPLAY_SYNTHETIC'))
+    report=c.engine.query_creation(c.write.command_id)
+    assert len(report.orders)==3 and report.pool.allocated_quantity==D('0.6')
+    assert report.pool.executed_quantity==D('0.4') and report.pool.unused_quantity==D('0.2') and report.pool.remaining_pool_quantity==D('0.4')
+    assert sum((f.quantity for f in report.fills),D(0))==D('0.4')
+    assert report.status=='EXECUTING'
+    proof=c.engine.query_market_evidence(c.write.command_id)
+    assert sum((a.quantity for a in proof.consumptions),D(0))==D('0.4')
+    with c.engine._connect() as db:
+        assert db.execute('SELECT count(*) AS n FROM public.paper_engine_commands WHERE scope_key=%s',(c.engine._scope_key,)).fetchone()['n']==1
