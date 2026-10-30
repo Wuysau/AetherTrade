@@ -30,10 +30,7 @@ def setup(database,venue,tmp_path,*,owned=True,source_version=1):
     ProgramAccountOpeningService(provision_uow(database),initial.scope).initialize(balances,evidence=proof)
     c=case(database,venue,tmp_path,prepared_case=initial,quote_fee_rate='.001')
     if source_version==2:
-        from psycopg.conninfo import conninfo_to_dict,make_conninfo
-        from trading_system.engine.paper_market_v2 import provision_paper_market_v2,PaperMatchingModelV2
-        provision_paper_market_v2(make_conninfo(**{**conninfo_to_dict(database),
-            'dbname':conninfo_to_dict(venue.runtime_dsn)['dbname']}),venue)
+        from trading_system.engine.paper_market_v2 import PaperMatchingModelV2
         c.engine._matching_model=PaperMatchingModelV2(model_id='OWNED_V2_EXACT_NATIVE_SOURCE',quote_fee_rate='.001')
     if owned:
         # Existing trusted ownership registration of a genuinely empty owned

@@ -1,5 +1,6 @@
 """Actual frozen V2 producer -> private source -> existing owned/FEE/book TX."""
 from decimal import Decimal as D
+import pytest
 
 from integration.test_program_owned_posting import isolated_postgres,command_database,source_database,database,venue,setup
 from integration.test_paper_market_matcher import event
@@ -10,8 +11,17 @@ from trading_system.ownership.registry import RegistryTx
 from trading_system.storage.models import scope_id
 
 
-def test_actual_v2_source_posts_exact_native_owner_assets_fees_and_neutral_book_guard(database,venue,tmp_path):
-    c,service,codec=setup(database,venue,tmp_path,source_version=2)
+@pytest.fixture(scope='module')
+def venue_v2(database,venue):
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
+    from trading_system.engine.paper_market_v2 import provision_paper_market_v2
+    provision_paper_market_v2(make_conninfo(**{**conninfo_to_dict(database),
+        'dbname':conninfo_to_dict(venue.runtime_dsn)['dbname']}),venue)
+    return venue
+
+
+def test_actual_v2_source_posts_exact_native_owner_assets_fees_and_neutral_book_guard(database,venue_v2,tmp_path):
+    c,service,codec=setup(database,venue_v2,tmp_path,source_version=2)
     try:
         source=service.source_service.approve(c.write.command_id)
         assert source.status=='APPROVED' and source.verification.record_kind=='PAPER_PROGRAM_VERIFICATION_V2'
@@ -35,8 +45,8 @@ def test_actual_v2_source_posts_exact_native_owner_assets_fees_and_neutral_book_
     finally:codec.close()
 
 
-def test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each(database,venue,tmp_path):
-    c,service,codec=setup(database,venue,tmp_path,source_version=2)
+def test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each(database,venue_v2,tmp_path):
+    c,service,codec=setup(database,venue_v2,tmp_path,source_version=2)
     try:
         assert service.apply(c.write.command_id).status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
         PaperMatcher(c.engine).apply_market_event(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'))
