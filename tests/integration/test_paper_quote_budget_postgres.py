@@ -110,7 +110,8 @@ def test_quote_reducer_tables_and_function_are_private(quote_venue):
             db.execute("SELECT public.paper_accept_quote_v1('x','y','z','m','{}')")
 
 
-def test_quote_actual_lock_wait_does_not_renew_consumed_permit(database,quote_venue,tmp_path):
+@pytest.mark.parametrize('fault',['expiry','fence'])
+def test_quote_actual_lock_wait_does_not_renew_consumed_permit(database,quote_venue,tmp_path,fault):
     import psycopg,time
     from concurrent.futures import ThreadPoolExecutor
     from psycopg.conninfo import conninfo_to_dict
@@ -129,9 +130,15 @@ def test_quote_actual_lock_wait_does_not_renew_consumed_permit(database,quote_ve
                         if pending.done():pending.result()
                         time.sleep(.02)
                     else:raise AssertionError('actual SIM advisory wait not observed')
-                c.engine._clock=lambda:replace(clock,utc_now=c.permit.expires_at,monotonic_ns=c.permit.deadline_monotonic_ns)
+                if fault=='expiry':
+                    c.engine._clock=lambda:replace(clock,utc_now=c.permit.expires_at,monotonic_ns=c.permit.deadline_monotonic_ns)
+                else:
+                    from trading_system.intents.ingress import revision_key,IngressRevision
+                    with c.service.uow.transaction(c.scope) as tx:
+                        key=revision_key(c.qrecord.context);previous=tx._latest('audit_events',key,IngressRevision)
+                        tx._append('audit_events',key,replace(previous,sequence=previous.sequence+1,enabled=False),previous.sequence)
             finally:blocker.commit()
-            with pytest.raises(ValueError,match='PAPER_CONSUMED_PERMIT_EXPIRED'):pending.result(timeout=30)
+            with pytest.raises(ValueError,match='PAPER_CONSUMED_PERMIT_EXPIRED|DEPLOYMENT_FENCE_REQUIRED|STALE_REVISION|PAPER_CURRENT_FENCE_CHANGED'):pending.result(timeout=30)
     assert c.engine.query_creation(c.cid) is None
     with c.gate.uow.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',(c.cid,)).fetchone()==(1,)
@@ -207,3 +214,20 @@ def test_resealed_quote_dto_never_substitutes_for_source(database,quote_venue,tm
     changed=replace(changed,evidence=replace(changed.evidence,hash=digest(changed)))
     with pytest.raises(ValueError,match='SOURCE_CHANGED'):verify_quote_report(c.engine,changed,boundary=c.gate)
 
+
+
+@pytest.mark.parametrize('fault',['missing_depth','fee_asset','fee_overrun','owner'])
+def test_quote_missing_execution_evidence_and_owner_leave_no_sim_order(database,quote_venue,tmp_path,fault):
+    from trading_system.risk.program_exposure import FeeBound
+    from trading_system.contracts import types as t
+    fees=(FeeBound(amount=t.Money(currency='BTC',amount=D('.000001')),debit='FROM_RECEIPT'),) if fault=='fee_asset' else ()
+    c=execution_case(database,quote_venue,tmp_path,fees=fees,rate='.01' if fault=='fee_overrun' else '0')
+    if fault=='owner':
+        c.permit=c.gate.mark_may_have_sent(c.cid,c.lease)
+        with c.owner.session(c.lease.shard):
+            with pytest.raises(ValueError,match='BOUNDARY_OWNER_REQUIRED'):
+                c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=object())
+    else:
+        with pytest.raises(ValueError,match='DEPTH_REQUIRED|FEE_MODEL_UNSUPPORTED|FEE_MODEL_EXCEEDS'):
+            submit(c)
+    assert c.engine.query_creation(c.cid) is None
