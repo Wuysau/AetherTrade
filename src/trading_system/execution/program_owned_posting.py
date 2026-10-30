@@ -98,6 +98,16 @@ def require_owned_program_posting(tx,fact):
             cash=_history_row(tx,'cashflows','program-fee:'+member.approval.identity_hash+':'+str(index),1)
             need(cash is not None and cash[0]==domain_payload(fee_cashflow(member,index,fee)) and cash[1:]==row[1:],
                 'OWNED_POSTING_HISTORY_REQUIRED')
+    event_id='program-position:'+canonical_hash(dict(scope=domain_payload(tx.scope),identities=sorted(ids)))
+    event=tx.execute('SELECT payload,payload_hash,xmin::text,transaction_id FROM ledger.domain_events WHERE event_id=%s',
+        (event_id,)).fetchone()
+    need(event is not None and event[0].get('scope')==domain_payload(tx.scope)
+        and event[0].get('aggregate_id')=='program-position:'+after.position.position_id
+        and event[0].get('payload')==domain_payload(after.position)
+        and event[1]==canonical_hash(event[0]) and event[2:]==row[1:], 'OWNED_POSTING_HISTORY_REQUIRED')
+    outbox=tx.execute("SELECT xmin::text,transaction_id FROM ledger.outbox WHERE event_id=%s AND kind='DOMAIN_EVENT'",
+        (event_id,)).fetchall()
+    need(len(outbox)==1 and outbox[0]==row[1:],'OWNED_POSTING_HISTORY_REQUIRED')
     return posted
 
 
