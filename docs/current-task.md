@@ -39,6 +39,13 @@ PARTIALLY_FILLED state and unchanged reservation rather than the prior MARKET
 zero-leaves expectation. Product SQL has not changed since6543655. A fresh full
 34-case run remains due after this test-only correction; no full D pass yet.
 
+Original84418/run1638405dc451 fixed565cff7 TERMINALexit1:33pass/1fixtureerror
+162.29s. Every new price/quantity/current-position/dependency/GTC assertion passed;
+the final check indexed a nonexistent reservation. This USD-M reduction correctly
+admits zero asset holds. The test now checks the full actual reservation group
+is empty and equals the empty admitted set, rather than assuming a cash hold.
+Original safety tests and product SQL remain unchanged. Fresh full34 still due.
+
 ## OP_D_MATCHER_V2_OWN_WORKTREE — 2026-10-30
 
 **WRITE OWNERSHIP RELEASED after this handoff commit, by explicit parent request.**

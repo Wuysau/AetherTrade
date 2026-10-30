@@ -608,4 +608,4 @@ def test_actual_reduce_only_position_capacity_is_debited_between_depth_levels(da
     assert any(i.event.event_id=='position-1' for i in c.engine.query_market_evidence(c.write.command_id).inputs)
     from trading_system.risk.reservation_repository import ReservationRepository
     with c.service.uow.transaction(c.scope) as tx:
-        assert ReservationRepository(tx).get(c.bundle.reservations[0].reservation.reservation_id).held==c.bundle.reservations[0].held
+        assert not c.bundle.reservations and not ReservationRepository(tx).group()
