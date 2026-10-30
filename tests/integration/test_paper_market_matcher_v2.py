@@ -372,11 +372,25 @@ def test_native_pending_members_wait_for_actual_full_working_fill_then_activate_
 
 
 def test_native_pending_node_cannot_borrow_program_gross_to_exceed_its_individual_policy_limit(database,venue_v2,tmp_path):
-    c=advanced_case(database,venue_v2,tmp_path,template='OTO',risk_policy_transform=lambda p:replace(p,maximum_order_notional='82000'),
+    from integration.test_program_financial_admission import real_case
+    from integration.test_program_commands_postgres import attach
+    from trading_system.storage.models import scope_id
+    from trading_system.contracts.canonical import canonical_json,domain_payload
+    import psycopg
+    c=real_case(database,template='OTO',risk_policy_transform=lambda p:replace(p,maximum_order_notional='82000'),
         financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
         financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
-    with pytest.raises(ValueError,match='PAPER_NATIVE_NODE_POLICY_EXCEEDED'):submit(c)
-    assert c.engine.query_creation(c.write.command_id) is None
+    # Current root now rejects this policy violation before creating a bundle;
+    # retain that stronger boundary instead of fabricating a later admission.
+    with pytest.raises(ValueError,match='PROGRAM_RISK_ASSESSMENT_NOT_ALLOW'):
+        c.service._transaction(lambda tx:attach(c,tx))
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.intents.get(c.record.intent_id) is None and tx.reservations.for_intent(c.record.intent_id)==()
+        assert tx.execute('SELECT count(*) FROM ledger.order_writes_v2 WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+    with psycopg.connect(venue_v2.runtime_dsn) as db:
+        assert db.execute('SELECT count(*) FROM public.paper_engine_commands WHERE scope_key=%s',
+            (canonical_json(domain_payload(c.scope)),)).fetchone()==(0,)
 
 
 def test_stp_decrement_retains_original_quantity_and_exact_prevented_leaves_then_fills_only_external_remainder(database,venue_v2,tmp_path):
