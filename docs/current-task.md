@@ -1,5 +1,19 @@
 # Current task
 
+## Write ownership release for fresh cash implementation
+
+Parent/root explicitly releases write ownership of this worktree at this clean
+checkpoint. The next sole writer will be assigned by parent after this commit;
+until then no agent should modify it. Parent will coordinate and review only.
+All parent test jobs are terminal. Product2204549/fb2de603, the actual results and
+all unfinished writer/legacy-opening/BookCashBinding work below remain unchanged.
+All176 new cash evidence files were checked against originals, copies and actual
+committed Git blobs: zero SHA mismatches. Prior289 source files are separately
+verified. This handoff is not task completion or a user-requested pause; the full
+46/56 goal remains ACTIVE. Root implementation is now owned by integration_fresh
+at root8406650, which first performs independent V2 source review. Coordinate
+shared interfaces with that agent and never write its root tree concurrently.
+
 ## Account asset reconstruction checkpoint — 2026-10-30
 
 Parent/root is the sole writer of this accounting worktree. Current product is
