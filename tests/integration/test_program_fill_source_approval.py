@@ -228,3 +228,30 @@ def test_source_commit_failure_cannot_return_a_usable_approval(database,venue,tm
                 (scope_id(c.scope),)).fetchone()==(0,)
         assert service.approve(c.write.command_id).approvals
     finally:codec.close()
+
+
+def test_many_genuine_fills_send_one_source_proof_instead_of_one_copy_per_fill(database,venue,tmp_path):
+    from trading_system.contracts.canonical import canonical_json
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+    c,service,codec=setup_source(database,venue,tmp_path)
+    for sequence in range(2,10):
+        PaperMatcher(c.engine).apply_market_event(event(c,sequence=sequence,quantity='.01',kind='DEPTH_DELTA'))
+    sent=[]
+    class Measured:
+        def __init__(self,db):self.db=db
+        def __getattr__(self,name):return getattr(self.db,name)
+        def execute(self,sql,params=()):
+            if sql.startswith('SELECT ledger.approve_program_fill_source'):
+                sent.append(sum(len(p.encode('utf-8')) for p in params if type(p) is str))
+            return self.db.execute(sql,params)
+    measured=ProgramFillSourceService(UnitOfWork(lambda:Measured(service.uow.connection_factory())),
+        c.scope,verifier=service.verifier)
+    try:
+        verified=service.verifier.verify(c.write.command_id)
+        result=measured.approve(c.write.command_id)
+    finally:codec.close()
+    assert len(result.approvals)==len(verified.fills)==9
+    source_bytes=len(canonical_json(domain_payload(verified)).encode('utf-8'))
+    # Modest real-source probe: no enormous fixture/allocation is needed to
+    # expose repeated full report/all-rival serialization inside the mutex.
+    assert sum(sent)<=3*source_bytes+4096*len(verified.fills),(sum(sent),source_bytes)
