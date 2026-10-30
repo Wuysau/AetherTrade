@@ -80,7 +80,8 @@ def test_owner_cannot_mint_a_new_initialization_audit_or_direct_protected_openin
     import psycopg
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with owner_uow(database).transaction(scope_for('BTCUSDT')) as tx:
-            tx._append('audit_events','console:seed',seeded,0)
+            tx.execute('INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) '
+                "VALUES('owner-forged','console:seed',1,%s::jsonb,%s)",(canonical_json(seeded),tx.transaction_id))
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with owner_uow(database).transaction(scope_for('BTCUSDT')) as tx:
             tx.execute('INSERT INTO ledger.program_legacy_account_openings(account_key,payload,payload_hash,transaction_id) '
