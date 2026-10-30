@@ -1,5 +1,32 @@
 -- Additive bounded quantity management. Original V4 bytes unchanged.
 BEGIN;
+CREATE TABLE ledger.management_effective_resolutions_v1(
+ scope_id text NOT NULL,command_id text NOT NULL,payload jsonb NOT NULL,
+ PRIMARY KEY(scope_id,command_id),FOREIGN KEY(scope_id,command_id) REFERENCES ledger.management_permit_consumptions);
+CREATE TRIGGER immutable_effective_resolution BEFORE UPDATE OR DELETE OR TRUNCATE ON ledger.management_effective_resolutions_v1
+ FOR EACH STATEMENT EXECUTE FUNCTION ledger.reject_mutation();
+REVOKE ALL ON ledger.management_effective_resolutions_v1 FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_management_dispatch_verifier;
+GRANT SELECT ON ledger.management_effective_resolutions_v1 TO ledger_owner,ledger_management_dispatch_verifier;
+CREATE FUNCTION ledger.resolve_effective_management_v1(s text,id text,p jsonb) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
+DECLARE b jsonb;r jsonb;BEGIN
+ SELECT payload INTO b FROM ledger.management_bindings WHERE scope_id=s AND record_id=id;
+ r=p->'receipt';
+ IF b IS NULL OR b#>>'{write,operation}' IS DISTINCT FROM 'KEEP_PRIORITY'
+ OR r->>'record_kind' IS DISTINCT FROM 'PAPER_KEEP_PRIORITY_RECEIPT_V1'
+ OR r->>'command_id' IS DISTINCT FROM id OR r->>'binding_hash' IS DISTINCT FROM b#>>'{write,binding_hash}'
+ OR r->>'original_client_id' IS DISTINCT FROM b#>>'{write,original_client_id}'
+ OR r->>'target_venue_id' IS DISTINCT FROM b#>>'{write,target_venue_id}'
+ OR (r->>'effective_quantity')::numeric IS DISTINCT FROM (b#>>'{plan,instruction,new_quantity}')::numeric
+ OR p->>'source_kind' IS DISTINCT FROM 'PAPER_MANAGED_CREATION_SOURCE_V1'
+ OR r->'funds_released' IS DISTINCT FROM 'false'::jsonb OR r->'children_terminal' IS DISTINCT FROM 'false'::jsonb
+ OR NOT EXISTS(SELECT FROM ledger.management_permit_consumptions WHERE scope_id=s AND command_id=id) THEN
+ RAISE EXCEPTION 'actual effective management source required';END IF;
+ INSERT INTO ledger.management_effective_resolutions_v1 VALUES(s,id,p) ON CONFLICT DO NOTHING;
+END $$;
+REVOKE ALL ON FUNCTION ledger.resolve_effective_management_v1(text,text,jsonb) FROM PUBLIC,ledger_owner,ledger_control,ledger_decision;
+GRANT EXECUTE ON FUNCTION ledger.resolve_effective_management_v1(text,text,jsonb) TO ledger_management_dispatch_verifier;
+
 CREATE OR REPLACE FUNCTION ledger.admit_management(s text,id text,b jsonb,c jsonb,tx text) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$
 DECLARE w jsonb;original jsonb;BEGIN
@@ -30,6 +57,7 @@ DECLARE w jsonb;original jsonb;BEGIN
   RAISE EXCEPTION 'complete current management financial binding required' USING ERRCODE='23514';END IF;
  IF EXISTS(SELECT FROM ledger.management_bindings prior WHERE prior.scope_id=s
   AND prior.payload#>>'{write,original_client_id}'=w->>'original_client_id'
+  AND NOT EXISTS(SELECT FROM ledger.management_effective_resolutions_v1 r WHERE r.scope_id=prior.scope_id AND r.command_id=prior.record_id)
   AND NOT EXISTS(SELECT FROM ledger.management_unsent_aborts a WHERE a.scope_id=prior.scope_id AND a.command_id=prior.record_id)) THEN
   RAISE EXCEPTION 'existing management duty requires original-ID reconciliation' USING ERRCODE='23514'; END IF;
  INSERT INTO ledger.management_bindings VALUES(s,id,b,tx);

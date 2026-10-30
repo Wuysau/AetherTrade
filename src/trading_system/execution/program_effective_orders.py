@@ -57,8 +57,34 @@ def decorate_managed_report(engine,db,report):
             binding_json=canonical_json(b),receipt_json=canonical_json(receipt)))
         previous=row
     values={f.name:getattr(report,f.name) for f in fields(PaperCreationReportV2) if f.name not in ('contract_version','record_kind','evidence')}
-    payload={**{k:domain_payload(v) if k=='request' else v for k,v in {}.items()},'base':domain_payload(report),
+    payload={'base':domain_payload(report),
         'history':[domain_payload(v) for v in history],'record_kind':'PAPER_MANAGED_CREATION_REPORT_V1'}
     return PaperManagedCreationReportV1(**values,effective_history=tuple(history),evidence=t.EvidenceRef(
         id='paper-managed:'+report.command_id,hash=canonical_hash(payload),source=SOURCE,environment=t.Environment.PAPER,
         visible_at=engine._clock().utc_now))
+
+
+def observe_effective_management(service,command_id):
+    """Resolve only this dispatch uncertainty from independently queried SIM history."""
+    import json
+    from trading_system.execution.program_management_commands import ManagementRepository
+    from trading_system.execution.program_management_paper import PaperManagementTargetReader
+    from trading_system.storage.models import scope_id
+    require(type(service.target_reader) is PaperManagementTargetReader,'MANAGEMENT_TRUSTED_TARGET_READER_REQUIRED')
+    with service.verifier_uow.transaction(service.scope) as tx:
+        b=ManagementRepository(tx).read(command_id)
+        require(b is not None and b.write.operation=='KEEP_PRIORITY'
+            and b.write.state in ('MAY_HAVE_SENT','UNKNOWN'),'MANAGEMENT_DURABLE_MAY_REQUIRED')
+    report=service.target_reader.engine.query_creation(b.write.original_command_id)
+    require(type(report) is PaperManagedCreationReportV1,'MANAGED_ACTUAL_SOURCE_REQUIRED')
+    rows=[e for e in report.effective_history if e.command_id==command_id]
+    require(len(rows)==1,'MANAGED_EXACT_RECEIPT_REQUIRED')
+    receipt=json.loads(rows[0].receipt_json)
+    require(receipt['binding_hash']==b.write.binding_hash,'MANAGED_BINDING_CHANGED')
+    payload={'receipt':receipt,'source_kind':SOURCE,'source':domain_payload(report)}
+    with service.verifier_uow.transaction(service.scope) as tx:
+        current=ManagementRepository(tx).read(command_id)
+        require(current.write.binding_hash==b.write.binding_hash,'MANAGED_BINDING_CHANGED')
+        tx.execute('SELECT ledger.resolve_effective_management_v1(%s,%s,%s::jsonb)',
+            (scope_id(service.scope),command_id,canonical_json(payload)))
+    return receipt
