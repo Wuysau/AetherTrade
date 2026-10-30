@@ -93,6 +93,24 @@ class FillLedger:
         # Return success only after the enclosing UnitOfWork commits.
         return receipt
 
+    def require_recorded_in_tx(self,tx,fill:t.Fill)->t.Fill:
+        """Read an actual native fact with the same adapter identity/evidence rules.
+
+        This does not record the caller's normalized fill, grant ownership or
+        change a balance. A source-approved financial consumer must additionally
+        bind this existing row to its independently committed source proof.
+        """
+        tx.require_scope(self.scope)
+        self._validate(fill)
+        if fill.native_trade_id is None:raise MissingEvidence('RECORDED_NATIVE_FILL_REQUIRED')
+        actual=self._duplicate(tx,fill)
+        if actual is None:raise MissingEvidence('RECORDED_NATIVE_FILL_REQUIRED')
+        self._evidence(tx,actual)
+        if (actual.evidence.hash,actual.evidence.environment,actual.evidence.source)!=(
+                fill.evidence.hash,fill.evidence.environment,fill.evidence.source):
+            raise MissingEvidence('RECORDED_NATIVE_FILL_SOURCE_CHANGED')
+        return actual
+
     @atomic_write
     def record_in_tx(self, tx, fill: t.Fill, correction_of: str | None = None) -> t.FillReceipt:
         """Reuse all native fill validation inside a caller-owned ledger transaction."""

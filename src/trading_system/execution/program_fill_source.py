@@ -25,6 +25,10 @@ class ProgramFillSourceApproval:
     approval_id:str
     identity_hash:str
     normalized:NormalizedPaperFill
+    command_id:str
+    verification_status:Literal['VERIFIED','DISCREPANCY']
+    verification_discrepancies:tuple[str,...]
+    retained_duties:tuple[str,...]
 
     @property
     def execution_authorized(self)->Literal[False]:return False
@@ -127,10 +131,12 @@ def _read_committed_fill_source(tx,approval_id,reader):
         context=_source_context(tx,command_id)
         require(all(payload[key]==value for key,value in context.items()),'PROGRAM_ORIGINAL_SOURCE_CHANGED')
         stored=payload['normalized']
+        verification=payload['verification']
     else:
         source=reader._snapshot(payload['source_snapshot_hash'],command_id)
         stored=source['normalized_fills'].get(payload['normalized_hash'])
         require(stored is not None and canonical_hash(stored)==payload['normalized_hash'],'PROGRAM_APPROVED_NATIVE_FACTS_CHANGED')
+        verification=source['verification']
     fill=decode(t.Fill,stored['fill'])
     economics=decode(NativeFillEconomics,stored['economics'])
     raw=decode(PaperMarketFill,stored['raw'])
@@ -147,7 +153,14 @@ def _read_committed_fill_source(tx,approval_id,reader):
         and type(normalized.fees_known) is bool,'PROGRAM_APPROVED_NATIVE_FACTS_CHANGED')
     require(identity==canonical_hash(dict(scope=domain_payload(tx.scope),venue=fill.venue,
         native_trade_id=fill.native_trade_id)),'PROGRAM_APPROVED_NATIVE_IDENTITY_CHANGED')
-    return ProgramFillSourceApproval(approval_id=approval_id,identity_hash=identity,normalized=normalized)
+    require(verification['command_id']==command_id and verification['source_verified'] is True
+        and verification['status'] in ('VERIFIED','DISCREPANCY')
+        and type(verification['discrepancies']) is list and all(type(c) is str for c in verification['discrepancies'])
+        and type(verification['retained_duties']) is list and all(type(c) is str for c in verification['retained_duties']),
+        'PROGRAM_APPROVED_SOURCE_REVIEW_CHANGED')
+    return ProgramFillSourceApproval(approval_id=approval_id,identity_hash=identity,normalized=normalized,command_id=command_id,
+        verification_status=verification['status'],verification_discrepancies=tuple(verification['discrepancies']),
+        retained_duties=tuple(verification['retained_duties']))
 
 
 class ProgramFillSourceService:
@@ -194,7 +207,9 @@ class ProgramFillSourceService:
                 require(row==(expected,),'PROGRAM_SOURCE_COMMITMENT_CHANGED')
                 identity=canonical_hash(dict(scope=domain_payload(self.scope),venue=normalized.fill.venue,
                     native_trade_id=normalized.fill.native_trade_id))
-                approvals.append(ProgramFillSourceApproval(approval_id=expected,identity_hash=identity,normalized=normalized))
+                approvals.append(ProgramFillSourceApproval(approval_id=expected,identity_hash=identity,normalized=normalized,
+                    command_id=command_id,verification_status=verified.status,verification_discrepancies=verified.discrepancies,
+                    retained_duties=verified.retained_duties))
         # A receipt is returned only after the protected source transaction commits.
         return ProgramFillSourceResult(command_id=command_id,
             status='SOURCE_ONLY' if verified.discrepancies else 'APPROVED',verification=verified,approvals=tuple(approvals))
