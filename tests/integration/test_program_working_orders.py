@@ -122,3 +122,20 @@ def test_owner_authored_order_quantities_cannot_replace_private_source(database,
             bind_program_book_cash(tx,forged,read_opening=read_program_local_account_opening)
             with pytest.raises(MissingEvidence,match='PROGRAM_ORDER_BOOK_MISMATCH'):read_program_working_inputs(tx,forged)
     finally:codec.close();old_codec.close()
+
+
+def test_later_owner_bundle_revision_cannot_rescale_original_native_order(database,venue,tmp_path):
+    c=case(database,venue,tmp_path,scoped_quantities=True);submit(c)
+    service,codec=projector(c,database,tmp_path/'later-bundle')
+    try:
+        from trading_system.risk.program_financial_admission import BUNDLE_PREFIX
+        # Ordinary audit revisions do not replace the original protected bundle.
+        changed=replace(c.bundle,intent=replace(c.bundle.intent,unit=replace(c.bundle.intent.unit,
+            ledger_units_per_native_unit=D(2),native_multiplier=D(2))))
+        with c.service.uow.transaction(c.scope) as tx:
+            tx._append('audit_events',BUNDLE_PREFIX+c.bundle.intent.intent_id,changed,1)
+        result=service.apply(c.write.command_id)
+        assert result.status=='ORDER_BOOK_PROJECTED_DUTIES_RETAINED',result.reasons
+        with c.service.uow.transaction(c.scope) as tx:
+            assert tx.projections.book(c.scope).active_orders[0].leaves_quantity==t.Quantity(unit='BASE',value=D(1))
+    finally:codec.close()
