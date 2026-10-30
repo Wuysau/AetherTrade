@@ -3,7 +3,6 @@ import asyncio
 from contextlib import contextmanager, nullcontext
 from dataclasses import replace
 from hashlib import sha256
-import hmac
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 from urllib.parse import urlencode
@@ -43,7 +42,7 @@ def submit_guarded_creation_probe(engine, write, request, permit, *, boundary, l
     except RuntimeError: pass
     else: raise ValueError('GUARDED_SYNCHRONOUS_OWNER_CONTEXT_REQUIRED')
     inspect_guarded_sdk()  # Before consume or opening the recorder.
-    from nautilus_trader.core.nautilus_pyo3 import HttpClient, HttpMethod, Quota
+    from nautilus_trader.core.nautilus_pyo3 import HttpClient, HttpMethod, Quota, hmac_signature
     with owner.guard(lease):
         call = creation_call(request, clock=owner._reading())
     recorded = []
@@ -68,8 +67,7 @@ def submit_guarded_creation_probe(engine, write, request, permit, *, boundary, l
             require(remaining >= 1,'NATIVE_CONSUMED_WINDOW_EXPIRED')
             call = creation_call(request,clock=clock,recv_window_ms=min(5000,remaining))
         query = urlencode(call.parameters)
-        signature = hmac.new(b'OFFLINE-PUBLIC-SHAPE-FIXTURE-NOT-AN-ACCOUNT-SECRET',
-                             query.encode(),sha256).hexdigest()
+        signature = hmac_signature('OFFLINE-PUBLIC-SHAPE-FIXTURE-NOT-AN-ACCOUNT-SECRET',query)
         url = base+call.endpoint.value+'?'+query+'&signature='+signature
         @contextmanager
         def final_guard():

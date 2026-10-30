@@ -74,3 +74,23 @@
      /// An HTTP client that supports rate limiting and timeouts.
      ///
      /// Built on `reqwest` for async I/O. Allows per-endpoint and default quotas
+--- a/build.py
++++ b/build.py
+@@ -335,7 +335,7 @@
+ 
+ 
+ def _build_distribution(extensions: list[Extension]) -> Distribution:
+-    nthreads = os.cpu_count() or 1
++    nthreads = min(2, os.cpu_count() or 1)
+ 
+     if IS_WINDOWS:
+         nthreads = min(nthreads, 60)
+@@ -601,7 +601,7 @@
+         cmd: build_ext = build_ext(distribution)
+ 
+         if PARALLEL_BUILD:
+-            cmd.parallel = os.cpu_count()
++            cmd.parallel = min(2, os.cpu_count() or 1)
+         cmd.ensure_finalized()
+         cmd.run()
+ 

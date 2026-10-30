@@ -82,6 +82,25 @@ def run():
         except Exception: pass
         else: raise AssertionError('missing guard accepted')
         assert len(records) == before
+        @contextmanager
+        def cancelled():
+            raise asyncio.CancelledError('internal guard cancelled')
+            yield
+        before = len(records)
+        try: send(client(), '/cancelled', cancelled())
+        except asyncio.CancelledError: pass
+        else: raise AssertionError('cancelled guard accepted')
+        assert len(records) == before
+        @contextmanager
+        def nested_guard():
+            try: send(client(), '/nested-must-not-send', allow())
+            except ValueError as exc:
+                assert 'GUARDED_NESTED_TOKIO_RUNTIME_REJECTED' in str(exc)
+            else: raise AssertionError('nested Tokio runtime accepted')
+            yield
+        before = len(records)
+        send(client(), '/outer', nested_guard())
+        assert len(records) == before + 1
         async def existing_loop():
             # Synchronous call retains same owner OS thread even inside asyncio.
             send(client(), '/existing-loop', allow())

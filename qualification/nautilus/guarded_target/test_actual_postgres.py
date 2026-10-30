@@ -3,6 +3,9 @@ from dataclasses import replace
 from datetime import timedelta
 from threading import Thread
 from time import monotonic,sleep
+from urllib.parse import urlsplit,parse_qsl
+from hashlib import sha256
+import hmac
 import pytest
 from integration.test_native_creation_owner_postgres import prepared
 from integration.test_program_commands_postgres import isolated_postgres,database
@@ -66,6 +69,13 @@ def test_actual_sdk_queue_rechecks_original_private_pg_consumption(database,tmp_
         worker.join(timeout=12)
         assert not worker.is_alive() and not errors and changes==[fault]
         assert len(paths)==int(fault=='positive')
+        if fault=='positive':
+            wire=urlsplit(paths[0])
+            assert wire.path==result.call.endpoint.value
+            assert parse_qsl(wire.query)[:-1]==list(result.call.parameters)
+            signed,signature=wire.query.rsplit('&signature=',1)
+            assert signature==hmac.new(b'OFFLINE-PUBLIC-SHAPE-FIXTURE-NOT-AN-ACCOUNT-SECRET',
+                                       signed.encode(),sha256).hexdigest()
         with c.owner.transaction(c.scope) as tx:
             assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
                               (scope_id(c.scope),)).fetchone()==(1,)

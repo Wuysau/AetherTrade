@@ -90,7 +90,18 @@ def apply(root):
     after = before.replace(needle, needle + METHOD, 1)
     patch = ''.join(difflib.unified_diff(before.splitlines(True), after.splitlines(True),
         fromfile='a/crates/network/src/python/http.rs', tofile='b/crates/network/src/python/http.rs'))
+    build = root / 'build.py'
+    if sha256(build.read_bytes()).hexdigest() != '8a8e46de9c58b83bbfdb3b7415538d2444f9dd126d61c66a8a63416606e9bc40':
+        raise ValueError('PINNED_BUILD_SOURCE_CHANGED')
+    build_before = build.read_text(encoding='utf-8')
+    assert build_before.count('nthreads = os.cpu_count() or 1') == 1
+    assert build_before.count('cmd.parallel = os.cpu_count()') == 1
+    build_after = build_before.replace('nthreads = os.cpu_count() or 1', 'nthreads = min(2, os.cpu_count() or 1)')
+    build_after = build_after.replace('cmd.parallel = os.cpu_count()', 'cmd.parallel = min(2, os.cpu_count() or 1)')
+    patch += ''.join(difflib.unified_diff(build_before.splitlines(True), build_after.splitlines(True),
+        fromfile='a/build.py', tofile='b/build.py'))
     target.write_text(after, encoding='utf-8', newline='\n')
+    build.write_text(build_after, encoding='utf-8', newline='\n')
     return patch
 
 if __name__ == '__main__':
