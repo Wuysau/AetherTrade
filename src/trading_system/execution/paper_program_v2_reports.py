@@ -27,10 +27,19 @@ class PaperFillSourceV2:
     client_id:str
     accepted_context_hash:str
     consumption_context_hash:str
+    causal_graph_hash:str
     causal_input_ids:tuple[tuple[str,str],...]
     parent_client_id:str|None
     contract_version:Literal['2026-10-30']='2026-10-30'
     record_kind:Literal['PAPER_FILL_SOURCE_V2']='PAPER_FILL_SOURCE_V2'
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperCausalDependencyV2:
+    client_id:str
+    market_key:str
+    event_id:str
+    event_hash:str
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -55,6 +64,8 @@ class PaperProgramVerificationV2:
     raw_refs:tuple[t.EvidenceRef,...]
     discrepancies:tuple[str,...]
     retained_duties:tuple[str,...]
+    causal_dependencies:tuple[PaperCausalDependencyV2,...]=()
+    causal_graph_hash:str|None=None
     raw_report:object|None=None
     market_evidence:object|None=None
     contract_version:Literal['2026-10-30']='2026-10-30'
@@ -69,13 +80,15 @@ class PaperProgramV2ReportVerifier:
         _check(type(scope) is t.ScopeKey and scope.environment==t.Environment.PAPER,'PAPER_ONLY')
         self.uow,self.scope,self.engine,self.archive_bridge=uow,scope,engine,archive_bridge
 
-    def _result(self,command,status,codes=(),*,report=None,market=None,refs=(),fills=(),orders=(),verified=False):
+    def _result(self,command,status,codes=(),*,report=None,market=None,refs=(),fills=(),orders=(),verified=False,
+                causal_dependencies=(),causal_graph_hash=None):
         duties=['QUERY_ORIGINAL_IDS','RESERVATION_RECONCILIATION_REQUIRED','ACCOUNT_HISTORY_NOT_VERIFIED']
         if fills:duties+=['PROTECTION_RECHECK_REQUIRED','OWNERSHIP_ALLOCATION_RECONCILIATION_REQUIRED']
         if any(not f.fees_known for f in fills):duties.append('FEE_RECONCILIATION_REQUIRED')
         if codes:duties.append('SOURCE_OR_ECONOMIC_RECONCILIATION_REQUIRED')
         return PaperProgramVerificationV2(command_id=command,status=status,source_verified=verified,fills=fills,orders=orders,
-            raw_refs=tuple(refs),discrepancies=tuple(dict.fromkeys(codes)),retained_duties=tuple(duties),raw_report=report,market_evidence=market)
+            raw_refs=tuple(refs),discrepancies=tuple(dict.fromkeys(codes)),retained_duties=tuple(duties),raw_report=report,market_evidence=market,
+            causal_dependencies=causal_dependencies,causal_graph_hash=causal_graph_hash)
 
     def _archive(self,value,clock):
         raw=value if type(value) is bytes else canonical_json(value).encode('utf-8')
@@ -135,9 +148,9 @@ class PaperProgramV2ReportVerifier:
             _check(type(report) is PaperCreationReportV2 and type(market) is PaperMarketEvidenceV2,'PAPER_V2_SOURCE_INTERFACE_UNSUPPORTED')
             _check(clock.clock_health=='HEALTHY','PAPER_V2_SOURCE_CLOCK_REQUIRED')
             manifest=self._manifest(original,clock,refs)
-            fills,orders,codes=self._normalize(original,bundle,consumed,assessment,report,market,clock,refs,manifest)
+            fills,orders,codes,graph,graph_hash=self._normalize(original,bundle,consumed,assessment,report,market,clock,refs,manifest)
             return self._result(command_id,'DISCREPANCY' if codes else 'VERIFIED',codes,report=report,market=market,
-                refs=refs,fills=fills,orders=orders,verified=True)
+                refs=refs,fills=fills,orders=orders,verified=True,causal_dependencies=graph,causal_graph_hash=graph_hash)
         except _SourceError as exc:return self._result(command_id,'BLOCKED',(str(exc),),report=report,market=market,refs=refs)
         except (ValueError,TypeError,AttributeError,KeyError,ArithmeticError,StopIteration):
             return self._result(command_id,'BLOCKED',('PAPER_V2_SOURCE_SHAPE_OR_ECONOMICS_INVALID',),report=report,market=market,refs=refs)
@@ -146,6 +159,10 @@ class PaperProgramV2ReportVerifier:
         from trading_system.storage.models import scope_id
         write=original.initial;request=original.request;plan=a.compilation
         deps,events,source_orders,source_parent,source_allocations,source_preventions=manifest
+        graph=tuple(PaperCausalDependencyV2(client_id=d['client_id'],market_key=d['market_key'],event_id=d['event_id'],
+            event_hash=d['payload_hash']) for d in deps)
+        graph_hash=canonical_hash(dict(command_id=write.command_id,request_hash=write.request_hash,
+            causal_dependencies=[domain_payload(d) for d in graph]))
         _check(report.command_id==market.command_id==write.command_id and digest(report.request)==write.request_hash
             and market.request_hash==write.request_hash,'PAPER_V2_ORIGINAL_REQUEST_CHANGED')
         expected_inputs={(d['market_key'],d['event_id']) for d in deps}
@@ -281,8 +298,11 @@ class PaperProgramV2ReportVerifier:
                 ref=next(r for r in refs if r.hash==f.evidence.hash)
                 fact=t.Fill(fill_id='paper-program:'+canonical_hash(dict(scope=domain_payload(self.scope),native_trade_id=f.fill_id)),venue='BINANCE',scope=self.scope,
                     native_trade_id=f.fill_id,order=identity,quantity=e.native_quantity,price=e.venue_price,fees=ledger_fees,occurred_at=f.occurred_at,correction_of=None,evidence=ref)
+                immediate_inputs=[(source.event.market_key,source.event.event_id)]
+                if order.runtime.activation_event_id is not None:
+                    immediate_inputs.append((source.event.market_key,order.runtime.activation_event_id))
                 provenance=PaperFillSourceV2(node_id=order.node_id,client_id=client,accepted_context_hash=digest(accepted),consumption_context_hash=canonical_hash(consumed),
-                    causal_input_ids=tuple((i.event.market_key,i.event.event_id) for i in own_inputs),parent_client_id=request.assigned_ids.parent_client_id)
+                    causal_graph_hash=graph_hash,causal_input_ids=tuple(dict.fromkeys(immediate_inputs)),parent_client_id=request.assigned_ids.parent_client_id)
                 normalized.append(NormalizedPaperFillV2(fill=fact,side=spec.side,economics=e,raw=f,fees_known=known,source_v2=provenance))
             if total!=order.filled_quantity:economics.append('ORDER_CUMULATIVE_FILL_MISMATCH')
             if order.quantity!=Decimal(n.quantity.value):economics.append('ORDER_ORIGINAL_QUANTITY_MISMATCH')
@@ -303,7 +323,7 @@ class PaperProgramV2ReportVerifier:
             _check(stored['raw']==d.raw_payload_json and stored['payload_hash']==d.evidence.hash and stored['client_id']==d.client_id
                 and raw.get('record_kind')=='PAPER_MARKET_DISPOSITION' and raw.get('status')==d.status and raw.get('reason')==d.reason,
                 'PAPER_V2_DISPOSITION_SOURCE_CHANGED')
-        return tuple(normalized),tuple(projections),tuple(dict.fromkeys(economics))
+        return tuple(normalized),tuple(projections),tuple(dict.fromkeys(economics)),graph,graph_hash
 
     def _trigger(self,spec,order,inputs,fills,accepted_at):
         if spec.trigger.kind=='NONE':return
