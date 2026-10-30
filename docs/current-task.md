@@ -24,7 +24,13 @@ It now uses an ordinary GTC limit81489, preserving both executable bid levels
 and the actual position0.15. Original96948/run22ce72644c13 terminalexit1 retains
 33pass/1fixturefail/0error/skip157.86s. Parent independently reviewed6543655
 without a new scoped blocker; current full cohort still requires a new result.
-No frozen1b12 verifier producer or root0014 was changed by this D repair.
+Corrected4962fd0 actual33pass/1fixturefail185.49s: two genuine fills total0.15
+at the intended price levels, but source report sorts equal-clock fills by
+stable native ID, not matching price order. The new test now asserts the exact
+price-to-quantity mapping rather than tuple order. Original74559/run85f2012e4dd2
+is TERMINALexit1 with complete summary/XML. Full result still due after this
+test-only correction. No frozen1b12 verifier producer or root0014 was changed
+by this D repair.
 
 ## OP_D_MATCHER_V2_OWN_WORKTREE — 2026-10-30
 

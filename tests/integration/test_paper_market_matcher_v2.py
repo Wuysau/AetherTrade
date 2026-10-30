@@ -598,7 +598,7 @@ def test_actual_reduce_only_position_capacity_is_debited_between_depth_levels(da
     matcher.apply_market_event(replace(event(c,sequence=2,ask='81500',quantity='1'),bids=(
         DepthLevel(price='81490',quantity='0.1'),DepthLevel(price='81489',quantity='0.1'))))
     report=c.engine.query_creation(c.write.command_id)
-    assert tuple(f.quantity for f in report.fills)==(D('0.1'),D('0.05'))
+    assert {f.price:f.quantity for f in report.fills}=={D('81490'):D('0.1'),D('81489'):D('0.05')}
     assert report.filled_quantity==D('0.15') and report.remaining_quantity==0
     with c.engine._connect() as db:
         row=db.execute('SELECT quantity,known,discrepancy FROM public.paper_venue_positions_v2 WHERE account_id=%s',
