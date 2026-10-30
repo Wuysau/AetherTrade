@@ -199,3 +199,32 @@ def test_low_decimal_precision_preserves_genuine_native_fee_cashflow(database,ve
             assert [D(row[0]['amount']['amount']) for row in fees]==[D('-32.596')]
             assert {m.currency:m.amount for m in tx.projections.book(c.scope).balances}==dict(BTC=D('10.4'),USDT=D('967371.404'))
     finally:codec.close()
+
+
+def test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted(database,venue,tmp_path):
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+    from trading_system.execution.program_asset_postings import make_program_asset_posting,economic_signature
+    from trading_system.execution.program_owned_posting import ProgramOwnedPostingRecord
+    from trading_system.execution.program_book_cash import reconcile_program_book_cash
+    c,s,codec=setup(database,venue,tmp_path);financial=s.financial_posting
+    try:
+        s.financial_posting=None
+        assert s.apply(c.write.command_id).status=='RAW_RECORDED_ECONOMICS_BLOCKED'
+        approval=s.source_service.approve(c.write.command_id).approvals[0]
+        with c.service.uow.transaction(c.scope) as tx:
+            fact=ProgramAssetPostingReader(tx,fill_ledger=s._fills).read(approval.approval_id)
+            asset=make_program_asset_posting(fact)
+            tx._append('audit_events',asset.record_id,asset,0)
+            forged=ProgramOwnedPostingRecord(contract_version='2026-10-30',record_kind='PROGRAM_OWNED_POSTING_V1',
+                identity_hash=approval.identity_hash,source_economic_hash=economic_signature(fact),
+                owner_after=RegistryTx(tx).owner(),position_sequence=0,book_sequence=0)
+            tx._append('audit_events','program-owned-posting:'+approval.identity_hash,forged,0)
+            reconcile_program_book_cash(tx,read_opening=read_program_account_opening)
+        s.financial_posting=financial
+        result=s.apply(c.write.command_id)
+        assert result.status=='RAW_RECORDED_ECONOMICS_BLOCKED' and 'OWNED_POSTING_HISTORY_REQUIRED' in result.missing
+        with c.service.uow.transaction(c.scope) as tx:
+            assert RegistryTx(tx).owner().position.actual_quantity.value==0
+            assert tx.execute('SELECT count(*) FROM ledger.positions WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+            assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+    finally:codec.close()
