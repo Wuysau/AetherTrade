@@ -127,6 +127,9 @@ def provision_paper_management(admin_dsn,roles):
         require(db.execute("SELECT starts_with(current_database(),'paper_engine_')").fetchone()==(True,),
             'MANAGEMENT_ISOLATED_PAPER_DATABASE_REQUIRED')
         db.execute((Path(__file__).resolve().parents[3]/'migrations/0023_paper_management.sql').read_text(encoding='utf-8'))
+        db.execute((Path(__file__).resolve().parents[3]/'migrations/0028_paper_effective_orders.sql').read_text(encoding='utf-8'))
+        db.execute(sql.SQL('GRANT SELECT ON public.paper_effective_orders_v1 TO {}').format(sql.Identifier(roles.runtime_role)))
+        db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_effective_quantity_v1(text,text,numeric) TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT SELECT ON public.paper_management_actions_v4 TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_manage_order_v4(text,text,jsonb) TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_management_authorization_current_v4(text,text,jsonb) TO {}').format(sql.Identifier(roles.runtime_role)))

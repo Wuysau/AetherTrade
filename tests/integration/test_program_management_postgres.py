@@ -18,6 +18,7 @@ def management_database(database):
             '0018_program_fill_source_leaves.sql','0019_program_account_opening.sql','0020_program_legacy_opening.sql'):
             db.execute((ROOT/'migrations'/name).read_text(encoding='utf-8'))
         db.execute((ROOT/'migrations/0022_program_management_boundary.sql').read_text(encoding='utf-8'))
+        db.execute((ROOT/'migrations/0027_effective_order_management.sql').read_text(encoding='utf-8'))
         from psycopg import sql
         from psycopg.conninfo import conninfo_to_dict,make_conninfo
         import secrets

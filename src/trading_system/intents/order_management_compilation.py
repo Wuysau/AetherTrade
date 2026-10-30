@@ -278,7 +278,8 @@ def compile_order_management(instruction: ManagementInstruction, target: OwnedTa
                 require(Decimal(target.cumulative_quantity) < quantity < Decimal(target.original_quantity), 'KEEP_PRIORITY_REDUCTION_REQUIRED')
                 requests = (_request(target, ManagementEndpoint.SPOT_KEEP_PRIORITY, 'PUT',
                     (_parameter(FieldName.SYMBOL, profile.venue_symbol), _identity(target),
-                     _parameter(ManagementField.NEW_QUANTITY, instruction.new_quantity))),)
+                     _parameter(ManagementField.NEW_QUANTITY, instruction.new_quantity),
+                     _parameter(ManagementField.NEW_CLIENT_ID, target.client_id))),)
                 priority = 'RETAINED'
             elif instruction.kind == ManagementKind.MODIFY_LIMIT:
                 require(target.namespace == Namespace.USD_M_ORDINARY and target.order is not None
