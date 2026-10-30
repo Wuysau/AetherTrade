@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "record_kind",
+    "command_id",
+    "original_command_id",
+    "scope",
+    "program_id",
+    "service_namespace",
+    "original_client_id",
+    "target_venue_id",
+    "operation",
+    "owner_strategy_id",
+    "ownership_epoch",
+    "execution_epoch",
+    "policy_revision",
+    "plan_hash",
+    "target_hash",
+    "request_hash",
+    "risk_hash",
+    "funding_hash",
+    "binding_hash",
+    "state",
+    "created_at",
+    "valid_until"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "2026-10-30.management-v4"
+    },
+    "record_kind": {
+      "const": "PROGRAM_MANAGEMENT_WRITE_V4"
+    },
+    "command_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "original_command_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "venue_account_id",
+        "product",
+        "instrument_uid",
+        "venue_leg"
+      ],
+      "properties": {
+        "environment": {
+          "const": "PAPER"
+        },
+        "venue_account_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "product": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instrument_uid": {
+          "type": "string",
+          "minLength": 1
+        },
+        "venue_leg": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "program_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "service_namespace": {
+      "type": "string",
+      "minLength": 1
+    },
+    "original_client_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_venue_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operation": {
+      "enum": [
+        "CANCEL",
+        "KEEP_PRIORITY",
+        "MODIFY_LIMIT",
+        "CANCEL_REPLACE"
+      ]
+    },
+    "owner_strategy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ownership_epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "execution_epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "policy_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "plan_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "target_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "request_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "risk_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "funding_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "binding_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "state": {
+      "enum": [
+        "DURABLE_READY",
+        "MAY_HAVE_SENT",
+        "UNKNOWN"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "valid_until": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
