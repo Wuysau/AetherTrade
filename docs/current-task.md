@@ -1,5 +1,49 @@
 # Current task
 
+## OP_E_V2_ACTUAL43_REVIEW_PENDING — 2026-10-30
+
+reports_v2_fresh remains sole writer of this V2 tree, from78b84f0. Parent owns
+root/static source approval/decoder/accounting; no other worktree was edited.
+Current verifier implementation8ebe76b, exact final tested source01e7af7.
+Original34516 TERMINAL:43 actual PostgreSQL passed/0fail/error/skip200.14s,
+JUnit43/0/0/0 time200.133. Fresh actual frozen producer21 and unchanged V1
+behavioral compatibility23 each passed0d41c50 with0fail/error/skip; producer,
+0013/0014 and V1 verifier bytes have not changed in this continuation.
+
+Added durable accepted terms/runtime/lifecycle/predepth/clocks and complete
+actual event/rival-allocation/prevention binding; STP four modes+DECREMENT,
+calendar/DAY/GTD, peg/priceMatch placement, iceberg, economic original/cumulative/
+remaining discrepancy retention, OTOCO and real forked process restart. Every
+raw native fill/unit/price/gross/fee remains unchanged; no ledger fill is posted.
+
+Frozen roles intentionally have no SELECT on mutable native exclusivity. The
+failed744 read is preserved; no grant/schema/producer edits were made. Native
+proof uses actual protected group/member inventory, unique immutable winner,
+exactly one source cancellation for EACH peer, actual CANCELED zero-fill/zero-
+prevention peer and source-bound winner trigger/fill/clock. Missing/duplicate
+sibling/cancel, unfinished cancel, missing/foreign winner, false prevented
+quantity and reattributed genuine second fill all have actual PG rejection.
+Spot BID_ASK is unsupported at actual compiler, explicitly denied with zero
+venue command; no fake admitted fixture and no capability removal occurred.
+
+All18 qualification jobs are TERMINAL. All288 raw artifacts retain original/
+copy SHA mappings, including genuine REDs, fixture errors and permission errors.
+COMMITTED-BYTES.json records verification against actual committed Git blobs.
+No env/marker/password/DSN files were published. No LIVE/TESTNET/account/paid model,
+main/archive/public push or cleanup. No missing XML/skip was called a pass.
+
+Exact public interface is docs/orders/OP-E-V2-VERIFIER-INTERFACE.md. Distinct
+PaperProgramVerificationV2/NormalizedPaperFillV2/source_v2 tags and genuine raw
+PaperMarketFill remain frozen; raw_report.request.command_id and serialized
+status/source_verified/discrepancies/retained_duties remain common. No V1 alias.
+
+NEXT REQUIRED: independent fresh review of01e7af7 code+43PG evidence, then parent
+static registry/decoder/accounting integration and actual combined root gates.
+All four live agent slots are occupied; parent can dispatch a fresh read-only
+reviewer after this task seat is released. Current registry remains uninstalled.
+Do not claim full V2/native/full46/56 qualification. Evolving native-parent/
+execution contracts stay raw UNKNOWN until exact producer source is adapted;
+all46 capabilities/56 cases and complete OP-C→D/E/F→G remain ACTIVE.
 ## OP_E_V2_WRITER_RELEASED_TO_PARENT — 2026-10-30
 
 Parent accepted reports_fresh's V2 write-ownership release at CLEAN5245b9e.
@@ -1280,3 +1324,4 @@ Ruling: continue the already authorized plan without new design approval.
 After initial integration, use dispatching-parallel-agents for independent
 runtime, validation and documentation work in separate worktrees. Record fresh
 test outputs and update this file after each meaningful implementation step.
+

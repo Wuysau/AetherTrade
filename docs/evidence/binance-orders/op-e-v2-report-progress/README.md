@@ -1,9 +1,9 @@
 # Actual PAPER V2 verifier progress — NOT full source qualification
 
 Full46/56 C–G and full OP-E remain ACTIVE. Parent must not install this module in
-the protected source registry yet. Initial supported semantic families are
-ATOMIC/OCO/OTO/OTOCO with market/fixed/static/trailing. STP/calendar/equity/peg/
-priceMatch/iceberg remain explicitly archived BLOCKED until independent TDD.
+the protected source registry before independent review and integration. The
+initial9-test cohort covered ATOMIC/OCO/OTO/OTOCO market/fixed/static/trailing;
+expanded actual STP/calendar/equity/peg/priceMatch/iceberg proofs follow below.
 No posting, credit, ownership, protection/FLAT/release or new permit occurs.
 
 All source-specific RED/GREEN outputs, XML, launcher/image/dependency/migration
@@ -36,9 +36,51 @@ consumed-window/clock-ahead/exact-fee protections and all fixture options were
 preserved; V1 report module and0013 original bytes remain unchanged.0014 is exact
 producer1b12 sourceSHA df9e0709b7ebb12006549c464251b29f1937aed2efd20182319e9d42a13dd565.
 
-Next required work: all supported baseline semantic/clock/causal corruptions,
-disposition model/envelope/market/clock checks, duplicate fill/member inventories,
-OCO exclusivity/sibling/pool contradiction facts, economic/cumulative/unknownfee
-retention and restart. Source bounds and proof serialization must remain linear.
+Fresh continuation preserves every intervening run:
+
+- a282205:9pass10fail86.29s. Eight genuine missing/replay/disposition failures,
+  plus two strict fixture failures (crossed book construction before replace;
+  invalid `.1` native quantity string). Both originals remain intact.
+- 487dfc1:9pass13fail102.41s after fixture repair. Source-clock and accepted-model
+  reseals were actually accepted; pre-depth mutation was already safely blocked
+  by overspend, but needed the exact durable-source binding diagnostic.
+- 0d41c50:20pass2fail103.94s. Actual STP four-mode/DECREMENT external fill,
+  calendar/DAY/peg/iceberg and durable source snapshot checks passed. The remaining
+  failures were earlier runtime rejection instead of the preserved lineage code,
+  and restart comparison using different raw archive paths. Neither was waived.
+- The same fixed0d41 producer regression:21PG GREEN, XML102.292s; unchanged V1
+  behavioral cohort against0014:23PG GREEN, XML104.285s. Both zero fail/error/skip.
+- e5cc8ed:27pass3fail140.04s. Adds actual OTOCO full-sum/sibling, cumulative and
+  remaining/original-quantity discrepancy retention, omitted rival prevention,
+  real `os.fork` process restart, and unknown-shape archival. Its genuine new RED
+  was a resealed false terminal lifecycle accepted; the two prior failures remain.
+- 7443624:27pass6fail150.99s. Five actual restricted-role permission failures
+  from an unavailable mutable exclusivity SELECT; one BID_ASK fixture rejected
+  by actual Spot compiler. No new SQL grant or producer/migration edit was made.
+  Spot BID_ASK is retained as an explicitly unqualified zero-command denial test.
+- 8ebe76b:41pass2fail201.31s. Complete immutable native exclusivity proof and
+  nine adversarial sibling/cancel/winner/prevention/real-fill reattribution
+  variants. Its two fixture failures came from attempting to replenish consumed
+  depth with a snapshot;01e7af7 changes that input to an actual depth delta.
+- Fixed01e7af7:43PG GREEN0fail/error/skip200.14s (XML200.133s). This includes
+  actual competing native triggers, all nine sibling/cancel/winner/prevention/
+  genuine-fill attribution counterexamples, and all preceding supported checks.
+  Original handle34516 is terminal; all18 preserved jobs are terminal. The
+  manifest/copy map contains288 raw artifacts, with exact source attribution.
+  Every original/copy/committed Git blob is separately checked in COMMITTED-BYTES.
+
+Focused preserved unit/contract checks also passed28 tests in0.41s. The actual
+producer files/0013/0014/V1 report module are byte-identical across these final
+verifier-only changes, so the producer21 and V1 compatibility23 source-specific
+proof remains clearly attributed to0d41c50; it is not mislabeled as a43-case run.
+
+The source verifier now checks actual lifecycle, accepted terms/runtime,
+pre-depth/clocks, duplicate event/member inventories, complete rival fills and
+preventions, disposition model/envelope/market/clocks, native cancellation and
+full-working lineage. Missing evidence stays blocked. Per-fill provenance uses
+the single global causal graph hash. No source observation grants accounting or
+ownership. See [the exact interface](../../../orders/OP-E-V2-VERIFIER-INTERFACE.md).
+
 Root owns static exact-type/decoder/source approval integration, no V1 fallback
-for new V2 shapes. All jobs in this checkpoint are terminal; never restart them.
+for new V2 shapes. Evolving native-parent/execution families remain unqualified
+until the actual producer contract is adapted; no capability row is deleted.
