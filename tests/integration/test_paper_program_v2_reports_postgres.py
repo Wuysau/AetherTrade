@@ -3,12 +3,13 @@ from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal as D
 from uuid import uuid4
+import pytest
 
 from integration.test_paper_market_matcher_v2 import isolated_postgres,database,venue,venue_v2,advanced_case,reference,market_order
 from integration.test_paper_market_matcher import submit,event
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash,domain_payload,utc_timestamp
-from trading_system.contracts.order_program import TriggerSpec
+from trading_system.contracts.order_program import TriggerSpec,PriceSpec,TimeInForceSpec
 from trading_system.engine.paper_market import PaperMatcher,PaperMarketFill,DepthLevel
 from trading_system.engine.nautilus.id_codec import VenueIdCodec
 from trading_system.engine.nautilus.native_events import NativeEventBridge
@@ -185,3 +186,121 @@ def test_fake_native_pending_working_fill_link_is_archived_not_accepted(database
     result=observe(c,tmp_path/'raw')
     assert not result.source_verified and result.raw_refs
     assert 'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED' in result.discrepancies
+
+
+def stp_case(database,venue_v2,tmp_path,mode):
+    from trading_system.engine.paper_market import digest
+    from trading_system.engine.paper_market_v2 import PaperLiquidityOwnershipEventV2,PaperLiquidityOwnerV2
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,stp=mode),
+        profile_transform=lambda p:replace(p,profile_id='SYNTHETIC_V2_STP_'+mode,
+            spot=replace(p.spot,allowed_stp=('NONE',mode))))
+    submit(c);matcher=PaperMatcher(c.engine);depth=event(c,quantity='.4');matcher.apply_market_event(depth)
+    owned=PaperLiquidityOwnershipEventV2(contract_version='2026-10-30',event_id='owned-liquidity',stream_id=c.scope.instrument_uid,
+        product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=2,kind='LIQUIDITY_OWNERSHIP',
+        depth_event_id=depth.event_id,depth_hash=digest(depth),
+        owners=(PaperLiquidityOwnerV2(side='ASK',price='81490',source_quantity='.4',venue_account_id=c.scope.venue_account_id,
+            venue_order_id='synthetic-observed-maker'),),occurred_at=c.c.facts.inputs.clock.utc_now,source='PAPER_MARKET_REPLAY_SYNTHETIC')
+    matcher.apply_market_event(owned)
+    return c,owned
+
+
+@pytest.mark.parametrize('mode,prevented,remaining',[('EXPIRE_TAKER','1','0'),('EXPIRE_MAKER','0','1'),
+    ('EXPIRE_BOTH','1','0'),('DECREMENT','.4','.6')])
+def test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills(
+        database,venue_v2,tmp_path,mode,prevented,remaining):
+    c,_=stp_case(database,venue_v2,tmp_path,mode);result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    assert not result.fills and len(result.market_evidence.preventions)==1
+    assert result.raw_report.orders[0].runtime.prevented_quantity==D(prevented)
+    assert result.orders[0].leaves_quantity.value==D(remaining)
+    assert not result.funds_release_authorized
+
+
+def test_actual_decrement_restarted_verifier_preserves_original_quantity_and_only_external_fill(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import digest
+    c,owned=stp_case(database,venue_v2,tmp_path,'DECREMENT');matcher=PaperMatcher(c.engine)
+    delta=event(c,sequence=3,quantity='.6',kind='DEPTH_DELTA');matcher.apply_market_event(delta)
+    matcher.apply_market_event(replace(owned,event_id='external-owner',sequence=4,depth_event_id=delta.event_id,depth_hash=digest(delta),
+        owners=(replace(owned.owners[0],source_quantity='1',venue_account_id='external-account',venue_order_id='external-maker'),)))
+    first=observe(c,tmp_path/'first');second=observe(c,tmp_path/'second')
+    assert first.source_verified and second.source_verified,(first.discrepancies,second.discrepancies)
+    assert first.fills==second.fills and len(first.fills)==1 and first.fills[0].fill.quantity.value==D('.6')
+    assert first.raw_report.orders[0].quantity==1 and first.raw_report.orders[0].runtime.prevented_quantity==D('.4')
+
+
+def test_actual_primary_peg_uses_earlier_placement_depth_not_later_quote(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,
+        price=PriceSpec(kind='PEG',value=None,peg_type='PRIMARY_PEG',offset_levels=1,price_match=None)))
+    matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(replace(event(c,ask='81500'),bids=(DepthLevel(price='81489',quantity='1'),DepthLevel(price='81488',quantity='1'))))
+    submit(c)
+    matcher.apply_market_event(replace(event(c,sequence=2,ask='81488',quantity='.4'),bids=(DepthLevel(price='81487',quantity='1'),)))
+    result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    assert result.fills[0].fill.price.value==D('81488') and result.raw_report.orders[0].runtime.effective_limit==D('81488')
+    assert {d.event_id for d in result.causal_dependencies}=={'depth-1','depth-2'}
+
+
+def test_actual_iceberg_hidden_quantity_is_not_fill_or_released_reservation(database,venue_v2,tmp_path):
+    from trading_system.risk.reservation_repository import ReservationRepository
+    market='verifier-iceberg-'+uuid4().hex
+    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda o:replace(o,iceberg_quantity='.1'))
+    rival=advanced_case(database,venue_v2,tmp_path,market=market);submit(c);submit(rival);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(event(c,quantity='.25'));matcher.apply_market_event(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'))
+    result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    assert len(result.fills)==1 and result.fills[0].fill.quantity.value==D('.1') and result.orders[0].leaves_quantity.value==D('.9')
+    assert len(result.market_evidence.consumptions)==3
+    with c.service.uow.transaction(c.scope) as tx:
+        assert ReservationRepository(tx).get(c.bundle.reservations[0].reservation.reservation_id).held==c.bundle.reservations[0].held
+
+
+def test_actual_equity_calendar_clock_can_use_prior_depth_without_replenishing_it(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market_v2 import PaperCalendarEventV2,PaperSessionWindowV2,PaperClockEventV2
+    def rth(p):
+        n=p.program.nodes[0]
+        return replace(p,program=replace(p.program,nodes=(replace(n,order=replace(n.order,trading_session='RTH',
+            tif=TimeInForceSpec(kind='DAY',expires_at=None))),)))
+    c=advanced_case(database,venue_v2,tmp_path,product=t.Product.US_EQUITY,actual='1',target='0',quantity='1',side='SELL',
+        plan_proposal_transform=rth,
+        financial_capacity=(t.Money(currency='USD',amount=D('1000000')),t.Money(currency='AAPL',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USD',amount=D(0)),t.Money(currency='AAPL',amount=D(0))))
+    submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(replace(event(c,ask='81500',quantity='1'),bids=(DepthLevel(price='81490',quantity='.4'),)))
+    matcher.apply_market_event(PaperCalendarEventV2(contract_version='2026-10-30',event_id='calendar-rth',stream_id=c.scope.instrument_uid,
+        product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=2,kind='SESSION_CALENDAR',
+        calendar_id='SYNTHETIC_US_EQUITY_CALENDAR',revision='2026a',timezone='America/New_York',
+        windows=(PaperSessionWindowV2(session='RTH',trading_date='2026-10-28',opens_at='2026-10-28T13:30:00Z',
+            closes_at='2026-10-28T20:00:00Z'),),valid_until='2026-10-29T00:00:00Z',
+        occurred_at=c.c.facts.inputs.clock.utc_now,source='PAPER_MARKET_REPLAY_SYNTHETIC'))
+    base=c.c.facts.inputs.clock
+    for sequence,when in ((3,'2026-10-28T13:30:00Z'),(4,'2026-10-28T20:00:00Z')):
+        elapsed=int((utc_timestamp(when)-utc_timestamp(base.utc_now)).total_seconds()*10**9)
+        c.engine._clock=lambda:replace(base,utc_now=when,monotonic_ns=base.monotonic_ns+elapsed)
+        matcher.apply_market_event(PaperClockEventV2(contract_version='2026-10-30',event_id='clock-'+str(sequence),stream_id=c.scope.instrument_uid,
+            product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=sequence,kind='CLOCK',occurred_at=when,
+            source='PAPER_MARKET_REPLAY_SYNTHETIC'))
+    result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    assert len(result.fills)==1 and result.fills[0].fill.quantity.value==D('.4') and result.orders[0].leaves_quantity.value==0
+    assert result.raw_report.dispositions[-1].reason=='VENUE_DAY_EXPIRED'
+    assert len(result.causal_dependencies)==4
+
+
+def test_duplicate_actual_fill_cannot_be_replayed_inside_resealed_report(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    report=c.engine.query_creation(c.write.command_id)
+    c.engine.query_creation=lambda _:reseal_report(replace(report,fills=report.fills+report.fills))
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and not result.fills and result.raw_refs
+    assert 'PAPER_V2_DUPLICATE_EVENT' in result.discrepancies
+
+
+def test_disposition_market_identity_cannot_be_changed_while_actual_raw_is_retained(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path,tif='NONE',order_transform=market_order)
+    PaperMatcher(c.engine).apply_market_event(event(c,ask='81500',quantity='.4'));submit(c)
+    report=c.engine.query_creation(c.write.command_id)
+    c.engine.query_creation=lambda _:reseal_report(replace(report,dispositions=tuple(replace(d,market_event_id='foreign-depth') for d in report.dispositions)))
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and not result.fills and result.raw_refs
+    assert 'PAPER_V2_DISPOSITION_SOURCE_CHANGED' in result.discrepancies
