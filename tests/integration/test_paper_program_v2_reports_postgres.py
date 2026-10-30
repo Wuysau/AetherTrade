@@ -465,7 +465,7 @@ def competing_oco(database,venue_v2,tmp_path):
     matcher.apply_market_event(replace(event(c,ask='83001',quantity='1'),bids=(DepthLevel(price='83000',quantity='.4'),)))
     matcher.apply_market_event(reference(c,2,'LAST','83000'))
     matcher.apply_market_event(reference(c,3,'LAST','79000'))
-    matcher.apply_market_event(replace(event(c,sequence=4,ask='83001',quantity='1'),bids=(DepthLevel(price='83000',quantity='1'),)))
+    matcher.apply_market_event(replace(event(c,sequence=4,ask='83001',quantity='.6',kind='DEPTH_DELTA'),bids=(DepthLevel(price='83000',quantity='.6'),)))
     return c
 
 
