@@ -37,6 +37,19 @@ files imported with source/checkpoint identity; all182 imported files independen
 match CURRENT committed Git blobs. These components do not upgrade olda0ca full
 gate, evolving D source, verifier registry or full46/56. No root livejobs.
 
+Parent accepted independent V2 repair review of34e952c..8a83a58/tested7925851:
+actual source ordercurrency/unit and eventquantity/price are independently bound
+before normalization. New genuine V2 economics/unit cases close the earlier
+currency/unknownfee/gross/fee-cap/nonidentity bridge gaps. All320 original/copy/
+CURRENT peer committed artifacts independently SHA-match, final XML51/0/0/0
+239.116s and original RED50/4fail250.270s preserved. This is source-domain proof.
+Selected three verifier modules and51-case test are now root integration
+candidate, with one additional mandatory suite; no registry yet. cash_fresh
+owns shared exacttype/result/taggeddecoder adaptation in its separate tree;
+root will serially select the reviewed shared file. Old V1/schema/hash/native-ID
+bindings remain, unknown kinds deny, evolving native-parent/execution stays
+blocked. Fresh root actual source cohort is due after this candidate commit.
+
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
 ROOT WRITE RELEASE: parent-approved checkpoint complete; integration_next now
