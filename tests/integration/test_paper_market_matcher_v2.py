@@ -251,7 +251,7 @@ def test_calendar_timezone_windows_keep_real_dst_offsets_and_reject_inverted_or_
 
 
 @pytest.mark.parametrize('mode,terminal,maker_remaining,taker_prevented',[
-    ('EXPIRE_TAKER',True,'1','1'),('EXPIRE_MAKER',False,'0','0'),('EXPIRE_BOTH',True,'0','1')])
+    ('EXPIRE_TAKER',True,'0.4','1'),('EXPIRE_MAKER',False,'0','0'),('EXPIRE_BOTH',True,'0','1')])
 def test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill(
         database,venue_v2,tmp_path,mode,terminal,maker_remaining,taker_prevented):
     from trading_system.engine.paper_market import PaperMatcher
@@ -259,20 +259,20 @@ def test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_in
     c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,stp=mode),
         profile_transform=lambda p:replace(p,profile_id='SYNTHETIC_V2_STP_'+mode,
             spot=replace(p.spot,allowed_stp=('NONE',mode))))
-    submit(c);matcher=PaperMatcher(c.engine);depth=event(c,quantity='1');matcher.apply_market_event(depth)
+    submit(c);matcher=PaperMatcher(c.engine);depth=event(c,quantity='0.4');matcher.apply_market_event(depth)
     report=c.engine.query_creation(c.write.command_id)
     assert not report.fills and report.orders[0].runtime.phase=='WAITING_COUNTERPARTY_DATA'
     ownership=PaperLiquidityOwnershipEventV2(contract_version='2026-10-30',event_id='owned-liquidity',stream_id=c.scope.instrument_uid,
         product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=2,kind='LIQUIDITY_OWNERSHIP',
         depth_event_id=depth.event_id,depth_hash=__import__('trading_system.engine.paper_market',fromlist=['digest']).digest(depth),
-        owners=(PaperLiquidityOwnerV2(side='ASK',price='81490',source_quantity='1',venue_account_id=c.scope.venue_account_id,
+        owners=(PaperLiquidityOwnerV2(side='ASK',price='81490',source_quantity='0.4',venue_account_id=c.scope.venue_account_id,
             venue_order_id='synthetic-observed-maker-1'),),occurred_at=c.c.facts.inputs.clock.utc_now,source='PAPER_MARKET_REPLAY_SYNTHETIC')
     matcher.apply_market_event(ownership);report=c.engine.query_creation(c.write.command_id)
     assert not report.fills and report.filled_quantity==0 and report.orders[0].runtime.prevented_quantity==D(taker_prevented)
     assert report.status==('EXPIRED' if terminal else 'SUBMITTED')
     assert report.dispositions[-1].reason=='STP_'+mode
     proof=c.engine.query_market_evidence(c.write.command_id)
-    assert len(proof.preventions)==1 and proof.preventions[0].maker_quantity==1-D(maker_remaining)
+    assert len(proof.preventions)==1 and proof.preventions[0].maker_quantity==D('0.4')-D(maker_remaining)
     assert proof.preventions[0].taker_quantity==D(taker_prevented) and not proof.consumptions
     assert {i.event.event_id for i in proof.inputs}=={depth.event_id,ownership.event_id}
     other=case(database,venue_v2,tmp_path,market=c.scope.instrument_uid);submit(other)
