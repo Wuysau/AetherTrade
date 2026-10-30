@@ -315,3 +315,29 @@ def test_owner_source_rejects_wrong_depth_or_quantity_and_runtime_cannot_publish
             'DELETE FROM public.paper_market_preventions_v2'):
         with pytest.raises(psycopg.errors.InsufficientPrivilege):
             with psycopg.connect(venue_v2.runtime_dsn) as db:db.execute(statement)
+
+
+def test_native_oco_has_one_real_parent_command_and_observed_member_cancellation_on_activation(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=advanced_case(database,venue_v2,tmp_path,template='OCO',actual='1',target='0',side='SELL',
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    submit(c);matcher=PaperMatcher(c.engine)
+    pending=c.engine.query_creation(c.write.command_id)
+    assert len(pending.orders)==2 and pending.native_parent.parent_client_id==c.request.assigned_ids.parent_client_id
+    assert pending.native_parent.venue_parent_id and len(pending.native_parent.members)==2
+    matcher.apply_market_event(replace(event(c,ask='83001',quantity='1'),bids=(DepthLevel(price='83000',quantity='0.4'),)))
+    assert not c.engine.query_creation(c.write.command_id).fills
+    matcher.apply_market_event(reference(c,2,'LAST','83000'))
+    report=c.engine.query_creation(c.write.command_id)
+    by_node={o.node_id:o for o in report.orders}
+    assert by_node['above'].filled_quantity==D('0.4') and by_node['above'].remaining_quantity==D('0.6')
+    assert by_node['below'].status=='CANCELED' and by_node['below'].filled_quantity==0
+    assert report.dispositions[-1].reason=='NATIVE_EXCLUSIVE_SIBLING_ACTIVATED'
+    assert {f.node_id for f in report.fills}=={'above'}
+    with c.engine._connect() as db:
+        assert db.execute('SELECT count(*) AS n FROM public.paper_engine_commands WHERE scope_key=%s',
+            (c.engine._scope_key,)).fetchone()['n']==1
+    matcher.apply_market_event(reference(c,3,'LAST','81300'))
+    after=c.engine.query_creation(c.write.command_id)
+    assert {f.node_id for f in after.fills}=={'above'} and {o.node_id:o for o in after.orders}['below'].status=='CANCELED'
