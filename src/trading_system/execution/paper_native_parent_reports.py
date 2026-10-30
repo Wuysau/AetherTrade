@@ -105,7 +105,7 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
             allocations=db.execute('SELECT * FROM public.paper_native_child_allocations_v2 WHERE scope_key=%s AND parent_client_id=%s '
                 'ORDER BY ordinal LIMIT 4097',params).fetchall()
             clients=[m['client_id'] for m in members]
-            events=db.execute('SELECT event_id,client_id,payload::text AS raw,payload_hash,fill_delta,price '
+            events=db.execute('SELECT event_id,client_id,payload::text AS raw,payload_hash,fill_delta,price,occurred_at '
                 'FROM public.paper_engine_events WHERE scope_key=%s AND client_id=ANY(%s) ORDER BY event_id LIMIT 4097',
                 (params[0],clients)).fetchall()
             sources=db.execute('SELECT i.* FROM public.paper_native_parent_input_dependencies_v2 d JOIN public.paper_market_inputs i '
@@ -222,7 +222,16 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
         for d in report.dispositions:
             e=events[d.event_id];raw=_raw_object(d.raw_payload_json,d.evidence)
             _check(e['raw']==d.raw_payload_json and e['payload_hash']==d.evidence.hash and e['client_id']==d.client_id
-                and raw['status']==d.status and raw['reason']==d.reason,'PAPER_NATIVE_DISPOSITION_CHANGED')
+                and raw['record_kind']=='PAPER_MARKET_DISPOSITION' and e['fill_delta']==0
+                and raw['status']==d.status and raw['reason']==d.reason
+                and raw['market_event_id']==d.market_event_id and raw['market_hash']==d.market_hash
+                and utc_timestamp(raw['execution_at'])==utc_timestamp(d.occurred_at)==e['occurred_at'],
+                'PAPER_NATIVE_DISPOSITION_CHANGED')
+            source=source_map.get((raw['market_key'],d.market_event_id))
+            _check(source is not None and d.market_hash==source['payload_hash']
+                and max(utc_timestamp(source['payload']['occurred_at']),utc_timestamp(source['observed_clock']['utc_now']),
+                    utc_timestamp(child_map[d.client_id].terms.accepted_clock.utc_now))
+                    <=utc_timestamp(d.occurred_at)<=utc_timestamp(clock.utc_now),'PAPER_NATIVE_DISPOSITION_CHANGED')
         if sum((f.quantity for f in report.fills),Decimal(0))>pool.original_quantity:codes.append('NATIVE_PARENT_OVERFILLED')
         if sum((o.remaining_quantity for o in report.orders),Decimal(0))+pool.executed_quantity+pool.remaining_pool_quantity>pool.original_quantity:
             codes.append('NATIVE_PARENT_REMAINING_EXPOSURE_EXCEEDED')
