@@ -1,5 +1,40 @@
 # Current task
 
+## OP_E_SOURCE_APPROVAL_AND_COMMITTED_READER — 2026-10-30
+
+Parent/root remains sole writer of this accounting Worktree. New additive0016
+and execution/program_fill_source.py are implemented at56ddb04. Actual8missing
+capability REDs at71ecb3f preceded6e75d05 8PG passes; committed-reader RED6a2eef4
+had9pass/2missing-reader failures, then56ddb04 had11PG pass, zero failures/errors/
+skips. Related35unit passed. No parent live test jobs remain. One pre-test
+Docker interruption7367 left onlybundle.txt and is explicitly NOT_RUN; the
+resumed fresh completed runs have distinct IDs and real fixed-source results.
+
+Source verifier role is NOLOGIN with zero automatic memberships and narrow
+protected approval; ordinary owner/control/closure/dispatch cannot mint rows.
+Actual verifier IO/fsync precedes its source transaction. Exact original,
+consumption, raw/accepted/all-rival/native/unit/economic commitments are immutable.
+Owner reader rejects same-physical-TX uncommitted rows, owner audit forgeries and
+cross-scope IDs; source commit failure returns no receipt and rolls back. These
+historical attestations issue no fills, spendable credit, ownership, sends,
+protection or reservation release. Evidence includes65 byte-copied runtime files
+under docs/evidence/binance-orders/op-e-fill-source; migration/recovery boundary
+is docs/orders/OP-E-FILL-SOURCE-MIGRATION.md. Independent review requested.
+
+Next actual work: ProgramPaperAccountingService uses those committed approvals,
+existing EvidenceIngestor/FillLedger in the same owner transaction, retained
+reconciliation locks/duties, authenticated per-asset posting deltas, positions
+and existing BookSnapshot. Mixed legacy refresh must consume the same verified
+facts or fail closed preserving the book. Never infer financial completeness
+from source-only approval, invent futures principal or double-count fees.
+
+Root integration_next again owns binance-orders at af255ee after platform thread
+limit prevented a fresh replacement; it resumed0015 quote/current-book TDD from
+its persisted handoff. Original full57061 is INTERRUPTED:42PG suites completed
+green, ordinary Python incomplete, runner exited137 during Docker shutdown.
+No restart or whole-gate pass is inferred. activation_fresh owns SIM0014;
+reports_fresh owns native adapter/guard audit. All46/56 and OP-C→D/E/F→G ACTIVE.
+
 ## OP_E_ATOMIC_FOUNDATION_VERIFIED_NEXT_SOURCE_APPROVAL — 2026-10-30
 
 Accounting tree parent/root still sole writer. ActualTask1 implemented7d5f4e9;

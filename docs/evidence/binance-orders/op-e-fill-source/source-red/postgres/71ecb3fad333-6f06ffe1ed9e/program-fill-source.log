@@ -1,0 +1,59 @@
+FFFFFFFF                                                                 [100%]
+=================================== FAILURES ===================================
+_____ test_source_authority_is_separate_and_cannot_be_enrolled_implicitly ______
+tests/integration/test_program_fill_source_approval.py:51: in test_source_authority_is_separate_and_cannot_be_enrolled_implicitly
+    assert db.execute("SELECT to_regclass('ledger.program_fill_source_approvals')").fetchone()[0] is not None
+E   assert None is not None
+_____ test_genuine_fill_source_is_committed_without_posting_or_authorizing _____
+tests/integration/test_program_fill_source_approval.py:64: in test_genuine_fill_source_is_committed_without_posting_or_authorizing
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'
+_______________ test_owner_cannot_mint_or_mutate_source_approval _______________
+tests/integration/test_program_fill_source_approval.py:88: in test_owner_cannot_mint_or_mutate_source_approval
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'
+_ test_replay_and_additional_real_fills_retain_identity_without_ledger_side_effects _
+tests/integration/test_program_fill_source_approval.py:107: in test_replay_and_additional_real_fills_retain_identity_without_ledger_side_effects
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'
+__________ test_service_requires_actual_verifier_and_original_id_only __________
+tests/integration/test_program_fill_source_approval.py:122: in test_service_requires_actual_verifier_and_original_id_only
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'
+___ test_historical_fill_source_does_not_expire_into_a_new_execution_permit ____
+tests/integration/test_program_fill_source_approval.py:138: in test_historical_fill_source_does_not_expire_into_a_new_execution_permit
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'
+______ test_economic_discrepancy_preserves_source_without_certain_credit _______
+tests/integration/test_program_fill_source_approval.py:151: in test_economic_discrepancy_preserves_source_without_certain_credit
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'
+_______ test_missing_or_not_observed_command_cannot_mint_source_approval _______
+tests/integration/test_program_fill_source_approval.py:165: in test_missing_or_not_observed_command_cannot_mint_source_approval
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_fill_source_approval.py::test_source_authority_is_separate_and_cannot_be_enrolled_implicitly
+FAILED tests/integration/test_program_fill_source_approval.py::test_genuine_fill_source_is_committed_without_posting_or_authorizing
+FAILED tests/integration/test_program_fill_source_approval.py::test_owner_cannot_mint_or_mutate_source_approval
+FAILED tests/integration/test_program_fill_source_approval.py::test_replay_and_additional_real_fills_retain_identity_without_ledger_side_effects
+FAILED tests/integration/test_program_fill_source_approval.py::test_service_requires_actual_verifier_and_original_id_only
+FAILED tests/integration/test_program_fill_source_approval.py::test_historical_fill_source_does_not_expire_into_a_new_execution_permit
+FAILED tests/integration/test_program_fill_source_approval.py::test_economic_discrepancy_preserves_source_without_certain_credit
+FAILED tests/integration/test_program_fill_source_approval.py::test_missing_or_not_observed_command_cannot_mint_source_approval
+8 failed in 2.23s
