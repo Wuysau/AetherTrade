@@ -102,10 +102,12 @@ class PaperProgramV2ReportVerifier:
             deps=db.execute('SELECT d.client_id,d.market_key,d.event_id,i.payload_hash FROM public.paper_order_input_dependencies_v2 d '
                 'JOIN public.paper_market_inputs i USING(market_key,event_id) WHERE d.scope_key=%s AND d.client_id=ANY(%s) '
                 'ORDER BY d.client_id,i.sequence,i.event_id LIMIT 16385',(self.engine._scope_key,clients)).fetchall()
-            events=db.execute('SELECT client_id,event_id,payload::text AS raw,payload_hash FROM public.paper_engine_events '
+            events=db.execute('SELECT client_id,event_id,fill_delta::text AS source_quantity,price::text AS source_price,'
+                'payload::text AS raw,payload_hash FROM public.paper_engine_events '
                 'WHERE scope_key=%s AND client_id=ANY(%s) ORDER BY occurred_at,event_id LIMIT 4097',
                 (self.engine._scope_key,clients)).fetchall()
-            orders=db.execute('SELECT o.client_id,o.order_id,o.revision,o.lifecycle,o.filled::text AS source_filled,t.terms,jsonb_build_object('
+            orders=db.execute('SELECT o.client_id,o.order_id,o.revision,o.lifecycle,o.filled::text AS source_filled,'
+                'o.quantity::text AS source_quantity,o.quantity_unit,o.price_currency,t.terms,jsonb_build_object('
                 "'active',r.active,'phase',r.phase,'activation_event_id',r.activation_event_id,'high_water',r.high_water::text,"
                 "'low_water',r.low_water::text,'effective_limit',r.effective_limit::text,'visible_remaining',r.visible_remaining::text,"
                 "'queue_priority',r.queue_priority,'prevented_quantity',r.prevented_quantity::text,'parent_activation_fill_id',r.parent_activation_fill_id) AS runtime "
@@ -291,7 +293,7 @@ class PaperProgramV2ReportVerifier:
             persisted=source_orders[client]
             _check(order.venue_order_id==persisted['order_id'] and order.lifecycle_revision==persisted['revision']
                 and order.status==persisted['lifecycle'] and order.namespace==n.namespace.value
-                and order.quantity_unit==bundle.intent.unit.native_unit,'PAPER_V2_ACTUAL_ORDER_ID_CHANGED')
+                and order.quantity_unit==persisted['quantity_unit']==bundle.intent.unit.native_unit,'PAPER_V2_ACTUAL_ORDER_ID_CHANGED')
             own_fills=tuple(f for f in report.fills if f.client_id==client)
             own_inputs=tuple(i for i in market.inputs if (i.event.market_key,i.event.event_id) in client_dependencies[client])
             if report.native_parent is not None and n.original.role=='PENDING':
@@ -310,6 +312,12 @@ class PaperProgramV2ReportVerifier:
                     and raw.get('node_id')==f.node_id and raw.get('namespace')==f.namespace
                     and f.evidence.source==SOURCE and f.evidence.environment==t.Environment.PAPER
                     and exact_time(f.evidence.visible_at)<=exact_time(clock.utc_now),'PAPER_V2_ACTUAL_FILL_SOURCE_CHANGED')
+                # The genuine producer reads these from the order/event columns,
+                # not from the accepted quote rules or the raw event JSON. Bind
+                # the DTO to the actual source before economic interpretation.
+                _check(f.quantity_unit==persisted['quantity_unit'] and f.price_asset==persisted['price_currency']
+                    and f.quantity==Decimal(stored['source_quantity']) and f.price==Decimal(stored['source_price']),
+                    'PAPER_V2_FILL_ORDER_ECONOMIC_SOURCE_CHANGED')
                 source=input_map.get((raw.get('market_key'),f.market_event_id))
                 allocations=tuple(c for c in market.consumptions if c.scope==self.scope and c.client_id==client and c.fill_id==f.fill_id)
                 _check(source is not None and len(allocations)==1 and allocations[0].quantity==f.quantity and allocations[0].price==f.price

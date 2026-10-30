@@ -71,6 +71,43 @@ def test_actual_v2_market_partial_preserves_native_economics_and_explicit_v2_pro
         assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
 
 
+def test_actual_derivative_nonidentity_financial_unit_retains_native_fill_and_explicit_ledger_bridge(
+        database,venue_v2,tmp_path,monkeypatch):
+    from unit.support_program_financial import financial_case
+    financial_case()  # Set up the fixed test-only sibling module imports.
+    import test_program_risk_assessment as risk_module
+    original=risk_module.scenario
+    def native_lot_scenario(plan,rules,**options):
+        book,facts=original(plan,rules,**options)
+        assert plan.scope.product==t.Product.USD_M_PERP
+        ratio=D('.1')
+        spec=replace(facts.inputs.instrument,
+            quantity_step=t.Quantity(value=D(rules.quantity_step)*ratio,unit='CONTRACT'),
+            minimum_quantity=t.Quantity(value=D(rules.minimum_quantity)*ratio,unit='CONTRACT'))
+        return book,replace(facts,unit_binding=replace(facts.unit_binding,ledger_units_per_native_unit=ratio,ledger_multiplier=D(1)),
+            inputs=replace(facts.inputs,instrument=spec,expected_instrument=spec))
+    # These are trusted input fixtures established BEFORE the real ingress,
+    # financial admission/archive, MAY/consume and frozen producer execution.
+    # No bundle, accepted context, report or FinancialUnit DTO is substituted.
+    with monkeypatch.context() as m:
+        m.setattr(risk_module,'scenario',native_lot_scenario)
+        c=advanced_case(database,venue_v2,tmp_path,product=t.Product.USD_M_PERP,
+            profile_transform=lambda p:replace(p,usd_m=replace(p.usd_m,quantity_unit='LOT',contract_multiplier='0.1')))
+    assert c.bundle.intent.unit.native_unit=='LOT' and c.bundle.intent.unit.ledger_unit=='CONTRACT'
+    assert c.bundle.intent.unit.ledger_units_per_native_unit==D('.1')
+    submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    actual=c.engine.query_creation(c.write.command_id);result=observe(c,tmp_path/'raw')
+    assert result.source_verified and result.status=='VERIFIED',result.discrepancies
+    assert result.fills[0].raw==actual.fills[0]
+    e=result.fills[0].economics
+    assert e.unit==c.bundle.intent.unit and e.native_quantity==t.Quantity(value=D('.4'),unit='LOT')
+    assert e.ledger_quantity==t.Quantity(value=D('.04'),unit='CONTRACT')
+    assert e.venue_price==t.Price(value=D('81490'),currency='USDT')
+    assert e.reported_gross.amount==e.expected_gross.amount==D('3259.6')
+    assert result.fills[0].fill.quantity==e.native_quantity and result.orders[0].filled_quantity==e.native_quantity
+    assert not result.execution_authorized and not result.funds_release_authorized
+
+
 def test_actual_trailing_observation_survives_creation_window_and_keeps_every_causal_input(database,venue_v2,tmp_path):
     c=trailing_case(database,venue_v2,tmp_path);clock=c.c.facts.inputs.clock
     later=replace(clock,utc_now=(utc_timestamp(clock.utc_now)+timedelta(seconds=10)).isoformat(),monotonic_ns=clock.monotonic_ns+10**10)
@@ -547,6 +584,11 @@ def test_actual_stored_foreign_currency_retains_native_facts_as_economic_conflic
     assert result.fills[0].raw==actual.fills[0] and result.fills[0].fill.price.currency=='ACTUAL_FOREIGN_CURRENCY'
     assert result.fills[0].fill.quantity.value==D('.4') and result.fills[0].economics.reported_gross.amount==D('32596')
     assert 'SOURCE_OR_ECONOMIC_RECONCILIATION_REQUIRED' in result.retained_duties and not result.funds_release_authorized
+    # Even a plausible rules quote cannot replace contradictory actual source.
+    c.engine.query_creation=lambda _:reseal_report(replace(actual,fills=(replace(actual.fills[0],price_asset='USDT'),)))
+    altered=observe(c,tmp_path/'altered')
+    assert not altered.source_verified and not altered.fills and altered.raw_refs
+    assert 'PAPER_V2_FILL_ORDER_ECONOMIC_SOURCE_CHANGED' in altered.discrepancies
 
 
 @pytest.mark.parametrize('fault,code',[('gross','GROSS_NOTIONAL_MISMATCH'),('fees','PROGRAM_FEE_ENVELOPE_EXCEEDED'),
@@ -561,6 +603,10 @@ def test_actual_v2_source_economic_conflicts_retain_uncapped_native_fills(databa
         c.engine._matching_model=PaperMatchingModelV2(model_id='ISOLATED_V2_NONZERO_FEE_SOURCE',quote_fee_rate='.001')
     submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
     actual=c.engine.query_creation(c.write.command_id);fill=actual.fills[0]
+    if fault=='missing_fees':
+        before=observe(c,tmp_path/'known-fee')
+        assert before.source_verified and before.status=='VERIFIED',before.discrepancies
+        assert before.fills[0].fees_known and before.fills[0].fill.fees==(t.Money(amount=D('32.596'),currency='USDT'),)
     change={'gross':dict(gross_notional='1'),'gross_cap':dict(gross_notional='1000001'),
         'fees':dict(fees=[dict(asset='USDT',amount='200',receipt_effect='NO_RECEIPT_DEBIT',position_effect='NO_POSITION_DEBIT')]),
         'missing_fees':dict(fees=[])}[fault]
@@ -578,7 +624,9 @@ def test_actual_v2_source_economic_conflicts_retain_uncapped_native_fills(databa
     assert result.fills[0].raw==observed.fills[0] and result.fills[0].fill.quantity.value==D('.4')
     assert result.fills[0].fill.price.value==D('81490') and result.fills[0].economics.expected_gross.amount==D('32596')
     assert result.fills[0].economics.reported_gross.amount==observed.fills[0].gross_notional
-    assert result.fills[0].economics.fees==result.fills[0].fill.fees
+    assert result.fills[0].economics.fees==tuple(t.Money(amount=D(f.amount),currency=f.asset) for f in observed.fills[0].fees)
+    if fault in ('gross','gross_cap'):
+        assert result.fills[0].fees_known and result.fills[0].fill.fees==(t.Money(amount=D(0),currency='USDT'),)
     assert any(Path(ref.id).read_bytes()==observed.fills[0].raw_payload_json.encode('utf-8') for ref in result.raw_refs)
     if fault=='fees':assert result.fills[0].fill.fees[0].amount==200 and 'FILL_FEE_MODEL_DISCREPANCY' in result.discrepancies
     if fault=='missing_fees':
