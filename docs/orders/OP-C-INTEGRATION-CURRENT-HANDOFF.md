@@ -18,8 +18,10 @@ original11, genuine legacy abort/reconcile/newer-book re-attestation through eve
 write boundary, and missing-proof denials. Existing reservation67PG GREEN12.024s
 at6707 with identical product bytes. Focused35unit GREEN3.53s. Intermediate6707
 14pass2 assertion failures are retained: correct MissingEvidence denial, wrong
-ValueError assertion, fixed without product changes. Four runs64 safe raw copied
-under op-c-physical-release-fix; source-bound manifests preserve every outcome.
+ValueError assertion, fixed without product changes. Four runs64 safe raw under
+op-c-physical-release-fix independently match originals/copies/actual55d7 Gitblobs,
+0mismatch; source-bound manifests preserve every outcome. Dependency9path hashes
+also match tested5ef and currentHEAD. COMMITTED-BYTES.json records the proof.
 Updated exact9path manifest ROOT-CASH-PHYSICAL-DEPENDENCY-5ef20a4.json replaces
 ef80 selection; includes shared reservations.py plus prior8 paths. Cash preserves
 all its newer source513/owned/book/readiness/initial proof modules. No job is live.

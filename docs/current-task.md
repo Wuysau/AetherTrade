@@ -22,9 +22,10 @@ were MissingEvidence while tests expected ValueError. Exact assertions corrected
 no product change. Same product bytes 6707 also passed the affected existing
 67PG reservation suite, 12.024s. Focused 35 unit tests passed 3.53s.
 
-All four new original job handles are terminal. Their 64 safe raw artifacts are
-copied with matching original SHA under op-c-physical-release-fix; committed Git
-blob verification follows this evidence commit. Prior128 proof is unchanged.
+All four new original job handles are terminal. Their 64 safe raw artifacts under
+op-c-physical-release-fix independently match originals, copies and actual
+55d7eb4 committed Git blobs,0 mismatches (COMMITTED-BYTES.json). Prior128 proof is
+unchanged. All9 dependency paths match exact tested5ef source and currentHEAD.
 Updated dependency ROOT-CASH-PHYSICAL-DEPENDENCY-5ef20a4.json replaces the ef80
 selection for Cash: previous8 paths PLUS shared reservations.py extraction (9).
 Preserve Cash's newer source/owned/book/readiness/origin-proof modules when merging.
