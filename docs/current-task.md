@@ -24,8 +24,8 @@ everaccepted. All originalhandles terminal; no restart or defaultactivation.
 24+15 focusedunit passed1.86s/0.46s. Qualifier only adds explicit historical fullSHA
 bundle transport for actual pre18 fixture; source16 exercised exact3d offline.
 
-Fifteen runs240safe raw originals/copies preserved, SHA equal; actual committed
-blob proof follows. ROOT-CASH-HOST-DEPENDENCY-a799f19 binds27CASH and23preserved
+All240raw originals/copies/actuale66edb1 committed Gitblobs independently
+match SHA,0mismatch (COMMITTED-BYTES.json). ROOT-CASH-HOST-DEPENDENCY-a799f19 binds27CASH and23preserved
 Root paths. Fresh independent host/composition review remains required before
 operational promotion. No consoleDB/router/scheduler/model/account/externalmode
 enabled. Effective31031874 reviewedclear27/28/29 is the next serial selection;
