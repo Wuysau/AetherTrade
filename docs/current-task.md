@@ -8,17 +8,25 @@ business boundary and additive0023 existing-PAPER management are isolated from
 creation V3 and frozen0013/0014. No shared host, source/cash or old schemas changed.
 Exact continuation and remaining ROOT hook needs: docs/orders/OP-E-MANAGEMENT-V4.md.
 
-Actualf4e04db32PG GREEN0fail/error/skip128.200s, original79253TERMINALexit0,
-run7fbe62e7d5bb. Genuine new-host executionepoch REDb92daeb29pass1fail113.73s
-precedes it. Source archive, originalIDs/lostACK, oldTTL+freshgrant, currentowner/
-authorization/target, protected singleconsume/directLOGIN and conservative
-protection denial are component proof only. Ordinary130passed7.17s.
+Latest functional21e72d7 actual39PG GREEN0fail/error/skip151.469s,
+original81917TERMINALexit0, rund18d979b9504. ALL management handles are TERMINAL;
+never restart any earlier original. Positive fixtures now declare protected
+initial assets and bind exact account cash BEFORE the initial financial intent.
+Full target/risk/funding JSON, opening_id/cashrevision and original IDs are bound.
+Originals remain immutable across old creation TTL and fresh owner executionepoch.
+Private singleconsume/directLOGIN, final-clock-after-readerwait, lostACK recovery,
+target races, conservative protection denial and safe separate unsent-abort proof
+are components only. No MAY can be unsent-aborted; no cancel/abort releases funds.
 
-New unsent-abort RED3db37dc32pass2missingmethodfail146.95s is TERMINAL85901.
-Fixed96740dd actual36PG original74005 is RUNNING; never restart on an observation
-timeout. Unsent abort has a separate immutable proof and cannot rewrite V4
-history, release funds or abort any MAY. Full edits/evidence/review checkpoint
-are pending that original handle. No other management testjob is live.
+Genuine reader-wait REDbb0f41e36pass3DIDNOTRAISE160.723s precedes2a5ced4
+39PG GREEN160.304s; packaged schema d84cc90 actual39PG GREEN152.091s plus
+isolated offline installed-wheel resource/roundtrip/boolean rejection proof.
+Ordinary2a5ced4130passed0fail/error/skip8.95s (JUnit8.952s). Windows wheel build
+was blocked by missing setuptools; the full reproduced failure is retained.
+Evidence publication maps every terminal PG original, ordinary raw/log/XML and
+sanitized wheel proof; verify original/copy/ACTUAL Git blobs before review.
+Next step is independent review of this component checkpoint, then the shared
+ports below. This implementer releases this batch for review after publication.
 
 ROOT must serially wire neutral management obligations before enabling any host.
 Protection/exit cancellation needs typed shared action proof; KEEP_PRIORITY/

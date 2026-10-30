@@ -1,4 +1,4 @@
-# OP-E management V4 component — ACTIVE
+# OP-E management V4 component — ACTIVE, review checkpoint21e72d7
 
 This additive work preserves all46 Binance capabilities and56 scenarios. It is
 not full management qualification and installs no executable host or account
@@ -30,6 +30,13 @@ with the management binding. Fresh execution ownership uses the current lease's
 epoch while the historical creation epoch and IDs remain immutable. A stale
 READY plan may be aborted only through a separate protected proof that no MAY
 or consumption exists; this local abort never releases original program funds.
+Current risk/funding JSON and exact opening_id/cashrevision are also immutable
+archive facts. Positive execution fixtures use separately declared protected
+initial BTC10/USDT1000000 assets and bookcash binding before the initial intent;
+they do not infer new capital from a live book. The final LOCAL reader boundary
+polls current clock, lease, owner/deployment fence and raw book after any wait.
+The SIM reducer belongs to the existing restricted NOLOGIN matcher definer,
+with private bridge insert and ordinary runtime execute kept separate.
 
 The first implemented action is a conservative cancellation of a nonprotective,
 nonreduce ATOMIC order whose actual original financial allocation is INCREASE.
@@ -58,6 +65,10 @@ do not remove the neutral management duty or release original funds.
   for current allocation, never a bare-ID exclusion or a creation permit. Its
   independent cancel/replacement outcomes, HTTP400/409/PARTIAL/UNKNOWN and
   insufficient overlap-funds cases remain required. No transport is enabled.
+  New risk must statically use ROOT's strict funded account-book helper, with
+  non-None protected opening and current cash revision; a legacy None path can
+  never finance replacement. The management cancellation component is not proof
+  of strict new-risk readiness on the later combined ROOT tree.
 - Native parent stop, independent application-generated child commands and
   observation-only venue-generated children remain required full-scope work.
 
@@ -75,6 +86,19 @@ do not remove the neutral management duty or release original funds.
 | b92daeb | 29pass/1fail,113.73s | Actual fresh execution-epoch management RED |
 | f4e04db | 32pass/0fail/error/skip,128.200s | Actual target archive, oldTTL, lostACK, owner epoch and private boundary |
 | 3db37dc | 32pass/2fail,146.95s | Missing protected unsent-abort methods RED |
+| 96740dd | 36pass/0fail/error/skip,143.915s | Safe abort and fresh partial-target cancellation component |
+| bb0f41e | 36pass/3DIDNOTRAISE,160.723s | Final clock guard missing after LOCAL reader waits |
+| 2a5ced4 | 39pass/0fail/error/skip,160.304s | Final wait guards plus actual explicit funded opening fixtures |
+| d84cc90 | 39pass/0fail/error/skip,152.091s | Dedicated public/package schema resource routing |
+| 21e72d7 | 39pass/0fail/error/skip,151.469s | Restricted PAPER reducer definer and all prior cases |
+
+Fixed2a5ced4 ordinary management/compiler/query/program-command regressions:
+130passed, zero failures/errors/skips,8.95s. Fixed d84cc90's actual offline Linux
+wheel builds without dependency downloads; installed-only resource resolution,
+V4 roundtrip and boolean-epoch rejection pass. Windows lacks setuptools and its
+build attempt fails; the full separately reproduced log is retained alongside
+the Linux proof. The first Windows failure was tool-transcript-only. These
+packaging/component results are not native, deployment or full46/56 qualification.
 
 Every run uses the fixed immutable offline runner image, fresh private Linux PG,
 no host ports, complete JUnit and original evidence. Original handles are held
