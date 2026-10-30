@@ -369,3 +369,11 @@ def test_native_pending_members_wait_for_actual_full_working_fill_then_activate_
     assert after.native_parent.status=='ALL_DONE'
     with c.engine._connect() as db:
         assert db.execute('SELECT count(*) AS n FROM public.paper_engine_commands WHERE scope_key=%s',(c.engine._scope_key,)).fetchone()['n']==1
+
+
+def test_native_pending_node_cannot_borrow_program_gross_to_exceed_its_individual_policy_limit(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path,template='OTO',risk_policy_transform=lambda p:replace(p,maximum_order_notional='82000'),
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    with pytest.raises(ValueError,match='PAPER_NATIVE_NODE_POLICY_EXCEEDED'):submit(c)
+    assert c.engine.query_creation(c.write.command_id) is None

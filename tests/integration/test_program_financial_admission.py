@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,proposal_transform=None,plan_proposal_transform=None,profile_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,financial_capacity=None,financial_buffer=None,**risk_options):
+def real_case(dsn,*,qualified=True,proposal_transform=None,plan_proposal_transform=None,profile_transform=None,risk_policy_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,financial_capacity=None,financial_buffer=None,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -79,6 +79,7 @@ def real_case(dsn,*,qualified=True,proposal_transform=None,plan_proposal_transfo
             node_bounds=tuple(replace(row,execution_fees=node_fees) for row in c.facts.node_bounds),
             inputs=replace(c.facts.inputs,fee_reserve=tuple(f.amount for f in node_fees)))
     group='program-group-'+suffix
+    if risk_policy_transform is not None:c.policy=risk_policy_transform(c.policy)
     tf=replace(c.facts.target_facts,collateral_group_id=group)
     budget=replace(c.facts.budget_facts,collateral_group_id=group)
     c.terms=replace(c.terms,collateral_group_id=group);c.policy=replace(c.policy,collateral_group_id=group)
