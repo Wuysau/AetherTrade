@@ -61,7 +61,8 @@ def decorate_managed_report(engine,db,report):
             binding_json=canonical_json(b),receipt_json=canonical_json(receipt)))
         previous=row
     values={f.name:getattr(report,f.name) for f in fields(PaperCreationReportV2) if f.name not in ('contract_version','record_kind','evidence')}
-    payload={'base':domain_payload(report),
+    base=domain_payload(report);base.pop('evidence')
+    payload={'base':base,
         'history':[domain_payload(v) for v in history],'record_kind':'PAPER_MANAGED_CREATION_REPORT_V1'}
     return PaperManagedCreationReportV1(**values,effective_history=tuple(history),evidence=t.EvidenceRef(
         id='paper-managed:'+report.command_id,hash=canonical_hash(payload),source=SOURCE,environment=t.Environment.PAPER,
@@ -92,3 +93,26 @@ def observe_effective_management(service,command_id):
         tx.execute('SELECT ledger.resolve_effective_management_v1(%s,%s,%s::jsonb)',
             (scope_id(service.scope),command_id,canonical_json(payload)))
     return receipt
+
+class ManagedCreationCodecV1:
+    """Closed tagged archive codec. Decoding is never authorization or provenance."""
+    def encode(self,report):
+        require(type(report) is PaperManagedCreationReportV1,'MANAGED_SOURCE_TYPE_REQUIRED')
+        payload=domain_payload(report)
+        self.decode(payload)
+        return payload
+
+    def decode(self,payload):
+        from trading_system.storage.models import decode
+        require(type(payload) is dict and set(payload)=={f.name for f in fields(PaperManagedCreationReportV1)},
+            'MANAGED_SOURCE_CLOSED_FIELDS_REQUIRED')
+        require(payload.get('contract_version')=='2026-10-30.managed-v1'
+            and payload.get('record_kind')=='PAPER_MANAGED_CREATION_REPORT_V1','MANAGED_SOURCE_VERSION_REQUIRED')
+        report=decode(PaperManagedCreationReportV1,payload)
+        require(report.evidence.source==SOURCE and report.effective_history,'MANAGED_SOURCE_TAG_REQUIRED')
+        base=domain_payload(report);base.pop('evidence');base.pop('effective_history')
+        base.update(contract_version='2026-10-30',record_kind='PAPER_CREATION_REPORT_V2')
+        expected=canonical_hash({'base':base,'history':[domain_payload(e) for e in report.effective_history],
+            'record_kind':'PAPER_MANAGED_CREATION_REPORT_V1'})
+        require(expected==report.evidence.hash,'MANAGED_SOURCE_HASH_CHANGED')
+        return report

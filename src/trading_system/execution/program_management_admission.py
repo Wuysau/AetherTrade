@@ -170,8 +170,8 @@ class ProgramManagementService:
             require(type(clock) is t.ClockReading,'MANAGEMENT_CURRENT_CLOCK_REQUIRED')
             deadline=valid_until or (utc_timestamp(clock.utc_now)+timedelta(seconds=30)).isoformat()
             bundle,inputs,clock,expires,risk,funding,fence=self._facts(tx,original,target,lease,valid_until=deadline)
-            # Incremental/overlap financial admission is an independent remaining
-            # integration. No replacement or modified quantity can borrow holds.
+            # Only a strict reduction retains the original complete risk envelope.
+            # Replacement and price modification still require separate admission.
             require(instruction.kind in (ManagementKind.CANCEL,ManagementKind.KEEP_PRIORITY),'MANAGEMENT_MODIFICATION_FINANCIAL_ADMISSION_REQUIRED')
             if instruction.kind==ManagementKind.KEEP_PRIORITY:
                 require(self.scope.product==t.Product.SPOT and target.parent_list_id is None

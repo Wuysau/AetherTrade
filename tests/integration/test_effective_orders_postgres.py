@@ -17,6 +17,16 @@ def test_keep_priority_actual_funded_quantity_reduction(management_database,venu
     assert result['effective_quantity']=='0.5'
     report=c.engine.query_creation(c.write.command_id)
     assert report.orders[0].quantity==D('0.5')
+    from trading_system.execution.program_effective_orders import ManagedCreationCodecV1
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    codec=ManagedCreationCodecV1();assert codec.decode(codec.encode(report))==report
+    bad=codec.encode(report);bad['unknown']=True
+    with pytest.raises(ValueError,match='CLOSED_FIELDS'):codec.decode(bad)
+    before=c.engine._clock
+    clock=before();c.engine._clock=lambda:replace(clock,utc_now=(utc_timestamp(clock.utc_now)+timedelta(milliseconds=1)).isoformat())
+    try:assert c.engine.query_creation(c.write.command_id).evidence.hash==report.evidence.hash
+    finally:c.engine._clock=before
 
 
 def test_keep_priority_partial_source_fifo_and_repeated_reduction(management_database,venue_v2,management_venue,tmp_path):
@@ -63,7 +73,7 @@ def test_effective_source_tables_are_not_runtime_writable(management_database,ve
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with c.engine._connect() as db:db.execute('INSERT INTO public.paper_effective_orders_v1 DEFAULT VALUES')
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
-        with c.owner.transaction(c.scope) as tx:tx.execute('INSERT INTO ledger.management_effective_resolutions_v1 DEFAULT VALUES')
+        with c.service.uow.transaction(c.scope) as tx:tx.execute('INSERT INTO ledger.management_effective_resolutions_v1 DEFAULT VALUES')
 
 
 def admitted(database,venue,tmp_path,*,partial=False):
@@ -216,3 +226,48 @@ def test_amend_final_guard_rolls_back_actual_venue_mutation_before_commit(
     finally:c.engine._connect=original
     assert executed==[True],'the real venue mutation must precede the late guard failure'
     _assert_wait_failure_retains_original(c,service,write)
+
+
+def test_amend_outlives_creation_ttl_with_fresh_grant(management_database,venue_v2,management_venue,tmp_path):
+    from unittest.mock import patch
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    from trading_system.execution.program_management_paper import submit_management
+    import integration.test_paper_market_matcher as fixture_module
+    original_case=fixture_module.real_case
+    short='2026-10-28T10:00:30Z'
+    def short_case(*args,proposal_transform=None,**kwargs):
+        def transform(p):
+            p=proposal_transform(p) if proposal_transform else p
+            return replace(p,valid_until=short,program=replace(p.program,submit_valid_until=short))
+        return original_case(*args,proposal_transform=transform,**kwargs)
+    with patch.object(fixture_module,'real_case',short_case):c=advanced_case(management_database,venue_v2,tmp_path)
+    submit(c)
+    base=c.engine._clock();later=replace(base,utc_now='2026-10-28T10:00:31Z',monotonic_ns=base.monotonic_ns+31*10**9)
+    assert utc_timestamp(c.write.valid_until)<utc_timestamp(later.utc_now)
+    c.engine._clock=lambda:later
+    c.lease=replace(c.lease,expires_at='2026-10-28T10:01:00Z');c.owner.lease=c.lease
+    s=management(c);read=s.load_inputs
+    def current_grant(*args):
+        inputs=read(*args)
+        return replace(inputs,authorization=replace(inputs.authorization,authorization=replace(
+            inputs.authorization.authorization,expires_at='2026-10-28T10:01:00Z')))
+    s.load_inputs=current_grant
+    w=s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.KEEP_PRIORITY,new_quantity="0.5"),c.lease)
+    permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    with c.owner.session(c.lease.shard):
+        result=submit_management(c.engine,w,permit,boundary=s.boundary,lease=c.lease,owner=c.owner,bridge=management_venue)
+    assert result['effective_quantity']=='0.5' and c.engine.query_creation(c.write.command_id).filled_quantity==0
+
+
+@pytest.mark.parametrize('quantity',['0.2','0.1','1'])
+def test_amend_cannot_erase_fill_or_increase_current_quantity(management_database,venue_v2,management_venue,tmp_path,quantity):
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    from trading_system.engine.paper_market import PaperMatcher
+    c=advanced_case(management_database,venue_v2,tmp_path);submit(c)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.2'))
+    s=management(c)
+    with pytest.raises(Exception,match='KEEP_PRIORITY_REDUCTION_REQUIRED'):
+        s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.KEEP_PRIORITY,new_quantity=quantity),c.lease)
+    assert c.engine.query_creation(c.write.command_id).orders[0].quantity==D('1')
