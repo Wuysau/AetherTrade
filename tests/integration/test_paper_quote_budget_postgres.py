@@ -78,3 +78,59 @@ def test_native_quote_request_executes_actual_depth_without_original_base_quanti
     with pytest.raises(ValueError,match='SOURCE_CHANGED'):
         verify_quote_report(c.engine,replace(report,gross_quote=report.gross_quote+1),boundary=c.gate)
 
+
+@pytest.mark.parametrize('side',['BUY','SELL'])
+@pytest.mark.parametrize('price,quantity,base',[('50000','.02','.02'),('49999','.1','0'),('60001','.1','0'),('50000','0','0')])
+def test_partial_and_out_of_band_liquidity_remain_terminal_with_unused_budget(database,quote_venue,tmp_path,side,price,quantity,base):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    from trading_system.execution.paper_quote_reports import verify_quote_report
+    c=execution_case(database,quote_venue,tmp_path,side=side)
+    snapshot=replace(event(c),asks=(DepthLevel(price=price if side=='BUY' else '70000',quantity=quantity),),
+        bids=(DepthLevel(price=price if side=='SELL' else '40000',quantity=quantity),))
+    matcher=PaperMatcher(c.engine);matcher.apply_market_event(snapshot);submit(c)
+    report=c.engine.query_creation(c.cid)
+    assert report.actual_base==D(base) and report.status=='EXPIRED'
+    assert report.remaining_quote==4000-D(base)*D(price)
+    assert not matcher.apply_market_event(snapshot).applied
+    assert c.engine.query_creation(c.cid)==report
+    assert verify_quote_report(c.engine,report,boundary=c.gate).discrepancies==()
+    with pytest.raises(ValueError):submit(c)
+
+
+def test_quote_reducer_tables_and_function_are_private(quote_venue):
+    import psycopg
+    for statement in ('UPDATE public.paper_quote_runtime_v1 SET actual_base=1',
+        'INSERT INTO public.paper_quote_allocations_v1 DEFAULT VALUES',
+        'DELETE FROM public.paper_quote_terms_v1'):
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            with psycopg.connect(quote_venue.runtime_dsn) as db:db.execute(statement)
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with psycopg.connect(quote_venue.event_dsn) as db:
+            db.execute("SELECT public.paper_accept_quote_v1('x','y','z','m','{}')")
+
+
+def test_quote_actual_lock_wait_does_not_renew_consumed_permit(database,quote_venue,tmp_path):
+    import psycopg,time
+    from concurrent.futures import ThreadPoolExecutor
+    from psycopg.conninfo import conninfo_to_dict
+    from trading_system.engine.paper_market import market_key
+    c=execution_case(database,quote_venue,tmp_path);clock=c.c.facts.inputs.clock
+    dbname=conninfo_to_dict(quote_venue.runtime_dsn)['dbname']
+    with psycopg.connect(quote_venue.event_dsn) as blocker:
+        blocker.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(market_key(c.scope.product,c.scope.instrument_uid),))
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending=pool.submit(submit,c)
+            try:
+                with psycopg.connect(database) as observer:
+                    for _ in range(300):
+                        waiting=observer.execute("SELECT EXISTS(SELECT FROM pg_locks l JOIN pg_database d ON d.oid=l.database WHERE d.datname=%s AND NOT l.granted AND l.locktype='advisory')",(dbname,)).fetchone()[0]
+                        if waiting:break
+                        if pending.done():pending.result()
+                        time.sleep(.02)
+                    else:raise AssertionError('actual SIM advisory wait not observed')
+                c.engine._clock=lambda:replace(clock,utc_now=c.permit.expires_at,monotonic_ns=c.permit.deadline_monotonic_ns)
+            finally:blocker.commit()
+            with pytest.raises(ValueError,match='PAPER_CONSUMED_PERMIT_EXPIRED'):pending.result(timeout=30)
+    assert c.engine.query_creation(c.cid) is None
+    with c.gate.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',(c.cid,)).fetchone()==(1,)
