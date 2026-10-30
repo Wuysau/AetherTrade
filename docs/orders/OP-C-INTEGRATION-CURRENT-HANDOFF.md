@@ -1,5 +1,32 @@
 # Current root and cash continuation
 
+## Current ROOT quote integration — 2026-10-30
+
+Functional46bf284dbb2145287068d7f92761511ada3202c3 selects exact reviewed quote
+candidate03646b57 nine producer/source/test files and adds two mandatory suites
+(64total, prior62 retained). Actual quote30/190.063s, mixed3/33.843s,
+physical16/42.175s, V2source51/254.984s all terminal0/zero fail/error/skip on46bf.
+Focused62unit GREEN3.03s. Four runs64safe raw originals/copies under
+op-d-root-quote-integration match SHA; source manifest ROOT-QUOTE-DEPENDENCY-46bf284
+binds selected9 and preserved8 paths. Frozen13/14 and all5ef financial/current/
+shared-release/permit/afterwait/source-registry bytes remain unchanged.
+
+Exact public adapter remains PaperEngine.submit_creation with its single consumed
+permit; additive0025 is explicitly provisioned in SIM only. Original quoteOrderQty
+never becomes an invented origQty. Quote terms/report/verifier preserve requested/
+gross/remaining quote, actual native base and external quote fees. Restricted source
+checks actual allocations across BASE+quote and correct carried/reference depth.
+Report verification grants no source approval/ownership/cash/release/send right.
+Static quote registry/raw financial bridge, receipt/base/third fee execution and
+fullhost remain unqualified. CASH separately owns strict A+B financial integration.
+
+Physical round1 independent review PASS; no repeated old proof gate. Native
+candidate da12780 independently cleared disposition fix; next serial ROOT0026
+selection MUST preserve quote allocation UNION/manifest/shared capacity and5ef
+guards, then prove genuine same-market quote/native source in actual new PG.
+No combined qualification is inferred from the two separate component results.
+ROOT+D ownership retained, main/archives untouched; full46/56 remains active.
+
 ## Current physical release repair, round1 — 2026-10-30
 
 This section supersedes checkpoint ownership/product text below. integration_fresh

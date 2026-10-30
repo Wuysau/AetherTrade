@@ -1,5 +1,33 @@
 # Current task
 
+## CURRENT_ROOT_QUOTE_INTEGRATION_GREEN — 2026-10-30
+
+Reviewed quote candidate03646b5705a5cabbefafe608dee472a2cf0ba103 is selectively
+integrated at exact ROOT46bf284dbb2145287068d7f92761511ada3202c3. Nine selected
+producer/source/test files match the reviewed candidate exactly; two additive
+suites retain all62 original entries (64total). Shared allocations include quote
+rivals; independent V2 Counter and depth/reference/prevention capacity checks
+remain complete. Original quote budget, derived base, gross quote, unused quote
+and external quote fees stay distinct. Unsupported receipt/base/third fees deny.
+Frozen0013/14, ROOT5ef physical/shared preparation/current/afterwait guards and
+static source registration are byte unchanged. No host/default qualification edit.
+
+All actual fixed46bf jobs terminal exit0,0fail/error/skip:
+quote30/190.063s(original81556,run00bf6e19f413), mixed3/33.843s(12742,670e9670aab3),
+physical16/42.175s(43484,d0b39644c50e), V2source51/254.984s(98892,75478dae9853).
+Focused62unit GREEN3.03s. Safe64raw originals/copies match SHA; committed-blob
+verification follows this evidence commit. Exact selected/preserved manifest:
+docs/orders/ROOT-QUOTE-DEPENDENCY-46bf284.json. Evidence: op-d-root-quote-integration.
+
+Quote verification is a distinct tagged fact result, not registered source or
+owned financial posting. Its native raw-fill/economic bridge, fee families and
+full56 acceptance remain active. Physical review round1 independently PASS/P2
+addressed; CASH owns its actual A+B posting/new intake work separately. Native
+candidate da12780 has now independently cleared its disposition fix; next ROOT
+slice is serial additive0026 plus genuine same-market quote/native source PG.
+Separate quote/native component success never proves their combined behavior.
+ROOT+D sole ownership retained; onlyORD47 formally complete, all46/56 required.
+
 ## CURRENT_PHYSICAL_RELEASE_FIX_ROUND1 — 2026-10-30
 
 Independent review of ef80 found one P2: bare scoped merge_holds discarded a
