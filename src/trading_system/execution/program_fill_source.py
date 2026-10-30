@@ -184,15 +184,18 @@ def _read_committed_fill_source(tx,approval_id,reader):
         require(all(payload[key]==value for key,value in context.items()),'PROGRAM_ORIGINAL_SOURCE_CHANGED')
         stored=payload['normalized']
         verification=payload['verification']
+        consumed_hash=context['consumption_hash']
     else:
         source=reader._snapshot(payload['source_snapshot_hash'],command_id)
         stored=source['normalized_fills'].get(payload['normalized_hash'])
         require(stored is not None and canonical_hash(stored)==payload['normalized_hash'],'PROGRAM_APPROVED_NATIVE_FACTS_CHANGED')
         verification=source['verification']
+        consumed_hash=source['consumption_hash']
     normalized=decode_source_normalized(stored,verification)
     fill,economics,raw=normalized.fill,normalized.economics,normalized.raw
     if type(normalized) is NormalizedPaperFillV2:
-        require(normalized.source_v2.consumption_context_hash==_source_context(tx,command_id)['consumption_hash'],
+        require(payload['record_kind']=='PAPER_PROGRAM_FILL_SOURCE_V2'
+            and normalized.source_v2.consumption_context_hash==consumed_hash,
             'PROGRAM_V2_SOURCE_PROVENANCE_CHANGED')
     rederived=normalize_native_economics(quantity=economics.native_quantity,price=economics.venue_price,
         fees=economics.fees,reported_gross=economics.reported_gross,unit=economics.unit)
