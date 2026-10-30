@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,proposal_transform=None,plan_proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,financial_capacity=None,financial_buffer=None,**risk_options):
+def real_case(dsn,*,qualified=True,proposal_transform=None,plan_proposal_transform=None,profile_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,financial_capacity=None,financial_buffer=None,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -58,6 +58,7 @@ def real_case(dsn,*,qualified=True,proposal_transform=None,plan_proposal_transfo
             evidence=(qualification_ref,) if qualified else ())
         k={**k,'scope':scope,'profile':replace(k['profile'],scope=scope),
             'expected_capabilities_hash':VersionedOrderCodec().hash('order-capability-snapshot',c)}
+        if profile_transform is not None:k={**k,'profile':profile_transform(k['profile'])}
         return p,r,c,k
     original_plan_for=risk_module.plan_for
     def selected_plan(**options):

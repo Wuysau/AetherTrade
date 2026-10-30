@@ -252,7 +252,9 @@ def test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_in
         database,venue_v2,tmp_path,mode,terminal,maker_remaining,taker_prevented):
     from trading_system.engine.paper_market import PaperMatcher
     from trading_system.engine.paper_market_v2 import PaperLiquidityOwnershipEventV2,PaperLiquidityOwnerV2
-    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,stp=mode))
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,stp=mode),
+        profile_transform=lambda p:replace(p,profile_id='SYNTHETIC_V2_STP_'+mode,
+            spot=replace(p.spot,allowed_stp=('NONE',mode))))
     submit(c);matcher=PaperMatcher(c.engine);depth=event(c,quantity='1');matcher.apply_market_event(depth)
     report=c.engine.query_creation(c.write.command_id)
     assert not report.fills and report.orders[0].runtime.phase=='WAITING_COUNTERPARTY_DATA'
