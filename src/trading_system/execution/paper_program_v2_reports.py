@@ -193,7 +193,7 @@ class PaperProgramV2ReportVerifier:
             and report.evidence.id=='paper-market-v2-query:'+write.command_id and report.evidence.hash==canonical_hash(body)
             and report.evidence.source==SOURCE and report.evidence.environment==t.Environment.PAPER,'PAPER_V2_REPORT_HASH_CHANGED')
         nodes={n.original.node_id:n for n in plan.nodes};assigned={m.node_id:m.client_id for m in request.assigned_ids.members}
-        _check(plan.original_program.template in ('ATOMIC','OCO'),'PAPER_V2_NATIVE_LINEAGE_INTERFACE_UNSUPPORTED')
+        _check(plan.original_program.template in ('ATOMIC','OCO','OTO','OTOCO'),'PAPER_V2_NATIVE_LINEAGE_INTERFACE_UNSUPPORTED')
         _check(set(nodes)==set(assigned) and len(report.orders)==len(report.accepted_contexts)==len(nodes),'PAPER_V2_NODE_INVENTORY_CHANGED')
         if request.assigned_ids.parent_client_id is not None:
             parent=report.native_parent
@@ -258,6 +258,8 @@ class PaperProgramV2ReportVerifier:
             own_fills=tuple(f for f in report.fills if f.client_id==client)
             own_inputs=tuple(i for i in market.inputs if (i.event.market_key,i.event.event_id) in
                 {(d['market_key'],d['event_id']) for d in deps if d['client_id']==client})
+            if report.native_parent is not None and n.original.role=='PENDING':
+                self._working_lineage(n,order,nodes,report,deps,events)
             self._trigger(spec,order,own_inputs,own_fills,accepted_at)
             identity=t.OrderIdentity(scope=self.scope,logical_client_order_id=client,native_client_order_id=client,venue_client_order_id=client,venue_order_id=order.venue_order_id)
             total=Decimal(0);gross_total=Decimal(0);fee_totals={}
@@ -324,6 +326,30 @@ class PaperProgramV2ReportVerifier:
                 and raw.get('record_kind')=='PAPER_MARKET_DISPOSITION' and raw.get('status')==d.status and raw.get('reason')==d.reason,
                 'PAPER_V2_DISPOSITION_SOURCE_CHANGED')
         return tuple(normalized),tuple(projections),tuple(dict.fromkeys(economics)),graph,graph_hash
+
+    def _working_lineage(self,node,order,nodes,report,deps,events):
+        working_nodes=tuple(n for n in nodes.values() if n.original.role=='WORKING')
+        _check(len(working_nodes)==1,'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED')
+        working=next(o for o in report.orders if o.node_id==working_nodes[0].original.node_id)
+        fills=tuple(f for f in report.fills if f.client_id==working.client_id)
+        link=order.runtime.parent_activation_fill_id
+        if link is None:
+            _check(not order.runtime.active and order.filled_quantity==0
+                and not any(f.client_id==order.client_id for f in report.fills),
+                'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED')
+            return
+        _check(fills and working.status=='FILLED' and working.filled_quantity==working.quantity
+            and sum((Fraction(f.quantity) for f in fills),Fraction(0))==Fraction(working.quantity)
+            and all(events[f.fill_id]['raw']==f.raw_payload_json and events[f.fill_id]['payload_hash']==f.evidence.hash for f in fills),
+            'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED')
+        # The frozen venue's complete-working witness uses this exact persisted
+        # event ordering. No ACK, token age or initial target metric is a fill.
+        witness=max(fills,key=lambda f:(exact_time(f.occurred_at),f.fill_id))
+        _check(link==witness.fill_id and all(exact_time(f.occurred_at)>=exact_time(witness.occurred_at)
+            for f in report.fills if f.client_id==order.client_id),'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED')
+        working_inputs={(d['market_key'],d['event_id']) for d in deps if d['client_id']==working.client_id}
+        pending_inputs={(d['market_key'],d['event_id']) for d in deps if d['client_id']==order.client_id}
+        _check(working_inputs<=pending_inputs,'PAPER_V2_NATIVE_WORKING_CAUSAL_GRAPH_CHANGED')
 
     def _trigger(self,spec,order,inputs,fills,accepted_at):
         if spec.trigger.kind=='NONE':return
