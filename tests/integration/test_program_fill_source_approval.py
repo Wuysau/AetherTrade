@@ -385,12 +385,15 @@ def test_0018_backfills_existing_v2_source_without_rewriting_history(database,ve
             'migrations/0012_program_command_boundary.sql','migrations/0016_program_fill_source_approval.sql',
             'migrations/0017_program_fill_source_snapshots.sql'):
             db.execute((root/relative).read_text(encoding='utf-8'))
-    c=case(old_dsn,venue,tmp_path);submit(c)
-    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
-    verifier,codec=actual_verifier(c,tmp_path/'old-source-archive')
+    from integration.support_historical_program_source import historical_source_case,VINTAGE
+    c,original_approvals,archive=historical_source_case(old_dsn,venue,tmp_path)
+    assert VINTAGE=='3d13721cbcdc2e35cdd347c610372f13fee03b4f'
+    verifier,codec=actual_verifier(c,archive)
     service=ProgramFillSourceService(source_uow(old_dsn),c.scope,verifier=verifier)
     try:
-        prior=service.approve(c.write.command_id)
+        with c.service.uow.transaction(c.scope) as tx:
+            prior=tuple(read_committed_fill_source(tx,a['approval_id']) for a in original_approvals)
+            assert [domain_payload(a) for a in prior]==original_approvals
         with psycopg.connect(old_dsn) as db:
             assert db.execute("SELECT to_regclass('ledger.program_fill_source_headers')").fetchone()==(None,)
             snapshots=db.execute('SELECT scope_id,snapshot_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_snapshots').fetchall()
@@ -402,8 +405,8 @@ def test_0018_backfills_existing_v2_source_without_rewriting_history(database,ve
             assert db.execute('SELECT count(*) FROM ledger.program_fill_source_headers').fetchone()==(1,)
             assert db.execute('SELECT count(*) FROM ledger.program_fill_source_leaves').fetchone()==(1,)
         with c.service.uow.transaction(c.scope) as tx:
-            assert read_committed_fill_source(tx,prior.approvals[0].approval_id)==prior.approvals[0]
-        assert service.approve(c.write.command_id).approvals==prior.approvals
+            assert read_committed_fill_source(tx,prior[0].approval_id)==prior[0]
+        assert service.approve(c.write.command_id).approvals==prior
         PaperMatcher(c.engine).apply_market_event(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'))
         assert len(service.approve(c.write.command_id).approvals)==2
     finally:codec.close()
