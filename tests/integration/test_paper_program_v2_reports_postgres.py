@@ -328,3 +328,87 @@ def test_accepted_model_must_be_actual_stored_model_even_without_any_fill(databa
     result=observe(c,tmp_path/'raw')
     assert not result.source_verified and result.raw_refs
     assert 'PAPER_V2_ACCEPTED_DURABLE_TERMS_CHANGED' in result.discrepancies
+
+
+def test_order_lifecycle_cannot_be_resealed_into_a_false_terminal_observation(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    report=c.engine.query_creation(c.write.command_id)
+    c.engine.query_creation=lambda _:reseal_report(replace(report,orders=(replace(report.orders[0],status='FILLED',remaining_quantity=D(0)),)))
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and not result.fills and result.raw_refs
+    assert 'PAPER_V2_ACTUAL_ORDER_ID_CHANGED' in result.discrepancies
+
+
+@pytest.mark.parametrize('field,value,code',[('filled_quantity','0.5','ORDER_CUMULATIVE_FILL_MISMATCH'),
+    ('remaining_quantity','0.9','ORDER_REMAINING_QUANTITY_MISMATCH'),('quantity','0.3','ORDER_OVERFILLED')])
+def test_actual_native_fill_survives_cumulative_remaining_and_original_quantity_conflicts_uncapped(
+        database,venue_v2,tmp_path,field,value,code):
+    from pathlib import Path
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    report=c.engine.query_creation(c.write.command_id);observed=replace(report.orders[0],**{field:D(value)})
+    c.engine.query_creation=lambda _:reseal_report(replace(report,orders=(observed,)))
+    result=observe(c,tmp_path/'raw')
+    assert result.source_verified and result.status=='DISCREPANCY',result.discrepancies
+    assert code in result.discrepancies and result.fills[0].fill.quantity.value==D('.4')
+    assert result.fills[0].economics.reported_gross.amount==D('32596')
+    assert any(Path(r.id).read_bytes()==report.fills[0].raw_payload_json.encode('utf-8') for r in result.raw_refs)
+    assert 'SOURCE_OR_ECONOMIC_RECONCILIATION_REQUIRED' in result.retained_duties and not result.funds_release_authorized
+
+
+def test_actual_otoco_full_working_sum_native_sibling_and_pool_complete_after_creation_window(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path,template='OTOCO',
+        financial_capacity=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=D(0)),t.Money(currency='BTC',amount=D(0))))
+    submit(c);matcher=PaperMatcher(c.engine);matcher.apply_market_event(event(c,quantity='.4'))
+    matcher.apply_market_event(event(c,sequence=2,quantity='.6',kind='DEPTH_DELTA'))
+    matcher.apply_market_event(replace(event(c,sequence=3,ask='83001',quantity='1'),bids=(DepthLevel(price='83000',quantity='1'),)))
+    matcher.apply_market_event(reference(c,4,'LAST','83000'));base=c.c.facts.inputs.clock
+    c.engine._clock=lambda:replace(base,utc_now=(utc_timestamp(base.utc_now)+timedelta(seconds=10)).isoformat(),monotonic_ns=base.monotonic_ns+10**10)
+    result=observe(c,tmp_path/'raw')
+    assert result.source_verified,result.discrepancies
+    assert len(result.orders)==3 and result.raw_report.native_parent.status=='ALL_DONE'
+    assert sum((f.fill.quantity.value for f in result.fills),D(0))==2
+    assert any(d.reason=='NATIVE_EXCLUSIVE_SIBLING_ACTIVATED' for d in result.raw_report.dispositions)
+
+
+def test_missing_actual_rival_stp_prevention_is_never_hidden_by_resealed_proof(database,venue_v2,tmp_path):
+    c,_=stp_case(database,venue_v2,tmp_path,'EXPIRE_MAKER')
+    # A distinct actual admitted account observes the same depleted book.
+    other=advanced_case(database,venue_v2,tmp_path,market=c.scope.instrument_uid);submit(other)
+    market=other.engine.query_market_evidence(other.write.command_id)
+    assert market.preventions and all(p.scope!=other.scope for p in market.preventions)
+    other.engine.query_market_evidence=lambda _:reseal_market(replace(market,preventions=()))
+    result=observe(other,tmp_path/'raw')
+    assert not result.source_verified and not result.fills and result.raw_refs
+    assert 'PAPER_V2_ALL_RIVAL_PREVENTION_SET_CHANGED' in result.discrepancies
+
+
+def test_actual_v2_forked_process_restart_keeps_identical_facts_and_does_not_post(database,venue_v2,tmp_path):
+    import os
+    from trading_system.contracts.canonical import canonical_json
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    archive=tmp_path/'archive';first=observe(c,archive);assert first.source_verified,first.discrepancies
+    read_end,write_end=os.pipe();child=os.fork()
+    if child==0:
+        os.close(read_end)
+        try:
+            second=observe(c,archive);body=canonical_json(domain_payload(second)).encode('utf-8')
+            with os.fdopen(write_end,'wb') as output:output.write(body)
+        except BaseException:os._exit(71)
+        os._exit(0)
+    os.close(write_end)
+    with os.fdopen(read_end,'rb') as incoming:observed=incoming.read(1048577)
+    _,status=os.waitpid(child,0)
+    assert os.waitstatus_to_exitcode(status)==0 and len(observed)<=1048576
+    assert observed==canonical_json(domain_payload(first)).encode('utf-8')
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+
+
+def test_unknown_market_shape_retains_actual_report_archive_and_duties(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    c.engine.query_market_evidence=lambda _:dict(record_kind='FUTURE_UNQUALIFIED_MARKET',command_id=c.write.command_id)
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and not result.fills and result.raw_refs
+    assert result.discrepancies==('PAPER_V2_SOURCE_INTERFACE_UNSUPPORTED',)
+    assert 'RESERVATION_RECONCILIATION_REQUIRED' in result.retained_duties
