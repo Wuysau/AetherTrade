@@ -21,10 +21,13 @@ are components only. No MAY can be unsent-aborted; no cancel/abort releases fund
 Genuine reader-wait REDbb0f41e36pass3DIDNOTRAISE160.723s precedes2a5ced4
 39PG GREEN160.304s; packaged schema d84cc90 actual39PG GREEN152.091s plus
 isolated offline installed-wheel resource/roundtrip/boolean rejection proof.
-Ordinary2a5ced4130passed0fail/error/skip8.95s (JUnit8.952s). Windows wheel build
+Ordinary2a5ced4130passed0fail/error/skip8.95s. Windows wheel build
 was blocked by missing setuptools; the full reproduced failure is retained.
-Evidence publication maps every terminal PG original, ordinary raw/log/XML and
-sanitized wheel proof; verify original/copy/ACTUAL Git blobs before review.
+Evidence publication maps15 terminal PG originals and248 raw files, including
+ordinary raw/log/XML and sanitized wheel proof. Original/copy/ACTUAL Git blob
+verification must remain exact; no container.env, source archive or wheel binary
+is published. The first Windows build failure is tool-transcript-only; its full
+independent reproduction is archived explicitly.
 Next step is independent review of this component checkpoint, then the shared
 ports below. This implementer releases this batch for review after publication.
 
