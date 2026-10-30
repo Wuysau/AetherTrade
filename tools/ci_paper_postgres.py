@@ -28,6 +28,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('program-accounting','03','tests/integration/test_program_accounting_postgres.py'),
     ('program-fill-source','03','tests/integration/test_program_fill_source_approval.py'),
     ('execution-evidence-atomic','12','tests/integration/test_execution_evidence_atomic.py'),
     ('program-dispatcher', '03', 'tests/integration/test_program_dispatcher_postgres.py'),
