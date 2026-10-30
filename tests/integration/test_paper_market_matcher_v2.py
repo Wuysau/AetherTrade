@@ -504,3 +504,18 @@ def test_native_twap_generates_observed_children_once_from_persisted_clock_and_s
     assert sum((a.quantity for a in proof.consumptions),D(0))==D('0.4')
     with c.engine._connect() as db:
         assert db.execute('SELECT count(*) AS n FROM public.paper_engine_commands WHERE scope_key=%s',(c.engine._scope_key,)).fetchone()['n']==1
+
+
+def test_native_generation_cannot_execute_after_a_mutable_pool_ceiling_diverges_from_immutable_parent_source(database,venue_v2,tmp_path):
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
+    from trading_system.engine.paper_market import PaperMatcher
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+    admin=make_conninfo(**{**conninfo_to_dict(database),'dbname':conninfo_to_dict(venue_v2.runtime_dsn)['dbname']})
+    with psycopg.connect(admin) as db:
+        db.execute('UPDATE public.paper_native_algorithm_progress_v2 SET maximum_gross_notional=maximum_gross_notional+1 '
+            'WHERE scope_key=%s AND parent_client_id=%s',(c.engine._scope_key,c.request.assigned_ids.parent_client_id))
+    with pytest.raises(psycopg.errors.RaiseException,match='native pool immutable source changed'):
+        PaperMatcher(c.engine).apply_market_event(event(c,quantity='1'))
+    with c.engine._connect() as db:
+        assert db.execute('SELECT count(*) AS n FROM public.paper_native_child_allocations_v2 WHERE scope_key=%s',(c.engine._scope_key,)).fetchone()['n']==0
