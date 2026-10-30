@@ -358,6 +358,7 @@ def test_owner_authored_order_quantities_cannot_replace_private_source(database,
             from trading_system.execution.program_legacy_opening import read_program_local_account_opening
             bind_program_book_cash(tx,forged,read_opening=read_program_local_account_opening)
             with pytest.raises(MissingEvidence,match='PROGRAM_ORDER_BOOK_MISMATCH'):read_program_working_inputs(tx,forged)
+        with pytest.raises(MissingEvidence,match='PROGRAM_ORDER_BOOK_MISMATCH'):service.apply(c.write.command_id)
     finally:codec.close();old_codec.close()
 
 

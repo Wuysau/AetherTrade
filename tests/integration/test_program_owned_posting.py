@@ -379,6 +379,13 @@ def test_two_real_commands_same_account_can_post_own_scope_then_reconcile_withou
         partial=services[0].apply(a.write.command_id)
         assert partial.status=='OWN_SCOPE_POSTED_ACCOUNT_RECONCILIATION_REQUIRED',partial.missing
         assert scope_history(b)==b_before # A did not write any B financial history
+        from trading_system.execution.program_order_projection import ProgramPaperOrderProjectionService
+        order_service=ProgramPaperOrderProjectionService(a.service.uow,a.scope,
+            observer=ProgramSubmissionObservationService(source_uow(database),a.scope,
+                verifier=services[0].source_service.verifier))
+        assert order_service.apply(a.write.command_id).status=='ORDER_PROJECTED_FINANCIAL_RECONCILIATION_REQUIRED'
+        assert order_service.apply(a.write.command_id).status=='ORDER_PROJECTED_FINANCIAL_RECONCILIATION_REQUIRED'
+        assert scope_history(b)==b_before
         with a.service.uow.transaction(a.scope) as tx:
             assert RegistryTx(tx).owner().position.actual_quantity.value==D('.4')
             before=tx.projections.book(a.scope)
