@@ -45,8 +45,7 @@ Nativequantity/venueprice/FinancialUnit and raw economics remain uncapped.
 No posting/credit/ownership/FLAT/protection/release/permit. LateracceptedGTC/
 working children are historical observations, never re-gated bycreationTTL.
 
-Nextsmalleststep: inspect37704 actualterminal; fix concrete failure if any;
-then add actual source-bound STP/prevention+calendar/peg/iceberg TDD. Tighten
+Nextsmalleststep: add actual source-bound STP/prevention+calendar/peg/iceberg TDD. Tighten
 all disposition source/model/envelope/clocks, report duplicatefill/inventory,
 OCOexclusive/sibling/pool causality, preserved economic/cumulative mismatches,
 rawarchival before unknownshape, allrival boundedness and restart. Only after
