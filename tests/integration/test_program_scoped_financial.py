@@ -181,14 +181,20 @@ def test_released_zero_hold_without_current_reattestation_never_grants_scoped_cr
     gate=boundary(c);gate.readers['load_released_balances']=reader
     if phase=='mark':
         gate.readers['load_released_balances']=None
-        with pytest.raises(ValueError,match='PROGRAM_CURRENT_(BOOK_CHANGED|GROUP_HOLDS_CHANGED|ECONOMICS_CHANGED)'):
+        with pytest.raises(MissingEvidence,match='PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED'):
             gate.mark_may_have_sent(write.command_id,lease(c))
+        with c.owner.transaction(c.scope) as tx:
+            assert tx.execute('SELECT count(*) FROM ledger.program_dispatch_marks WHERE scope_id=%s',
+                (scope_id(c.scope),)).fetchone()==(0,)
         return
     permit=gate.mark_may_have_sent(write.command_id,lease(c))
     if phase=='consume':
         gate.readers['load_released_balances']=None
-        with pytest.raises(ValueError,match='PROGRAM_CURRENT_(BOOK_CHANGED|GROUP_HOLDS_CHANGED|ECONOMICS_CHANGED)'):
+        with pytest.raises(MissingEvidence,match='PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED'):
             gate.consume(permit,lease(c))
+        with c.owner.transaction(c.scope) as tx:
+            assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
+                (scope_id(c.scope),)).fetchone()==(0,)
         return
     assert gate.consume(permit,lease(c))==request
     gate.readers['load_released_balances']=None
