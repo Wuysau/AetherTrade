@@ -657,3 +657,17 @@ def test_final_guard_rolls_back_actual_venue_mutation_before_commit(
     finally:c.engine._connect=original
     assert executed==[True],'the real venue mutation must precede the late guard failure'
     _assert_wait_failure_retains_original(c,service,write)
+
+
+def test_keep_priority_actual_funded_quantity_reduction(management_database,venue_v2,management_venue,tmp_path):
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    from trading_system.execution.program_management_paper import submit_management
+    c=advanced_case(management_database,venue_v2,tmp_path);submit(c)
+    s=management(c)
+    w=s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.KEEP_PRIORITY,new_quantity='0.5'),c.lease)
+    permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    with c.owner.session(c.lease.shard):
+        result=submit_management(c.engine,w,permit,boundary=s.boundary,lease=c.lease,owner=c.owner,bridge=management_venue)
+    assert result['effective_quantity']=='0.5'
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.orders[0].quantity==D('0.5')
