@@ -1,5 +1,104 @@
 # Current task
 
+## Account asset reconstruction checkpoint — 2026-10-30
+
+Parent/root is the sole writer of this accounting worktree. Current product is
+fb2de603. All parent test handles below are terminal; there is no live parent
+qualification job. The complete 46-capability/56-case goal remains ACTIVE.
+
+Implemented since the previous checkpoint:
+
+- `FillLedger.require_recorded_in_tx` reads actual recorded native facts using
+  the existing ID scope, duplicate and evidence validation. It never records a
+  caller's fill or grants ownership/credit.
+- `ProgramFillSourceApproval` now carries the protected global verification
+  status, discrepancies and retained duties. No stored source payload/hash was
+  rewritten. The new `ProgramAssetPostingReader` also checks original creation,
+  exact financial unit and actual FillLedger facts before deriving Spot effects.
+- New additive migration 0019 and `program_account_opening.py` provide explicit,
+  immutable PAPER initial assets. A dedicated NOLOGIN provisioner has no automatic
+  members or direct table writes. Exact retries are idempotent; a changed vector
+  or initialization after financial admission is rejected. This table holds only
+  an initial vector, never a running balance. It does not assign initial BTC to
+  any strategy position. Dispatch gets historical SELECTs, never approval writes.
+- `program_asset_postings.py` defines immutable per-native economic delta
+  records; cash consumers rederive them instead of trusting owner audit JSON.
+- `program_account_cash.py` reconstructs one account/product across instrument
+  scopes using a SELECT-only view in the same collateral transaction. It checks
+  every approved source, counts stable native identities once, verifies existing
+  ledger fills and posting records, rejects unknown/unposted/conflicting data,
+  and never maintains another cash total. Current opening provider is the exact
+  protected SQL reader; arbitrary functions/DTOs cannot supply capital.
+
+Actual source-specific validation:
+
+| Fixed source | Suite | Actual result |
+| --- | --- | --- |
+| be27f0a | asset reader RED | 5 missing-module failures after genuine source execution |
+| 85ab011 | asset reader | 5 passed, 36.93s, no failures/errors/skips |
+| 85ab011 | existing source regression | 15 passed, 80.21s; existing JUnit property warning |
+| e371905 | opening RED | 7 missing-capability failures |
+| 9cc980f | opening | 7 passed, 3.69s |
+| 526146d | malformed opening RED | 7 passed, 2 DID NOT RAISE (null time and boolean currency) |
+| 28ebbab | opening | 9 passed, 3.85s, no failures/errors/skips |
+| 5fc320c | account cash RED | 6 missing-module failures |
+| 7ca3f09 | initial account cash | 2 passed, 4 fixture market-sequence conflicts |
+| fb2de60 | account cash | 6 passed, 27.44s, no failures/errors/skips |
+
+The fixture conflicts were fixed with separate instrument stream IDs, preserving
+matcher sequence checks. Existing fixture defaults and order/risk options are
+unchanged; `case(..., prepared_case=c)` is only for initializing an authenticated
+opening before financial admission. Adversarial normalized fill/audit inputs in
+negative cases are explicitly not legitimate execution evidence. Related local
+unit regression: 175 passed, 11.21s at 85ab011; later focused 42 passed, 0.41s.
+
+160 new raw artifacts are preserved under op-e-account-cash with a source-bound
+copy map. This is separate from the prior 289 raw files already checked against
+original/copy/committed Git blobs. Publication requires the same Git-blob check.
+
+IMPORTANT unfinished work, not a complete financial writer:
+
+1. No actual owner/position/book atomic posting service is installed yet. Current
+   raw service still reports RAW_RECORDED_ECONOMICS_BLOCKED. Economic markers in
+   cash tests qualify contribution reconstruction only, not position execution.
+2. The legacy opening adapter is not implemented. `_legacy_effects` handles known
+   original Spot commands and actual fees once a protected opening exists, but
+   mixed pre-existing console accounts still need a unique, account-bound legacy
+   seed adapter. Unknown metadata/fees must remain explicit blockers.
+3. No BookCashBinding or stale-book/reconciliation helper exists yet. Next add
+   real cross-instrument stale-book tests, then expose exact neutral guard APIs
+   to root's initial financial / mark / consume / after-wait seams. Never save
+   another instrument through the current LedgerTx or nest collateral UoWs.
+4. Account revision is based on initial proof plus stable economic contributions;
+   repeated source snapshots must not change it. Strengthen the current replay
+   test to advance the source observation clock and assert distinct snapshot rows
+   with the same native identity, then confirm identical cash/revision.
+5. Before cash data can be claimed ready, add mixed legacy/new, concurrent/restart,
+   fee asset and source-conflict cases, actual ownership/positions/book writes,
+   fee cashflows without double counting, and retained protection/cost/history
+   duties. No futures Spot principal debit, inferred wallet location, FLAT or
+   reservation release is allowed.
+
+Root rulings: use deterministic `read_program_account_cash(tx, read_opening=...)`
+with no running total. None is only permitted for the no-generic legacy branch;
+otherwise missing provenance is MissingEvidence. Root will call the neutral guard
+at `_prepare_collateral`, current mark/consume and after waits. Other scope books
+remain stale until their own owner transaction reconciles or denies/replans.
+Audit BookCashBinding alone never grants credit; rederive revision and vector.
+
+Root integration_next owns binance-orders and has integrated the previous raw
+stage only. Its fixed 28af8b3 complete gate has 48 mandatory PG suites / 1155 pass
+with zero failures/errors/skips; ordinary 3526 pass / 709 environmental skips /
+96 deselected. Those results do not qualify this later cash/opening work.
+
+reports_fresh released V2 verifier tree at 78b84f0, then ended. New fresh-context
+reports_v2_fresh owns that same tree. Its current bounded V2 source module is NOT
+registry-ready; parent owns future static exact-type and raw decoder registration.
+V2 normalized.raw remains genuine PaperMarketFill; explicit source_v2 tags/global
+serialized source status/duties distinguish its proof. Keep V1 schema/hash intact.
+Activation and root integration continue their own trees. No LIVE/TESTNET/account,
+paid product model, main/archive or public push/cleanup action was performed.
+
 ## OP_E_MISSING_BINDING_REVIEW_CLOSED_SPOT_MATH_STARTED — 2026-10-30
 
 Parent/root remains sole accounting writer. Latest productc12c840 adds only

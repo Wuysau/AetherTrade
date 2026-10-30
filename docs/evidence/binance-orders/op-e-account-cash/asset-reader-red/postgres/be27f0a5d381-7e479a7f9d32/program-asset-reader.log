@@ -1,0 +1,44 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_genuine_ledger_fill_yields_authenticated_effects_without_issuing_credit _
+tests/integration/test_program_asset_reader_postgres.py:29: in test_genuine_ledger_fill_yields_authenticated_effects_without_issuing_credit
+    result=reader(tx,c).read(approved.approval_id)
+           ^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'
+_______ test_private_source_approval_without_ledger_fill_cannot_be_spent _______
+tests/integration/test_program_asset_reader_postgres.py:43: in test_private_source_approval_without_ledger_fill_cannot_be_spent
+    reader(tx,c).read(approved.approval_id)
+    ^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'
+_ test_global_source_discrepancy_is_not_hidden_by_consistent_individual_economics _
+tests/integration/test_program_asset_reader_postgres.py:60: in test_global_source_discrepancy_is_not_hidden_by_consistent_individual_economics
+    reader(tx,c).read(approved.approval_id)
+    ^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'
+____ test_owner_normalized_quantity_cannot_override_private_source_quantity ____
+tests/integration/test_program_asset_reader_postgres.py:78: in test_owner_normalized_quantity_cannot_override_private_source_quantity
+    reader(tx,c).read(approved.approval_id)
+    ^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'
+________ test_foreign_approval_id_is_not_accepted_in_another_instrument ________
+tests/integration/test_program_asset_reader_postgres.py:89: in test_foreign_approval_id_is_not_accepted_in_another_instrument
+    reader(tx,replace_scope(c,tx.scope)).read(approved.approval_id)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_asset_reader_postgres.py::test_genuine_ledger_fill_yields_authenticated_effects_without_issuing_credit
+FAILED tests/integration/test_program_asset_reader_postgres.py::test_private_source_approval_without_ledger_fill_cannot_be_spent
+FAILED tests/integration/test_program_asset_reader_postgres.py::test_global_source_discrepancy_is_not_hidden_by_consistent_individual_economics
+FAILED tests/integration/test_program_asset_reader_postgres.py::test_owner_normalized_quantity_cannot_override_private_source_quantity
+FAILED tests/integration/test_program_asset_reader_postgres.py::test_foreign_approval_id_is_not_accepted_in_another_instrument
+5 failed in 24.45s

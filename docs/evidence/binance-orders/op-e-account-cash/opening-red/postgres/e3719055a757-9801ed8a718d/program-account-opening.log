@@ -1,0 +1,45 @@
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+__________ test_opening_role_is_not_enrolled_and_runtime_cannot_write __________
+tests/integration/test_program_account_opening.py:48: in test_opening_role_is_not_enrolled_and_runtime_cannot_write
+    assert db.execute("SELECT to_regclass('ledger.program_account_openings')").fetchone()[0] is not None
+E   assert None is not None
+__ test_explicit_full_vector_is_committed_without_position_or_send_authority ___
+tests/integration/test_program_account_opening.py:60: in test_explicit_full_vector_is_committed_without_position_or_send_authority
+    from trading_system.execution.program_account_opening import read_program_account_opening
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_opening'
+______________ test_owner_cannot_turn_an_opening_dto_into_capital ______________
+tests/integration/test_program_account_opening.py:73: in test_owner_cannot_turn_an_opening_dto_into_capital
+    from trading_system.execution.program_account_opening import ProgramAccountOpeningService,read_program_account_opening
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_opening'
+____ test_initialization_cannot_be_used_after_admission_to_increase_capital ____
+tests/integration/test_program_account_opening.py:86: in test_initialization_cannot_be_used_after_admission_to_increase_capital
+    service(database,c).initialize(balances,evidence=evidence)
+    ^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_account_opening.py:41: in service
+    from trading_system.execution.program_account_opening import ProgramAccountOpeningService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_opening'
+__ test_replay_preserves_original_opening_but_a_different_vector_is_rejected ___
+tests/integration/test_program_account_opening.py:92: in test_replay_preserves_original_opening_but_a_different_vector_is_rejected
+    c=real_case(database);balances,evidence=inputs(c);s=service(database,c)
+                                                        ^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_account_opening.py:41: in service
+    from trading_system.execution.program_account_opening import ProgramAccountOpeningService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_opening'
+_____ test_opening_is_shared_across_instruments_but_never_across_accounts ______
+tests/integration/test_program_account_opening.py:101: in test_opening_is_shared_across_instruments_but_never_across_accounts
+    from trading_system.execution.program_account_opening import read_program_account_opening
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_opening'
+_____________ test_failed_commit_does_not_create_spendable_opening _____________
+tests/integration/test_program_account_opening.py:111: in test_failed_commit_does_not_create_spendable_opening
+    from trading_system.execution.program_account_opening import ProgramAccountOpeningService,read_program_account_opening
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_opening'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_account_opening.py::test_opening_role_is_not_enrolled_and_runtime_cannot_write
+FAILED tests/integration/test_program_account_opening.py::test_explicit_full_vector_is_committed_without_position_or_send_authority
+FAILED tests/integration/test_program_account_opening.py::test_owner_cannot_turn_an_opening_dto_into_capital
+FAILED tests/integration/test_program_account_opening.py::test_initialization_cannot_be_used_after_admission_to_increase_capital
+FAILED tests/integration/test_program_account_opening.py::test_replay_preserves_original_opening_but_a_different_vector_is_rejected
+FAILED tests/integration/test_program_account_opening.py::test_opening_is_shared_across_instruments_but_never_across_accounts
+FAILED tests/integration/test_program_account_opening.py::test_failed_commit_does_not_create_spendable_opening
+7 failed in 2.59s

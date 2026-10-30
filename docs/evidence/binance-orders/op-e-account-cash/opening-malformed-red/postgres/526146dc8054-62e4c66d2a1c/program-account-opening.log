@@ -1,0 +1,16 @@
+.......FF                                                                [100%]
+=================================== FAILURES ===================================
+___ test_provision_function_rejects_malformed_initial_asset_proof[null_time] ___
+tests/integration/test_program_account_opening.py:129: in test_provision_function_rejects_malformed_initial_asset_proof
+    with pytest.raises(psycopg.errors.CheckViolation):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE CheckViolation
+_ test_provision_function_rejects_malformed_initial_asset_proof[boolean_currency] _
+tests/integration/test_program_account_opening.py:129: in test_provision_function_rejects_malformed_initial_asset_proof
+    with pytest.raises(psycopg.errors.CheckViolation):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE CheckViolation
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_account_opening.py::test_provision_function_rejects_malformed_initial_asset_proof[null_time]
+FAILED tests/integration/test_program_account_opening.py::test_provision_function_rejects_malformed_initial_asset_proof[boolean_currency]
+2 failed, 7 passed in 4.34s
