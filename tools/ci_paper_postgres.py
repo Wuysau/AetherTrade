@@ -28,6 +28,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('paper-quote-budget', '03', 'tests/integration/test_paper_quote_budget_postgres.py'),
     ('program-first-capital', '03', 'tests/integration/test_program_first_capital.py'),
     ('program-submission-observation', '03', 'tests/integration/test_program_submission_observation.py'),
     ('program-cash-guards', '03', 'tests/integration/test_program_cash_guards.py'),
@@ -370,3 +371,4 @@ def main(argv=None):
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
