@@ -327,14 +327,6 @@ def _derive(inputs,terms,plan,a,e,book,policy,facts,codes):
     return _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,codes)
 
 
-def _allocated_quantity_upper(node,exposure,bridge):
-    if node.ledger_quantity is not None:return node.ledger_quantity.value
-    receipts=tuple(r for r in exposure.receipts if node.node_id in r.target_node_ids)
-    require(len(receipts)==1 and receipts[0].maximum_net.unit==bridge.native_unit,
-        'PROGRAM_RISK_RECEIPT_QUANTITY_UNBOUND')
-    return receipts[0].maximum_net.value*bridge.ledger_units_per_native_unit
-
-
 def _portfolio(inputs,terms,plan,a,e,book,facts,bounds,valuation):
     scope=terms.scope;bridge=facts.target_facts.unit_binding
     marks={mark.scope:mark for mark in inputs.marks}
@@ -387,7 +379,11 @@ def _portfolio(inputs,terms,plan,a,e,book,facts,bounds,valuation):
     if deferred:
         by_id={n.original.node_id:n for n in plan.nodes};quantities={}
         for n in deferred:
-            quantities[n.node_id]=_allocated_quantity_upper(n,e,bridge)
+            if n.ledger_quantity is not None:quantities[n.node_id]=n.ledger_quantity.value
+            else:
+                receipt=next((r for r in e.receipts if n.node_id in r.target_node_ids),None)
+                require(receipt is not None,'PROGRAM_RISK_RECEIPT_QUANTITY_UNBOUND')
+                quantities[n.node_id]=receipt.maximum_net.value*bridge.ledger_units_per_native_unit
         proof={frozenset(g.node_ids) for g in facts.budget_facts.atomic_groups}
         close=D(0);used=set()
         for group in plan.original_program.exclusive_groups:
@@ -535,13 +531,6 @@ def _metrics(inputs,terms,plan,a,e,book,policy,facts,bounds,valuation,reducing,c
             require(terms.stop_price<bound.minimum_price.value if node.side=='BUY' else terms.stop_price>bound.maximum_price.value,'INVALID_STOP')
             adverse=entry-terms.stop_price if node.side=='BUY' else terms.stop_price-entry
             new_losses.append(quantity*mult*(adverse+entry*facts.entry_slippage_bps/10000))
-    # A later native member is still one actual order. A funded exit/receipt
-    # does not inherit the initial entry's smaller per-order policy allowance.
-    # This is a maximum, never cumulative entry+exit turnover or extra cash.
-    for node in a.nodes:
-        if node.phase in ('AFTER_FULL_FILL','AFTER_NET_RECEIPT'):
-            per_order.append(_allocated_quantity_upper(node,e,facts.target_facts.unit_binding)
-                *mult*bounds[node.node_id].maximum_price.value)
     loss_quote+=max(new_losses,default=D(0)) if plan.original_program.template=='OCO' else sum(new_losses,D(0))
     # Existing working/pending loss is separately supplied as a complete bound
     # for prior obligations; it is not manufactured from reservation currency.

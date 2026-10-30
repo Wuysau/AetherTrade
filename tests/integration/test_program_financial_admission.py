@@ -203,9 +203,17 @@ def test_execution_owner_cannot_forge_a_bounded_generic_intake(database):
 def test_native_pending_order_over_policy_never_commits_financial_reservations(database,template):
     c=real_case(database,template=template)
     c.c.policy=replace(c.c.policy,maximum_order_notional='82000')
+    original=c.load
+    def load(*args):
+        f=original(*args)
+        # OTO's independently held pending base obligation needs real capacity;
+        # otherwise an unrelated capacity denial masks the per-order policy bug.
+        base=t.Money(currency=c.c.facts.rules.base_asset,amount=D(10))
+        return replace(f,group_capacity=(*f.group_capacity,base),strategy_capacity=(*f.strategy_capacity,base),
+            buffer=(*f.buffer,t.Money(currency=base.currency,amount=D(0))))
     with pytest.raises(ValueError,match='PROGRAM_RISK_ASSESSMENT_NOT_ALLOW'):
         c.service._transaction(lambda tx:c.service._reserve_program(tx,c.key,('original-list-request',),
-            load_inputs=c.load,load_qualification=c.qualify,load_clock=lambda _:c.c.facts.inputs.clock))
+            load_inputs=load,load_qualification=c.qualify,load_clock=lambda _:c.c.facts.inputs.clock))
     with c.owner.transaction(c.scope) as tx:
         assert tx.intents.get(c.record.intent_id) is None
         assert tx.reservations.for_intent(c.record.intent_id)==()
