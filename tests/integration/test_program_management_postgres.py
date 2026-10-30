@@ -370,7 +370,8 @@ def test_stale_unsent_plan_can_abort_then_fresh_cancel_without_releasing_hold(ma
     assert result['cancel_result']=='CANCELED' and c.engine.query_creation(c.write.command_id).filled_quantity==D('.4')
 
 def test_committed_may_can_never_be_unsent_aborted(management_database,venue_v2,tmp_path):
+    import psycopg
     c,s,w=admitted(management_database,venue_v2,tmp_path)
     permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
-    with pytest.raises(Exception):s.abort_unsent(w.command_id,c.lease)
+    with pytest.raises((ValueError,psycopg.Error)):s.abort_unsent(w.command_id,c.lease)
     s.boundary.consume(permit,c.lease)
