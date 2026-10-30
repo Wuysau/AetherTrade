@@ -15,8 +15,8 @@ static source registration are byte unchanged. No host/default qualification edi
 All actual fixed46bf jobs terminal exit0,0fail/error/skip:
 quote30/190.063s(original81556,run00bf6e19f413), mixed3/33.843s(12742,670e9670aab3),
 physical16/42.175s(43484,d0b39644c50e), V2source51/254.984s(98892,75478dae9853).
-Focused62unit GREEN3.03s. Safe64raw originals/copies match SHA; committed-blob
-verification follows this evidence commit. Exact selected/preserved manifest:
+Focused62unit GREEN3.03s. All64raw originals/copies/actual731e1fc committed
+Gitblobs independently match SHA,0mismatch (COMMITTED-BYTES.json). Exact selected/preserved manifest:
 docs/orders/ROOT-QUOTE-DEPENDENCY-46bf284.json. Evidence: op-d-root-quote-integration.
 
 Quote verification is a distinct tagged fact result, not registered source or
