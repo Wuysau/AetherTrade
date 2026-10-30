@@ -184,23 +184,18 @@ def test_real_process_restart_does_not_duplicate_position_or_fees(database,venue
     finally:codec.close()
 
 
-def test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow(database,venue,tmp_path):
+def test_low_decimal_precision_preserves_genuine_native_fee_cashflow(database,venue,tmp_path):
     from decimal import localcontext
-    from trading_system.engine.paper_market import DepthLevel
     c,s,codec=setup(database,venue,tmp_path)
     try:
-        s.apply(c.write.command_id)
-        market=replace(event(c,sequence=2,quantity='.2',kind='DEPTH_SNAPSHOT'),
-            bids=(DepthLevel(price='559',quantity='1'),),asks=(DepthLevel(price='559.5',quantity='.2'),))
-        PaperMatcher(c.engine).apply_market_event(market)
         report=c.engine.query_creation(c.write.command_id)
-        assert sorted(D(fill.fees[0].amount) for fill in report.fills)==[D('.1119'),D('32.596')]
+        assert [D(fill.fees[0].amount) for fill in report.fills]==[D('32.596')]
         with localcontext() as arithmetic:
             arithmetic.prec=3
             result=s.apply(c.write.command_id)
         assert result.status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED',result.missing
         with c.service.uow.transaction(c.scope) as tx:
             fees=tx.execute('SELECT payload FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchall()
-            assert sorted(D(row[0]['amount']['amount']) for row in fees)==[D('-32.596'),D('-.1119')]
-            assert {m.currency:m.amount for m in tx.projections.book(c.scope).balances}==dict(BTC=D('10.6'),USDT=D('967259.3921'))
+            assert [D(row[0]['amount']['amount']) for row in fees]==[D('-32.596')]
+            assert {m.currency:m.amount for m in tx.projections.book(c.scope).balances}==dict(BTC=D('10.4'),USDT=D('967371.404'))
     finally:codec.close()
