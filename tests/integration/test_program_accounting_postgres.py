@@ -173,10 +173,20 @@ def test_missing_foreign_source_binding_cannot_hide_unreconciled_execution(datab
         tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
             "VALUES(%s,'console:seed',1,%s::jsonb,%s)",
             (scope_id(receiver.scope),canonical_json(dict(initial_cash=format(seed,'f'),source='EXPLICIT_ISOLATED_VIRTUAL_CAPITAL')),tx.transaction_id))
+    # Normal writes must remain blocked. The following admin-only corruption
+    # fixture models incomplete historical restore, not runtime permissions.
+    with pytest.raises(psycopg.errors.CheckViolation,match='append-only'):
+        with psycopg.connect(database) as db:
+            db.execute('DELETE FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s',
+                (str(source.scope.environment),source.scope.venue_account_id,str(source.scope.product)))
     with psycopg.connect(database) as db:
+        db.execute('ALTER TABLE ledger.account_bindings DISABLE TRIGGER binding_immutable')
         binding=db.execute('DELETE FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s '
             'RETURNING collateral_group_id,payload',
             (str(source.scope.environment),source.scope.venue_account_id,str(source.scope.product))).fetchone()
+        db.execute('ALTER TABLE ledger.account_bindings ENABLE TRIGGER binding_immutable')
+        assert db.execute("SELECT tgenabled FROM pg_trigger WHERE tgrelid='ledger.account_bindings'::regclass "
+            "AND tgname='binding_immutable'").fetchone()==('O',)
     try:
         with receiver.service.uow.transaction(receiver.scope) as tx:
             with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
