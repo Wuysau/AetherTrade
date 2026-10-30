@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="8" time="2.225" timestamp="2026-10-29T16:38:24.680471+00:00" hostname="5da33d87b41c"><testcase classname="tests.integration.test_program_fill_source_approval" name="test_source_authority_is_separate_and_cannot_be_enrolled_implicitly" time="0.387"><failure message="assert None is not None">tests/integration/test_program_fill_source_approval.py:51: in test_source_authority_is_separate_and_cannot_be_enrolled_implicitly
+    assert db.execute("SELECT to_regclass('ledger.program_fill_source_approvals')").fetchone()[0] is not None
+E   assert None is not None</failure></testcase><testcase classname="tests.integration.test_program_fill_source_approval" name="test_genuine_fill_source_is_committed_without_posting_or_authorizing" time="0.255"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'">tests/integration/test_program_fill_source_approval.py:64: in test_genuine_fill_source_is_committed_without_posting_or_authorizing
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'</failure></testcase><testcase classname="tests.integration.test_program_fill_source_approval" name="test_owner_cannot_mint_or_mutate_source_approval" time="0.003"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'">tests/integration/test_program_fill_source_approval.py:88: in test_owner_cannot_mint_or_mutate_source_approval
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'</failure></testcase><testcase classname="tests.integration.test_program_fill_source_approval" name="test_replay_and_additional_real_fills_retain_identity_without_ledger_side_effects" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'">tests/integration/test_program_fill_source_approval.py:107: in test_replay_and_additional_real_fills_retain_identity_without_ledger_side_effects
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'</failure></testcase><testcase classname="tests.integration.test_program_fill_source_approval" name="test_service_requires_actual_verifier_and_original_id_only" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'">tests/integration/test_program_fill_source_approval.py:122: in test_service_requires_actual_verifier_and_original_id_only
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'</failure></testcase><testcase classname="tests.integration.test_program_fill_source_approval" name="test_historical_fill_source_does_not_expire_into_a_new_execution_permit" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'">tests/integration/test_program_fill_source_approval.py:138: in test_historical_fill_source_does_not_expire_into_a_new_execution_permit
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'</failure></testcase><testcase classname="tests.integration.test_program_fill_source_approval" name="test_economic_discrepancy_preserves_source_without_certain_credit" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'">tests/integration/test_program_fill_source_approval.py:151: in test_economic_discrepancy_preserves_source_without_certain_credit
+    c,service,codec=setup_source(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_fill_source_approval.py:40: in setup_source
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'</failure></testcase><testcase classname="tests.integration.test_program_fill_source_approval" name="test_missing_or_not_observed_command_cannot_mint_source_approval" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'">tests/integration/test_program_fill_source_approval.py:165: in test_missing_or_not_observed_command_cannot_mint_source_approval
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_fill_source'</failure></testcase></testsuite></testsuites>

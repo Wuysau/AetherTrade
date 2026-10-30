@@ -238,7 +238,26 @@ class UnifiedPaperRuntime:
     def _request(self, tx, command_id):
         return tx._latest('audit_events', 'console:request:' + command_id, RuntimeRequest)
 
+    def _require_legacy_accounting_only(self,tx):
+        # Historical databases need no new source tables. Once a real generic
+        # execution has a protected source approval, the old command-only cash
+        # formula cannot reconstruct this collateral group's balances. Preserve
+        # the existing book until the shared authenticated contribution reader
+        # is installed; neither a raw fill nor an audit flag proves free cash.
+        installed=tx.execute("SELECT to_regclass('ledger.program_fill_source_approvals')").fetchone()[0]
+        if installed is None:return
+        pending=tx.execute('SELECT 1 FROM ledger.program_fill_source_approvals a '
+            'LEFT JOIN ledger.account_bindings b ON b.environment=a.payload#>>\'{scope,environment}\' '
+            'AND b.account_id=a.payload#>>\'{scope,venue_account_id}\' AND b.product=a.payload#>>\'{scope,product}\' '
+            'WHERE a.payload#>>\'{scope,environment}\'=%s '
+            'AND (b.collateral_group_id=%s OR b.collateral_group_id IS NULL) LIMIT 1',
+            (str(tx.scope.environment),tx.group_id)).fetchone()
+        if pending is not None:
+            raise ApiError('PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED',
+                '已有新类型成交来源，需完成资金与持仓对账后才能刷新可用余额。',503)
+
     def _cash(self, tx):
+        self._require_legacy_accounting_only(tx)
         seed = tx.execute("SELECT payload->>'initial_cash' FROM ledger.audit_events WHERE record_id='console:seed'").fetchone()
         if seed is None:
             raise ApiError('PAPER_NOT_PROVISIONED', '请先显式初始化独立虚拟资金账本。', 503)
@@ -256,6 +275,7 @@ class UnifiedPaperRuntime:
         old = tx._latest('book_snapshots', 'book', t.BookSnapshot)
         if old is not None and not refresh:
             return old
+        self._require_legacy_accounting_only(tx)
         positions = () if old is None else old.positions
         active = () if old is None else old.active_orders
         base = scope.instrument_uid.split(':')[-1].removesuffix('USDT')

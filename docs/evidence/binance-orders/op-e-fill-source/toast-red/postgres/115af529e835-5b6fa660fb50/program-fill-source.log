@@ -1,0 +1,19 @@
+.............F                                                           [100%]
+=================================== FAILURES ===================================
+____ test_per_fill_approval_does_not_fetch_or_decompress_shared_toast_proof ____
+tests/integration/test_program_fill_source_approval.py:339: in test_per_fill_approval_does_not_fetch_or_decompress_shared_toast_proof
+    assert after==before,dict(before=before,after=after,per_fill_calls=len(references))
+E   AssertionError: {'before': (68, 2995), 'after': (77, 4066), 'per_fill_calls': 9}
+E   assert (77, 4066) == (68, 2995)
+E     
+E     At index 0 diff: 77 != 68
+E     Use -v to get more diff
+=============================== warnings summary ===============================
+tests/integration/test_program_fill_source_approval.py::test_per_fill_approval_does_not_fetch_or_decompress_shared_toast_proof
+  tests/integration/test_program_fill_source_approval.py:302: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_per_fill_approval_does_not_fetch_or_decompress_shared_toast_proof(database,venue,tmp_path,record_property):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_fill_source_approval.py::test_per_fill_approval_does_not_fetch_or_decompress_shared_toast_proof
+1 failed, 13 passed, 1 warning in 64.17s (0:01:04)
