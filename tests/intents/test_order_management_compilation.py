@@ -41,6 +41,7 @@ def test_spot_keep_priority_is_explicit_reduction_only():
     request=result.requests[0]
     assert request.method=='PUT' and request.endpoint.value=='/api/v3/order/amend/keepPriority'
     assert {p.name:p.value for p in request.parameters}['newQty']=='0.5'
+    assert {p.name:p.value for p in request.parameters}['newClientOrderId']==target.client_id
     assert request.requires_independent_command and result.priority_effect=='RETAINED'
     assert not result.execution_authorized
 
