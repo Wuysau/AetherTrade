@@ -633,9 +633,15 @@ def query_market_evidence(engine,command_id):
                 require(used_bytes<=16777216,'PAPER_MARKET_TOTAL_EVIDENCE_BOUND_EXCEEDED');inputs.append(item)
                 with db.cursor(name='paper_market_evidence_allocations') as allocations:
                     allocations.itersize=1
-                    allocations.execute('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price,quantity '
-                        'FROM public.paper_market_consumptions WHERE market_key=%s AND event_id=%s ORDER BY fill_id LIMIT %s',
-                        (row['market_key'],row['event_id'],100001-len(consumptions)))
+                    allocation_sql=('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price,quantity '
+                        'FROM public.paper_market_consumptions WHERE market_key=%s AND event_id=%s')
+                    allocation_args=(row['market_key'],row['event_id'])
+                    if db.execute("SELECT to_regclass('public.paper_quote_allocations_v1') AS relation").fetchone()['relation'] is not None:
+                        allocation_sql+=(' UNION ALL SELECT a.market_key,a.event_id,a.scope_key,t.client_id,a.fill_id,a.side,a.price,a.quantity '
+                            'FROM public.paper_quote_allocations_v1 a JOIN public.paper_quote_terms_v1 t USING(scope_key,command_id) '
+                            'WHERE a.market_key=%s AND a.event_id=%s')
+                        allocation_args+=allocation_args
+                    allocations.execute(allocation_sql+' ORDER BY fill_id LIMIT %s',allocation_args+(100001-len(consumptions),))
                     for allocated in allocations:
                         require(len(consumptions)<100000,'PAPER_MARKET_ALLOCATION_BOUND_EXCEEDED')
                         item=PaperLiquidityConsumption(market_key=allocated['market_key'],event_id=allocated['event_id'],
@@ -714,4 +720,5 @@ class PaperMatcher:
                 (event.market_key,)).fetchone()
             if first:db.execute('SELECT public.paper_match_order(%s,%s)',(first['scope_key'],first['client_id']))
         return PaperMarketResult(market_key=event.market_key,event_id=event.event_id,applied=True)
+
 

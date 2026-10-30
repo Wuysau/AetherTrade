@@ -47,6 +47,7 @@ class PaperQuoteFillV1:
     price:Decimal
     gross_quote:Decimal
     quote_fee:Decimal
+    fee_debit:Literal['EXTERNAL_BALANCE']
     quantity_unit:Literal['BASE']
     quote_asset:str
     market_event_id:str
@@ -162,11 +163,13 @@ def query_quote_creation(engine,command_id):
         require(terms.scope==engine.scope and terms.write.command_id==command_id
             and digest(terms.request)==terms.write.request_hash,'PAPER_QUOTE_SOURCE_BINDING_CHANGED')
         rows=db.execute('SELECT a.*,i.payload_hash FROM public.paper_quote_allocations_v1 a JOIN public.paper_market_inputs i '
-            'USING(market_key,event_id) WHERE a.scope_key=%s AND a.command_id=%s ORDER BY a.fill_id',
+            'USING(market_key,event_id) WHERE a.scope_key=%s AND a.command_id=%s ORDER BY a.fill_id LIMIT 8193',
             (engine._scope_key,command_id)).fetchall()
+        require(len(rows)<=8192,'PAPER_QUOTE_FILL_BOUND_EXCEEDED')
         fills=tuple(PaperQuoteFillV1(fill_id=r['fill_id'],quantity=r['quantity'],price=r['price'],gross_quote=r['quantity']*r['price'],
-            quote_fee=r['fee'],quantity_unit='BASE',quote_asset=terms.quote_asset,market_event_id=r['event_id'],market_hash=r['payload_hash']) for r in rows)
+            quote_fee=r['fee'],fee_debit='EXTERNAL_BALANCE',quantity_unit='BASE',quote_asset=terms.quote_asset,market_event_id=r['event_id'],market_hash=r['payload_hash']) for r in rows)
         payload=dict(record_kind='PAPER_QUOTE_REPORT_V1',command_id=command_id,request=terms.request,terms=terms,status=row['status'],
             reason=row['reason'],actual_base=row['actual_base'],gross_quote=row['gross_quote'],remaining_quote=row['remaining_quote'],fills=fills)
         return PaperQuoteReportV1(**payload,evidence=_evidence('paper-quote:'+command_id,
             {k:domain_payload(v) if hasattr(v,'__dataclass_fields__') else [domain_payload(f) for f in v] if k=='fills' else str(v) if isinstance(v,Decimal) else v for k,v in payload.items()},terms.accepted_clock.utc_now))
+

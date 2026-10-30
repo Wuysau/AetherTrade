@@ -169,3 +169,34 @@ def test_base_and_quote_orders_share_each_actual_visible_unit(database,quote_ven
     assert c.engine.query_creation(c.cid).actual_base==D('.03')
     with c.engine._connect() as db:
         assert db.execute("SELECT available FROM public.paper_market_levels WHERE market_key=%s AND side='ASK'",(snapshot.market_key,)).fetchone()['available']==0
+
+@pytest.mark.parametrize('side',['BUY','SELL'])
+def test_actual_insufficient_quote_or_base_capacity_denies_before_command(database,side):
+    from uuid import uuid4
+    from integration.test_quote_financial_kernel_postgres import quote_case
+    from integration.test_quote_program_admission_postgres import public
+    from trading_system.contracts import types as t
+    options={'instrument_uid':'denial-'+uuid4().hex}
+    if side=='SELL':options.update(actual='.15',quantity='.85')
+    assets=(t.Money(currency='USDT',amount=D(1) if side=='BUY' else D('1000000')),
+        t.Money(currency='BTC',amount=D('.001')))
+    c=quote_case(database,real_options=options,quote_options={'side':side,'actual':'.15' if side=='SELL' else '0'},quote_assets=assets)
+    with pytest.raises(ValueError):public(c).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan)
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.intents.get(c.qrecord.intent_id) is None
+        assert tx.reservations.for_intent(c.qrecord.intent_id)==()
+
+
+@pytest.mark.parametrize('fault',['request','terms','fill','runtime'])
+def test_resealed_quote_dto_never_substitutes_for_source(database,quote_venue,tmp_path,fault):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel,digest
+    from trading_system.execution.paper_quote_reports import verify_quote_report
+    c=execution_case(database,quote_venue,tmp_path)
+    PaperMatcher(c.engine).apply_market_event(replace(event(c),asks=(DepthLevel(price='50000',quantity='.1'),),bids=()))
+    submit(c);report=c.engine.query_creation(c.cid)
+    if fault=='request':changed=replace(report,request=replace(report.request,command_id='forged'))
+    elif fault=='terms':changed=replace(report,terms=replace(report.terms,requested_quote='5000'))
+    elif fault=='fill':changed=replace(report,fills=(replace(report.fills[0],quantity=D('.1')),))
+    else:changed=replace(report,status='EXPIRED')
+    changed=replace(changed,evidence=replace(changed.evidence,hash=digest(changed)))
+    with pytest.raises(ValueError,match='SOURCE_CHANGED'):verify_quote_report(c.engine,changed,boundary=c.gate)
