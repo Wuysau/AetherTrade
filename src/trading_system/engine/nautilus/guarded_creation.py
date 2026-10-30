@@ -66,7 +66,7 @@ def submit_guarded_creation_probe(engine, write, request, permit, *, boundary, l
             clock = owner._reading()
             remaining = (permit.deadline_monotonic_ns-clock.monotonic_ns)//1_000_000
             require(remaining >= 1,'NATIVE_CONSUMED_WINDOW_EXPIRED')
-            call = creation_call(request,clock=clock,recv_window_ms=min(1000,remaining))
+            call = creation_call(request,clock=clock,recv_window_ms=min(5000,remaining))
         query = urlencode(call.parameters)
         signature = hmac.new(b'OFFLINE-PUBLIC-SHAPE-FIXTURE-NOT-AN-ACCOUNT-SECRET',
                              query.encode(),sha256).hexdigest()
@@ -84,7 +84,7 @@ def submit_guarded_creation_probe(engine, write, request, permit, *, boundary, l
                 yield
         try:
             response = client.request_guarded(HttpMethod.POST,url,final_guard(),
-                headers={'X-MBX-APIKEY':'OFFLINE-PUBLIC-SHAPE-FIXTURE'},keys=['creation'])
+                headers={'X-MBX-APIKEY':'OFFLINE-PUBLIC-SHAPE-FIXTURE'},keys=['creation'],budget_ms=min(remaining,5000))
             outcome = {'http_status':response.status,'body_sha256':sha256(response.body).hexdigest()}
         except Exception:
             # No retry, fresh permit or client ID. The durable MAY and consume

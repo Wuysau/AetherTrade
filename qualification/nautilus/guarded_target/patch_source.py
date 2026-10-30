@@ -9,7 +9,7 @@ METHOD = r'''
     /// AetherTrade qualification-only post-quota dispatch on the owner OS thread.
     /// The guard is a trusted internal context manager, not a business API.
     #[pyo3(name = "request_guarded")]
-    #[pyo3(signature = (method, url, guard, headers=None, body=None, keys=None, timeout_secs=2))]
+    #[pyo3(signature = (method, url, guard, headers=None, body=None, keys=None, timeout_secs=2, budget_ms=2000))]
     fn py_request_guarded(
         &self,
         method: HttpMethod,
@@ -19,18 +19,20 @@ METHOD = r'''
         body: Option<Vec<u8>>,
         keys: Option<Vec<String>>,
         timeout_secs: u64,
+        budget_ms: u64,
         py: Python<'_>,
     ) -> PyResult<HttpResponse> {
         let parsed = reqwest::Url::parse(&url).map_err(to_pyvalue_err)?;
         if parsed.scheme() != "http" || parsed.host_str() != Some("127.0.0.1")
             || !parsed.username().is_empty() || parsed.password().is_some()
             || parsed.fragment().is_some() || reqwest::Method::from(method) != reqwest::Method::POST
-            || timeout_secs == 0 || timeout_secs > 2 {
+            || timeout_secs == 0 || timeout_secs > 2 || budget_ms == 0 || budget_ms > 5000 {
             return Err(to_pyvalue_err("GUARDED_LOOPBACK_POST_ONLY"));
         }
         if tokio::runtime::Handle::try_current().is_ok() {
             return Err(to_pyvalue_err("GUARDED_NESTED_TOKIO_RUNTIME_REJECTED"));
         }
+        let deadline = tokio::time::Instant::now() + Duration::from_millis(budget_ms);
         let mut client = self.clone();
         // Preserve every shared rate limiter. One HTTP/1 attempt, no proxy,
         // redirect, protocol fallback or automatic retry of an uncertain write.
@@ -45,14 +47,22 @@ METHOD = r'''
             let runtime = blocking_http_runtime()?;
             runtime.block_on(async move {
                 let keys = keys.map(into_ustr_vec);
-                client.await_rate_limits(keys.as_deref()).await;
+                tokio::time::timeout_at(deadline, client.await_rate_limits(keys.as_deref()))
+                    .await.map_err(|_| to_pyruntime_err("GUARDED_ORIGINAL_BUDGET_EXPIRED"))?;
                 Python::attach(|py| {
                     py.check_signals()?;
                     guard.call_method0(py, "__enter__")
                 })?;
-                let result = client.client.send_request(
-                    method.into(), url, None, headers, body, Some(timeout_secs),
-                ).await.map_err(HttpClientError::into_py_err);
+                let result = if tokio::time::Instant::now() >= deadline {
+                    Err(to_pyruntime_err("GUARDED_ORIGINAL_BUDGET_EXPIRED"))
+                } else {
+                    match tokio::time::timeout_at(deadline, client.client.send_request(
+                        method.into(), url, None, headers, body, Some(timeout_secs),
+                    )).await {
+                        Ok(result) => result.map_err(HttpClientError::into_py_err),
+                        Err(_) => Err(to_pyruntime_err("GUARDED_ORIGINAL_BUDGET_EXPIRED")),
+                    }
+                };
                 // Always release the owner context, including transport failure.
                 // Context suppression cannot turn an uncertain write into success.
                 Python::attach(|py| {
