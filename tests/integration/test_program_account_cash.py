@@ -5,6 +5,7 @@ are not a claim that owner/position/protection/book posting is already complete.
 """
 from dataclasses import replace
 from decimal import Decimal as D
+from datetime import timedelta
 
 import pytest
 
@@ -13,7 +14,7 @@ from integration.test_program_fill_source_approval import venue,actual_verifier
 from integration.test_program_financial_admission import real_case
 from integration.test_paper_market_matcher import case,submit,event
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import domain_payload
+from trading_system.contracts.canonical import domain_payload,utc_timestamp
 from trading_system.engine.paper_market import PaperMatcher
 from trading_system.execution.program_account_opening import ProgramAccountOpeningService,read_program_account_opening
 from trading_system.storage.models import MissingEvidence,scope_id
@@ -69,8 +70,14 @@ def test_real_native_effects_are_counted_once_across_repeated_source_snapshots(d
             first=read_program_account_cash(tx,read_opening=read_program_account_opening)
         assert {m.currency:m.amount for m in first.balances}==dict(BTC=D('10.4'),USDT=D('967404'))
         assert len(first.native_identities)==1
+        old=c.c.facts.inputs.clock
+        c.c.facts=replace(c.c.facts,inputs=replace(c.c.facts.inputs,clock=replace(old,
+            utc_now=(utc_timestamp(old.utc_now)+timedelta(seconds=1)).isoformat(),
+            monotonic_ns=old.monotonic_ns+1_000_000_000)))
         s.source_service.approve(c.write.command_id)
         with c.service.uow.transaction(c.scope) as tx:
+            assert tx.execute('SELECT count(*) FROM ledger.program_fill_source_snapshots WHERE scope_id=%s',
+                (scope_id(c.scope),)).fetchone()==(2,)
             again=read_program_account_cash(tx,read_opening=read_program_account_opening)
             assert again.economic_revision==first.economic_revision and again.balances==first.balances
     finally:codec.close()
