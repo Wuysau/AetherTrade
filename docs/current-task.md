@@ -1,5 +1,31 @@
 # Current task
 
+## CURRENT_SUBMISSION_OBSERVATION_IMPLEMENTATION — 2026-10-30
+
+Parent assigned the next actual ROOT slice: source-backed submission knownness,
+including genuine accepted-unfilled GTC, to unblock legitimate two-command
+composition without weakening UNKNOWN or any cash/working/ownership duties.
+Global0021 reserved. Plan is docs/orders/OP-C-SUBMISSION-OBSERVATION.md. Private
+STARTED/UNKNOWN probes precede closed-TX venue IO; COMPLETED known/unknown records
+append afterward. Latest started probe controls current uncertainty, preserving
+ever_accepted even after query failure and preventing delayed old completion from
+overriding newer UNKNOWN. No original write/hash/state/schema rewrite or resend.
+
+Selected reviewed31c7572 shared static V1/V2 source helper/tagged decoder and
+asset math only; parent/cash owner reported actual source16/raw9PG, independently
+checked XML16/0/0/0 74.032s and9/0/0/0 47.970s. Selected13 unit cases green0.40s.
+save_verification_snapshot(tx,verified) supports true zero-fill snapshots, keeps
+_source_context and old NO_FILLS behavior, uses existing unchanged0017/0018 SQL.
+V2 source approval/financial qualification still needs actual ROOT proof.
+
+New five-case genuine PG source/knownness RED is prepared; implementation0021
+and module are absent. Tests preserve actual original MAY/consume, V1/V2 venue
+orders/no fills, old TTL, real post-only rejection, later NOT_OBSERVED and direct
+owner audit/private-call denial. One new mandatory suite brings root inventory
+to60; no case/target was removed or promoted. Strict owned readiness remains
+blocked on the separate cash review (including marker transition reuse), with
+no atomic writer/host enabled. ROOT+D sole writer remains integration_fresh.
+
 ## CURRENT_STRICT_CASH_COMPONENT_CHECKPOINT — 2026-10-30
 
 ROOT+D sole writer remains integration_fresh. Root43ba29c neutral raw-book cash
