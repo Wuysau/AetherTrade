@@ -13,9 +13,10 @@ from trading_system.contracts.canonical import utc_timestamp,canonical_hash,doma
 from trading_system.storage.models import scope_id
 
 
-def ready(database,*,consume=True):
+def ready(database,*,consume=True,ttl_ms=5000):
     c=real_case(database);c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
-    c.gate=boundary(c);c.lease=lease(c);c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
+    c.gate=boundary(c);c.gate.uow.permit_ttl_ms=ttl_ms
+    c.lease=lease(c);c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
     if consume:c.gate.consume(c.permit,c.lease)
     return c
 
@@ -97,3 +98,22 @@ def test_uncommitted_actual_consumption_in_same_physical_transaction_is_rejected
         try:
             with pytest.raises(ValueError):check(c)
         finally:c.gate.uow=original_uow
+
+
+def test_original_token_window_survives_a_later_shorter_trusted_boundary_policy(database):
+    c=ready(database)
+    c.gate.uow.permit_ttl_ms=1000
+    result=check(c)
+    assert result.write.command_id==c.write.command_id and not result.execution_authorized
+    with c.owner.transaction(c.scope) as tx:
+        stored=tx.execute('SELECT context FROM ledger.program_dispatch_marks WHERE scope_id=%s AND command_id=%s',
+            (scope_id(c.scope),c.write.command_id)).fetchone()[0]
+    assert stored['permit_window']==dict(expires_at=c.permit.expires_at,deadline_monotonic_ns=c.permit.deadline_monotonic_ns)
+
+
+def test_later_longer_policy_cannot_authenticate_relabelled_original_shorter_token(database):
+    c=ready(database,ttl_ms=4000)
+    c.gate.uow.permit_ttl_ms=5000
+    changed=replace(c.permit,expires_at=(utc_timestamp(c.permit.expires_at)+timedelta(milliseconds=1000)).isoformat(),
+        deadline_monotonic_ns=c.permit.deadline_monotonic_ns+1_000_000_000)
+    with pytest.raises(ValueError):check(c,permit=changed)
