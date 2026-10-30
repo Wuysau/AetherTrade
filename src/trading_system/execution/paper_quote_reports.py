@@ -62,19 +62,38 @@ def verify_quote_report(engine,report,*,boundary):
                 (key,event_id)).fetchone()
             require(source is not None and canonical_hash(source['payload'])==source['payload_hash'],
                 'PAPER_QUOTE_MARKET_SOURCE_CHANGED')
-            event=source['payload'];opposite='ASK' if terms.side=='BUY' else 'BID'
-            levels=event['asks' if opposite=='ASK' else 'bids']
-            before={number(v['price']):number(v['available']) for v in source['before_levels'] if v['side']==opposite}
-            changes={number(v['price']):number(v['quantity'],signed=True) for v in levels}
+            from trading_system.engine.paper_market_v2 import decode_source_event
+            from trading_system.engine.paper_market import PaperDepthState,PaperMarketEvent
+            from trading_system.execution.paper_program_v2_liquidity import source_depth_levels
+            from trading_system.storage.models import decode
+            from fractions import Fraction
+            event=decode_source_event(source['payload']);opposite='ASK' if terms.side=='BUY' else 'BID'
+            require(event.market_key==key,'PAPER_QUOTE_MARKET_SCOPE_CHANGED')
+            levels=source_depth_levels(event,tuple(decode(PaperDepthState,v) for v in source['before_levels']))
+            # Allocation event identity remains the current event. References,
+            # clocks and calendars carry depth rather than replenish it. Resolve
+            # the actual latest depth dependency from immutable inputs, even
+            # when the current book pointer has advanced to a non-depth event.
+            depth=db.execute("SELECT payload,payload_hash FROM public.paper_market_inputs WHERE market_key=%s "
+                "AND sequence<=%s AND payload->>'kind' IN ('DEPTH_SNAPSHOT','DEPTH_DELTA') "
+                'ORDER BY sequence DESC LIMIT 1',(key,source['sequence'])).fetchone()
+            require(depth is not None and canonical_hash(depth['payload'])==depth['payload_hash'],
+                'PAPER_QUOTE_DEPTH_LINEAGE_REQUIRED')
+            depth_event=decode_source_event(depth['payload']);depth_event.__post_init__()
+            require(type(depth_event) is PaperMarketEvent and depth_event.market_key==key
+                and depth_event.stream_id==event.stream_id,'PAPER_QUOTE_DEPTH_LINEAGE_CHANGED')
             for fill in (f for f in report.fills if f.market_event_id==event_id):
                 require(fill.market_hash==source['payload_hash'],'PAPER_QUOTE_FILL_SOURCE_HASH_CHANGED')
-                previous=before.get(fill.price,Decimal(0));change=changes.get(fill.price,Decimal(0))
-                capacity=(min(previous,change) if fill.price in before else change) if event['kind']=='DEPTH_SNAPSHOT' else max(Decimal(0),previous+change)
+                capacity=levels.get((opposite,Fraction(fill.price)),(0,0))[1]
                 allocated=db.execute('SELECT coalesce(sum(quantity),0) AS quantity FROM ('
                     'SELECT quantity FROM public.paper_market_consumptions WHERE market_key=%s AND event_id=%s AND side=%s AND price=%s '
                     'UNION ALL SELECT quantity FROM public.paper_quote_allocations_v1 WHERE market_key=%s AND event_id=%s AND side=%s AND price=%s) a',
                     (key,event_id,opposite,fill.price,key,event_id,opposite,fill.price)).fetchone()['quantity']
-                require(allocated<=capacity,'PAPER_QUOTE_SHARED_LIQUIDITY_EXCEEDED')
+                if db.execute("SELECT to_regclass('public.paper_market_preventions_v2') AS relation").fetchone()['relation'] is not None:
+                    allocated+=db.execute('SELECT coalesce(sum(maker_quantity),0) AS quantity FROM public.paper_market_preventions_v2 '
+                        'WHERE market_key=%s AND event_id=%s AND side=%s AND price=%s',
+                        (key,event_id,opposite,fill.price)).fetchone()['quantity']
+                require(Fraction(allocated)<=capacity,'PAPER_QUOTE_SHARED_LIQUIDITY_EXCEEDED')
     # Do not cap reported fills to make an envelope pass.
     return VerifiedPaperQuoteReportV1(record_kind='VERIFIED_PAPER_QUOTE_REPORT_V1',report=report,
         consumption_context_hash=canonical_hash(context),discrepancies=tuple(sorted(set(problems))))

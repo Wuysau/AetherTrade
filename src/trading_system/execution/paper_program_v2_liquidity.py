@@ -23,6 +23,32 @@ def number(value):
     return Fraction(value)
 
 
+def source_depth_levels(event,before_levels):
+    """Exact visible capacity; non-depth events carry the archived prior levels."""
+    if type(event) not in EVENTS:raise ValueError('event type')
+    event.__post_init__()
+    if len(before_levels)>8192:raise ValueError('depth bound')
+    levels={}
+    for before in before_levels:
+        if type(before) is not PaperDepthState or before.side not in ('BID','ASK'):raise ValueError('depth type')
+        p,r,a=map(number,(before.price,before.reported,before.available));index=(before.side,p)
+        if index in levels or p<=0 or not 0<=a<=r:raise ValueError('depth state')
+        levels[index]=(r,a)
+    if type(event) is PaperMarketEvent:
+        present=set()
+        for side,rows in (('BID',event.bids),('ASK',event.asks)):
+            for row in rows:
+                price,qty=number(row.price),number(row.quantity);index=(side,price)
+                if index in present or price<=0:raise ValueError('depth duplicate')
+                present.add(index);prior=levels.get(index,(Fraction(0),Fraction(0)))
+                if event.kind=='DEPTH_SNAPSHOT':r,a=qty,(qty if index not in levels else min(prior[1],qty))
+                else:r,a=prior[0]+qty,max(Fraction(0),prior[1]+qty)
+                if not 0<=a<=r:raise ValueError('depth availability')
+                levels[index]=(r,a)
+        if event.kind=='DEPTH_SNAPSHOT':levels={i:v for i,v in levels.items() if i in present}
+    return levels
+
+
 def v2_market_evidence_codes(evidence,*,scope,command_id,request_hash,now):
     errors=[]
     def issue(code):
@@ -78,26 +104,8 @@ def v2_market_evidence_codes(evidence,*,scope,command_id,request_hash,now):
                     or exact_time(last.event.occurred_at)>exact_time(event.occurred_at)
                     or last.observed_clock.monotonic_ns>clock.monotonic_ns):issue('PAPER_V2_INPUT_ORDER_CHANGED')
             last=item
-            if len(item.before_levels)>8192:raise ValueError('depth bound')
-            levels={}
-            for before in item.before_levels:
-                if type(before) is not PaperDepthState or before.side not in ('BID','ASK'):raise ValueError('depth type')
-                p,r,a=map(number,(before.price,before.reported,before.available));index=(before.side,p)
-                if index in levels or p<=0 or not 0<=a<=r:raise ValueError('depth state')
-                levels[index]=(r,a)
-            if type(event) is PaperMarketEvent:
-                current_depth=event.event_id
-                present=set()
-                for side,rows in (('BID',event.bids),('ASK',event.asks)):
-                    for row in rows:
-                        price,qty=number(row.price),number(row.quantity);index=(side,price)
-                        if index in present or price<=0:raise ValueError('depth duplicate')
-                        present.add(index);prior=levels.get(index,(Fraction(0),Fraction(0)))
-                        if event.kind=='DEPTH_SNAPSHOT':r,a=qty,(qty if index not in levels else min(prior[1],qty))
-                        else:r,a=prior[0]+qty,max(Fraction(0),prior[1]+qty)
-                        if not 0<=a<=r:raise ValueError('depth availability')
-                        levels[index]=(r,a)
-                if event.kind=='DEPTH_SNAPSHOT':levels={i:v for i,v in levels.items() if i in present}
+            levels=source_depth_levels(event,item.before_levels)
+            if type(event) is PaperMarketEvent:current_depth=event.event_id
             # Every other event leaves depth unchanged. In particular a clock,
             # reference or session window is never fresh executable liquidity.
             if type(event) is PaperLiquidityOwnershipEventV2:
