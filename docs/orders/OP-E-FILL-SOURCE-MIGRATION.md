@@ -5,6 +5,19 @@ applied by the isolated migration administrator after 0012; it changes no old
 schema, command hash, event or UNKNOWN history. SIM migrations 0013/0014 and
 quote context migration 0015 are independent serial integration work.
 
+Apply0017_program_fill_source_snapshots.sql after0016 for new writers. It adds
+one protected source-snapshot table, a snapshot approval function and compact
+V2 per-fill approvals referencing the exact snapshot/normalized hash. It does
+not edit0016, its original function or historical V1 records. New readers handle
+both explicit record kinds. No migration silently rewrites old approvals.
+
+The original writer repeated the complete report/all-rival proof in every
+per-fill approval. A modest real-source RED proved this amplification; V2 shares
+one immutable proof instead. CommittedProgramFillSources is scoped to one live
+owner transaction and loads/hashes that immutable shared snapshot once for batch
+reads. It caches no current book, owner, permission or risk decision and cannot
+be reused after its transaction closes. See the real thirteen-case PG cohort.
+
 The new NOLOGIN ledger_program_source_verifier has no automatic role members.
 It receives the existing collateral transaction locks, minimal source SELECTs,
 transaction observation INSERT and EXECUTE on the single fixed-search-path
@@ -42,8 +55,16 @@ snapshots. Future posting/balance readers must enumerate each native identity
 once and reject conflicting economics; summing approval rows is forbidden.
 Economic discrepancies or unknown fees preserve raw facts and reconciliation
 duties. USD-M principal is not Spot cash; Equity CARD/MAIN binding is unresolved.
-Asset postings, positions, mixed legacy refresh and full programme accounting
-remain required next. This component is not a complete accounting system.
+ProgramPaperAccountingService now consumes those approvals and captures actual
+source evidence/native fills, bridge, notices and unresolved recovery locks in
+one existing ledger transaction. On owner commit failure all those owner writes
+roll back while the separate source attestation remains committed and original
+IDs stay available for retry. Duplicate native IDs retain the original receipt;
+approvals are never counted as additional executions. No send, cash credit,
+position ownership, protection or funds release follows from raw ingestion.
+
+Asset postings, positions, mixed legacy refresh and full financial accounting
+remain required next. The raw service reports its economics blocker explicitly.
 
 Rollback means disabling the new host composition while retaining the additive
 tables/approvals. Do not drop or rewrite committed source/history. Missing 0016

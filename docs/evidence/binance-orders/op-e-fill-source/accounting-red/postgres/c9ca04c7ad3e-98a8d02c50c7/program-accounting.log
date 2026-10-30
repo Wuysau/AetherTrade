@@ -1,0 +1,41 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_______ test_real_fill_evidence_notice_and_accounting_duties_are_atomic ________
+tests/integration/test_program_accounting_postgres.py:29: in test_real_fill_evidence_notice_and_accounting_duties_are_atomic
+    c,service,codec=setup_accounting(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_accounting_postgres.py:22: in setup_accounting
+    from trading_system.execution.program_accounting import ProgramPaperAccountingService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_accounting'
+____ test_replay_with_later_archive_delivery_does_not_duplicate_native_fill ____
+tests/integration/test_program_accounting_postgres.py:58: in test_replay_with_later_archive_delivery_does_not_duplicate_native_fill
+    c,service,codec=setup_accounting(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_accounting_postgres.py:22: in setup_accounting
+    from trading_system.execution.program_accounting import ProgramPaperAccountingService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_accounting'
+_ test_additional_partial_fill_uses_original_ids_without_releasing_reservations _
+tests/integration/test_program_accounting_postgres.py:75: in test_additional_partial_fill_uses_original_ids_without_releasing_reservations
+    c,service,codec=setup_accounting(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_accounting_postgres.py:22: in setup_accounting
+    from trading_system.execution.program_accounting import ProgramPaperAccountingService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_accounting'
+__ test_owner_commit_failure_rolls_back_facts_but_preserves_committed_source ___
+tests/integration/test_program_accounting_postgres.py:94: in test_owner_commit_failure_rolls_back_facts_but_preserves_committed_source
+    from trading_system.execution.program_accounting import ProgramPaperAccountingService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_accounting'
+_ test_source_linked_economic_discrepancy_retains_actual_quantity_and_no_cash __
+tests/integration/test_program_accounting_postgres.py:115: in test_source_linked_economic_discrepancy_retains_actual_quantity_and_no_cash
+    c,service,codec=setup_accounting(database,venue,tmp_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_accounting_postgres.py:22: in setup_accounting
+    from trading_system.execution.program_accounting import ProgramPaperAccountingService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_accounting'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_accounting_postgres.py::test_real_fill_evidence_notice_and_accounting_duties_are_atomic
+FAILED tests/integration/test_program_accounting_postgres.py::test_replay_with_later_archive_delivery_does_not_duplicate_native_fill
+FAILED tests/integration/test_program_accounting_postgres.py::test_additional_partial_fill_uses_original_ids_without_releasing_reservations
+FAILED tests/integration/test_program_accounting_postgres.py::test_owner_commit_failure_rolls_back_facts_but_preserves_committed_source
+FAILED tests/integration/test_program_accounting_postgres.py::test_source_linked_economic_discrepancy_retains_actual_quantity_and_no_cash
+5 failed in 0.97s

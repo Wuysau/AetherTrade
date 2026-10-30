@@ -10,6 +10,25 @@ balance posting, whole-branch qualification or the complete 46/56 acceptance.
 | committed-reader-red | 6a2eef4 | 9 passed, 2 failed, 0 errors/skips; missing committed reader |
 | committed-reader-green | 56ddb04 | 11 passed, 0 failures/errors/skips; 41.25 seconds |
 | interrupted-before-tests | 6e75d05 | NOT_RUN: only bundle.txt; environment interrupted before containers/tests |
+| resource-red | 42067ee | 11 passed, 1 failed, 0 errors/skips; 9 source-linked fills repeated the full proof |
+| snapshot-green | 08c05ae | 13 passed, 0 failures/errors/skips; 52.19 seconds |
+| accounting-fixture-errors | 362320c | 5 errors; imported fixture dependency missing; no test body executed |
+| accounting-red | c9ca04c | 5 failed, 0 errors/skips; accounting service missing after fixture correction |
+| accounting-green | 08cc9b1 | 5 passed, 0 failures/errors/skips; 35.62 seconds |
+
+The resource regression uses nine genuine matched partial fills, a 101706-byte
+verified source and an actual verifier-role database connection measuring SQL
+parameters. The old implementation sent 964772 bytes and failed the linear
+growth bound. The new writer stores one protected source snapshot with compact
+per-fill references. A batch reader loads that shared proof once, refuses use
+after transaction closure and still reads original V1 approvals unchanged.
+
+The accounting cohort additionally proves actual same-transaction evidence,
+native fills, bridge/notices and unresolved recovery duties; replay with later
+archive receipt, further partial fills, unchanged funds/reservations, atomic
+rollback and raw economic discrepancies. It deliberately reports
+RAW_RECORDED_ECONOMICS_BLOCKED. No cash/position financial posting is implemented
+by that result. It is not the requested complete capability qualification.
 
 The interrupted attempt had no qualifier process and no matching container after
 Docker recovery. It is not a failing product test or a qualification pass. The
@@ -46,6 +65,9 @@ An earlier local command named a nonexistent test_paper_program_economics.py and
 ran zero tests; it was corrected using the actual test file inventory. It is
 not counted as a pass.
 
-copy-map.json binds 65 original runtime evidence files to their byte copies and
+Expanded local regression at08cc9b1 added locked-action and original-ID recovery
+modules:167 passed in9.80seconds, with no skips/failures.
+
+copy-map.json binds 145 original runtime evidence files to their byte copies and
 SHA256. Publication also compares the actual committed Git blobs, since a
 working-tree comparison alone does not detect newline normalization.

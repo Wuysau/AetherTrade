@@ -1,5 +1,50 @@
 # Current task
 
+## OP_E_NATIVE_FACTS_AND_SHARED_SOURCE_SNAPSHOTS — 2026-10-30
+
+Parent/root is still sole writer of this accounting tree. Product08cc9b1 adds
+ProgramPaperAccountingService's actual raw-fact transaction using the existing
+EvidenceIngestor, FillLedger/EventStore/outbox/notices and risk lock repository.
+Fixedc9ca04c gave5 missing-API REDs; fixed08cc9b1 gave5 realPG passes35.62s,
+zero failures/errors/skips. Earlier362320c gave5 fixture dependency ERRORS;
+the omitted imported fixture was corrected separately and that evidence retained.
+The actual matching/financial/consumption path is used, not injected fake fills.
+
+Raw service verifies and commits source before owner TX, captures archive bytes
+outside it, then reads committed approvals and records native fill facts, unit
+bridge, evidence, fill notices and unresolved accounting lock together. Genuine
+partial/additional fills, later archive delivery/replay, rollback after owner
+commit failure and source-linked economics discrepancy pass. Existing book,
+positions, cash and reservations remain unchanged. A dedicated RECOVERY_REQUIRED
+cause lock carries source/asset/allocation/protection obligations; no automatic
+resolution or new authority. THIS IS NOT THE FINANCIAL POSTING STAGE.
+
+Independent review found full proof repeated perfill in0016writer. True42067ee
+RED:9 genuine fills,101706B source,964772B SQL parameters;11 priorPG passed.
+Additive0017 plus compact V2 approvals fixed it at08c05ae:13PG pass52.19s,
+zero failures/errors/skips. One immutable protected snapshot is shared; batch
+reader loads/hashes it once per live transaction. Closed-TX cache reuse denies.
+No owner/book/lease/current risk/ALLOW is cached.0016 bytes/oldV1 function/history
+are untouched; actual committed V1 compatibility is tested. New snapshot roles
+and functions remain isolated. Source approvals still cannot grant cash credit.
+
+Related current local regression08cc9b1:167 passed9.80s (evidence preparation,
+source economics/liquidity, locked actions and original-ID recovery). Full
+combined root tests remain due after serial integration. Source re-review
+requested from integration_next; no root merge/qualification claim yet.
+
+All145 raw runtime artifacts (including REDs/errors/interruption) are copied
+under op-e-fill-source with source-bound SHA map; actual committed blobs are
+checked after publication. No parent test jobs currently live. Main/archive,
+LIVE/TESTNET/account/paid models untouched; full46/56 OP-C→D/E/F→G ACTIVE.
+
+NEXT REQUIRED: authenticated per-asset principal/fee deltas in SAME audit ledger,
+actual position/book changes, current owner/allocation/cost readers and mixed
+legacy refresh protection. Keep total balances only in existing BookSnapshot;
+enumerate each native identity once across snapshots; reject conflicting
+economics/unknown fees. USD-M needs typed PnL/margin/funding and Equity needs
+CARD/MAIN location proof. Never substitute RAW_RECORDED for cash/position success.
+
 ## OP_E_SOURCE_APPROVAL_AND_COMMITTED_READER — 2026-10-30
 
 Parent/root remains sole writer of this accounting Worktree. New additive0016
