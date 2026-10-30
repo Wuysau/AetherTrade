@@ -23,5 +23,5 @@ Files: inline dataclass/helper and minimal compiler call in `program_target_allo
 
 - [x] Write and run RED: exact scoped type absent; full financial hash/foreign money hold retained with explicit empty quantity set, actual mapped local pending uses the same math, omitted mapped/duplicate/unknown IDs deny, unknown/partial tags fail decode, V1 byte hashes/replay unchanged and full assessment restores V2.
 - [x] Implement exact tagged dataclass and `program_target_quantity_book(book,facts)` helper; V1 returns original object, exactV2 checks claimed scope and projects only reservations. No runtime authority inferred.
-- [ ] Run focused new/old target and archive/risk regressions; inspect complete results, commit slice and send ROOT exact API before serial integration.
+- [x] Run focused new/old target and archive/risk regressions; actual196 passed17.78s, commitc30c632/c9b3fe4 and exact API sent ROOT. Original Gitcompiler V1 allocation payload equal; golden facts/archive hashes pinned.87artifacts original/copy/committed SHA all equal at4241e1f.
 - [ ] ROOT provides authenticated runtime/accepted-unfilled path; import coordinated dependencies and execute genuine A+B source/financial posting and V2 financial chain in fresh fixed-source PostgreSQL. Preserve all prerequisite failures and duties.
