@@ -12,7 +12,7 @@ from integration.test_program_fill_source_approval import actual_verifier,source
 from trading_system.contracts import types as t
 from trading_system.engine.paper_market import PaperMatcher
 from trading_system.ownership.registry import OwnershipRegistry,RegistryTx
-from trading_system.storage.models import scope_id
+from trading_system.storage.models import MissingEvidence,scope_id
 
 
 @pytest.fixture(scope='module')
@@ -142,6 +142,7 @@ def test_unknown_source_retains_current_book_and_creates_no_new_token(database,h
         c.engine.query_creation=lambda _:None
         result=runtime.observe(c.write.command_id)
         assert result.accounting.status=='SOURCE_BLOCKED' and result.orders is None
+        with pytest.raises(MissingEvidence,match='PROGRAM_ORDER_QUERY_UNKNOWN'):runtime.working_inputs()
         with c.service.uow.transaction(c.scope) as tx:
             assert tx.projections.book(c.scope)==before
             assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
