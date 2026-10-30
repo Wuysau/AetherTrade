@@ -47,6 +47,7 @@ SUITES = (
     ('paper-market-matcher-v2-compat', '03', 'tests/integration/test_paper_market_matcher_v2_compat.py'),
     ('program-continuation', '03', 'tests/integration/test_program_continuation_postgres.py'),
     ('native-creation-owner', '03', 'tests/integration/test_native_creation_owner_postgres.py'),
+    ('sdk-guarded-rejection', '03', 'tests/integration/test_guarded_sdk_rejection_postgres.py'),
     ('execution-evidence-atomic', '12', 'tests/integration/test_execution_evidence_atomic.py'),
     ('program-fill-source', '03', 'tests/integration/test_program_fill_source_approval.py'),
     ('program-accounting', '03', 'tests/integration/test_program_accounting_postgres.py'),
