@@ -526,3 +526,16 @@ def test_native_generation_cannot_execute_after_a_mutable_pool_ceiling_diverges_
         PaperMatcher(c.engine).apply_market_event(event(c,quantity='1'))
     with c.engine._connect() as db:
         assert db.execute('SELECT count(*) AS n FROM public.paper_native_child_allocations_v2 WHERE scope_key=%s',(c.engine._scope_key,)).fetchone()['n']==0
+
+
+def test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_facts_are_missing(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE',product=t.Product.USD_M_PERP,
+        actual='1',target='0',side='SELL',reduce_only=True)
+    submit(c)
+    assert c.request.assigned_ids.parent_client_id
+    PaperMatcher(c.engine).apply_market_event(replace(event(c,ask='81500',quantity='1'),bids=(DepthLevel(price='81490',quantity='1'),)))
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.status=='WAITING_POSITION_SOURCE' and not report.orders and not report.fills
+    assert report.pool.original_quantity==report.pool.remaining_pool_quantity==1 and report.pool.allocated_quantity==0
+    assert report.accepted_contexts[0].compilation.nodes[0].original.order.reduce_only is True
