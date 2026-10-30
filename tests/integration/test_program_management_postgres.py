@@ -290,3 +290,16 @@ def test_foreign_actual_venue_target_is_never_claimed(management_database,venue_
     s=management(c);s.target_reader=PaperManagementTargetReader(other.engine)
     with pytest.raises(ValueError,match='ORIGINAL_SCOPE_REQUIRED'):
         s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+
+def test_fresh_execution_owner_epoch_manages_old_original_without_creation_rewrite(management_database,venue_v2,management_venue,tmp_path):
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    from trading_system.execution.program_management_paper import submit_management
+    c=advanced_case(management_database,venue_v2,tmp_path);submit(c);old=c.write
+    c.lease=replace(c.lease,shard=replace(c.lease.shard,execution_epoch=2));c.owner.lease=c.lease
+    s=management(c)
+    w=s.admit(old.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+    assert old.execution_epoch==1 and w.execution_epoch==2
+    permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    with c.owner.session(c.lease.shard):
+        result=submit_management(c.engine,w,permit,boundary=s.boundary,lease=c.lease,owner=c.owner,bridge=management_venue)
+    assert result['cancel_result']=='CANCELED' and c.write==old
