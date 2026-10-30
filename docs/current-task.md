@@ -1,5 +1,17 @@
 # Current task
 
+## OP_E_V2_WRITER_RELEASED_TO_PARENT — 2026-10-30
+
+Parent accepted reports_fresh's V2 write-ownership release at CLEAN5245b9e.
+This final documentation-only record changes no source/tests/evidence bytes.
+reports_fresh performs no further writes here or in any other tree. Parent
+alone assigns the next sole writer to this SAME V2 worktree; no concurrent
+writer is authorized. All144raw evidence files/proof and original runtime
+artifacts remain intact; no livejobs exist and no old job needs restarting.
+The detailed V2 checkpoint below is authoritative for unfinished work. Full46/
+56 C–G goal remains ACTIVE, not complete or paused; source registry stays
+uninstalled until the required actual semantic cohorts and review qualify it.
+
 ## OP_E_PAPER_V2_REPORT_ACTIVE — 2026-10-30
 
 reports_fresh solely owns binance-ope-v2-report-verifier from root5f71102.
