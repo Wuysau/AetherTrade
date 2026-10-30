@@ -1,0 +1,28 @@
+FF.FF....                                                                [100%]
+=================================== FAILURES ===================================
+_ test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects[False-read_program_account_opening-False] _
+tests/integration/test_program_opening_exclusivity.py:73: in test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects
+    with pytest.raises(MissingEvidence,match='AMBIGUOUS_ACCOUNT_OPENING'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects[False-read_program_legacy_opening-False] _
+tests/integration/test_program_opening_exclusivity.py:73: in test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects
+    with pytest.raises(MissingEvidence,match='AMBIGUOUS_ACCOUNT_OPENING'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects[True-read_program_account_opening-False] _
+tests/integration/test_program_opening_exclusivity.py:73: in test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects
+    with pytest.raises(MissingEvidence,match='AMBIGUOUS_ACCOUNT_OPENING'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects[True-read_program_legacy_opening-False] _
+tests/integration/test_program_opening_exclusivity.py:73: in test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects
+    with pytest.raises(MissingEvidence,match='AMBIGUOUS_ACCOUNT_OPENING'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_opening_exclusivity.py::test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects[False-read_program_account_opening-False]
+FAILED tests/integration/test_program_opening_exclusivity.py::test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects[False-read_program_legacy_opening-False]
+FAILED tests/integration/test_program_opening_exclusivity.py::test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects[True-read_program_account_opening-False]
+FAILED tests/integration/test_program_opening_exclusivity.py::test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects[True-read_program_legacy_opening-False]
+4 failed, 5 passed in 6.84s

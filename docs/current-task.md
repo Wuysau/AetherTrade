@@ -17,8 +17,12 @@ registered opening readers inspect the same protected origin set before returnin
 capital, including when their own proof is absent/inapplicable. No DDL, old proof,
 payload/hash/schema or fee/ownership authority changed. Actual fixed9f1994c fresh
 PG9pass/0fail/error/skip4.54s in45e8d56da05c; original11387 is terminalexit0.
-Original RED76427 is terminalexit1,137ced05e494. Opening/legacy/strict-cash
-regressions currently RUNNING original38793/74145/95345; no green claim yet.
+Original RED76427 is terminalexit1,137ced05e494. Opening9/legacy5/strict-cash9
+regressions also actual GREEN5.17s/2.19s/44.98s, zero failures/errors/skips at
+9f1994c. Originals38793/74145/95345 are all terminalexit0; there is no live
+cash-chain qualification handle. Five fresh runs/80 raw artifacts are preserved
+separately in op-e-cash-chain with source-bound original/copy SHA map; actual
+committed Git-blob proof follows publication. Old evidence remains untouched.
 
 ROOT dependencies are being coordinated before serial import. No fabrication
 of permits/accepted states/fees, no relaxed cross-command or cash guard, no
