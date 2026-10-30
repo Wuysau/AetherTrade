@@ -30,7 +30,7 @@ def venue(database):
     return roles
 
 
-def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_fee_rate='0',node_fees=None,**risk_options):
+def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_fee_rate='0',node_fees=None,prepared_case=None,**risk_options):
     from trading_system.engine.paper import PaperEngine
     from trading_system.engine.paper_market import PaperMatchingModel
     from trading_system.runtime.execution_owner import ExecutionOwner
@@ -39,7 +39,12 @@ def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_f
         n=p.program.nodes[0]
         return replace(p,program=replace(p.program,nodes=(replace(n,order=replace(n.order,
             tif=TimeInForceSpec(kind='NONE' if post_only else tif,expires_at=None),post_only=post_only)),)))
-    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+    if prepared_case is not None:
+        if tif!='GTC' or post_only or market is not None or node_fees is not None or risk_options:
+            raise ValueError('prepared financial fixture already defines its order and risk facts')
+        c=prepared_case
+    else:
+        c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
     c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
     c.gate=boundary(c);c.lease=lease(c);c.permit=None
     def unavailable(*args):raise ValueError('legacy guard never authorizes V3')
