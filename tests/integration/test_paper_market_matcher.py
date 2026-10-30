@@ -407,3 +407,15 @@ def test_healthy_accept_clock_cannot_precede_the_current_observed_market_book(da
     c.engine._clock=lambda:clock
     with pytest.raises(ValueError,match='PAPER_MARKET_CLOCK_AHEAD_OF_ACCEPTANCE'):submit(c)
     assert c.engine.query_creation(c.write.command_id) is None
+
+
+def test_original_protected_fee_ceiling_is_copied_exactly_under_low_ambient_precision(database,venue,tmp_path):
+    from decimal import localcontext
+    from trading_system.risk.program_exposure import FeeBound
+    c=case(database,venue,tmp_path,node_fees=(FeeBound(
+        amount=t.Money(currency='USDT',amount=D('.1119')),debit='EXTERNAL_BALANCE'),))
+    with localcontext() as ambient:
+        ambient.prec=3
+        submit(c)
+    context=c.engine.query_creation(c.write.command_id).accepted_contexts[0]
+    assert context.execution_envelope.fee_ceilings[0].amount=='0.1119'
