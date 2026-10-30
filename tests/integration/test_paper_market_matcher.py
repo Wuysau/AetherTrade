@@ -287,7 +287,18 @@ def test_structured_fill_identity_handles_valid_multi_level_sell_collisions(data
     from trading_system.engine.paper_market import PaperMatcher,DepthLevel
     c=case(database,venue,tmp_path,product=t.Product.USD_M_PERP,actual='10.3',target='0',quantity='10.3',side='SELL',reduce_only=True)
     submit(c)
-    raw=replace(event(c,ask='81500',quantity='1'),bids=(DepthLevel(price='81490.11',quantity='.3'),DepthLevel(price='81490.1',quantity='10')))
+    sequence=1
+    with c.engine._connect() as db:
+        upgraded=db.execute("SELECT to_regclass('public.paper_venue_positions_v2') AS table_name").fetchone()['table_name'] is not None
+    if upgraded:
+        from trading_system.engine.paper_market_v2 import PaperPositionEventV2
+        PaperMatcher(c.engine).apply_market_event(PaperPositionEventV2(contract_version='2026-10-30',event_id='collision-position',
+            stream_id=c.scope.instrument_uid,product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=1,
+            kind='ACCOUNT_POSITION',venue_account_id=c.scope.venue_account_id,venue_leg=c.scope.venue_leg,
+            quantity_unit=c.bundle.intent.unit.native_unit,notional_multiplier=c.bundle.archive.compilation.nodes[0].quantity_multiplier,
+            reported_quantity='10.3',through_sequence=0,occurred_at=c.c.facts.inputs.clock.utc_now,source='PAPER_MARKET_REPLAY_SYNTHETIC'))
+        sequence=2
+    raw=replace(event(c,sequence=sequence,ask='81500',quantity='1'),bids=(DepthLevel(price='81490.11',quantity='.3'),DepthLevel(price='81490.1',quantity='10')))
     PaperMatcher(c.engine).apply_market_event(raw)
     report=c.engine.query_creation(c.write.command_id)
     assert report.filled_quantity==D('10.3') and len(report.fills)==2
