@@ -440,6 +440,10 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                     arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
                     gross_limit=min(qty*bound.maximum_price.value*number(node.quantity_multiplier),number(node.worst_case_quote_notional))
                 require(0<gross_limit<=assessment.exposure.gross_program.amount,'PAPER_NATIVE_NODE_GROSS_EXCEEDS_PROGRAM')
+                from trading_system.risk.valuation import Valuation
+                valued=Valuation(assessment.risk_policy.valuation_currency,assessment.risk_facts.inputs.fx_rates).convert(
+                    t.Money(currency=assessment.rules.quote_asset,amount=gross_limit),liability=True)
+                require(valued.amount<=number(assessment.risk_policy.maximum_order_notional),'PAPER_NATIVE_NODE_POLICY_EXCEEDED')
             envelope=PaperExecutionEnvelope(contract_version='2026-10-29',record_kind='PAPER_EXECUTION_ENVELOPE',scope=engine.scope,
                 command_id=write.command_id,request_hash=digest(request),consumption_context_hash=canonical_hash(consumption),
                 assessment_hash=digest(assessment),source_ref='ledger.program_permit_consumptions:'+scope_id(engine.scope)+':'+write.command_id,
