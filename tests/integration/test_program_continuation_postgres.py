@@ -1,7 +1,7 @@
 """Continuation metadata shares the actual financial/request transaction."""
 import pytest
 
-from integration.test_quote_current_boundary_postgres import database,isolated_postgres
+from integration.test_quote_current_boundary_postgres import database,base_database,isolated_postgres
 from integration.test_quote_financial_kernel_postgres import quote_case
 from integration.test_quote_program_admission_postgres import public
 from trading_system.execution.program_commands import ProgramCommandRepository
@@ -42,6 +42,7 @@ def test_continuation_rolls_back_with_the_real_financial_outbox_failure(database
 def test_historical_bundle_or_owner_json_cannot_mint_a_new_live_continuation_record(database):
     from trading_system.risk.program_continuation import persist_program_continuation
     c=quote_case(database);receipt=public(c).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan)
-    with c.owner.transaction(c.scope) as tx:
-        bundle=read_program_bundle(tx,receipt.intent_id)
-        with pytest.raises(ValueError,match='PROGRAM_FINANCIAL_WITNESS_REQUIRED'):persist_program_continuation(tx,bundle)
+    with pytest.raises(ValueError,match='PROGRAM_FINANCIAL_WITNESS_REQUIRED'):
+        with c.owner.transaction(c.scope) as tx:
+            bundle=read_program_bundle(tx,receipt.intent_id)
+            persist_program_continuation(tx,bundle)
