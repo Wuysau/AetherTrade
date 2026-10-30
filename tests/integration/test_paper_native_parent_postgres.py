@@ -255,3 +255,39 @@ def test_native_source_rejects_fabricated_relationship_and_retains_raw(database,
         assert not result.source_verified and result.status=='BLOCKED'
         assert result.raw_report==report and result.raw_refs
     finally:codec.close()
+
+
+def test_native_parent_cannot_start_after_actual_sim_lock_wait(database,venue_v2,tmp_path):
+    import psycopg,time
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import timedelta
+    from psycopg.conninfo import conninfo_to_dict
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.engine.paper_market import market_key
+    c=advanced_case(database,venue_v2,tmp_path,template="TWAP",tif="NONE");key=market_key(c.scope.product,c.scope.instrument_uid)
+    dbname=conninfo_to_dict(venue_v2.runtime_dsn)['dbname']
+    with psycopg.connect(venue_v2.event_dsn) as blocker:
+        blocker.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(key,))
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending=pool.submit(submit,c)
+            deadline=time.monotonic()+30
+            with psycopg.connect(database) as observer:
+                while time.monotonic()<deadline:
+                    waiting=observer.execute('SELECT EXISTS(SELECT FROM pg_locks l JOIN pg_database d ON d.oid=l.database '
+                        "WHERE d.datname=%s AND l.locktype='advisory' AND NOT l.granted)",(dbname,)).fetchone()[0]
+                    if waiting:break
+                    if pending.done():pending.result()
+                    time.sleep(.02)
+                else:raise AssertionError('actual SIM advisory wait not observed')
+            # This is a healthy clock advance, while its execution-owner lease
+            # still has nearly a minute. It does not create or renew a permit.
+            current=replace(c.c.facts.inputs.clock,utc_now=(utc_timestamp(c.c.facts.inputs.clock.utc_now)+timedelta(seconds=6)).isoformat(),
+                monotonic_ns=c.c.facts.inputs.clock.monotonic_ns+6*10**9)
+            c.engine._clock=lambda:current;c.owner.clock=lambda:current
+            blocker.commit()
+            with pytest.raises(ValueError,match='PAPER_CONSUMED_PERMIT_EXPIRED'):pending.result(timeout=30)
+    assert c.engine.query_creation(c.write.command_id) is None
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',
+            (c.write.command_id,)).fetchone()==(1,)
+
