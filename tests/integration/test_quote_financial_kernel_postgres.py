@@ -19,11 +19,11 @@ from trading_system.storage.models import scope_id
 def digest(value):return canonical_hash(domain_payload(value))
 
 
-def quote_case(database):
-    c=real_case(database)
+def quote_case(database, *, real_options=None, quote_options=None, quote_assets=None):
+    c=real_case(database, **(real_options or {}))
     # real_case initializes the existing synthetic helper import paths only.
     from test_quote_risk_assessment import quote_risk_case
-    q=quote_risk_case();original=c.ingress.load_inputs(None,None,None,None)
+    q=quote_risk_case(**(quote_options or {}));original=c.ingress.load_inputs(None,None,None,None)
     context=c.record.context;scope=c.scope
     caps=replace(q.facts.target_facts.capabilities,scope=scope,qualification='PAPER_VERIFIED',evidence=original.capabilities.evidence)
     profile=replace(q.facts.target_facts.profile,scope=scope)
@@ -57,7 +57,7 @@ def quote_case(database):
         from trading_system.risk.quote_financial_admission import QuoteFinancialInputsV1
         from trading_system.risk.evaluator import RiskEvaluator
         from trading_system.accounts.authorization import AuthorizationService
-        current=replace(c.c.facts.inputs,intent_id=intake.intent_id,clock=clock,allow_round_down=True)
+        current=replace(c.c.facts.inputs,intent_id=intake.intent_id,clock=clock,allow_round_down=True,fee_reserve=q.facts.inputs.fee_reserve)
         sf=replace(s,transaction_id=tx.transaction_id,book_hash=digest(book),inputs=replace(s.inputs,clock=clock))
         tf=replace(target,scope_facts=sf)
         q.allocation=compile_quote_target(q.plan,book,tf);q.book=book
@@ -69,9 +69,9 @@ def quote_case(database):
         archive=QuoteAssessmentArchiveV1(contract_version='2026-10-30',record_kind='QUOTE_ASSESSMENT_ARCHIVE_V1',
             intent_id=intake.intent_id,source=actual_source,compilation=q.plan,book=book,allocation=q.allocation,
             risk_terms=q.terms,risk_facts=q.facts,risk_policy=q.policy,assessment=decision)
-        assets=(t.Money(currency='USDT',amount=D('1000000')),)
+        assets=quote_assets or (t.Money(currency='USDT',amount=D('1000000')),)
         return QuoteFinancialInputsV1(archive=archive,authorization=original.authorization,
-            group_capacity=assets,strategy_capacity=assets,buffer=(t.Money(currency='USDT',amount=D(0)),),
+            group_capacity=assets,strategy_capacity=assets,buffer=tuple(t.Money(currency=a.currency,amount=D(0)) for a in assets),
             reconciled_holds=tuple(p for p in ReservationRepository(tx).group()
                 if p.reservation.intent_id!=intake.intent_id))
     def qualify(tx,a,clock):

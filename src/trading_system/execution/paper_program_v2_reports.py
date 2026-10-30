@@ -126,9 +126,17 @@ class PaperProgramV2ReportVerifier:
             inputs=db.execute('SELECT market_key,event_id,payload,before_levels,observed_clock FROM public.paper_market_inputs '
                 'WHERE market_key=ANY(%s) AND event_id=ANY(%s) ORDER BY market_key,sequence,event_id LIMIT 4097',
                 (market_keys,event_ids)).fetchall()
-            allocations=db.execute('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price::text AS price,quantity::text AS quantity '
-                'FROM public.paper_market_consumptions WHERE market_key=ANY(%s) AND event_id=ANY(%s) '
-                'ORDER BY market_key,event_id,scope_key,client_id,fill_id LIMIT 100001',(market_keys,event_ids)).fetchall()
+            allocation_sql=('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price::text AS price,quantity::text AS quantity '
+                'FROM public.paper_market_consumptions WHERE market_key=ANY(%s) AND event_id=ANY(%s)')
+            allocation_args=(market_keys,event_ids)
+            if db.execute("SELECT to_regclass('public.paper_quote_allocations_v1') AS relation").fetchone()['relation'] is not None:
+                allocation_sql+=(' UNION ALL SELECT a.market_key,a.event_id,a.scope_key,t.client_id,a.fill_id,a.side,'
+                    'a.price::text AS price,a.quantity::text AS quantity FROM public.paper_quote_allocations_v1 a '
+                    'JOIN public.paper_quote_terms_v1 t USING(scope_key,command_id) '
+                    'WHERE a.market_key=ANY(%s) AND a.event_id=ANY(%s)')
+                allocation_args+=allocation_args
+            allocations=db.execute(allocation_sql+' ORDER BY market_key,event_id,scope_key,client_id,fill_id LIMIT 100001',
+                allocation_args).fetchall()
             preventions=db.execute('SELECT market_key,event_id,scope_key,client_id,prevention_id,depth_event_id,side,price::text AS price,'
                 'maker_quantity::text AS maker_quantity,taker_quantity::text AS taker_quantity,mode,venue_account_id,venue_order_id '
                 'FROM public.paper_market_preventions_v2 WHERE market_key=ANY(%s) AND event_id=ANY(%s) '
