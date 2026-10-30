@@ -599,9 +599,13 @@ def test_actual_reduce_only_position_capacity_is_debited_between_depth_levels(da
         DepthLevel(price='81490',quantity='0.1'),DepthLevel(price='81489',quantity='0.1'))))
     report=c.engine.query_creation(c.write.command_id)
     assert {f.price:f.quantity for f in report.fills}=={D('81490'):D('0.1'),D('81489'):D('0.05')}
-    assert report.filled_quantity==D('0.15') and report.remaining_quantity==0
+    assert report.filled_quantity==D('0.15') and report.remaining_quantity==D('0.85')
+    assert report.status=='PARTIALLY_FILLED'
     with c.engine._connect() as db:
         row=db.execute('SELECT quantity,known,discrepancy FROM public.paper_venue_positions_v2 WHERE account_id=%s',
             (c.scope.venue_account_id,)).fetchone()
         assert row['quantity']==0 and row['known'] and row['discrepancy'] is None
     assert any(i.event.event_id=='position-1' for i in c.engine.query_market_evidence(c.write.command_id).inputs)
+    from trading_system.risk.reservation_repository import ReservationRepository
+    with c.service.uow.transaction(c.scope) as tx:
+        assert ReservationRepository(tx).get(c.bundle.reservations[0].reservation.reservation_id).held==c.bundle.reservations[0].held

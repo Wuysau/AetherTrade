@@ -32,6 +32,13 @@ is TERMINALexit1 with complete summary/XML. Full result still due after this
 test-only correction. No frozen1b12 verifier producer or root0014 was changed
 by this D repair.
 
+Original11008/run03d7d5ee6f33 fde952c TERMINALexit1:33pass/1 new-test expectation
+failure156.16s. Exact split-level fills already passed0.1 at81490+0.05 at81489;
+the GTC order correctly retains0.85 remaining. New test now requires this actual
+PARTIALLY_FILLED state and unchanged reservation rather than the prior MARKET
+zero-leaves expectation. Product SQL has not changed since6543655. A fresh full
+34-case run remains due after this test-only correction; no full D pass yet.
+
 ## OP_D_MATCHER_V2_OWN_WORKTREE — 2026-10-30
 
 **WRITE OWNERSHIP RELEASED after this handoff commit, by explicit parent request.**
