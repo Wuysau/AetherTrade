@@ -52,10 +52,11 @@ def test_exact_new_quote_context_migration_is_installed_without_old_history_rewr
 
 
 def test_actual_quote_mark_commits_and_consumes_exact_original_request_once(database):
+    import psycopg
     c=admitted(database);g=gate(c);permit=g.mark_may_have_sent(c.cid,lease(c))
     request=g.consume(permit,lease(c))
     assert dict(request.form_parameters())['quoteOrderQty']=='4000'
-    with pytest.raises(ValueError):g.consume(permit,lease(c))
+    with pytest.raises((ValueError,psycopg.errors.UniqueViolation)):g.consume(permit,lease(c))
     with c.owner.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
             (scope_id(c.scope),)).fetchone()==(1,)
@@ -99,4 +100,30 @@ def test_quote_current_gaps_never_renew_or_consume_the_marked_request(database,f
         with pytest.raises(ValueError):g.consume(permit,lease(c))
     with c.owner.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchone()==(0,)
+
+
+@pytest.mark.parametrize('fault',['source_book_hash','financial_book_hash','execution_bounds_hash','unknown_kind','downgrade'])
+def test_protected_sql_cannot_bypass_new_quote_context_binding(database,fault):
+    import psycopg
+    from trading_system.contracts.canonical import canonical_json
+    from trading_system.execution.program_commands import ProgramCommandRepository
+    c=admitted(database);g=gate(c)
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with g.uow.transaction(c.scope) as tx:
+            repo=ProgramCommandRepository(tx,**g.readers);w=repo.write(c.cid)
+            context,*_=repo._current(w,lease(c))
+            if fault in ('source_book_hash','financial_book_hash','execution_bounds_hash'):context[fault]='f'*64
+            else:
+                context['assessment']['record_kind']='UNKNOWN_QUOTE_ARCHIVE'
+                if fault=='downgrade':
+                    context['assessment']['record_kind']='PROGRAM_FINANCIAL_ASSESSMENT_ARCHIVE'
+                    context['assessment']['contract_version']='2026-10-29'
+                    context['assessment']['capabilities']=context['assessment']['risk_facts']['target_facts']['capabilities']
+                    del context['source_book_hash']
+                context['assessment_hash']=canonical_hash(context['assessment'])
+            tx.execute('SELECT ledger.mark_program_may(%s,%s,%s::jsonb,%s,%s,%s)',
+                (scope_id(c.scope),c.cid,canonical_json(context),'b'*64,5000,tx.transaction_id))
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.program_dispatch_marks WHERE scope_id=%s',
             (scope_id(c.scope),)).fetchone()==(0,)
