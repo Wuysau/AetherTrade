@@ -144,6 +144,9 @@ def test_unknown_source_retains_current_book_and_creates_no_new_token(database,h
         assert result.accounting.status=='SOURCE_BLOCKED' and result.orders is None
         with pytest.raises(MissingEvidence,match='PROGRAM_ORDER_QUERY_UNKNOWN'):runtime.working_inputs()
         with c.service.uow.transaction(c.scope) as tx:
+            from trading_system.execution.program_submission_observation import read_program_submission_observation
+            view=read_program_submission_observation(tx,c.write)
+            assert not view.submission_known and view.ever_accepted
             assert tx.projections.book(c.scope)==before
             assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
                 (scope_id(c.scope),)).fetchone()==(1,)

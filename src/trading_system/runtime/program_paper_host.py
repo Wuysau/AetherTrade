@@ -90,6 +90,11 @@ class ProgramPaperHost:
         original=self._original(command_id)
         need(original.current_state in ('MAY_HAVE_SENT','UNKNOWN'),'PROGRAM_HOST_SENT_ORIGINAL_REQUIRED')
         accounting=self.accounting.apply(command_id)
+        if accounting.status=='SOURCE_BLOCKED':
+            # A failed financial-source query must also become the latest
+            # protected submission observation. An older accepted snapshot
+            # cannot keep supplying current working inputs after this failure.
+            self.orders.observer.observe(command_id)
         orders=None if accounting.status=='SOURCE_BLOCKED' else self.orders.apply(command_id)
         return ProgramPaperHostObservation(accounting=accounting,orders=orders)
 
