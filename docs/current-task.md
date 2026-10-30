@@ -1,5 +1,32 @@
 # Current task
 
+## Fresh accounting chain writer — 2026-10-30
+
+Parent assigned `cash_chain_fresh` sole write ownership of THIS existing worktree
+at clean1632692. Root integration_fresh owns ROOT; no other tree is written here.
+Full46/56 remains ACTIVE. Previous40 jobs and644-artifact proof remain terminal;
+none was resumed or restarted. Current work continues the actual source→owned
+quantity/assets/FEE/book chain, including ROOT first-capital/knownness/quantity
+dependencies and actual V2 financial proof. It does not enable operational trading.
+
+Fresh historical-opening counterexample17773d3 created BOTH genuine protected
+proofs BEFORE0024, then applied0024 and checked original payload/hash/physical
+xmin/database transaction unchanged. Actual9case PG:5pass/4DID NOT RAISE (the
+direct new/legacy readers and strict cash using either). Fix9f1994c makes ALL
+registered opening readers inspect the same protected origin set before returning
+capital, including when their own proof is absent/inapplicable. No DDL, old proof,
+payload/hash/schema or fee/ownership authority changed. Actual fixed9f1994c fresh
+PG9pass/0fail/error/skip4.54s in45e8d56da05c; original11387 is terminalexit0.
+Original RED76427 is terminalexit1,137ced05e494. Opening/legacy/strict-cash
+regressions currently RUNNING original38793/74145/95345; no green claim yet.
+
+ROOT dependencies are being coordinated before serial import. No fabrication
+of permits/accepted states/fees, no relaxed cross-command or cash guard, no
+foreign-scope writes or second running balance. Two-command proof remains a
+fixture prerequisite failure until the real ROOT knownness/quantity path reaches
+financial posting. Historical mixed positive remains blocked by missing complete
+authenticated legacy source history; old raw.zip bytes stay unchanged.
+
 ## WRITE OWNERSHIP RELEASED — accounting fresh handoff
 
 Parent/root explicitly requested this checkpoint handoff. `cash_fresh` releases
