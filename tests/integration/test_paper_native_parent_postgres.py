@@ -211,3 +211,47 @@ def test_actual_reduce_only_position_capacity_is_debited_between_depth_levels(da
     from trading_system.risk.reservation_repository import ReservationRepository
     with c.service.uow.transaction(c.scope) as tx:
         assert not c.bundle.reservations and not ReservationRepository(tx).group()
+
+
+def native_verifier(c,path):
+    from trading_system.execution.paper_native_parent_reports import PaperNativeParentReportVerifier
+    from trading_system.engine.nautilus.id_codec import VenueIdCodec
+    from trading_system.engine.nautilus.native_events import NativeEventBridge
+    codec=VenueIdCodec(c.scope)
+    return PaperNativeParentReportVerifier(c.service.uow,c.scope,engine=c.engine,
+        archive_bridge=NativeEventBridge(codec,path)),codec
+
+
+@pytest.mark.parametrize('with_child',[False,True])
+def test_native_source_authenticates_actual_parent_and_children(database,venue_v2,tmp_path,with_child):
+    from trading_system.engine.paper_market import PaperMatcher
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+    if with_child:PaperMatcher(c.engine).apply_market_event(event(c,quantity='.1'))
+    service,codec=native_verifier(c,tmp_path/'native-raw')
+    try:
+        result=service.verify(c.write.command_id)
+        assert result.source_verified,result.discrepancies
+        assert result.record_kind=='PAPER_NATIVE_PARENT_VERIFICATION_V1'
+        assert len(result.fills)==int(with_child)
+        assert result.raw_report.pool.remaining_pool_quantity==D('.8') if with_child else result.raw_report.pool.remaining_pool_quantity==1
+        assert not result.execution_authorized and not result.funds_release_authorized
+    finally:codec.close()
+
+
+@pytest.mark.parametrize('tamper',['parent','child','fill','budget'])
+def test_native_source_rejects_fabricated_relationship_and_retains_raw(database,venue_v2,tmp_path,monkeypatch,tamper):
+    from trading_system.engine.paper_market import PaperMatcher
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.1'))
+    report=c.engine.query_creation(c.write.command_id)
+    if tamper=='parent':report=replace(report,native_parent=replace(report.native_parent,venue_parent_id='invented'))
+    if tamper=='child':report=replace(report,orders=(replace(report.orders[0],client_id='f'*32),))
+    if tamper=='fill':report=replace(report,fills=(replace(report.fills[0],quantity=D('10')),))
+    if tamper=='budget':report=replace(report,pool=replace(report.pool,maximum_gross_notional=D('999999')))
+    monkeypatch.setattr(c.engine,'query_creation',lambda _:report)
+    service,codec=native_verifier(c,tmp_path/'native-tampered')
+    try:
+        result=service.verify(c.write.command_id)
+        assert not result.source_verified and result.status=='BLOCKED'
+        assert result.raw_report==report and result.raw_refs
+    finally:codec.close()
