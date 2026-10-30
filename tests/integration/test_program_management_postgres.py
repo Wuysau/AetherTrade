@@ -3,7 +3,7 @@ from dataclasses import replace
 from decimal import Decimal as D
 import pytest
 from trading_system.contracts import types as t
-from integration.test_paper_market_matcher_v2 import isolated_postgres,database,venue,venue_v2,advanced_case
+from integration.test_paper_market_matcher_v2 import isolated_postgres,database,venue,venue_v2,advanced_case as _advanced_case
 from integration.test_paper_market_matcher import submit,event
 
 _VERIFIER_DSNS={}
@@ -14,6 +14,9 @@ def management_database(database):
     import psycopg
     from integration.support_ip_03 import ROOT
     with psycopg.connect(database) as db:
+        for name in ('0016_program_fill_source_approval.sql','0017_program_fill_source_snapshots.sql',
+            '0018_program_fill_source_leaves.sql','0019_program_account_opening.sql','0020_program_legacy_opening.sql'):
+            db.execute((ROOT/'migrations'/name).read_text(encoding='utf-8'))
         db.execute((ROOT/'migrations/0022_program_management_boundary.sql').read_text(encoding='utf-8'))
         from psycopg import sql
         from psycopg.conninfo import conninfo_to_dict,make_conninfo
@@ -34,6 +37,34 @@ def management_database(database):
         db.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(conninfo_to_dict(database)['dbname']),sql.Identifier(name)))
         _VERIFIER_DSNS[database]=make_conninfo(**{**conninfo_to_dict(database),'user':name,'password':password})
     return database
+
+def advanced_case(*args,**kwargs):
+    """Declare initial assets before actual initial financial intent/command."""
+    from unittest.mock import patch
+    import integration.test_paper_market_matcher as fixture_module
+    from trading_system.execution.program_account_opening import ProgramAccountOpeningService,account_key
+    from trading_system.execution.program_book_cash import bind_program_book_cash
+    from trading_system.execution.program_legacy_opening import read_program_local_account_opening
+    from trading_system.contracts.canonical import canonical_hash,domain_payload
+    from trading_system.storage.uow import UnitOfWork
+    import psycopg
+    original=fixture_module.real_case
+    def funded(*a,**k):
+        c=original(*a,**k)
+        # Explicit scenario declaration, never inferred from a current book.
+        assets=(t.Money(currency='BTC',amount=D('10')),t.Money(currency='USDT',amount=D('1000000')))
+        account=account_key(c.scope);at=c.c.facts.inputs.clock.utc_now
+        evidence=t.EvidenceRef(id='management-declared-initial-assets:'+account.key,
+            hash=canonical_hash(dict(account=domain_payload(account),assets=[domain_payload(m) for m in assets])),
+            environment=c.scope.environment,source='EXPLICIT_ISOLATED_INITIAL_ASSET_PROVISION',visible_at=at)
+        def connect():
+            db=psycopg.connect(c.dsn);db.execute('SET ROLE ledger_program_account_provisioner');db.commit();return db
+        c.management_opening=ProgramAccountOpeningService(UnitOfWork(connect),c.scope).initialize(assets,evidence=evidence)
+        with c.service.uow.transaction(c.scope) as tx:
+            frame=bind_program_book_cash(tx,tx.projections.book(c.scope),read_opening=read_program_local_account_opening)
+            assert frame is not None and frame.opening_id==c.management_opening.opening_id
+        return c
+    with patch.object(fixture_module,'real_case',funded):return _advanced_case(*args,**kwargs)
 
 @pytest.fixture(scope='module')
 def management_venue(management_database,venue_v2):
@@ -86,6 +117,8 @@ def test_actual_management_commits_full_plan_and_real_outbox(management_database
         import json
         assert sha256(stored.target_source_json.encode('utf-8')).hexdigest()==stored.target_source_hash
         assert json.loads(stored.target_source_json)['evidence']['hash']==stored.plan.target.evidence.hash
+        assert stored.opening_id==c.management_opening.opening_id and stored.cash_revision
+        assert json.loads(stored.funding_snapshot_json)['opening_id']==stored.opening_id
         assert tx.execute('SELECT kind FROM ledger.outbox WHERE aggregate_id=%s',(write.command_id,)).fetchone()==('PROGRAM_MANAGEMENT_READY',)
 
 

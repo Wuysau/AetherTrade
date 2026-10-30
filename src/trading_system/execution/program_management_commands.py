@@ -38,6 +38,10 @@ class ManagementBinding:
     funding_hash:str
     target_source_json:str
     target_source_hash:str
+    opening_id:str|None
+    cash_revision:str|None
+    risk_snapshot_json:str
+    funding_snapshot_json:str
 
 def binding_hash(binding):return digest(replace(binding,write=replace(binding.write,binding_hash='0'*64)))
 
@@ -79,6 +83,11 @@ class ManagementRepository:
         require(sha256(binding.target_source_json.encode('utf-8')).hexdigest()==binding.target_source_hash
             and json.loads(binding.target_source_json)['evidence']['hash']==binding.plan.target.evidence.hash,
             'MANAGEMENT_TARGET_SOURCE_CHANGED')
+        require(digest(json.loads(binding.risk_snapshot_json))==w.risk_hash
+            and digest(json.loads(binding.funding_snapshot_json))==w.funding_hash
+            and json.loads(binding.funding_snapshot_json)['opening_id']==binding.opening_id
+            and json.loads(binding.funding_snapshot_json)['cash_revision']==binding.cash_revision,
+            'MANAGEMENT_FINANCIAL_ARCHIVE_CHANGED')
         rows=self.tx.execute('SELECT sequence,payload FROM ledger.management_writes WHERE scope_id=%s AND record_id=%s ORDER BY sequence',
             (scope_id(self.tx.scope),command_id)).fetchall()
         require(tuple(n for n,_ in rows)==tuple(range(1,len(rows)+1)) and 1<=len(rows)<=3,'MANAGEMENT_HISTORY_REQUIRED')

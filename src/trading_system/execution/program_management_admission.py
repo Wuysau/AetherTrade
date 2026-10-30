@@ -9,7 +9,7 @@ from decimal import Decimal
 from uuid import uuid4
 from trading_system.accounts.authorization import AuthorizationBinding,AuthorizationService
 from trading_system.contracts import types as t
-from trading_system.contracts.canonical import domain_payload,utc_timestamp
+from trading_system.contracts.canonical import canonical_json,domain_payload,utc_timestamp
 from trading_system.contracts.management_write_v4 import ManagementWriteV4
 from trading_system.contracts.order_lifecycle import ApplicationWrite
 from trading_system.contracts.order_snapshots import OrderRuleSnapshot,OrderCapabilitySnapshot
@@ -102,7 +102,7 @@ class ProgramManagementService:
             'MANAGEMENT_TARGET_IDENTITY_CHANGED')
         book=tx.projections.book(self.scope)
         from trading_system.risk.program_cash_guard import require_current_account_book
-        require_current_account_book(tx,book)
+        cash_frame=require_current_account_book(tx,book)
         inputs=self.load_inputs(tx,original,target,book,clock) if self.load_inputs else None
         require(type(inputs) is ManagementInputs,'MANAGEMENT_CURRENT_INPUTS_REQUIRED')
         auth=AuthorizationService(lambda _:inputs.authorization,clock=lambda:now).validate(context)
@@ -137,9 +137,23 @@ class ProgramManagementService:
         risk={'original_basis_hash':w.basis_hash,'target':domain_payload(target),'locks':payload(locks),
             'authorization':domain_payload(auth),'capabilities_hash':digest(inputs.capabilities)}
         funding={'group_id':tx.group_id,'holds':payload(holds),'book_hash':digest(book),
+            'opening_id':None if cash_frame is None else cash_frame.opening_id,
+            'cash_revision':None if cash_frame is None else cash_frame.economic_revision,
             'group_capacity':payload(inputs.group_capacity),'strategy_capacity':payload(inputs.strategy_capacity),
             'buffer':payload(inputs.buffer)}
-        return bundle,inputs,clock,expires,risk,funding,fence
+        # LOCAL readers can still wait. Poll the independent clock/lease and
+        # owner fence again before admitting any write or private token.
+        end_clock=self.load_clock(tx) if self.load_clock else None
+        end_lease=self.load_lease(tx) if self.load_lease else None
+        require(type(end_clock) is t.ClockReading and end_clock.clock_health=='HEALTHY'
+            and type(end_clock.monotonic_ns) is int and end_clock.monotonic_ns>=clock.monotonic_ns
+            and utc_timestamp(end_clock.utc_now)>=now and end_lease==lease,
+            'MANAGEMENT_CURRENT_CLOCK_LEASE_CHANGED')
+        require(utc_timestamp(end_clock.utc_now)<expires and end_clock.monotonic_ns<lease.deadline_monotonic_ns,
+            'MANAGEMENT_WRITE_EXPIRED')
+        require(digest(current_fence(tx,context))==digest(fence) and digest(tx.projections.book(self.scope))==digest(book),
+            'MANAGEMENT_CURRENT_STATE_CHANGED')
+        return bundle,inputs,end_clock,expires,risk,funding,fence
 
     def admit(self,original_command_id,instruction,lease,*,command_id=None,valid_until=None):
         require(type(instruction) is ManagementInstruction and instruction.kind!=ManagementKind.QUERY,'MANAGEMENT_QUERY_READ_ONLY')
@@ -180,7 +194,8 @@ class ProgramManagementService:
             binding=ManagementBinding(write=w,plan=plan,request=request,source_context=bundle.intent.source.context,
                 original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
                 risk_hash=digest(risk),funding_hash=digest(funding),target_source_json=observation.source_json,
-                target_source_hash=observation.source_hash)
+                target_source_hash=observation.source_hash,opening_id=funding['opening_id'],cash_revision=funding['cash_revision'],
+                risk_snapshot_json=canonical_json(risk),funding_snapshot_json=canonical_json(funding))
             binding=replace(binding,write=replace(w,binding_hash=binding_hash(binding)))
             ctx=self._context(binding,clock,lease,expires,risk,funding,fence)
             return ManagementRepository(tx).append(binding,ctx)
