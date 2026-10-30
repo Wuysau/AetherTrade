@@ -23,16 +23,32 @@ CREATE TABLE public.paper_published_rules_v2(
 CREATE TABLE public.paper_session_calendars_v2(
  market_key text PRIMARY KEY,event_id text NOT NULL,calendar jsonb NOT NULL,
  FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
+CREATE TABLE public.paper_liquidity_owners_v2(
+ market_key text NOT NULL,depth_event_id text NOT NULL,side text NOT NULL CHECK(side IN ('BID','ASK')),
+ price numeric NOT NULL,source_quantity numeric NOT NULL CHECK(source_quantity>0),venue_account_id text NOT NULL,
+ venue_order_id text NOT NULL,event_id text NOT NULL,PRIMARY KEY(market_key,depth_event_id,side,price),
+ FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id),
+ FOREIGN KEY(market_key,depth_event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
+CREATE TABLE public.paper_market_preventions_v2(
+ market_key text NOT NULL,event_id text NOT NULL,scope_key text NOT NULL,client_id text NOT NULL,prevention_id text PRIMARY KEY,
+ depth_event_id text NOT NULL,side text NOT NULL,price numeric NOT NULL,maker_quantity numeric NOT NULL CHECK(maker_quantity>=0),
+ taker_quantity numeric NOT NULL CHECK(taker_quantity>=0),mode text NOT NULL,venue_account_id text NOT NULL,venue_order_id text NOT NULL,
+ CHECK(maker_quantity>0 OR taker_quantity>0),
+ FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id),
+ FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 CREATE TABLE public.paper_order_runtime_v2(
  scope_key text NOT NULL,client_id text NOT NULL,active boolean NOT NULL,phase text NOT NULL,
  activation_event_id text,high_water numeric,low_water numeric,trail_started boolean NOT NULL DEFAULT false,
  effective_type text NOT NULL,effective_limit numeric,visible_remaining numeric,queue_priority bigint NOT NULL,last_reveal_event_id text,
- calendar_event_id text,day_expires_at timestamptz,
+ calendar_event_id text,day_expires_at timestamptz,prevented_quantity numeric NOT NULL DEFAULT 0 CHECK(prevented_quantity>=0),
  PRIMARY KEY(scope_key,client_id),FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 REVOKE ALL ON public.paper_market_state_v2,public.paper_reference_prices_v2,public.paper_published_rules_v2,
- public.paper_order_runtime_v2,public.paper_session_calendars_v2 FROM PUBLIC;
+ public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2,public.paper_market_preventions_v2 FROM PUBLIC;
 GRANT SELECT,INSERT,UPDATE ON public.paper_market_state_v2,public.paper_reference_prices_v2,
- public.paper_published_rules_v2,public.paper_order_runtime_v2,public.paper_session_calendars_v2 TO paper_matcher_definer;
+ public.paper_published_rules_v2,public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2 TO paper_matcher_definer;
+GRANT SELECT,INSERT ON public.paper_market_preventions_v2 TO paper_matcher_definer;
+CREATE TRIGGER immutable_market_preventions_v2 BEFORE UPDATE OR DELETE ON public.paper_market_preventions_v2
+ FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 
 CREATE FUNCTION public.paper_record_market_input_v2() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE point jsonb;
@@ -54,6 +70,19 @@ BEGIN
    OR jsonb_array_length(NEW.payload->'windows') NOT BETWEEN 1 AND 512 THEN RAISE EXCEPTION 'bounded calendar source required'; END IF;
   INSERT INTO public.paper_session_calendars_v2 VALUES(NEW.market_key,NEW.event_id,NEW.payload)
    ON CONFLICT(market_key) DO UPDATE SET event_id=excluded.event_id,calendar=excluded.calendar;
+ ELSIF NEW.payload->>'contract_version'='2026-10-30' AND NEW.payload->>'kind'='LIQUIDITY_OWNERSHIP' THEN
+  IF NEW.payload->>'source'<>'PAPER_MARKET_REPLAY_SYNTHETIC' OR jsonb_array_length(NEW.payload->'owners') NOT BETWEEN 1 AND 8192
+   OR NOT EXISTS(SELECT FROM public.paper_market_state_v2 s JOIN public.paper_market_inputs i
+    ON i.market_key=s.market_key AND i.event_id=s.depth_event_id WHERE s.market_key=NEW.market_key
+    AND s.depth_event_id=NEW.payload->>'depth_event_id' AND i.payload_hash=NEW.payload->>'depth_hash')
+   THEN RAISE EXCEPTION 'exact current liquidity source required'; END IF;
+  FOR point IN SELECT * FROM jsonb_array_elements(NEW.payload->'owners') LOOP
+   IF NOT EXISTS(SELECT FROM public.paper_market_levels WHERE market_key=NEW.market_key AND side=point->>'side'
+    AND price=(point->>'price')::numeric AND reported=(point->>'source_quantity')::numeric)
+    THEN RAISE EXCEPTION 'liquidity ownership quantity changed'; END IF;
+   INSERT INTO public.paper_liquidity_owners_v2 VALUES(NEW.market_key,NEW.payload->>'depth_event_id',point->>'side',
+    (point->>'price')::numeric,(point->>'source_quantity')::numeric,point->>'venue_account_id',point->>'venue_order_id',NEW.event_id);
+  END LOOP;
  END IF;
  RETURN NEW;
 END $$;
@@ -229,7 +258,8 @@ DECLARE market_id text; book record; ord record; level record; need numeric; ava
  activity_at timestamptz;execution_at timestamptz;envelope_min numeric;envelope_max numeric;envelope_gross numeric;
  spent_gross numeric;spent_fee numeric;fee_ceiling numeric;best_price numeric;gross_candidate numeric;fee_candidate numeric;
  preflight_need numeric;preflight_gross numeric;preflight_ok boolean;
- is_market boolean;model_revision integer;prepared record;
+ is_market boolean;model_revision integer;prepared record;liquidity_owner record;stp_mode text;depth_identifier text;
+ maker_prevented numeric;taker_prevented numeric;prevention_identifier text;prevention_payload jsonb;
 BEGIN
  SELECT market_key,(terms->'accepted_clock'->>'utc_now')::timestamptz INTO market_id,activity_at FROM public.paper_order_terms WHERE scope_key=p_scope AND client_id=p_client;
  IF market_id IS NULL THEN RAISE EXCEPTION 'original accepted PAPER terms required'; END IF;
@@ -316,6 +346,8 @@ BEGIN
    resulting_status='EXPIRED';reason='FOK_INSUFFICIENT_VISIBLE_DEPTH';
   ELSE
    accumulated=ord.filled;
+   stp_mode=coalesce(ord.terms->'spec'->>'stp','NONE');
+   SELECT depth_event_id INTO depth_identifier FROM public.paper_market_state_v2 WHERE market_key=market_id;
    FOR level IN SELECT * FROM public.paper_market_levels WHERE market_key=market_id AND side=opposite_side AND available>0
     AND (is_market OR CASE WHEN original_side='BUY' THEN price<=limit_price ELSE price>=limit_price END)
     ORDER BY CASE WHEN original_side='BUY' THEN price ELSE -price END FOR UPDATE LOOP
@@ -323,6 +355,34 @@ BEGIN
     take_quantity=least(need,level.available,coalesce(ord.model_visible,need));
     take_quantity=trunc(take_quantity/(ord.terms->>'quantity_step')::numeric)*(ord.terms->>'quantity_step')::numeric;
     CONTINUE WHEN take_quantity<=0;
+    IF stp_mode<>'NONE' THEN
+     SELECT * INTO liquidity_owner FROM public.paper_liquidity_owners_v2 WHERE market_key=market_id AND depth_event_id=depth_identifier
+      AND side=opposite_side AND price=level.price;
+     IF liquidity_owner IS NULL THEN
+      UPDATE public.paper_order_runtime_v2 SET phase='WAITING_COUNTERPARTY_DATA' WHERE scope_key=ord.scope_key AND client_id=ord.client_id;EXIT;
+     END IF;
+     IF liquidity_owner.venue_account_id=ord.terms->'scope'->>'venue_account_id' THEN
+      maker_prevented=CASE WHEN stp_mode IN ('EXPIRE_MAKER','EXPIRE_BOTH') THEN level.available ELSE 0 END;
+      taker_prevented=CASE WHEN stp_mode IN ('EXPIRE_TAKER','EXPIRE_BOTH') THEN take_quantity ELSE 0 END;
+      prevention_identifier='paper-stp:'||encode(sha256(convert_to(jsonb_build_array(market_id,book.event_id,ord.scope_key::jsonb,
+       ord.client_id,depth_identifier,opposite_side,trim_scale(level.price),stp_mode)::text,'UTF8')),'hex');
+      INSERT INTO public.paper_market_preventions_v2 VALUES(market_id,book.event_id,ord.scope_key,ord.client_id,prevention_identifier,
+       depth_identifier,opposite_side,level.price,maker_prevented,taker_prevented,stp_mode,liquidity_owner.venue_account_id,liquidity_owner.venue_order_id);
+      prevention_payload=jsonb_build_object('record_kind','PAPER_MARKET_DISPOSITION','source','PAPER_MARKET_REPLAY_SYNTHETIC',
+       'reason','STP_'||stp_mode,'status',CASE WHEN taker_prevented>0 THEN 'EXPIRED' ELSE 'SUBMITTED' END,
+       'market_key',market_id,'market_event_id',book.event_id,'depth_event_id',depth_identifier,
+       'market_hash',(SELECT payload_hash FROM public.paper_market_inputs WHERE market_key=market_id AND event_id=book.event_id),
+       'maker_quantity',maker_prevented::text,'taker_quantity',taker_prevented::text,'liquidity_owner',to_jsonb(liquidity_owner),
+       'model',ord.terms->'model','execution_envelope',ord.terms->'execution_envelope','market_occurred_at',book.occurred_at,'execution_at',execution_at);
+      INSERT INTO public.paper_engine_events(environment,scope_key,event_id,client_id,payload_hash,payload,fill_delta,price,occurred_at)
+       VALUES('PAPER',ord.scope_key,prevention_identifier,ord.client_id,encode(sha256(convert_to(prevention_payload::text,'UTF8')),'hex'),
+        prevention_payload,0,NULL,execution_at);
+      UPDATE public.paper_market_levels SET available=available-maker_prevented WHERE market_key=market_id AND side=opposite_side AND price=level.price;
+      UPDATE public.paper_order_runtime_v2 SET prevented_quantity=prevented_quantity+taker_prevented WHERE scope_key=ord.scope_key AND client_id=ord.client_id;
+      IF taker_prevented>0 THEN reason='STP_'||stp_mode;EXIT; END IF;
+      CONTINUE;
+     END IF;
+    END IF;
     gross_candidate=spent_gross+take_quantity*level.price*(ord.terms->>'multiplier')::numeric;
     fee_candidate=gross_candidate*(ord.terms->>'quote_fee_rate')::numeric;
     IF (envelope_min IS NOT NULL AND level.price<envelope_min) OR (envelope_max IS NOT NULL AND level.price>envelope_max)
@@ -365,7 +425,7 @@ BEGIN
    UPDATE public.paper_order_runtime_v2 SET phase=resulting_status,active=false,visible_remaining=0
     WHERE scope_key=ord.scope_key AND client_id=ord.client_id;
   END IF;
-  IF reason IS NOT NULL THEN
+  IF reason IS NOT NULL AND NOT starts_with(reason,'STP_') THEN
    fill_payload=jsonb_build_object('record_kind','PAPER_MARKET_DISPOSITION','source','PAPER_MARKET_REPLAY_SYNTHETIC',
     'reason',reason,'status',resulting_status,'market_event_id',book.event_id,'market_key',market_id,
     'market_hash',(SELECT payload_hash FROM public.paper_market_inputs WHERE market_key=market_id AND event_id=book.event_id),
