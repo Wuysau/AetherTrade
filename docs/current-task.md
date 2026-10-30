@@ -1324,4 +1324,3 @@ Ruling: continue the already authorized plan without new design approval.
 After initial integration, use dispatching-parallel-agents for independent
 runtime, validation and documentation work in separate worktrees. Record fresh
 test outputs and update this file after each meaningful implementation step.
-
