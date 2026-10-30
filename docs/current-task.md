@@ -26,6 +26,17 @@ to60; no case/target was removed or promoted. Strict owned readiness remains
 blocked on the separate cash review (including marker transition reuse), with
 no atomic writer/host enabled. ROOT+D sole writer remains integration_fresh.
 
+Original61823 fixedfb8c62b first actual5-case run TERMINALexit1,5fail0error/skip
+9.72s, runede428e447d0. It stopped earlier than planned: the positive source
+fixture installed16–18 but not19, so the actual dispatch role lacked19's readonly
+source-table grant and no MAY/consume occurred. This is NOT a missing-module or
+knownness semantic RED. Current positive source fixture now explicitly installs
+19/20 too; wrapper fixtures check table existence before applying those same
+unchanged migrations. Historical schema/hash/privilege assertions stay intact.
+New0021 implementation/module remain uncommitted while a corrected prefeature
+RED is prepared from this fixture-only checkpoint. Global numbering21observation,
+22management business/23managementSIM,24cash opening exclusivity is reserved.
+
 ## CURRENT_STRICT_CASH_COMPONENT_CHECKPOINT — 2026-10-30
 
 ROOT+D sole writer remains integration_fresh. Root43ba29c neutral raw-book cash

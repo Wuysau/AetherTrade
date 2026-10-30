@@ -22,7 +22,8 @@ from trading_system.storage.uow import UnitOfWork
 def database(command_database):
     import psycopg
     for name in ('0016_program_fill_source_approval.sql','0017_program_fill_source_snapshots.sql',
-                 '0018_program_fill_source_leaves.sql'):
+                 '0018_program_fill_source_leaves.sql','0019_program_account_opening.sql',
+                 '0020_program_legacy_opening.sql'):
         path=Path(__file__).resolve().parents[2]/'migrations'/name
         if path.exists():
             with psycopg.connect(command_database) as db:db.execute(path.read_text(encoding='utf-8'))

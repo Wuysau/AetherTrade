@@ -17,7 +17,9 @@ def database(opening_database):
     import psycopg
     path=Path(__file__).resolve().parents[2]/'migrations/0020_program_legacy_opening.sql'
     if path.exists():
-        with psycopg.connect(opening_database) as db:db.execute(path.read_text(encoding='utf-8'))
+        with psycopg.connect(opening_database) as db:
+            if db.execute("SELECT to_regclass('ledger.program_legacy_account_openings')").fetchone()[0] is None:
+                db.execute(path.read_text(encoding='utf-8'))
     return opening_database
 
 
