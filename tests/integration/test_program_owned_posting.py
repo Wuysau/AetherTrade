@@ -65,11 +65,15 @@ def test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transa
         assert fee[0]['classification']=='FEE' and fee[0]['amount']['currency']=='USDT'
         assert D(fee[0]['amount']['amount'])==D('-32.596')
         fill=tx.execute('SELECT xmin::text,transaction_id FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()
-        assert fee[1:]==fill
+        # SAVEPOINT writes have their own xmin subtransaction; one top-level
+        # commit/rollback and the common business TX bind the whole operation.
+        assert fee[2]==fill[1]
+        assert tx.execute('SELECT xmin::text FROM ledger.transaction_observations WHERE transaction_id=%s',
+            (fill[1],)).fetchone()==(fill[0],)
         for table,record in [('positions',owner.position.position_id),('book_snapshots','book'),('audit_events','ip16:owner')]:
             assert tx.execute('SELECT xmin::text,transaction_id FROM ledger.'+table+
                 ' WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
-                (scope_id(c.scope),record)).fetchone()==fill
+                (scope_id(c.scope),record)).fetchone()==(fee[1],fill[1])
         assert tx.reservations.for_intent(c.bundle.intent.intent_id) # no release or FLAT grant
 
 
