@@ -1,5 +1,54 @@
 # Current task
 
+## OP_E_SOURCE_RESOURCE_AND_LEGACY_REFRESH_VERIFIED — 2026-10-30
+
+Accounting tree parent/root remains sole writer, current product3d13721 (only
+new regression afterfdecbc5). Root integration_next solely owns binance-orders;
+source/accounting selected-path review is pending before serial integration.
+No parent test jobs remain live. Full46/56 OP-C→D/E/F→G stays ACTIVE.
+
+Source13PG passed at08c05ae but followup review identified server-side TOAST
+amplification. Actual115af52 RED:13pass/1fail,9 perfill calls changed shared-proof
+heap blocks68→77 andTOAST2995→4066. Positive-control reads verified statistics
+visibility. New additive0018 materializes private immutable compact header/leaf
+rows; perfill approval reads only that header and exact normalized leaf.
+Renamed original snapshot validator retains its implementation but explicitly
+loses PUBLIC/source runtime execute; only protected wrapper is callable. Old
+0016/0017 payloads, hashes and functions' public results remain unchanged.
+Fixedfdecbc5 actual14PG passed58.97s, including exactlyzero sharedproof heap/TOAST
+reads in the perfill probe. One JUnit property compatibility warning remains.
+
+New3d13721 real migration regression creates fresh isolated business DB through
+0017, executes actual financial/MAY/consume/matching/source approval, then applies
+0018. Snapshot/approval payloads, hashes AND physical xmin remain unchanged;
+new indices backfill, old approvals read/replay and further matched fills approve.
+Complete actual15PG passed65.23s, zero failures/errors/skips. No inferred migration
+success or dropped historical table is used.
+
+Actual legacy_refresh RED651c8f2 gave5pass/2DID NOT RAISE: old_cash/_book ignored
+source-approved generic fills. Minimal existing runtime guard now checks actual
+collateral-group source approvals and raises PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED
+before the command-only formula can overwrite the book. Old schema/no-generic
+path is retained; oldbook read remains visible. Fixedfdecbc5 actual7PG pass33.33s.
+Full mandatory console-contract56PG pass208.01s0fail/error/skip; complementary
+local service497pass/56mandatorycases deselected126.09s. The56 were subsequently
+actually tested above, not skipped to obtain qualification. Existing dependency
+deprecation warning remains. Related167unit pass9.80s at08cc9b1.
+
+All241 raw evidence files, including originalREDs/fixtureerrors/infra-interruption,
+are preserved in op-e-fill-source with exact source-bound copy map. Committed blob
+SHA check is performed after this publication. No product account, native
+activation, TESTNET/LIVE, model call, public merge/push, main/archive edit or data
+cleanup occurred. Other agents retain their worktrees and original job handles.
+
+NEXT: complete actual authenticated Spot per-asset deltas/cash/position/current
+owner/allocation and existing BookSnapshot writer, then shared mixed-history
+contribution reader replaces the current explicit refresh blocker. Existing
+native raw-fact service is a prerequisite, NOT the final financial result.
+Source/balance readers enumerate stable native identity once across snapshots;
+actualfees/unit bridges remain explicit. No futures Spot-principal shortcut,
+unknown fee zeroing, manufactured flat/history/protection or reserve release.
+
 ## OP_E_NATIVE_FACTS_AND_SHARED_SOURCE_SNAPSHOTS — 2026-10-30
 
 Parent/root is still sole writer of this accounting tree. Product08cc9b1 adds

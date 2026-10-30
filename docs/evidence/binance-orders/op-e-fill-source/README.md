@@ -15,6 +15,26 @@ balance posting, whole-branch qualification or the complete 46/56 acceptance.
 | accounting-fixture-errors | 362320c | 5 errors; imported fixture dependency missing; no test body executed |
 | accounting-red | c9ca04c | 5 failed, 0 errors/skips; accounting service missing after fixture correction |
 | accounting-green | 08cc9b1 | 5 passed, 0 failures/errors/skips; 35.62 seconds |
+| legacy-refresh-red | 651c8f2 | 5 passed, 2 DID NOT RAISE failures; old cash/book refresh ignored generic executions |
+| toast-red | 115af52 | 13 passed, 1 failed; nine calls reread shared proof heap/TOAST |
+| leaf-green | fdecbc5 | 14 passed, 0 failures/errors/skips; 58.97 seconds |
+| legacy-refresh-green | fdecbc5 | 7 passed, 0 failures/errors/skips; 33.33 seconds |
+| console-contract-green | fdecbc5 | 56 passed, 497 ordinary cases deselected; zero failures/errors/skips; 208.01 seconds |
+| source-upgrade-green | 3d13721 | 15 passed, 0 failures/errors/skips; 65.23 seconds |
+
+The SQL resource probe reads actual PostgreSQL heap/TOAST counters with a
+positive control proving that the collector exposes the reads. Before0018,
+nine per-fill approvals changed heap68→77 andTOAST2995→4066. The protected
+header/leaf fix yields exactly unchanged shared-proof counters. The source
+upgrade test writes real approvals on0017 before applying0018 and checks old
+payload/hash/xmin, index backfill, read/replay and new fills afterwards. A
+record_property/xunit2 compatibility warning remains; it is not a skipped test.
+
+The runtime guard has complementary local service regression:497passed,
+56mandatory environment cases deselected126.09s. Those56 were actually run
+with isolated PostgreSQL in console-contract-green above, with zero skips. The
+existing Starlette dependency deprecation warning remains. None of these is
+a combined latest-root or venue qualification.
 
 The resource regression uses nine genuine matched partial fills, a 101706-byte
 verified source and an actual verifier-role database connection measuring SQL
@@ -68,6 +88,6 @@ not counted as a pass.
 Expanded local regression at08cc9b1 added locked-action and original-ID recovery
 modules:167 passed in9.80seconds, with no skips/failures.
 
-copy-map.json binds 145 original runtime evidence files to their byte copies and
+copy-map.json binds 241 original runtime evidence files to their byte copies and
 SHA256. Publication also compares the actual committed Git blobs, since a
 working-tree comparison alone does not detect newline normalization.

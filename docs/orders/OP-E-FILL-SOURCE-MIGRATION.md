@@ -18,6 +18,22 @@ owner transaction and loads/hashes that immutable shared snapshot once for batch
 reads. It caches no current book, owner, permission or risk decision and cannot
 be reused after its transaction closes. See the real thirteen-case PG cohort.
 
+Apply0018_program_fill_source_leaves.sql next. Compact parameters alone did not
+prevent the old per-fill SQL function from repeatedly loading/decompressing
+the full JSONB snapshot. A genuine nine-fill probe measured nine extra heap
+hits and1071TOAST block reads/hits.0018 materializes immutable protected header
+and normalized leaf indices once; per-fill approval reads only one compact
+header/leaf. No current owner, book or risk decision is cached in those indices.
+
+0018 renames the previous snapshot validator and explicitly revokes its
+inherited PUBLIC/source runtime execute ACL, then installs a protected wrapper
+at the original signature to validate once and materialize indices atomically.
+The per-fill function keeps its original payload/hash/result semantics. Existing
+snapshots are backfilled into the new index tables without editing any old
+payload, hash or physical tuple. A real0017→0018 test verifies unchanged old
+xmin/content, old read/replay and subsequent genuine fills. New runtime roles
+receive no direct INSERT/UPDATE/DELETE on either index table.
+
 The new NOLOGIN ledger_program_source_verifier has no automatic role members.
 It receives the existing collateral transaction locks, minimal source SELECTs,
 transaction observation INSERT and EXECUTE on the single fixed-search-path
@@ -65,6 +81,15 @@ position ownership, protection or funds release follows from raw ingestion.
 
 Asset postings, positions, mixed legacy refresh and full financial accounting
 remain required next. The raw service reports its economics blocker explicitly.
+
+Until the authenticated shared contribution reader is installed, existing
+UnifiedPaperRuntime._cash/_book refresh fails closed if this collateral group
+contains a protected generic source approval. The existing book is preserved
+and the public error is PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED. Legacy
+databases without these tables and pure legacy histories retain their original
+path. This guard is tested with actual source-approved fills and the full56
+mandatory console contract regression; it is not a substitute for final asset
+postings/position accounting.
 
 Rollback means disabling the new host composition while retaining the additive
 tables/approvals. Do not drop or rewrite committed source/history. Missing 0016
