@@ -77,10 +77,21 @@ cleanup action occurred.
 ## Exact next A/B scene
 
 ROOT owns `validate_current_program_quantity_scope(tx, raw_source_book,
-financial_book, target_facts)` and its paired current financial-book/loader
+financial_book, target_facts, *, bundle=None)` and its paired current financial-book/loader
 adapter. It must authenticate physical ID plus exact projection, original raw
 external snapshot, own-hold exclusion once, full financial holds and raw/financial
 hashes. No scalar subset runtime activation is claimed in this branch yet.
+
+Frozen upcoming ROOT API names (WIP until actual PG/stable HEAD is delivered):
+`risk/program_quantity_scope.py` exposes
+`current_program_quantity_reservation_ids(tx, raw_source_book, financial_book, *, bundle=None)`
+and `current_scoped_program_financial_book(tx, bundle, raw_source_book)`, plus
+the validator above. Trusted test `real_case(..., scoped_quantities=True)` selects
+the new static fact type and rebuilds full financial holds/budget/scoped IDs on
+each call. It is not a model or product permission flag. Do not implement another
+reader to simulate these missing functions. Exact external references must bind
+original raw snapshot and actual legacy command/intent physical scope/group;
+unmapped or ambiguous data stays blocked.
 
 After the minimal stable ROOT slice arrives:
 

@@ -16,6 +16,9 @@ the genuine accepted-unfilled A/B preparation are in
 `docs/reviews/2026-10-30-cash-chain/README.md` / DIFF-MANIFEST.json. ROOT will
 follow up with the stable dependency. Do not fabricate a scope adapter, permit,
 fill, replan, legacy history/fees or financial completion while it is pending.
+Upcoming frozen API names are documented in the review README: ROOT test adapter
+`real_case(...,scoped_quantities=True)` plus physical `program_quantity_scope.py`
+helpers/validator. These are still WIP, not installed or qualified in this tree.
 
 ## Fresh accounting chain writer — 2026-10-30
 
