@@ -206,6 +206,7 @@ def test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted(da
     from trading_system.execution.program_asset_postings import make_program_asset_posting,economic_signature
     from trading_system.execution.program_owned_posting import ProgramOwnedPostingRecord
     from trading_system.execution.program_book_cash import reconcile_program_book_cash
+    from trading_system.storage.models import MissingEvidence
     c,s,codec=setup(database,venue,tmp_path);financial=s.financial_posting
     try:
         s.financial_posting=None
@@ -219,7 +220,8 @@ def test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted(da
                 identity_hash=approval.identity_hash,source_economic_hash=economic_signature(fact),
                 owner_after=RegistryTx(tx).owner(),position_sequence=0,book_sequence=0)
             tx._append('audit_events','program-owned-posting:'+approval.identity_hash,forged,0)
-            reconcile_program_book_cash(tx,read_opening=read_program_account_opening)
+            with pytest.raises(MissingEvidence,match='OWNED_POSTING_HISTORY_REQUIRED'):
+                reconcile_program_book_cash(tx,read_opening=read_program_account_opening)
         s.financial_posting=financial
         result=s.apply(c.write.command_id)
         assert result.status=='RAW_RECORDED_ECONOMICS_BLOCKED' and 'OWNED_POSTING_HISTORY_REQUIRED' in result.missing

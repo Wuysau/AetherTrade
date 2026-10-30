@@ -94,10 +94,20 @@ def require_owned_program_posting(tx,fact):
             and after.position.owner_book_id==before.position.owner_book_id
             and after.position.ownership_epoch==before.position.ownership_epoch,'OWNED_POSTING_HISTORY_REQUIRED')
     for member in facts:
+        batch=_history_row(tx,'audit_events','program-owned-posting:'+member.approval.identity_hash,1)
+        expected=replace(posted,identity_hash=member.approval.identity_hash,source_economic_hash=economic_signature(member))
+        need(batch is not None and batch[0]==domain_payload(expected) and batch[1:]==row[1:],
+            'OWNED_POSTING_BATCH_INCOMPLETE')
         for index,fee in enumerate(member.effects.fees):
             cash=_history_row(tx,'cashflows','program-fee:'+member.approval.identity_hash+':'+str(index),1)
             need(cash is not None and cash[0]==domain_payload(fee_cashflow(member,index,fee)) and cash[1:]==row[1:],
                 'OWNED_POSTING_HISTORY_REQUIRED')
+    prior=before.position;current=after.position
+    need(replace(current,actual_quantity=prior.actual_quantity,cost_evidence=prior.cost_evidence,
+        realized_pnl=prior.realized_pnl,unrealized_valuation=prior.unrealized_valuation,risk_locks=prior.risk_locks)==prior
+        and current.cost_evidence==replace(prior.cost_evidence,query_succeeded=False,pagination_complete=False,
+            missing=tuple(dict.fromkeys((*prior.cost_evidence.missing,'PROGRAM_COST_HISTORY_RECONCILIATION_REQUIRED'))))
+        and current.realized_pnl is None and current.unrealized_valuation is None,'OWNED_POSTING_HISTORY_REQUIRED')
     event_id='program-position:'+canonical_hash(dict(scope=domain_payload(tx.scope),identities=sorted(ids)))
     event=tx.execute('SELECT payload,payload_hash,xmin::text,transaction_id FROM ledger.domain_events WHERE event_id=%s',
         (event_id,)).fetchone()
