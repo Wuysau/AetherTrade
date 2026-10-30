@@ -1,0 +1,148 @@
+...........F.FFF                                                         [100%]
+=================================== FAILURES ===================================
+_ test_authenticated_newer_balance_reattestation_survives_scoped_admission_and_every_send_boundary _
+tests/integration/test_program_scoped_financial.py:153: in test_authenticated_newer_balance_reattestation_survives_scoped_admission_and_every_send_boundary
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_program_scoped_financial.py:153: in <lambda>
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                          ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:413: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:409: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:285: in _reserve_program
+    inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:158: in load
+    ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_quantity_scope.py:113: in current_program_quantity_reservation_ids
+    need(len(supplied)==len(financial_book.reservations) and supplied==expected_by_id,
+src/trading_system/risk/program_quantity_scope.py:14: in need
+    if not value:raise MissingEvidence(code)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   trading_system.storage.models.MissingEvidence: PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED
+_ test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[mark] _
+tests/integration/test_program_scoped_financial.py:180: in test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_program_scoped_financial.py:180: in <lambda>
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                          ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:413: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:409: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:285: in _reserve_program
+    inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:158: in load
+    ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_quantity_scope.py:113: in current_program_quantity_reservation_ids
+    need(len(supplied)==len(financial_book.reservations) and supplied==expected_by_id,
+src/trading_system/risk/program_quantity_scope.py:14: in need
+    if not value:raise MissingEvidence(code)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   trading_system.storage.models.MissingEvidence: PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED
+_ test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[consume] _
+tests/integration/test_program_scoped_financial.py:180: in test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_program_scoped_financial.py:180: in <lambda>
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                          ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:413: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:409: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:285: in _reserve_program
+    inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:158: in load
+    ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_quantity_scope.py:113: in current_program_quantity_reservation_ids
+    need(len(supplied)==len(financial_book.reservations) and supplied==expected_by_id,
+src/trading_system/risk/program_quantity_scope.py:14: in need
+    if not value:raise MissingEvidence(code)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   trading_system.storage.models.MissingEvidence: PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED
+_ test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[afterwait] _
+tests/integration/test_program_scoped_financial.py:180: in test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_program_scoped_financial.py:180: in <lambda>
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                          ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:413: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:409: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:285: in _reserve_program
+    inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:158: in load
+    ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_quantity_scope.py:113: in current_program_quantity_reservation_ids
+    need(len(supplied)==len(financial_book.reservations) and supplied==expected_by_id,
+src/trading_system/risk/program_quantity_scope.py:14: in need
+    if not value:raise MissingEvidence(code)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   trading_system.storage.models.MissingEvidence: PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_scoped_financial.py::test_authenticated_newer_balance_reattestation_survives_scoped_admission_and_every_send_boundary
+FAILED tests/integration/test_program_scoped_financial.py::test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[mark]
+FAILED tests/integration/test_program_scoped_financial.py::test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[consume]
+FAILED tests/integration/test_program_scoped_financial.py::test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[afterwait]
+4 failed, 12 passed in 28.19s

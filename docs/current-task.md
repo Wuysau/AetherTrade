@@ -1,5 +1,37 @@
 # Current task
 
+## CURRENT_PHYSICAL_RELEASE_FIX_ROUND1 — 2026-10-30
+
+Independent review of ef80 found one P2: bare scoped merge_holds discarded a
+genuine current ReleasedBalanceAttestation and re-held an older-watermark
+RELEASED reservation. Personal actual RED f6c10c2 has 12 pass / 4 fail, 28.188s;
+all original 11 cases passed. Shared prepare_collateral now contains the existing
+release verifier, with ReservationService delegating. Scoped reserve/current/
+afterwait independently rerun that verifier through a trusted local optional
+load_released_balances port. Caller zero holds never supply credit. Physical
+immutable checks, full foreign cash, original own-bundle exclusion, protected
+abort/terminal proof and parent-funding guards remain intact. No schema changes.
+
+Exact fixed source 5ef20a43d00f2d3ffc24361ffa1082f1ec12c9b5 actual 16PG GREEN,
+0 failures/errors/skips, 40.697s; original 21792/run0fe33ea10bcd TERMINAL exit0.
+Positive: real legacy admission -> protected unsent abort -> persisted reconcile
+-> newer balance re-attestation -> scoped admission/mark/consume/afterwait.
+Missing current proof independently blocks each boundary; no mark/consume write.
+First fixed 6707 had 14 pass / 2 assertion failures (40.865s): intended denials
+were MissingEvidence while tests expected ValueError. Exact assertions corrected;
+no product change. Same product bytes 6707 also passed the affected existing
+67PG reservation suite, 12.024s. Focused 35 unit tests passed 3.53s.
+
+All four new original job handles are terminal. Their 64 safe raw artifacts are
+copied with matching original SHA under op-c-physical-release-fix; committed Git
+blob verification follows this evidence commit. Prior128 proof is unchanged.
+Updated dependency ROOT-CASH-PHYSICAL-DEPENDENCY-5ef20a4.json replaces the ef80
+selection for Cash: previous8 paths PLUS shared reservations.py extraction (9).
+Preserve Cash's newer source/owned/book/readiness/origin-proof modules when merging.
+Independent scoped recheck is still required before Cash A+B promotion. No host
+is enabled; full46/56 ACTIVE, only ORD47 formally complete. ROOT+D sole ownership
+retained; other trees and original frozen migrations remain untouched.
+
 ## CURRENT_PHYSICAL_SCOPE_GREEN — 2026-10-30
 
 Exact stable product ef80b58a3a003d5a5c0b8916fd5b95ad600e33e8 (not ef80b585)

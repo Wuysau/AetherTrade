@@ -1,5 +1,32 @@
 # Current root and cash continuation
 
+## Current physical release repair, round1 — 2026-10-30
+
+This section supersedes checkpoint ownership/product text below. integration_fresh
+still solely owns ROOT+D; parent and independent reviewer are read-only. D remains
+clean d75cc14. Root functional source is 5ef20a43d00f2d3ffc24361ffa1082f1ec12c9b5.
+The ef80 independent P2 reproduced in actual PG: authentic prepared RELEASED held0
+was rejected by bare merge_holds reconstruction (f6c10c2:12pass4fail28.188s).
+Shared prepare_collateral preserves the existing release/abort/terminal verifier;
+service delegates, scoped admission/current/afterwait rederive current proof via
+trusted optional local load_released_balances. Physical immutable/full group cash/
+original own exclusions and parent-funding closure are retained; no schema change.
+No old attestation or supplied zero projection is current release authority.
+
+Final fixed16PG GREEN40.697s, original21792/run0fe33ea10bcd terminal0; includes all
+original11, genuine legacy abort/reconcile/newer-book re-attestation through every
+write boundary, and missing-proof denials. Existing reservation67PG GREEN12.024s
+at6707 with identical product bytes. Focused35unit GREEN3.53s. Intermediate6707
+14pass2 assertion failures are retained: correct MissingEvidence denial, wrong
+ValueError assertion, fixed without product changes. Four runs64 safe raw copied
+under op-c-physical-release-fix; source-bound manifests preserve every outcome.
+Updated exact9path manifest ROOT-CASH-PHYSICAL-DEPENDENCY-5ef20a4.json replaces
+ef80 selection; includes shared reservations.py plus prior8 paths. Cash preserves
+all its newer source513/owned/book/readiness/initial proof modules. No job is live.
+Independent fix recheck and actual Cash A+B posting are still due; no host or
+owned writer is enabled here, all46 targets/56 cases remain required. Only ORD47
+is formally complete. Parent arranges fresh scoped review before Cash continuation.
+
 ## Current active writer and component checkpoint — 2026-10-30
 
 This section supersedes historical ownership/test instructions below. Parent

@@ -1,0 +1,94 @@
+{
+  "source_commit": "5ef20a43d00f2d3ffc24361ffa1082f1ec12c9b5",
+  "prerequisite_manifest": "ROOT-CASH-DEPENDENCY-b7f6d85.json",
+  "required_paths": [
+    {
+      "path": "src/trading_system/intents/program_target_allocation.py",
+      "sha256": "5813ae63658c3ae6f911dffe46ff3912462cbc74f57fe199501faa2448dc81e6"
+    },
+    {
+      "path": "src/trading_system/intents/program_assessment_archive.py",
+      "sha256": "71db9400ba38662ae96dba5ae83687f705aa5eaabf5172e2002b22b951ff3c99"
+    },
+    {
+      "path": "src/trading_system/risk/program_assessment.py",
+      "sha256": "b887d97a0c613d743d60b75c6d2bd919f141c7fd987ab90ff28120f32b0cd4dd"
+    },
+    {
+      "path": "src/trading_system/risk/program_quantity_scope.py",
+      "sha256": "8809abd33ca8b18bd3c0b5e4b355e5fe934aae7a55dd34991cec604bcb94869b"
+    },
+    {
+      "path": "src/trading_system/risk/program_financial_admission.py",
+      "sha256": "ecf82ea48832319b94ae09e84883ef88e36a99b315a617d52cb7b89ca2a89876"
+    },
+    {
+      "path": "src/trading_system/execution/program_commands.py",
+      "sha256": "34107f2ae08711d3200f36a795644bd6c6241752b59ec829557165b57cc5391f"
+    },
+    {
+      "path": "src/trading_system/execution/program_consumed_boundary.py",
+      "sha256": "e1111249f06401de09441b24f1db36a9b5bf346445eb9d734a6cb0a6bbe375ef"
+    },
+    {
+      "path": "tests/integration/test_program_financial_admission.py",
+      "sha256": "ecba498b61118f9962edfd4a7c1317badd9e8f21329e4115268291b9af8f61a2"
+    },
+    {
+      "path": "src/trading_system/risk/reservations.py",
+      "sha256": "48510f84309ca0c1b0f00fb6743737d484ca7854ec5ad5e8306c65cdcffc34c3"
+    }
+  ],
+  "optional_validation_paths": [
+    "tests/integration/test_program_scoped_financial.py",
+    "tests/unit/test_program_scoped_target.py",
+    "tests/unit/test_program_release_preparation.py"
+  ],
+  "registry_hunk": "Add program-scoped-financial diagnostic/mandatory suite without replacing existing CASH inventory.",
+  "keep": "Preserve every CASH source513/asset/book/owned/readiness/initialproof/fills module and later9f historical-origin fix; no older Root CASH module overwrite.",
+  "api": {
+    "current_program_quantity_reservation_ids": "(tx,raw_source_book,financial_book,*,bundle=None,load_released_balances=None)",
+    "validate_current_program_quantity_scope": "(tx,raw_source_book,financial_book,target_facts,*,bundle=None,load_released_balances=None)",
+    "current_scoped_program_financial_book": "(tx,bundle,raw_source_book,*,load_released_balances=None)",
+    "prepare_collateral": "(tx,book,*,load_released_balances=None); shared existing authenticated verifier; ReservationService method delegates",
+    "ProgramCommandBoundary/Repository": "new trusted server-local optional load_released_balances reader; each reserve/current/afterwait boundary rederives its current proof",
+    "real_case": "scoped_quantities=True; loader threads service.load_released_balances; explicit opening/binding BEFORE first intent"
+  },
+  "evidence": {
+    "scoped": {
+      "run": "0fe33ea10bcd",
+      "original_handle": 21792,
+      "label": "FINAL_SCOPED_GREEN",
+      "source_commit": "5ef20a43d00f2d3ffc24361ffa1082f1ec12c9b5",
+      "suite": "program-scoped-financial",
+      "tests": "16",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "40.697",
+      "terminal": true
+    },
+    "shared_reservations": {
+      "run": "0d021be4c5cb",
+      "original_handle": 50689,
+      "label": "SHARED_RESERVATIONS_GREEN",
+      "source_commit": "6707dc8c5e800018c67631abc0eb091403af2c09",
+      "suite": "reservations",
+      "tests": "67",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "12.024",
+      "terminal": true
+    },
+    "focused_unit": {
+      "passed": 35,
+      "seconds": 3.53
+    },
+    "raw_artifacts": 64
+  },
+  "scope": "PAPER_PHYSICAL_QUANTITY_COMPONENT_NOT_CASH_OWNED_OR_FULL46_56_QUALIFICATION",
+  "prior_physical_manifest": "ROOT-CASH-PHYSICAL-DEPENDENCY-ef80b58.json",
+  "review_status": "ROUND1_FIX_GREEN_AWAITING_INDEPENDENT_RECHECK",
+  "integration": "Previous8paths plus shared reservations.py extraction are mandatory9; merge hunks into CASH newer files. Never overwrite reviewed CASH source513/initialproof/asset/book/owned/readiness/fills modules. Keep all release/parent-funding checks; no proof means conservative holds, no credit. No host enabled."
+}
