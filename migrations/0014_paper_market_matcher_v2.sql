@@ -20,15 +20,19 @@ CREATE TABLE public.paper_reference_prices_v2(
 CREATE TABLE public.paper_published_rules_v2(
  market_key text PRIMARY KEY,trigger_protect_ratio numeric CHECK(trigger_protect_ratio>=0 AND trigger_protect_ratio<1),
  event_id text NOT NULL,FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
+CREATE TABLE public.paper_session_calendars_v2(
+ market_key text PRIMARY KEY,event_id text NOT NULL,calendar jsonb NOT NULL,
+ FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
 CREATE TABLE public.paper_order_runtime_v2(
  scope_key text NOT NULL,client_id text NOT NULL,active boolean NOT NULL,phase text NOT NULL,
  activation_event_id text,high_water numeric,low_water numeric,trail_started boolean NOT NULL DEFAULT false,
  effective_type text NOT NULL,effective_limit numeric,visible_remaining numeric,queue_priority bigint NOT NULL,last_reveal_event_id text,
+ calendar_event_id text,day_expires_at timestamptz,
  PRIMARY KEY(scope_key,client_id),FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 REVOKE ALL ON public.paper_market_state_v2,public.paper_reference_prices_v2,public.paper_published_rules_v2,
- public.paper_order_runtime_v2 FROM PUBLIC;
+ public.paper_order_runtime_v2,public.paper_session_calendars_v2 FROM PUBLIC;
 GRANT SELECT,INSERT,UPDATE ON public.paper_market_state_v2,public.paper_reference_prices_v2,
- public.paper_published_rules_v2,public.paper_order_runtime_v2 TO paper_matcher_definer;
+ public.paper_published_rules_v2,public.paper_order_runtime_v2,public.paper_session_calendars_v2 TO paper_matcher_definer;
 
 CREATE FUNCTION public.paper_record_market_input_v2() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE point jsonb;
@@ -45,6 +49,11 @@ BEGIN
    INSERT INTO public.paper_reference_prices_v2 VALUES(NEW.market_key,point->>'source',(point->>'price')::numeric,NEW.sequence,NEW.event_id)
     ON CONFLICT(market_key,source) DO UPDATE SET price=excluded.price,sequence=excluded.sequence,event_id=excluded.event_id;
   END LOOP;
+ ELSIF NEW.payload->>'contract_version'='2026-10-30' AND NEW.payload->>'kind'='SESSION_CALENDAR' THEN
+  IF NEW.payload->>'product'<>'US_EQUITY' OR NEW.payload->>'source'<>'PAPER_MARKET_REPLAY_SYNTHETIC'
+   OR jsonb_array_length(NEW.payload->'windows') NOT BETWEEN 1 AND 512 THEN RAISE EXCEPTION 'bounded calendar source required'; END IF;
+  INSERT INTO public.paper_session_calendars_v2 VALUES(NEW.market_key,NEW.event_id,NEW.payload)
+   ON CONFLICT(market_key) DO UPDATE SET event_id=excluded.event_id,calendar=excluded.calendar;
  END IF;
  RETURN NEW;
 END $$;
@@ -82,6 +91,7 @@ DECLARE terms jsonb;spec jsonb;trigger_spec jsonb;runtime public.paper_order_run
  ref record;price_source text;fired boolean;ready boolean;activation numeric;offset_value numeric;offset_unit text;
  mark_price numeric;contract_price numeric;protect_ratio numeric;original public.paper_engine_orders;arrival bigint;
  current_event text;resolved_price numeric;book record;expired_at timestamptz;payload jsonb;event_identifier text;
+ calendar_source record;session_kind text;current_time_at timestamptz;day_close timestamptz;
 BEGIN
  SELECT t.terms INTO terms FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=p_client;
  IF coalesce((terms->>'model_revision')::int,1)<>2 THEN RETURN true; END IF;
@@ -111,6 +121,39 @@ BEGIN
    CASE WHEN spec->>'iceberg_quantity' IS NULL THEN NULL ELSE least((spec->>'iceberg_quantity')::numeric,original.quantity-original.filled) END,arrival)
   ON CONFLICT(scope_key,client_id) DO NOTHING;
  SELECT * INTO runtime FROM public.paper_order_runtime_v2 r WHERE r.scope_key=p_scope AND r.client_id=p_client FOR UPDATE;
+ IF terms->'scope'->>'product'='US_EQUITY' THEN
+  session_kind=coalesce(spec->>'trading_session','RTH');
+  current_time_at=greatest((terms->'accepted_clock'->>'utc_now')::timestamptz,(book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
+  SELECT * INTO calendar_source FROM public.paper_session_calendars_v2 WHERE market_key=p_market;
+  IF spec->'tif'->>'kind'='DAY' AND runtime.day_expires_at IS NULL AND calendar_source IS NOT NULL THEN
+   SELECT min((w->>'closes_at')::timestamptz) INTO day_close FROM jsonb_array_elements(calendar_source.calendar->'windows') w
+    WHERE w->>'session'=session_kind AND (w->>'closes_at')::timestamptz>(terms->'accepted_clock'->>'utc_now')::timestamptz;
+   UPDATE public.paper_order_runtime_v2 SET day_expires_at=day_close,calendar_event_id=calendar_source.event_id
+    WHERE scope_key=p_scope AND client_id=p_client;
+   runtime.day_expires_at=day_close;runtime.calendar_event_id=calendar_source.event_id;
+  END IF;
+  IF runtime.day_expires_at IS NOT NULL AND current_time_at>=runtime.day_expires_at THEN
+   payload=jsonb_build_object('record_kind','PAPER_MARKET_DISPOSITION','source','PAPER_MARKET_REPLAY_SYNTHETIC',
+    'status','EXPIRED','reason','VENUE_DAY_EXPIRED','market_key',p_market,'market_event_id',book.event_id,
+    'calendar_event_id',runtime.calendar_event_id,'day_expires_at',runtime.day_expires_at,
+    'market_hash',(SELECT payload_hash FROM public.paper_market_inputs WHERE market_key=p_market AND event_id=book.event_id),
+    'execution_at',current_time_at,'market_occurred_at',book.occurred_at,'model',terms->'model','execution_envelope',terms->'execution_envelope');
+   event_identifier='paper-v2-expiry:'||encode(sha256(convert_to(jsonb_build_array(p_scope::jsonb,p_client,book.event_id,'DAY')::text,'UTF8')),'hex');
+   INSERT INTO public.paper_engine_events(environment,scope_key,event_id,client_id,payload_hash,payload,fill_delta,price,occurred_at)
+    VALUES('PAPER',p_scope,event_identifier,p_client,encode(sha256(convert_to(payload::text,'UTF8')),'hex'),payload,0,NULL,current_time_at);
+   UPDATE public.paper_engine_orders SET lifecycle='EXPIRED',revision=revision+1 WHERE scope_key=p_scope AND client_id=p_client;
+   UPDATE public.paper_order_runtime_v2 SET active=false,phase='EXPIRED',visible_remaining=0 WHERE scope_key=p_scope AND client_id=p_client;
+   RETURN false;
+  END IF;
+  IF calendar_source IS NULL OR book IS NULL OR current_time_at>=(calendar_source.calendar->>'valid_until')::timestamptz THEN
+   UPDATE public.paper_order_runtime_v2 SET phase='WAITING_SESSION_CALENDAR' WHERE scope_key=p_scope AND client_id=p_client;RETURN false;
+  END IF;
+  IF NOT EXISTS(SELECT FROM jsonb_array_elements(calendar_source.calendar->'windows') w WHERE w->>'session'=session_kind
+   AND (w->>'opens_at')::timestamptz<=current_time_at AND current_time_at<(w->>'closes_at')::timestamptz) THEN
+   UPDATE public.paper_order_runtime_v2 SET phase='WAITING_SESSION' WHERE scope_key=p_scope AND client_id=p_client;RETURN false;
+  END IF;
+  UPDATE public.paper_order_runtime_v2 SET calendar_event_id=calendar_source.event_id,phase='ACTIVE' WHERE scope_key=p_scope AND client_id=p_client;
+ END IF;
  IF runtime.active THEN
   IF spec->>'iceberg_quantity' IS NOT NULL THEN
    IF runtime.visible_remaining<=0 AND runtime.last_reveal_event_id IS DISTINCT FROM current_event THEN
@@ -209,7 +252,7 @@ BEGIN
    OR (coalesce((ord.terms->>'model_revision')::integer,1)=2 AND
     (ord.terms->>'contract_version' IS DISTINCT FROM '2026-10-30' OR ord.terms->'spec' IS DISTINCT FROM ord.terms->'compilation'->'nodes'->0->'original'->'order'))
    OR ord.terms->>'side' NOT IN ('BUY','SELL')
-   OR ord.terms->>'tif' NOT IN ('GTC','IOC','FOK','GTX','GTD')
+   OR ord.terms->>'tif' NOT IN ('GTC','IOC','FOK','GTX','GTD','DAY')
    OR ord.terms->'accepted_clock'->>'clock_health' IS DISTINCT FROM 'HEALTHY'
    OR (ord.terms->'accepted_clock'->>'utc_now')::timestamptz<(ord.terms->'write'->>'created_at')::timestamptz THEN
     RAISE EXCEPTION 'invalid original PAPER execution terms';
@@ -298,7 +341,8 @@ BEGIN
      'node_id',ord.terms->>'node_id','namespace',ord.terms->>'namespace','client_id',ord.client_id,
      'quantity',take_quantity::text,'price',level.price::text,'gross_notional',(take_quantity*level.price*(ord.terms->>'multiplier')::numeric)::text,
      'fees',fee_vector,'model',ord.terms->'model','market_occurred_at',book.occurred_at,'execution_at',execution_at,
-     'execution_envelope',ord.terms->'execution_envelope');
+     'execution_envelope',ord.terms->'execution_envelope','calendar_event_id',
+      (SELECT calendar_event_id FROM public.paper_order_runtime_v2 WHERE scope_key=ord.scope_key AND client_id=ord.client_id));
     INSERT INTO public.paper_market_consumptions VALUES(market_id,book.event_id,ord.scope_key,ord.client_id,
      fill_identifier,opposite_side,level.price,take_quantity);
     INSERT INTO public.paper_engine_events(environment,scope_key,event_id,client_id,payload_hash,payload,fill_delta,price,occurred_at)

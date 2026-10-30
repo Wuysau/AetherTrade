@@ -366,11 +366,11 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
         'PAPER_ACTUAL_BOUNDARY_OWNER_REQUIRED')
     require(write.scope==engine.scope==boundary.scope and write.command_id==request.command_id==permit.command_id
         and write.request_hash==permit.request_hash==digest(request),'PAPER_ORIGINAL_REQUEST_REQUIRED')
-    require(engine.scope.product in (t.Product.SPOT,t.Product.USD_M_PERP),
-        'PAPER_EQUITY_SESSION_MODEL_REQUIRED' if engine.scope.product==t.Product.US_EQUITY else 'PAPER_PRODUCT_MODEL_REQUIRED')
     model=engine._matching_model
     from .paper_market_v2 import PaperMatchingModelV2,validate_atomic_v2,execution_tif
     v2=type(model) is PaperMatchingModelV2
+    require(engine.scope.product in (t.Product.SPOT,t.Product.USD_M_PERP) or v2 and engine.scope.product==t.Product.US_EQUITY,
+        'PAPER_EQUITY_SESSION_MODEL_REQUIRED' if engine.scope.product==t.Product.US_EQUITY else 'PAPER_PRODUCT_MODEL_REQUIRED')
     require(type(model) is PaperMatchingModel or v2,'PAPER_EXPLICIT_MATCHING_MODEL_REQUIRED')
     with owner.guard(lease):
         consumed=boundary.consume(permit,lease)
@@ -569,7 +569,7 @@ def query_market_evidence(engine,command_id):
             source_cursor.itersize=1
             source_cursor.execute('SELECT DISTINCT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels,i.observed_clock '
                 "FROM public.paper_market_inputs i JOIN public.paper_engine_events e ON e.payload->>'market_key'=i.market_key "
-                "AND e.payload->>'market_event_id'=i.event_id WHERE e.scope_key=%s AND e.client_id=%s "
+                "AND (e.payload->>'market_event_id'=i.event_id OR e.payload->>'calendar_event_id'=i.event_id) WHERE e.scope_key=%s AND e.client_id=%s "
                 'ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097',
                 (engine._scope_key,command['target_client_id']))
             for row in source_cursor:
@@ -608,8 +608,8 @@ class PaperMatcher:
 
     @exact_market_arithmetic
     def apply_market_event(self,event):
-        from .paper_market_v2 import PaperReferenceEventV2,PaperClockEventV2,apply_reference_event
-        if type(event) in (PaperReferenceEventV2,PaperClockEventV2):return apply_reference_event(self.engine,event)
+        from .paper_market_v2 import PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,apply_reference_event
+        if type(event) in (PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2):return apply_reference_event(self.engine,event)
         require(type(event) is PaperMarketEvent and event.product==self.engine.scope.product
             and event.instrument_uid==self.engine.scope.instrument_uid,'PAPER_MARKET_SCOPE_MISMATCH')
         now=self.engine._clock()

@@ -3,6 +3,8 @@ from dataclasses import dataclass,fields,replace
 from decimal import Decimal
 from pathlib import Path
 from typing import Literal
+from datetime import date,timedelta
+from zoneinfo import ZoneInfo
 import psycopg
 from psycopg import sql
 from psycopg.types.json import Jsonb
@@ -86,6 +88,55 @@ class PaperClockEventV2:
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
+class PaperSessionWindowV2:
+    session:Literal['RTH','EXTENDED','24H']
+    trading_date:str
+    opens_at:str
+    closes_at:str
+    def __post_init__(self):
+        require(self.session in ('RTH','EXTENDED','24H'),'PAPER_SESSION_UNKNOWN')
+        date.fromisoformat(self.trading_date)
+        require(utc_timestamp(self.opens_at)<utc_timestamp(self.closes_at)<=utc_timestamp(self.opens_at)+timedelta(days=1),
+            'PAPER_SESSION_WINDOW_INVALID')
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperCalendarEventV2:
+    contract_version:Literal['2026-10-30']
+    event_id:str
+    stream_id:str
+    product:t.Product
+    instrument_uid:str
+    sequence:int
+    kind:Literal['SESSION_CALENDAR']
+    calendar_id:str
+    revision:str
+    timezone:str
+    windows:tuple[PaperSessionWindowV2,...]
+    valid_until:str
+    occurred_at:str
+    source:Literal['PAPER_MARKET_REPLAY_SYNTHETIC']
+    def __post_init__(self):
+        require(self.contract_version=='2026-10-30' and self.kind=='SESSION_CALENDAR' and self.source==SOURCE
+            and self.product==t.Product.US_EQUITY,'PAPER_CALENDAR_SOURCE_INVALID')
+        require(type(self.sequence) is int and 0<self.sequence<2**63 and all(type(v) is str and 0<len(v)<=256
+            for v in (self.event_id,self.stream_id,self.instrument_uid,self.calendar_id,self.revision,self.timezone)),
+            'PAPER_CALENDAR_IDENTITY_INVALID')
+        zone=ZoneInfo(self.timezone)
+        require(type(self.windows) is tuple and 1<=len(self.windows)<=512
+            and all(type(w) is PaperSessionWindowV2 for w in self.windows),'PAPER_CALENDAR_WINDOWS_REQUIRED')
+        until=utc_timestamp(self.valid_until);published=utc_timestamp(self.occurred_at)
+        for index,w in enumerate(self.windows):
+            start=utc_timestamp(w.opens_at);end=utc_timestamp(w.closes_at)
+            require(start.astimezone(zone).date().isoformat()==w.trading_date and published<until and end<=until,
+                'PAPER_CALENDAR_TIMEZONE_OR_COVERAGE_INVALID')
+            require(not any(p.session==w.session and utc_timestamp(p.opens_at)<end and utc_timestamp(p.closes_at)>start
+                for p in self.windows[:index]),'PAPER_CALENDAR_OVERLAP')
+    @property
+    def market_key(self):return market_key(self.product,self.instrument_uid)
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
 class PaperExecutionTermsV2(PaperExecutionTerms):
     limit_price:str|None
     contract_version:Literal['2026-10-30']
@@ -127,10 +178,14 @@ class PaperCreationReportV2(PaperCreationReport):
 
 def validate_atomic_v2(scope,node):
     o=node.original.order
-    require(scope.product in (t.Product.SPOT,t.Product.USD_M_PERP),'PAPER_EQUITY_SESSION_MODEL_REQUIRED')
+    require(scope.product in (t.Product.SPOT,t.Product.USD_M_PERP,t.Product.US_EQUITY),'PAPER_PRODUCT_MODEL_REQUIRED')
     require(o.price.kind in ('FIXED_LIMIT','MARKET','PEG','PRICE_MATCH') and o.trigger.kind in ('NONE','STATIC','TRAILING')
-        and o.stp=='NONE' and o.routing=='STANDARD' and o.trading_session is None
-        and o.tif.kind in ('NONE','GTC','IOC','FOK','GTX','GTD'),'PAPER_V2_EXECUTION_STAGE_REQUIRED')
+        and o.stp=='NONE' and o.routing=='STANDARD'
+        and (o.trading_session is None or scope.product==t.Product.US_EQUITY)
+        and o.tif.kind in ('NONE','GTC','IOC','FOK','GTX','GTD','DAY'),'PAPER_V2_EXECUTION_STAGE_REQUIRED')
+    if scope.product==t.Product.US_EQUITY:
+        require(o.tif.kind in ('DAY','GTC') and (o.price.kind=='MARKET' and o.trading_session is None
+            or o.price.kind=='FIXED_LIMIT' and o.trading_session in ('RTH','EXTENDED','24H')),'PAPER_EQUITY_SESSION_MODEL_REQUIRED')
     # Conditional USD-M has a separate native parent/ordinary-child identity.
     # Its model is added with native parent membership; never alias the algo ID.
     require(scope.product!=t.Product.USD_M_PERP or o.trigger.kind=='NONE','PAPER_USDM_CONDITIONAL_MEMBERSHIP_REQUIRED')
@@ -182,7 +237,10 @@ def decorate_report_v2(engine,db,report):
 
 def decode_source_event(payload):
     if payload.get('contract_version')=='2026-10-30':
-        return decode(PaperClockEventV2 if payload.get('kind')=='CLOCK' else PaperReferenceEventV2,payload)
+        kind=payload.get('kind')
+        types={'CLOCK':PaperClockEventV2,'SESSION_CALENDAR':PaperCalendarEventV2,'REFERENCE_PRICES':PaperReferenceEventV2}
+        require(kind in types,'PAPER_SOURCE_REVISION_UNKNOWN')
+        return decode(types[kind],payload)
     return decode(PaperMarketEvent,payload)
 
 
@@ -201,7 +259,7 @@ def provision_paper_market_v2(admin_dsn,roles):
 
 
 def apply_reference_event(engine,event):
-    require(type(event) in (PaperReferenceEventV2,PaperClockEventV2) and event.product==engine.scope.product and event.instrument_uid==engine.scope.instrument_uid,
+    require(type(event) in (PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2) and event.product==engine.scope.product and event.instrument_uid==engine.scope.instrument_uid,
         'PAPER_REFERENCE_SCOPE_MISMATCH')
     now=engine._clock()
     require(type(now) is t.ClockReading and now.clock_health=='HEALTHY' and type(now.monotonic_ns) is int
