@@ -206,6 +206,12 @@ def test_equity_rth_day_waits_for_published_window_and_expires_without_consuming
         occurred_at=c.c.facts.inputs.clock.utc_now,source='PAPER_MARKET_REPLAY_SYNTHETIC')
     matcher.apply_market_event(calendar)
     assert not c.engine.query_creation(c.write.command_id).fills
+    # A second independently admitted account shares this same AAPL book.
+    other=advanced_case(database,venue_v2,tmp_path,product=t.Product.US_EQUITY,actual='1',target='0',quantity='1',side='SELL',
+        plan_proposal_transform=rth_day,
+        financial_capacity=(t.Money(currency='USD',amount=D('1000000')),t.Money(currency='AAPL',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USD',amount=D(0)),t.Money(currency='AAPL',amount=D(0))))
+    submit(other)
     base=c.c.facts.inputs.clock
     def clock(sequence,when):
         elapsed=int((utc_timestamp(when)-utc_timestamp(base.utc_now)).total_seconds()*10**9)
@@ -218,16 +224,10 @@ def test_equity_rth_day_waits_for_published_window_and_expires_without_consuming
     assert report.filled_quantity==1 and report.fills[0].price==D('81490')
     proof=c.engine.query_market_evidence(c.write.command_id)
     assert any(i.event.event_id=='calendar-rth' for i in proof.inputs)
-    # A separate real admitted DAY order cannot trade after its associated close.
-    other=advanced_case(database,venue_v2,tmp_path,product=t.Product.US_EQUITY,actual='1',target='0',quantity='1',side='SELL',
-        plan_proposal_transform=rth_day,
-        financial_capacity=(t.Money(currency='USD',amount=D('1000000')),t.Money(currency='AAPL',amount=D('10'))),
-        financial_buffer=(t.Money(currency='USD',amount=D(0)),t.Money(currency='AAPL',amount=D(0))))
-    submit(other);other_matcher=PaperMatcher(other.engine)
-    other_matcher.apply_market_event(event(other,quantity='1'))
-    other_matcher.apply_market_event(replace(calendar,stream_id=other.scope.instrument_uid,instrument_uid=other.scope.instrument_uid))
+    # The residual real DAY order expires at the same market's close.
+    other_matcher=PaperMatcher(other.engine)
     c=other;base=other.c.facts.inputs.clock
-    other_matcher.apply_market_event(clock(3,'2026-10-28T20:00:00Z'))
+    other_matcher.apply_market_event(clock(4,'2026-10-28T20:00:00Z'))
     expired=other.engine.query_creation(other.write.command_id)
     assert expired.status=='EXPIRED' and not expired.fills
     assert expired.dispositions[-1].reason=='VENUE_DAY_EXPIRED'
