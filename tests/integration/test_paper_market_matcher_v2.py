@@ -79,6 +79,10 @@ def test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_pri
     report=c.engine.query_creation(c.write.command_id)
     assert report.filled_quantity==1 and report.fills[0].price==D('81489')
     assert report.orders[0].runtime.high_water==D('83000')
+    proof=c.engine.query_market_evidence(c.write.command_id)
+    assert {i.event.sequence for i in proof.inputs}=={1,2,3,4,5}
+    assert {i.event.event_id for i in proof.inputs if i.event.kind=='REFERENCE_PRICES'}=={
+        'reference-2','reference-3','reference-4','reference-5'}
 
 
 def test_v1_and_v2_competing_accounts_share_one_actual_depth_source(database,venue_v2,tmp_path):
