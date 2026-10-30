@@ -84,10 +84,35 @@ def _submit_management(engine,write,permit,*,boundary,lease,owner,bridge):
                 'VALUES(%s,%s,%s::jsonb,%s,%s)',(engine._scope_key,write.command_id,
                     canonical_json(domain_payload(binding)),token_hash(permit.token),actual_expiry))
         with engine._connect() as db:
-            boundary.recheck_consumed(permit,lease)
+            db.execute("SELECT set_config('application_name','aethertrade-management-v4',true)")
+            market=db.execute('SELECT market_key FROM public.paper_order_terms WHERE scope_key=%s AND client_id=%s',
+                (engine._scope_key,write.original_client_id)).fetchone()
+            require(market is not None,'MANAGEMENT_ACTUAL_MARKET_REQUIRED')
+            # Match the existing creation guard: acquire the actual SIM locks
+            # before reloading business authority. No business TX crosses IO.
+            db.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(market['market_key'],))
+            with owner.guard(lease):
+                boundary.recheck_consumed(permit,lease)
+                _require_original_authorization(db,engine,write,binding)
+            target=db.execute('SELECT client_id FROM public.paper_engine_orders WHERE scope_key=%s AND client_id=%s FOR UPDATE',
+                (engine._scope_key,write.original_client_id)).fetchone()
+            require(target is not None,'MANAGEMENT_ACTUAL_TARGET_REQUIRED')
+            with owner.guard(lease):
+                boundary.recheck_consumed(permit,lease)
+                _require_original_authorization(db,engine,write,binding)
             row=db.execute('SELECT public.paper_manage_order_v4(%s,%s,%s::jsonb)',
                 (engine._scope_key,write.command_id,canonical_json(domain_payload(binding)))).fetchone()
+            # A delayed result/current reader cannot commit an expired or
+            # revoked action. Any failure rolls this SAME SIM transaction back.
+            with owner.guard(lease):
+                boundary.recheck_consumed(permit,lease)
+                _require_original_authorization(db,engine,write,binding)
         return row['paper_manage_order_v4']
+
+def _require_original_authorization(db,engine,write,binding):
+    row=db.execute('SELECT public.paper_management_authorization_current_v4(%s,%s,%s::jsonb)',
+        (engine._scope_key,write.command_id,canonical_json(domain_payload(binding)))).fetchone()
+    require(row['paper_management_authorization_current_v4'] is True,'MANAGEMENT_ORIGINAL_PAPER_AUTHORIZATION_EXPIRED')
 
 def provision_paper_management(admin_dsn,roles):
     from pathlib import Path
@@ -104,6 +129,7 @@ def provision_paper_management(admin_dsn,roles):
         db.execute((Path(__file__).resolve().parents[3]/'migrations/0023_paper_management.sql').read_text(encoding='utf-8'))
         db.execute(sql.SQL('GRANT SELECT ON public.paper_management_actions_v4 TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_manage_order_v4(text,text,jsonb) TO {}').format(sql.Identifier(roles.runtime_role)))
+        db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_management_authorization_current_v4(text,text,jsonb) TO {}').format(sql.Identifier(roles.runtime_role)))
         name='paper_engine_management_'+uuid4().hex[:12];password=secrets.token_urlsafe(32)
         db.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS').format(
             sql.Identifier(name),sql.Literal(password)))
