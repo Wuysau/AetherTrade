@@ -118,7 +118,7 @@ def read_program_account_cash(tx,*,read_opening=None):
         need(not sources and not generic_fills,'ACCOUNT_OPENING_REQUIRED')
         return None
     from .program_legacy_opening import read_program_legacy_opening,read_program_local_account_opening
-    need(read_opening in (read_program_account_opening,read_program_legacy_opening,read_program_local_account_opening),
+    need(any(read_opening is reader for reader in (read_program_account_opening,read_program_legacy_opening,read_program_local_account_opening)),
         'TRUSTED_ACCOUNT_OPENING_READER_REQUIRED')
     opening=read_opening(tx)
     if opening is None:
