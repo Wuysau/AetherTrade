@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="6" time="24.248" timestamp="2026-10-30T01:50:11.686150+00:00" hostname="33f93848eb7c"><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_exact_new_quote_context_migration_is_installed_without_old_history_rewrite" time="0.265" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_actual_quote_mark_commits_and_consumes_exact_original_request_once" time="6.129"><failure message="psycopg.errors.UniqueViolation: duplicate key value violates unique constraint &quot;program_permit_consumptions_pkey&quot;&#10;DETAIL:  Key (scope_id, command_id)=(63bf4dfb1c4790976b4d50109f00cf45ec081c14b466c598f0ec756c31f98c1d, program-write:8122119ea6dfbd3ffc4c62c3ad222fecf1080d6b2305ba5740d47bd75eed6403) already exists.&#10;CONTEXT:  SQL statement &quot;INSERT INTO ledger.program_permit_consumptions VALUES(p_scope,p_id,p_token_hash,p_context,p_transaction,pg_current_xact_id())&quot;&#10;PL/pgSQL function consume_program_permit(text,text,text,jsonb,text) line 9 at SQL statement">tests/integration/test_quote_current_boundary_postgres.py:58: in test_actual_quote_mark_commits_and_consumes_exact_original_request_once
+    with pytest.raises(ValueError):g.consume(permit,lease(c))
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:453: in consume
+    request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:405: in consume
+    self.tx.execute('SELECT ledger.consume_program_permit(%s,%s,%s,%s::jsonb,%s)',
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UniqueViolation: duplicate key value violates unique constraint "program_permit_consumptions_pkey"
+E   DETAIL:  Key (scope_id, command_id)=(63bf4dfb1c4790976b4d50109f00cf45ec081c14b466c598f0ec756c31f98c1d, program-write:8122119ea6dfbd3ffc4c62c3ad222fecf1080d6b2305ba5740d47bd75eed6403) already exists.
+E   CONTEXT:  SQL statement "INSERT INTO ledger.program_permit_consumptions VALUES(p_scope,p_id,p_token_hash,p_context,p_transaction,pg_current_xact_id())"
+E   PL/pgSQL function consume_program_permit(text,text,text,jsonb,text) line 9 at SQL statement</failure></testcase><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_real_foreign_financial_write_counts_cash_once_without_becoming_quote_quantity" time="6.446" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_quote_current_gaps_never_renew_or_consume_the_marked_request[missing_reader]" time="2.925" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_quote_current_gaps_never_renew_or_consume_the_marked_request[changed_bound]" time="3.954" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_quote_current_gaps_never_renew_or_consume_the_marked_request[changed_raw_book]" time="4.023" /></testsuite></testsuites>

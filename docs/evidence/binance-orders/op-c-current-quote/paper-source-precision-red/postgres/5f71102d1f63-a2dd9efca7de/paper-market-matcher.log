@@ -1,0 +1,12 @@
+......................F                                                  [100%]
+=================================== FAILURES ===================================
+_ test_original_protected_fee_ceiling_is_copied_exactly_under_low_ambient_precision _
+tests/integration/test_paper_market_matcher.py:421: in test_original_protected_fee_ceiling_is_copied_exactly_under_low_ambient_precision
+    assert context.execution_envelope.fee_ceilings[0].amount=='0.1119'
+E   AssertionError: assert '0.112' == '0.1119'
+E     
+E     - 0.1119
+E     + 0.112
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher.py::test_original_protected_fee_ceiling_is_copied_exactly_under_low_ambient_precision
+1 failed, 22 passed in 104.08s (0:01:44)

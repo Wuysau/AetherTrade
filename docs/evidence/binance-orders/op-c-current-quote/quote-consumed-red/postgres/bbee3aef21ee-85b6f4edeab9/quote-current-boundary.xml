@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="13" time="58.658" timestamp="2026-10-30T02:05:11.135050+00:00" hostname="48fe2d73d7de"><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_exact_new_quote_context_migration_is_installed_without_old_history_rewrite" time="0.315" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_original_scalar_v3_permit_and_unknown_identity_survive_additive_quote_migration" time="5.184" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_actual_quote_mark_commits_and_consumes_exact_original_request_once" time="5.062"><failure message="ValueError: stored record fields differ from contract">tests/integration/test_quote_current_boundary_postgres.py:72: in test_actual_quote_mark_commits_and_consumes_exact_original_request_once
+    checked=g.recheck_consumed(permit,lease(c))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:458: in recheck_consumed
+    return recheck_consumed(self,permit,lease)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_consumed_boundary.py:88: in recheck_consumed
+    bundle=decode(ProgramFinancialBundle,source[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:107: in decode
+    return restore(cls, payload)
+           ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:102: in restore
+    raise ValueError('stored record fields differ from contract')
+E   ValueError: stored record fields differ from contract</failure></testcase><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_real_foreign_financial_write_counts_cash_once_without_becoming_quote_quantity" time="7.680"><failure message="ValueError: stored record fields differ from contract">tests/integration/test_quote_current_boundary_postgres.py:92: in test_real_foreign_financial_write_counts_cash_once_without_becoming_quote_quantity
+    assert g.recheck_consumed(permit,lease(c)).request==request
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:458: in recheck_consumed
+    return recheck_consumed(self,permit,lease)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_consumed_boundary.py:88: in recheck_consumed
+    bundle=decode(ProgramFinancialBundle,source[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:107: in decode
+    return restore(cls, payload)
+           ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:102: in restore
+    raise ValueError('stored record fields differ from contract')
+E   ValueError: stored record fields differ from contract</failure></testcase><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_quote_consumed_guard_independently_requires_the_current_execution_reader" time="5.514"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'QUOTE_CURRENT_ENFORCEMENT_REQUIRED'&#10;  Actual message: 'stored record fields differ from contract'">tests/integration/test_quote_current_boundary_postgres.py:108: in test_quote_consumed_guard_independently_requires_the_current_execution_reader
+    with pytest.raises(ValueError,match='QUOTE_CURRENT_ENFORCEMENT_REQUIRED'):g.recheck_consumed(permit,lease(c))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'QUOTE_CURRENT_ENFORCEMENT_REQUIRED'
+E     Actual message: 'stored record fields differ from contract'</failure></testcase><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_quote_current_gaps_never_renew_or_consume_the_marked_request[missing_reader]" time="4.066" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_quote_current_gaps_never_renew_or_consume_the_marked_request[changed_bound]" time="5.720" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_quote_current_gaps_never_renew_or_consume_the_marked_request[changed_raw_book]" time="5.222" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_protected_sql_cannot_bypass_new_quote_context_binding[source_book_hash]" time="3.883" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_protected_sql_cannot_bypass_new_quote_context_binding[financial_book_hash]" time="3.854" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_protected_sql_cannot_bypass_new_quote_context_binding[execution_bounds_hash]" time="3.391" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_protected_sql_cannot_bypass_new_quote_context_binding[unknown_kind]" time="4.223" /><testcase classname="tests.integration.test_quote_current_boundary_postgres" name="test_protected_sql_cannot_bypass_new_quote_context_binding[downgrade]" time="3.966" /></testsuite></testsuites>

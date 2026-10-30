@@ -1,0 +1,28 @@
+..................FFFF                                                   [100%]
+=================================== FAILURES ===================================
+_ test_paper_side_effect_rechecks_the_committed_original_permit_labels[expiry] _
+tests/integration/test_paper_market_matcher.py:394: in test_paper_side_effect_rechecks_the_committed_original_permit_labels
+    with pytest.raises(ValueError,match='ORIGINAL_PERMIT_WINDOW_CHANGED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_paper_side_effect_rechecks_the_committed_original_permit_labels[deadline] _
+tests/integration/test_paper_market_matcher.py:394: in test_paper_side_effect_rechecks_the_committed_original_permit_labels
+    with pytest.raises(ValueError,match='ORIGINAL_PERMIT_WINDOW_CHANGED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+__ test_paper_side_effect_rechecks_the_committed_original_permit_labels[both] __
+tests/integration/test_paper_market_matcher.py:394: in test_paper_side_effect_rechecks_the_committed_original_permit_labels
+    with pytest.raises(ValueError,match='ORIGINAL_PERMIT_WINDOW_CHANGED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+__ test_healthy_accept_clock_cannot_precede_the_current_observed_market_book ___
+tests/integration/test_paper_market_matcher.py:408: in test_healthy_accept_clock_cannot_precede_the_current_observed_market_book
+    with pytest.raises(ValueError,match='PAPER_MARKET_CLOCK_AHEAD_OF_ACCEPTANCE'):submit(c)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher.py::test_paper_side_effect_rechecks_the_committed_original_permit_labels[expiry]
+FAILED tests/integration/test_paper_market_matcher.py::test_paper_side_effect_rechecks_the_committed_original_permit_labels[deadline]
+FAILED tests/integration/test_paper_market_matcher.py::test_paper_side_effect_rechecks_the_committed_original_permit_labels[both]
+FAILED tests/integration/test_paper_market_matcher.py::test_healthy_accept_clock_cannot_precede_the_current_observed_market_book
+4 failed, 18 passed in 93.81s (0:01:33)

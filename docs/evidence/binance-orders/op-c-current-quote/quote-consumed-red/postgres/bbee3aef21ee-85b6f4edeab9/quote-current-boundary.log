@@ -1,0 +1,46 @@
+..FFF........                                                            [100%]
+=================================== FAILURES ===================================
+___ test_actual_quote_mark_commits_and_consumes_exact_original_request_once ____
+tests/integration/test_quote_current_boundary_postgres.py:72: in test_actual_quote_mark_commits_and_consumes_exact_original_request_once
+    checked=g.recheck_consumed(permit,lease(c))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:458: in recheck_consumed
+    return recheck_consumed(self,permit,lease)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_consumed_boundary.py:88: in recheck_consumed
+    bundle=decode(ProgramFinancialBundle,source[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:107: in decode
+    return restore(cls, payload)
+           ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:102: in restore
+    raise ValueError('stored record fields differ from contract')
+E   ValueError: stored record fields differ from contract
+_ test_real_foreign_financial_write_counts_cash_once_without_becoming_quote_quantity _
+tests/integration/test_quote_current_boundary_postgres.py:92: in test_real_foreign_financial_write_counts_cash_once_without_becoming_quote_quantity
+    assert g.recheck_consumed(permit,lease(c)).request==request
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:458: in recheck_consumed
+    return recheck_consumed(self,permit,lease)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_consumed_boundary.py:88: in recheck_consumed
+    bundle=decode(ProgramFinancialBundle,source[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:107: in decode
+    return restore(cls, payload)
+           ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:102: in restore
+    raise ValueError('stored record fields differ from contract')
+E   ValueError: stored record fields differ from contract
+_ test_quote_consumed_guard_independently_requires_the_current_execution_reader _
+tests/integration/test_quote_current_boundary_postgres.py:108: in test_quote_consumed_guard_independently_requires_the_current_execution_reader
+    with pytest.raises(ValueError,match='QUOTE_CURRENT_ENFORCEMENT_REQUIRED'):g.recheck_consumed(permit,lease(c))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'QUOTE_CURRENT_ENFORCEMENT_REQUIRED'
+E     Actual message: 'stored record fields differ from contract'
+=========================== short test summary info ============================
+FAILED tests/integration/test_quote_current_boundary_postgres.py::test_actual_quote_mark_commits_and_consumes_exact_original_request_once
+FAILED tests/integration/test_quote_current_boundary_postgres.py::test_real_foreign_financial_write_counts_cash_once_without_becoming_quote_quantity
+FAILED tests/integration/test_quote_current_boundary_postgres.py::test_quote_consumed_guard_independently_requires_the_current_execution_reader
+3 failed, 10 passed in 58.66s

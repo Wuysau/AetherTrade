@@ -1,0 +1,16 @@
+............FF....                                                       [100%]
+=================================== FAILURES ===================================
+_ test_native_pending_order_over_policy_never_commits_financial_reservations[OTO] _
+tests/integration/test_program_financial_admission.py:214: in test_native_pending_order_over_policy_never_commits_financial_reservations
+    with pytest.raises(ValueError,match='PROGRAM_RISK_ASSESSMENT_NOT_ALLOW'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_native_pending_order_over_policy_never_commits_financial_reservations[OPO] _
+tests/integration/test_program_financial_admission.py:214: in test_native_pending_order_over_policy_never_commits_financial_reservations
+    with pytest.raises(ValueError,match='PROGRAM_RISK_ASSESSMENT_NOT_ALLOW'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_financial_admission.py::test_native_pending_order_over_policy_never_commits_financial_reservations[OTO]
+FAILED tests/integration/test_program_financial_admission.py::test_native_pending_order_over_policy_never_commits_financial_reservations[OPO]
+2 failed, 16 passed in 6.13s
