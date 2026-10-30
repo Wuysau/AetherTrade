@@ -21,8 +21,8 @@ recovery callers retain old softUNKNOWN behavior. No schema, role, source payloa
 hash, funds, newrisk permission or TTL change. Book/hold/token/xmin, everAccepted
 and genuine later recovery are checked; barriercommit failure performs zeroIO.
 
-Four runs64safe raw originals/copies matchSHA under op-f-host-fix-round1;
-committedblob verification follows. Four terminal newsource.bundle files,
+All64raw originals/copies/actual8bb150d committed Gitblobs independently match
+SHA,0mismatch under op-f-host-fix-round1/COMMITTED-BYTES.json. Four terminal newsource.bundle files,
 45124403bytes, copy/size/SHA-verified to approvedCbackup in separate round1map,
 original single files removed only after proof; evidence/env/old107map unchanged.
 DFree~2.42GB maintained, serial cached/offline only; no build/pull/reset/cleanup.
