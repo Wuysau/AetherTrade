@@ -126,3 +126,28 @@ def test_source_linked_economic_discrepancy_retains_actual_quantity_and_no_cash(
             (scope_id(c.scope),)).fetchone()==(D('.4'),D('81490'))
         assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',
             (scope_id(c.scope),)).fetchone()==(0,)
+
+
+@pytest.mark.parametrize('operation',('cash','book'))
+def test_legacy_refresh_cannot_ignore_source_approved_generic_execution(database,venue,tmp_path,operation):
+    from trading_system.server.paper_runtime import UnifiedPaperRuntime
+    from trading_system.server.errors import ApiError
+    from trading_system.contracts.canonical import canonical_json
+    c,service,codec=setup_accounting(database,venue,tmp_path)
+    try:service.apply(c.write.command_id)
+    finally:codec.close()
+    # Exercise the existing runtime's actual cash/book functions against this
+    # isolated ledger. The fixture is explicit virtual capital, not an account.
+    runtime=object.__new__(UnifiedPaperRuntime)
+    runtime.clock=lambda:c.c.facts.inputs.clock
+    with c.service.uow.transaction(c.scope) as tx:
+        before=tx.projections.book(c.scope)
+        seed=next(b.amount for b in before.balances if b.currency=='USDT')
+        tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
+            "VALUES(%s,'console:seed',1,%s::jsonb,%s)",
+            (scope_id(c.scope),canonical_json(dict(initial_cash=format(seed,'f'),source='EXPLICIT_ISOLATED_VIRTUAL_CAPITAL')),tx.transaction_id))
+    with c.service.uow.transaction(c.scope) as tx:
+        with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
+            if operation=='cash':runtime._cash(tx)
+            else:runtime._book(tx,c.scope,refresh=True)
+        assert tx.projections.book(c.scope)==before
