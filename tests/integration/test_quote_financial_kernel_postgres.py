@@ -72,7 +72,8 @@ def quote_case(database):
         assets=(t.Money(currency='USDT',amount=D('1000000')),)
         return QuoteFinancialInputsV1(archive=archive,authorization=original.authorization,
             group_capacity=assets,strategy_capacity=assets,buffer=(t.Money(currency='USDT',amount=D(0)),),
-            reconciled_holds=ReservationRepository(tx).group())
+            reconciled_holds=tuple(p for p in ReservationRepository(tx).group()
+                if p.reservation.intent_id!=intake.intent_id))
     def qualify(tx,a,clock):
         return ProgramFinancialQualification(scope=scope,compilation_hash=digest(a.compilation),
             capabilities_hash=a.compilation.capabilities_hash,rules_hash=a.compilation.rules_hash,
