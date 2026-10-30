@@ -1,0 +1,79 @@
+{
+  "commit": "14dd46de837e369e14f1583a6789753e19975bf1",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "session-red",
+  "finished_utc": "2026-10-30T02:20:12.776400+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-14dd46d.bundle",
+        "HEAD",
+        "14dd46de837e369e14f1583a6789753e19975bf1"
+      ],
+      "log": "14dd46d-session-red-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "14dd46d-session-red-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-14dd46d.bundle",
+        "14dd46de837e369e14f1583a6789753e19975bf1"
+      ],
+      "log": "14dd46d-session-red-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "14dd46de837e369e14f1583a6789753e19975bf1"
+      ],
+      "log": "14dd46d-session-red-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=14dd46de837e369e14f1583a6789753e19975bf1",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_equity_rth_day_waits_for_published_window_and_expires_without_consuming_closed_depth'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/session-red"
+      ],
+      "log": "14dd46d-session-red.txt",
+      "exit_code": 1
+    }
+  ]
+}

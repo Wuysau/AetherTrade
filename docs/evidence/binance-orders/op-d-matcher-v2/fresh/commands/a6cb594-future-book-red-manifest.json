@@ -1,0 +1,79 @@
+{
+  "commit": "a6cb59463d0441c31f82897155481a66ac063a84",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "future-book-red",
+  "finished_utc": "2026-10-30T02:31:12.595756+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-a6cb594.bundle",
+        "HEAD",
+        "a6cb59463d0441c31f82897155481a66ac063a84"
+      ],
+      "log": "a6cb594-future-book-red-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "a6cb594-future-book-red-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-a6cb594.bundle",
+        "a6cb59463d0441c31f82897155481a66ac063a84"
+      ],
+      "log": "a6cb594-future-book-red-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "a6cb59463d0441c31f82897155481a66ac063a84"
+      ],
+      "log": "a6cb594-future-book-red-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=a6cb59463d0441c31f82897155481a66ac063a84",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_actual_consumed_command_cannot_start_against_a_market_book_from_its_future'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/future-book-red"
+      ],
+      "log": "a6cb594-future-book-red.txt",
+      "exit_code": 1
+    }
+  ]
+}

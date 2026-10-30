@@ -1,0 +1,78 @@
+{
+  "commit": "1b12ed9329b08f7adc505f762689b7e633c09754",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "v2-twentyone",
+  "finished_utc": "2026-10-30T03:10:54.333443+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-1b12ed9.bundle",
+        "HEAD",
+        "1b12ed9329b08f7adc505f762689b7e633c09754"
+      ],
+      "log": "1b12ed9-v2-twentyone-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "1b12ed9-v2-twentyone-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-1b12ed9.bundle",
+        "1b12ed9329b08f7adc505f762689b7e633c09754"
+      ],
+      "log": "1b12ed9-v2-twentyone-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "1b12ed9329b08f7adc505f762689b7e633c09754"
+      ],
+      "log": "1b12ed9-v2-twentyone-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=1b12ed9329b08f7adc505f762689b7e633c09754",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "paper-market-matcher-v2",
+        "--evidence-dir",
+        "/handoff/evidence/v2-twentyone"
+      ],
+      "log": "1b12ed9-v2-twentyone.txt",
+      "exit_code": 0
+    }
+  ]
+}

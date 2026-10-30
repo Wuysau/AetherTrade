@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_equity_rth_day_waits_for_published_window_and_expires_without_consuming_closed_depth _
+tests/integration/test_paper_market_matcher_v2.py:216: in test_equity_rth_day_waits_for_published_window_and_expires_without_consuming_closed_depth
+    assert report.filled_quantity==1 and report.fills[0].price==D('81489')
+E   AssertionError: assert (Decimal('0') == 1)
+E    +  where Decimal('0') = PaperCreationReportV2(command_id='isolated-command-fd6a1aeecf18492faa406483b7eaf7bb', request=VenueCreationRequest(con...l='90000', fee_ceilings=())),), dispositions=(), contract_version='2026-10-30', record_kind='PAPER_CREATION_REPORT_V2').filled_quantity
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_equity_rth_day_waits_for_published_window_and_expires_without_consuming_closed_depth
+1 failed in 4.74s

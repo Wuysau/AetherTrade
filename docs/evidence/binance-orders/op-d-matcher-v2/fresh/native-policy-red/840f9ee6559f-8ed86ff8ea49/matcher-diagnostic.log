@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_native_pending_node_cannot_borrow_program_gross_to_exceed_its_individual_policy_limit _
+tests/integration/test_paper_market_matcher_v2.py:378: in test_native_pending_node_cannot_borrow_program_gross_to_exceed_its_individual_policy_limit
+    with pytest.raises(ValueError,match='PAPER_NATIVE_NODE_POLICY_EXCEEDED'):submit(c)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_native_pending_node_cannot_borrow_program_gross_to_exceed_its_individual_policy_limit
+1 failed in 5.71s

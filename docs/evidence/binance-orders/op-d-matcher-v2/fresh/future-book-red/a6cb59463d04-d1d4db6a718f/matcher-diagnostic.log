@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_actual_consumed_command_cannot_start_against_a_market_book_from_its_future _
+tests/integration/test_paper_market_matcher_v2.py:286: in test_actual_consumed_command_cannot_start_against_a_market_book_from_its_future
+    with pytest.raises(ValueError,match='PAPER_MARKET_CLOCK_AHEAD_OF_ACCEPTANCE'):submit(c)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_actual_consumed_command_cannot_start_against_a_market_book_from_its_future
+1 failed in 5.32s

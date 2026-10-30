@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="9" time="86.932" timestamp="2026-10-29T16:40:38.529845+00:00" hostname="5b24092dcadb"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_actual_v2_base_market_uses_visible_opposing_quote_and_partial_expiry" time="10.215" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_stop_limit_waits_for_exact_last_source_then_keeps_native_limit" time="9.261" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price" time="9.649" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_v1_and_v2_competing_accounts_share_one_actual_depth_source" time="18.524" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_runtime_cannot_publish_price_sources_or_change_activation_progress" time="0.016" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_primary_peg_latches_placement_price_without_rewriting_native_spec" time="9.793" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority" time="18.101" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_terminal_v2_order_is_not_reactivated_by_later_reference_or_depth" time="9.575" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_gtd_expires_from_actual_clock_source_after_proposal_window_without_fake_fill" time="0.886"><failure message="psycopg.OperationalError: the connection is lost">src/trading_system/storage/uow.py:127: in transaction
+    yield tx
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:44: in &lt;lambda&gt;
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                                ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:333: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:329: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:245: in _reserve_program
+    require(not CommandRepository(tx).unresolved_in_group(''),'ACTIVE_RISK_LOCK')
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/commands.py:162: in unresolved_in_group
+    unresolved=list(self._legacy_unresolved_in_group(excluding))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/commands.py:137: in _legacy_unresolved_in_group
+    rows = self.tx.execute(
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.AdminShutdown: terminating connection due to administrator command
+
+During handling of the above exception, another exception occurred:
+tests/integration/test_paper_market_matcher_v2.py:168: in test_gtd_expires_from_actual_clock_source_after_proposal_window_without_fake_fill
+    c=advanced_case(database,venue_v2,tmp_path,product=t.Product.USD_M_PERP,
+tests/integration/test_paper_market_matcher_v2.py:21: in advanced_case
+    c=case(database,venue_v2,tmp_path,**options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:44: in case
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:174: in _transaction
+    with self.uow.transaction(self.scope) as tx:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/contextlib.py:158: in __exit__
+    self.gen.throw(value)
+src/trading_system/storage/uow.py:131: in transaction
+    connection.rollback()
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:314: in rollback
+    self.wait(self._rollback_gen())
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:496: in wait
+    gen, self.pgconn.socket, interval=interval, timeout=timeout
+         ^^^^^^^^^^^^^^^^^^
+psycopg_binary/pq/pgconn.pyx:255: in psycopg_binary.pq.PGconn.socket.__get__
+    ???
+E   psycopg.OperationalError: the connection is lost</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,19 @@
+EEE                                                                      [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_actual_v2_base_market_uses_visible_opposing_quote_and_partial_expiry _
+tests/integration/test_paper_market_matcher_v2.py:13: in venue_v2
+    from trading_system.engine.paper_market_v2 import provision_paper_market_v2
+E   ModuleNotFoundError: No module named 'trading_system.engine.paper_market_v2'
+_ ERROR at setup of test_stop_limit_waits_for_exact_last_source_then_keeps_native_limit _
+tests/integration/test_paper_market_matcher_v2.py:13: in venue_v2
+    from trading_system.engine.paper_market_v2 import provision_paper_market_v2
+E   ModuleNotFoundError: No module named 'trading_system.engine.paper_market_v2'
+_ ERROR at setup of test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price _
+tests/integration/test_paper_market_matcher_v2.py:13: in venue_v2
+    from trading_system.engine.paper_market_v2 import provision_paper_market_v2
+E   ModuleNotFoundError: No module named 'trading_system.engine.paper_market_v2'
+=========================== short test summary info ============================
+ERROR tests/integration/test_paper_market_matcher_v2.py::test_actual_v2_base_market_uses_visible_opposing_quote_and_partial_expiry
+ERROR tests/integration/test_paper_market_matcher_v2.py::test_stop_limit_waits_for_exact_last_source_then_keeps_native_limit
+ERROR tests/integration/test_paper_market_matcher_v2.py::test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price
+3 errors in 1.59s

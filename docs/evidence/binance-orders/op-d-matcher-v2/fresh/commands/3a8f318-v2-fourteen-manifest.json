@@ -1,0 +1,78 @@
+{
+  "commit": "3a8f318fde1b5b6fbd4f7bf94ca50e1f8cc320b1",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "v2-fourteen",
+  "finished_utc": "2026-10-30T02:29:56.968959+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-3a8f318.bundle",
+        "HEAD",
+        "3a8f318fde1b5b6fbd4f7bf94ca50e1f8cc320b1"
+      ],
+      "log": "3a8f318-v2-fourteen-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "3a8f318-v2-fourteen-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-3a8f318.bundle",
+        "3a8f318fde1b5b6fbd4f7bf94ca50e1f8cc320b1"
+      ],
+      "log": "3a8f318-v2-fourteen-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "3a8f318fde1b5b6fbd4f7bf94ca50e1f8cc320b1"
+      ],
+      "log": "3a8f318-v2-fourteen-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=3a8f318fde1b5b6fbd4f7bf94ca50e1f8cc320b1",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "paper-market-matcher-v2",
+        "--evidence-dir",
+        "/handoff/evidence/v2-fourteen"
+      ],
+      "log": "3a8f318-v2-fourteen.txt",
+      "exit_code": 0
+    }
+  ]
+}

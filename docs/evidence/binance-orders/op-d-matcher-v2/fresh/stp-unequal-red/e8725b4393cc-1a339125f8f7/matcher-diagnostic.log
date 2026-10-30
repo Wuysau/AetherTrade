@@ -1,0 +1,24 @@
+F.F                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill[EXPIRE_TAKER-True-0.4-1] _
+tests/integration/test_paper_market_matcher_v2.py:271: in test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill
+    assert not report.fills and report.filled_quantity==0 and report.orders[0].runtime.prevented_quantity==D(taker_prevented)
+E   assert (not () and Decimal('0') == 0 and Decimal('0.400000') == Decimal('1'))
+E    +  where () = PaperCreationReportV2(command_id='isolated-command-56212793438a460abc95edfe642b9c79', request=VenueCreationRequest(con...-10-28T10:00:00+00:00"}'),), contract_version='2026-10-30', record_kind='PAPER_CREATION_REPORT_V2', native_parent=None).fills
+E    +  and   Decimal('0') = PaperCreationReportV2(command_id='isolated-command-56212793438a460abc95edfe642b9c79', request=VenueCreationRequest(con...-10-28T10:00:00+00:00"}'),), contract_version='2026-10-30', record_kind='PAPER_CREATION_REPORT_V2', native_parent=None).filled_quantity
+E    +  and   Decimal('0.400000') = PaperOrderRuntimeV2(active=False, phase='EXPIRED', activation_event_id=None, high_water=None, low_water=None, effectiv...sible_remaining=Decimal('0'), queue_priority=1, prevented_quantity=Decimal('0.400000'), parent_activation_fill_id=None).prevented_quantity
+E    +    where PaperOrderRuntimeV2(active=False, phase='EXPIRED', activation_event_id=None, high_water=None, low_water=None, effectiv...sible_remaining=Decimal('0'), queue_priority=1, prevented_quantity=Decimal('0.400000'), parent_activation_fill_id=None) = PaperMatchedOrderV2(client_id='5a0f87b51ca7ba0b223f83a772386201', venue_order_id='paper-v3:5a0f87b51ca7ba0b223f83a7723...ible_remaining=Decimal('0'), queue_priority=1, prevented_quantity=Decimal('0.400000'), parent_activation_fill_id=None)).runtime
+E    +  and   Decimal('1') = D('1')
+_ test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill[EXPIRE_BOTH-True-0-1] _
+tests/integration/test_paper_market_matcher_v2.py:271: in test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill
+    assert not report.fills and report.filled_quantity==0 and report.orders[0].runtime.prevented_quantity==D(taker_prevented)
+E   assert (not () and Decimal('0') == 0 and Decimal('0.400000') == Decimal('1'))
+E    +  where () = PaperCreationReportV2(command_id='isolated-command-25cf4cb03b454b18949794652457b5c3', request=VenueCreationRequest(con...-10-28T10:00:00+00:00"}'),), contract_version='2026-10-30', record_kind='PAPER_CREATION_REPORT_V2', native_parent=None).fills
+E    +  and   Decimal('0') = PaperCreationReportV2(command_id='isolated-command-25cf4cb03b454b18949794652457b5c3', request=VenueCreationRequest(con...-10-28T10:00:00+00:00"}'),), contract_version='2026-10-30', record_kind='PAPER_CREATION_REPORT_V2', native_parent=None).filled_quantity
+E    +  and   Decimal('0.400000') = PaperOrderRuntimeV2(active=False, phase='EXPIRED', activation_event_id=None, high_water=None, low_water=None, effectiv...sible_remaining=Decimal('0'), queue_priority=4, prevented_quantity=Decimal('0.400000'), parent_activation_fill_id=None).prevented_quantity
+E    +    where PaperOrderRuntimeV2(active=False, phase='EXPIRED', activation_event_id=None, high_water=None, low_water=None, effectiv...sible_remaining=Decimal('0'), queue_priority=4, prevented_quantity=Decimal('0.400000'), parent_activation_fill_id=None) = PaperMatchedOrderV2(client_id='8cac1c2cba82d61c5273df64ae42f22a', venue_order_id='paper-v3:8cac1c2cba82d61c5273df64ae4...ible_remaining=Decimal('0'), queue_priority=4, prevented_quantity=Decimal('0.400000'), parent_activation_fill_id=None)).runtime
+E    +  and   Decimal('1') = D('1')
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill[EXPIRE_TAKER-True-0.4-1]
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill[EXPIRE_BOTH-True-0-1]
+2 failed, 1 passed in 16.96s
