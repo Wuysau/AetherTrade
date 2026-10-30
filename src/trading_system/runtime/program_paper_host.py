@@ -56,7 +56,8 @@ class ProgramPaperHost:
         self.accounting=ProgramPaperAccountingService(owner_uow,scope,source_service=source_service,
             trade_id_scope=trade_id_scope,financial_posting=ProgramOwnedSpotPosting(read_opening=read_program_local_account_opening))
         self.orders=ProgramPaperOrderProjectionService(owner_uow,scope,
-            observer=ProgramSubmissionObservationService(source_service.uow,scope,verifier=source_service.verifier))
+            observer=ProgramSubmissionObservationService(source_service.uow,scope,verifier=source_service.verifier,
+                raise_query_errors=True))
 
     def _original(self,command_id,*,dispatch=False):
         need(type(command_id) is str and 0<len(command_id)<=256,'ORIGINAL_COMMAND_ID_REQUIRED')
@@ -89,6 +90,10 @@ class ProgramPaperHost:
     def observe(self,command_id):
         original=self._original(command_id)
         need(original.current_state in ('MAY_HAVE_SENT','UNKNOWN'),'PROGRAM_HOST_SENT_ORIGINAL_REQUIRED')
+        # Accounting's verifier also performs source I/O. Persist uncertainty
+        # before that first read; an exception must not leave old ACCEPTED
+        # current. The later order observer independently restores knownness.
+        self.orders.observer.begin_query(command_id)
         accounting=self.accounting.apply(command_id)
         if accounting.status=='SOURCE_BLOCKED':
             # A failed financial-source query must also become the latest

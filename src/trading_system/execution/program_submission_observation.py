@@ -123,12 +123,14 @@ def read_program_submission_observation(tx,original):
 
 
 class ProgramSubmissionObservationService:
-    def __init__(self,uow,scope,*,verifier):
+    def __init__(self,uow,scope,*,verifier,raise_query_errors=False):
         need(type(uow) is UnitOfWork and type(scope) is t.ScopeKey and scope.environment==t.Environment.PAPER,
             'PAPER_SUBMISSION_SOURCE_UOW_REQUIRED')
         route=next((r for r in SOURCE_VERSION_ROUTES if type(verifier) is r[0]),None)
         need(route is not None and verifier.scope==scope,'ACTUAL_SCOPED_PAPER_VERIFIER_REQUIRED')
+        need(type(raise_query_errors) is bool,'SUBMISSION_ERROR_POLICY_REQUIRED')
         self.uow,self.scope,self.verifier,self.result_type=uow,scope,verifier,route[1]
+        self.raise_query_errors=raise_query_errors
 
     def _clock(self):
         try:
@@ -182,7 +184,12 @@ class ProgramSubmissionObservationService:
                 namespace=order.namespace,lifecycle=order.status,revision=order.lifecycle_revision))
         return tuple(members),ref
 
-    def observe(self,command_id):
+    def begin_query(self,command_id):
+        """Commit conservative UNKNOWN before any caller's source I/O.
+
+        A start alone establishes no source/financial fact. A later independent
+        observer must complete its own current probe to restore knownness.
+        """
         need(type(command_id) is str and 0<len(command_id)<=256,'ORIGINAL_COMMAND_ID_REQUIRED')
         probe=uuid4().hex;clock=self._clock()
         with self.uow.transaction(self.scope) as tx:
@@ -196,8 +203,13 @@ class ProgramSubmissionObservationService:
             row=tx.execute('SELECT ledger.begin_program_submission_probe(%s,%s,%s::jsonb,%s)',
                 (scope_id(self.scope),command_id,canonical_json(domain_payload(start)),tx.transaction_id)).fetchone()
             need(row==(_hash(start),),'SUBMISSION_PROBE_COMMITMENT_CHANGED')
+        return original,probe,clock
+
+    def observe(self,command_id):
+        original,probe,clock=self.begin_query(command_id)
         # No ledger/source transaction spans venue read or archive fsync.
         verified=None;members=();manifest=None;refs=[];state='UNKNOWN';reasons=('SUBMISSION_QUERY_FAILED',)
+        query_error=None
         try:
             verified=self.verifier.verify(command_id);clock=self._clock()
             summary=dict(record_kind='PROGRAM_SUBMISSION_QUERY_SUMMARY',command_id=command_id,
@@ -212,10 +224,11 @@ class ProgramSubmissionObservationService:
             reasons=()
         except (ValueError,TypeError,AttributeError,KeyError,ArithmeticError,MissingEvidence):
             members=();state='UNKNOWN';reasons=('SUBMISSION_SOURCE_UNVERIFIED',)
-        except Exception:
+        except Exception as error:
             # Error text can contain driver connection details. Preserve UNKNOWN,
             # never NOT_SENT; the committed start already blocks if persistence fails.
             members=();state='UNKNOWN';reasons=('SUBMISSION_QUERY_FAILED',)
+            query_error=error
         with self.uow.transaction(self.scope) as tx:
             source_hash=None
             if state!='UNKNOWN':source_hash,_=save_verification_snapshot(tx,verified)
@@ -224,4 +237,6 @@ class ProgramSubmissionObservationService:
             row=tx.execute('SELECT ledger.record_program_submission_observation(%s,%s,%s::jsonb,%s)',
                 (scope_id(self.scope),command_id,canonical_json(domain_payload(complete)),tx.transaction_id)).fetchone()
             need(row==(_hash(complete),),'SUBMISSION_OBSERVATION_COMMITMENT_CHANGED')
-        with self.uow.transaction(self.scope) as tx:return read_program_submission_observation(tx,original)
+        with self.uow.transaction(self.scope) as tx:result=read_program_submission_observation(tx,original)
+        if query_error is not None and self.raise_query_errors:raise query_error
+        return result
