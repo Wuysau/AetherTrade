@@ -84,6 +84,10 @@ class LockedCase:
         return None
 
     def execute(self, sql, args=()):
+        # This legacy-only memory probe has no generic source schema. Preserve
+        # the real neutral guard call; never return an owner tuple as a table.
+        if sql=="SELECT to_regclass('ledger.program_fill_source_approvals')":
+            return SimpleNamespace(fetchone=lambda:(None,))
         rows = self.queued if "='DURABLE_READY'" in sql else self.unresolved
         return SimpleNamespace(fetchone=lambda: self.owner, fetchall=lambda: rows)
 
@@ -341,6 +345,9 @@ def reservation_case(permission=t.RiskPermission.NO_NEW_RISK):
     case = LockedCase(permission)
     case.writes = []
     case.tx.active = True
+    def require_scope(scope):
+        assert case.tx.active and scope==case.scope
+    case.tx.require_scope=require_scope
     context = t.DecisionContext(identity_id='fixture-user', deployment_id='fixture',
         environment=case.scope.environment, scopes=(case.scope,), authorization_id=case.intent.authorization_id,
         policy_revision=case.intent.risk_policy_revision, ownership_epoch=case.intent.ownership_epoch,
