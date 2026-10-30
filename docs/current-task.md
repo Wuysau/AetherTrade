@@ -22,8 +22,8 @@ Adapter is a clean three-way merge preserving quote dispatch/query/all-rival
 UNION. Quote manifest/capacity helper, frozen0013/14/25 and all5ef cash/release/
 financial/current/afterwait/source-registry bytes are unchanged. Exact8path+13
 preserved hashes: ROOT-NATIVE-QUOTE-DEPENDENCY-9d8dd5c.json. Ten runs160safe raw
-originals/copies are preserved under op-d-root-native-quote-integration; actual
-committed Gitblob verification follows this evidence commit.
+originals/copies/actual06e75d2 Gitblobs independently match SHA,0mismatch under
+op-d-root-native-quote-integration (COMMITTED-BYTES.json).
 
 Source-native/quote0021/static financial registration and owned posting still
 BLOCKED; distinct native result cannot alias V1/V2 or clear nonempty-member21.
