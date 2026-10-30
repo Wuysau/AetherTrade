@@ -37,6 +37,7 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
         try:
             original,bundle,consumed,assessment=self._load(command_id)
             clock=self.engine._clock()
+            self._retain_source(original,clock,refs)
             report=self.engine.query_creation(command_id)
             if report is None:return self._result(command_id,'NOT_OBSERVED')
             for item in (report,*getattr(report,'fills',()),*getattr(report,'dispositions',())):
@@ -57,6 +58,30 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
         except (ValueError,TypeError,KeyError,AttributeError,ArithmeticError,StopIteration):
             return self._result(command_id,'BLOCKED',('PAPER_NATIVE_SOURCE_SHAPE_INVALID',),report=report,market=market,refs=tuple(refs))
 
+    def _retain_source(self,original,clock,refs):
+        """Keep unmodified source bytes even when inconsistent projections deny a DTO."""
+        total=0
+        with self.engine._connect() as db:
+            db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+            for table in ('paper_native_parent_terms_v2','paper_native_parents_v2','paper_native_algorithm_progress_v2',
+                          'paper_native_child_allocations_v2','paper_native_members_v2'):
+                with db.cursor() as rows:
+                    rows.execute('SELECT row_to_json(s)::text AS raw FROM public.'+table+
+                        ' s WHERE scope_key=%s AND parent_client_id=%s LIMIT 4097',
+                        (self.engine._scope_key,original.request.assigned_ids.parent_client_id))
+                    for index,row in enumerate(rows):
+                        raw=row['raw'].encode('utf-8');total+=len(raw)
+                        _check(index<4096 and len(raw)<=1048576 and total<=16777216,'PAPER_NATIVE_RAW_SOURCE_BOUND')
+                        refs.append(self._archive(raw,clock))
+            with db.cursor() as rows:
+                rows.execute('SELECT e.payload::text AS raw FROM public.paper_engine_events e JOIN public.paper_native_members_v2 m '
+                    'USING(scope_key,client_id) WHERE m.scope_key=%s AND m.parent_client_id=%s ORDER BY e.event_id LIMIT 4097',
+                    (self.engine._scope_key,original.request.assigned_ids.parent_client_id))
+                for index,row in enumerate(rows):
+                    raw=row['raw'].encode('utf-8');total+=len(raw)
+                    _check(index<4096 and len(raw)<=1048576 and total<=16777216,'PAPER_NATIVE_RAW_SOURCE_BOUND')
+                    refs.append(self._archive(raw,clock))
+
     def _authenticate(self,original,bundle,consumed,a,report,market,clock,refs):
         write=original.initial;request=original.request;parent_id=request.assigned_ids.parent_client_id
         _check(not request.assigned_ids.members and parent_id is not None and report.command_id==market.command_id==write.command_id
@@ -70,7 +95,10 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
                 'JOIN public.paper_native_algorithm_progress_v2 g USING(scope_key,parent_client_id) '
                 'WHERE p.scope_key=%s AND p.parent_client_id=%s',params).fetchone()
             _check(parent is not None,'PAPER_NATIVE_PARENT_SOURCE_REQUIRED')
-            members=db.execute('SELECT m.*,o.order_id,o.quantity,o.filled,o.lifecycle,o.revision,o.quantity_unit,t.terms,to_jsonb(r) AS runtime '
+            members=db.execute('SELECT m.*,o.order_id,o.quantity,o.filled,o.lifecycle,o.revision,o.quantity_unit,t.terms,'
+                "to_jsonb(r)||jsonb_build_object('high_water',r.high_water::text,'low_water',r.low_water::text,"
+                "'effective_limit',r.effective_limit::text,'visible_remaining',r.visible_remaining::text,"
+                "'prevented_quantity',r.prevented_quantity::text) AS runtime "
                 'FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id) '
                 'JOIN public.paper_order_terms t USING(scope_key,client_id) JOIN public.paper_order_runtime_v2 r USING(scope_key,client_id) WHERE m.scope_key=%s AND m.parent_client_id=%s '
                 'ORDER BY ordinal LIMIT 4097',params).fetchall()
@@ -134,7 +162,9 @@ class PaperNativeParentReportVerifier(PaperProgramReportVerifier):
                 and order.namespace==c.terms.namespace==a.compilation.nodes[0].namespace.value,
                 'PAPER_NATIVE_CHILD_IDENTITY_CHANGED')
             observed_runtime=domain_payload(order.runtime)
-            _check(observed_runtime=={k:serial(row['runtime'][k]) for k in observed_runtime},'PAPER_NATIVE_CHILD_RUNTIME_CHANGED')
+            numeric_runtime={'high_water','low_water','effective_limit','visible_remaining','prevented_quantity'}
+            _check(all(getattr(order.runtime,k)==(Decimal(row['runtime'][k]) if k in numeric_runtime and row['runtime'][k] is not None
+                else row['runtime'][k]) for k in observed_runtime),'PAPER_NATIVE_CHILD_RUNTIME_CHANGED')
             expected=domain_payload(c.terms)|dict(write=domain_payload(c.original_write),request=domain_payload(c.request),
                 compilation=domain_payload(c.compilation),rules=domain_payload(c.rules),model=domain_payload(c.model),
                 execution_envelope=domain_payload(c.execution_envelope))
