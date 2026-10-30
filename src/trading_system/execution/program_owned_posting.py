@@ -118,7 +118,7 @@ class ProgramOwnedSpotPosting:
         for fact in pending:
             identity=fact.approval.identity_hash
             for index,fee in enumerate(fact.effects.fees):
-                cashflow=t.Cashflow(at=fact.fill.occurred_at,amount=replace(fee,amount=-fee.amount),
+                cashflow=t.Cashflow(at=fact.fill.occurred_at,amount=replace(fee,amount=fee.amount.copy_negate()),
                     classification='FEE',internal_pair_id=None,evidence=fact.fill.evidence)
                 tx._append('cashflows','program-fee:'+identity+':'+str(index),cashflow,0)
             posting=ProgramOwnedPostingRecord(contract_version='2026-10-30',record_kind='PROGRAM_OWNED_POSTING_V1',
