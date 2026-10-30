@@ -19,7 +19,7 @@ from trading_system.storage.models import scope_id
 def digest(value):return canonical_hash(domain_payload(value))
 
 
-def quote_case(database, *, real_options=None, quote_options=None):
+def quote_case(database, *, real_options=None, quote_options=None, quote_assets=None):
     c=real_case(database, **(real_options or {}))
     # real_case initializes the existing synthetic helper import paths only.
     from test_quote_risk_assessment import quote_risk_case
@@ -69,9 +69,9 @@ def quote_case(database, *, real_options=None, quote_options=None):
         archive=QuoteAssessmentArchiveV1(contract_version='2026-10-30',record_kind='QUOTE_ASSESSMENT_ARCHIVE_V1',
             intent_id=intake.intent_id,source=actual_source,compilation=q.plan,book=book,allocation=q.allocation,
             risk_terms=q.terms,risk_facts=q.facts,risk_policy=q.policy,assessment=decision)
-        assets=(t.Money(currency='USDT',amount=D('1000000')),)
+        assets=quote_assets or (t.Money(currency='USDT',amount=D('1000000')),)
         return QuoteFinancialInputsV1(archive=archive,authorization=original.authorization,
-            group_capacity=assets,strategy_capacity=assets,buffer=(t.Money(currency='USDT',amount=D(0)),),
+            group_capacity=assets,strategy_capacity=assets,buffer=tuple(t.Money(currency=a.currency,amount=D(0)) for a in assets),
             reconciled_holds=tuple(p for p in ReservationRepository(tx).group()
                 if p.reservation.intent_id!=intake.intent_id))
     def qualify(tx,a,clock):
@@ -157,4 +157,5 @@ def test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier(data
     assert len(calls)==2
     with c.owner.transaction(c.scope) as tx:
         assert tx.intents.get(c.qrecord.intent_id) is None and tx.reservations.for_intent(c.qrecord.intent_id)==()
+
 

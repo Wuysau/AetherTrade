@@ -18,14 +18,18 @@ def quote_venue(database,venue):
     return venue
 
 
-def execution_case(database, venue, tmp_path):
+def execution_case(database, venue, tmp_path, *, side='BUY'):
     from trading_system.engine.paper import PaperEngine
     from trading_system.engine.paper_market import PaperMatchingModel
     from trading_system.runtime.execution_owner import ExecutionOwner
     from uuid import uuid4
     from integration.test_quote_financial_kernel_postgres import quote_case
     from integration.test_quote_program_admission_postgres import public
-    c=quote_case(database,real_options={'instrument_uid':'quote-'+uuid4().hex})
+    from trading_system.contracts import types as t
+    assets=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10')))
+    options={'instrument_uid':'quote-'+uuid4().hex}
+    if side=='SELL':options.update(actual='.15',quantity='.85')
+    c=quote_case(database,real_options=options,quote_options={'side':side,'actual':'.15' if side=='SELL' else '0'},quote_assets=assets)
     receipt=public(c).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan);c.cid=receipt.attachment.command_ids[0]
     with c.owner.transaction(c.scope) as tx:
         repo=ProgramCommandRepository(tx);c.write=repo.write(c.cid);c.request=repo.request(c.cid)
@@ -47,11 +51,13 @@ def execution_case(database, venue, tmp_path):
     return c
 
 
-@pytest.mark.parametrize('price,expected_base,expected_gross',[('50000','.08','4000'),('60000','.066','3960')])
-def test_native_quote_request_executes_actual_depth_without_original_base_quantity(database,quote_venue,tmp_path,price,expected_base,expected_gross):
+@pytest.mark.parametrize('side',['BUY','SELL'])
+@pytest.mark.parametrize('price,expected_base,expected_gross',[('50000','.08','4000'),('60000','.066666','3999.96')])
+def test_native_quote_request_executes_actual_depth_without_original_base_quantity(database,quote_venue,tmp_path,price,expected_base,expected_gross,side):
     from trading_system.engine.paper_market import PaperMatcher,DepthLevel
-    c=execution_case(database,quote_venue,tmp_path)
-    snapshot=replace(event(c),asks=(DepthLevel(price=price,quantity='.1'),),bids=(DepthLevel(price='49999',quantity='.1'),))
+    c=execution_case(database,quote_venue,tmp_path,side=side)
+    snapshot=replace(event(c),asks=(DepthLevel(price=price if side=='BUY' else '60001',quantity='.1'),),
+        bids=(DepthLevel(price=price if side=='SELL' else '49999',quantity='.1'),))
     PaperMatcher(c.engine).apply_market_event(snapshot)
     submit(c)
     report=c.engine.query_creation(c.cid)
@@ -65,4 +71,10 @@ def test_native_quote_request_executes_actual_depth_without_original_base_quanti
 
 
 
+
+
+    from trading_system.execution.paper_quote_reports import verify_quote_report
+    assert verify_quote_report(c.engine,report,boundary=c.gate).discrepancies==()
+    with pytest.raises(ValueError,match='SOURCE_CHANGED'):
+        verify_quote_report(c.engine,replace(report,gross_quote=report.gross_quote+1),boundary=c.gate)
 
