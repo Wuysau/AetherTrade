@@ -394,3 +394,16 @@ def test_paper_side_effect_rechecks_the_committed_original_permit_labels(databas
         with pytest.raises(ValueError,match='ORIGINAL_PERMIT_WINDOW_CHANGED'):
             c.engine.submit_creation(c.write,c.request,changed,boundary=c.gate,lease=c.lease,owner=c.owner)
     assert c.engine.query_creation(c.write.command_id) is None
+
+
+def test_healthy_accept_clock_cannot_precede_the_current_observed_market_book(database,venue,tmp_path):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.engine.paper_market import PaperMatcher
+    c=case(database,venue,tmp_path);clock=c.c.facts.inputs.clock
+    c.engine._clock=lambda:replace(clock,utc_now=(utc_timestamp(clock.utc_now)+timedelta(seconds=1)).isoformat(),
+        monotonic_ns=clock.monotonic_ns+10**9)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.2'))
+    c.engine._clock=lambda:clock
+    with pytest.raises(ValueError,match='PAPER_MARKET_CLOCK_AHEAD_OF_ACCEPTANCE'):submit(c)
+    assert c.engine.query_creation(c.write.command_id) is None
