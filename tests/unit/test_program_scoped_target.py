@@ -46,6 +46,9 @@ def test_explicit_subset_keeps_full_financial_book_hash_and_foreign_cash_hold():
     assert result.book_hash==current.book_hash==canonical_hash(domain_payload(book))
     assert book.reservations==(money,) and program_target_quantity_book(book,current).balances==book.balances
     assert program_target_quantity_book(book,current).reservations==()
+    projected_hash=canonical_hash(domain_payload(program_target_quantity_book(book,current)))
+    with pytest.raises(ValueError,match='TARGET_BOOK_OR_COMPILATION_CHANGED'):
+        compile_program_target(plan,book,replace(current,book_hash=projected_hash))
 
 
 def test_selected_local_quantity_reuses_existing_target_mapping_and_equation():
@@ -112,6 +115,8 @@ def test_full_actual_assessment_replay_and_static_union_restore_new_facts():
     assert type(restored.target_facts) is type(restored.risk_facts.target_facts) is ProgramScopedTargetFactsV2
     assert restored==archive and restored.assessment.verdict=='ALLOW'
     old=financial_case().archive;payload=domain_payload(old);digest=canonical_hash(payload)
+    assert canonical_hash(domain_payload(old.target_facts))=='672b30af9aafb6f8d2e5250655a18ba2f94123b828f61110c33a9161275ff3d7'
+    assert digest=='af609a2fbb961ea54368134289e1e6e20c30f2f6fb6aff0b05a020f8c932af60'
     assert ProgramFinancialArchiveCodec().decode(payload)==old
     assert canonical_hash(ProgramFinancialArchiveCodec().encode(old))==digest
     assert decode(ProgramFinancialArchive,payload)==old
