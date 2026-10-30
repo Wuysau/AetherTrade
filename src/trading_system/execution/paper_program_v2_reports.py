@@ -3,6 +3,7 @@ from dataclasses import dataclass,replace
 from decimal import Decimal,localcontext,Inexact,Rounded
 from fractions import Fraction
 from hashlib import sha256
+from collections import Counter
 from typing import Literal
 
 from trading_system.contracts import types as t
@@ -92,11 +93,24 @@ class PaperProgramV2ReportVerifier:
                 (self.engine._scope_key,clients)).fetchall()
             orders=db.execute('SELECT client_id,order_id,revision FROM public.paper_engine_orders '
                 'WHERE scope_key=%s AND client_id=ANY(%s) ORDER BY client_id LIMIT 513',(self.engine._scope_key,clients)).fetchall()
+            parent=db.execute('SELECT * FROM public.paper_native_parents_v2 WHERE scope_key=%s AND command_id=%s',
+                (self.engine._scope_key,original.initial.command_id)).fetchone()
+            event_ids=sorted({d['event_id'] for d in deps})
+            market_keys=sorted({d['market_key'] for d in deps})
+            allocations=db.execute('SELECT market_key,event_id,scope_key,client_id,fill_id,side,price::text AS price,quantity::text AS quantity '
+                'FROM public.paper_market_consumptions WHERE market_key=ANY(%s) AND event_id=ANY(%s) '
+                'ORDER BY market_key,event_id,scope_key,client_id,fill_id LIMIT 100001',(market_keys,event_ids)).fetchall()
+            preventions=db.execute('SELECT market_key,event_id,scope_key,client_id,prevention_id,depth_event_id,side,price::text AS price,'
+                'maker_quantity::text AS maker_quantity,taker_quantity::text AS taker_quantity,mode,venue_account_id,venue_order_id '
+                'FROM public.paper_market_preventions_v2 WHERE market_key=ANY(%s) AND event_id=ANY(%s) '
+                'ORDER BY market_key,event_id,prevention_id LIMIT 100001',(market_keys,event_ids)).fetchall()
         snapshot=dict(record_kind='PAPER_V2_RESTRICTED_SOURCE_MANIFEST',dependencies=[dict(d) for d in deps],
-            events=[dict(e) for e in events],orders=[dict(o) for o in orders])
+            events=[dict(e) for e in events],orders=[dict(o) for o in orders],parent=None if parent is None else dict(parent),
+            all_rival_allocations=[dict(r) for r in allocations],all_rival_preventions=[dict(r) for r in preventions])
         refs.append(self._archive(snapshot,clock))
-        _check(len(deps)<=16384 and len(events)<=4096 and len(orders)<=512,'PAPER_V2_SOURCE_MANIFEST_BOUND')
-        return deps,{e['event_id']:e for e in events},{o['client_id']:o for o in orders}
+        _check(len(deps)<=16384 and len(events)<=4096 and len(orders)<=512
+            and len(allocations)+len(preventions)<=100000,'PAPER_V2_SOURCE_MANIFEST_BOUND')
+        return deps,{e['event_id']:e for e in events},{o['client_id']:o for o in orders},parent,allocations,preventions
 
     def verify(self,command_id):
         from trading_system.engine.paper import PaperEngine
@@ -130,13 +144,28 @@ class PaperProgramV2ReportVerifier:
 
     def _normalize(self,original,bundle,consumed,a,report,market,clock,refs,manifest):
         from trading_system.storage.models import scope_id
-        write=original.initial;request=original.request;plan=a.compilation;deps,events,source_orders=manifest
+        write=original.initial;request=original.request;plan=a.compilation
+        deps,events,source_orders,source_parent,source_allocations,source_preventions=manifest
         _check(report.command_id==market.command_id==write.command_id and digest(report.request)==write.request_hash
             and market.request_hash==write.request_hash,'PAPER_V2_ORIGINAL_REQUEST_CHANGED')
         expected_inputs={(d['market_key'],d['event_id']) for d in deps}
         _check(expected_inputs=={(i.event.market_key,i.event.event_id) for i in market.inputs},'PAPER_V2_CAUSAL_INPUT_SET_CHANGED')
         _check(all(any(i.event_hash==d['payload_hash'] for i in market.inputs
             if (i.event.market_key,i.event.event_id)==(d['market_key'],d['event_id'])) for d in deps),'PAPER_V2_CAUSAL_INPUT_HASH_CHANGED')
+        def allocated(row):
+            return (row['market_key'],row['event_id'],row['scope_key'],row['client_id'],row['fill_id'],row['side'],
+                Fraction(Decimal(row['price'])),Fraction(Decimal(row['quantity'])))
+        observed_allocations=[dict(market_key=r.market_key,event_id=r.event_id,scope_key=canonical_json(domain_payload(r.scope)),
+            client_id=r.client_id,fill_id=r.fill_id,side=r.side,price=str(r.price),quantity=str(r.quantity)) for r in market.consumptions]
+        _check(Counter(allocated(r) for r in source_allocations)==Counter(allocated(r) for r in observed_allocations),
+            'PAPER_V2_ALL_RIVAL_ALLOCATION_SET_CHANGED')
+        def prevented(row):
+            return (row['market_key'],row['event_id'],row['scope_key'],row['client_id'],row['prevention_id'],row['depth_event_id'],
+                row['side'],Fraction(Decimal(row['price'])),Fraction(Decimal(row['maker_quantity'])),Fraction(Decimal(row['taker_quantity'])),
+                row['mode'],row['venue_account_id'],row['venue_order_id'])
+        observed_preventions=[{**domain_payload(r),'scope_key':canonical_json(domain_payload(r.scope))} for r in market.preventions]
+        _check(Counter(prevented(r) for r in source_preventions)==Counter(prevented(r) for r in observed_preventions),
+            'PAPER_V2_ALL_RIVAL_PREVENTION_SET_CHANGED')
         issues=v2_market_evidence_codes(market,scope=self.scope,command_id=write.command_id,request_hash=write.request_hash,now=clock.utc_now)
         _check(not issues,issues[0] if issues else 'PAPER_V2_MARKET_SOURCE_INVALID')
         body=dict(request=domain_payload(report.request),orders=[domain_payload(o) for o in report.orders],
@@ -151,6 +180,11 @@ class PaperProgramV2ReportVerifier:
         _check(set(nodes)==set(assigned) and len(report.orders)==len(report.accepted_contexts)==len(nodes),'PAPER_V2_NODE_INVENTORY_CHANGED')
         if request.assigned_ids.parent_client_id is not None:
             parent=report.native_parent
+            _check(source_parent is not None and parent is not None
+                and source_parent['request_hash']==write.request_hash
+                and (parent.parent_client_id,parent.venue_parent_id,parent.namespace,parent.template,parent.status,parent.lifecycle_revision)==(
+                    source_parent['parent_client_id'],source_parent['venue_parent_id'],source_parent['namespace'],source_parent['template'],
+                    source_parent['status'],source_parent['revision']),'PAPER_V2_NATIVE_PARENT_SOURCE_CHANGED')
             _check(parent is not None and parent.parent_client_id==request.assigned_ids.parent_client_id
                 and parent.namespace==request.namespace.value and parent.template==plan.original_program.template
                 and tuple((m.node_id,m.client_id) for m in parent.members)==tuple((m.node_id,m.client_id) for m in request.assigned_ids.members)
