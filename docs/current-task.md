@@ -1,5 +1,25 @@
 # Current task
 
+## OP_D_FRESH_POSITION_SOURCE_REPAIR — 2026-10-30
+
+Parent explicitly assigned integration_fresh as sole writer of this tree and
+binance-orders after the clean5531aae release. Parent coordinates read-only;
+cash_fresh and v2_source_fix own their separate trees. Full46/56 remains ACTIVE.
+
+Fresh fixedca57f79 full V2 cohort reproduced28pass/5fail/0error/skip140.82s:
+four STP cases fail with AmbiguousColumn(reported), and actual0.2 fill leaves
+position1 rather than0.8. Original exec47691/run23eb41da130c is TERMINALexit1
+with complete summary/XML; no restart. Actual PostgreSQL row probe f|f|t confirms that a row
+with a nullable discrepancy is neither IS NULL nor IS NOT NULL, while its
+nonnullable account key remains present.
+
+Minimal candidate uses position_state.account_id for presence checks in all
+three consuming functions and qualifies the depth column shadowed by reported.
+The existing projection regression additionally requires a NULL discrepancy;
+a new real two-price-level reduction checks0.1+0.05 against actual position0.15,
+exact zero residual position and retained position-source dependency. Candidate
+is NOT YET VERIFIED. No frozen1b12 verifier producer or root0014 was changed.
+
 ## OP_D_MATCHER_V2_OWN_WORKTREE — 2026-10-30
 
 **WRITE OWNERSHIP RELEASED after this handoff commit, by explicit parent request.**

@@ -559,9 +559,9 @@ def test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_on
     partial=c.engine.query_creation(c.write.command_id)
     assert partial.pool.executed_quantity==D('0.2') and len(partial.fills)==1
     with c.engine._connect() as db:
-        row=db.execute('SELECT quantity,known FROM public.paper_venue_positions_v2 WHERE account_id=%s',
+        row=db.execute('SELECT quantity,known,discrepancy FROM public.paper_venue_positions_v2 WHERE account_id=%s',
             (c.scope.venue_account_id,)).fetchone()
-        assert row['quantity']==D('0.8') and row['known']
+        assert row['quantity']==D('0.8') and row['known'] and row['discrepancy'] is None
     matcher.apply_market_event(position_source(c,3,'0',2))
     stopped=c.engine.query_creation(c.write.command_id)
     assert stopped.status=='STOPPED_NO_POSITION' and len(stopped.orders)==1 and stopped.pool.executed_quantity==D('0.2')
@@ -587,3 +587,21 @@ def test_stale_position_snapshot_replays_actual_fill_tail_and_conflicting_waterm
         row=db.execute('SELECT quantity,known FROM public.paper_venue_positions_v2 WHERE account_id=%s',(c.scope.venue_account_id,)).fetchone()
         assert row['quantity']==D('0.8') and not row['known']
     assert any(i.event.event_id=='position-4' for i in c.engine.query_market_evidence(c.write.command_id).inputs)
+
+
+def test_actual_reduce_only_position_capacity_is_debited_between_depth_levels(database,venue_v2,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=advanced_case(database,venue_v2,tmp_path,tif='NONE',order_transform=market_order,
+        product=t.Product.USD_M_PERP,actual='1',target='0',side='SELL',reduce_only=True)
+    submit(c);matcher=PaperMatcher(c.engine)
+    matcher.apply_market_event(position_source(c,1,'0.15',0))
+    matcher.apply_market_event(replace(event(c,sequence=2,ask='81500',quantity='1'),bids=(
+        DepthLevel(price='81490',quantity='0.1'),DepthLevel(price='81489',quantity='0.1'))))
+    report=c.engine.query_creation(c.write.command_id)
+    assert tuple(f.quantity for f in report.fills)==(D('0.1'),D('0.05'))
+    assert report.filled_quantity==D('0.15') and report.remaining_quantity==0
+    with c.engine._connect() as db:
+        row=db.execute('SELECT quantity,known,discrepancy FROM public.paper_venue_positions_v2 WHERE account_id=%s',
+            (c.scope.venue_account_id,)).fetchone()
+        assert row['quantity']==0 and row['known'] and row['discrepancy'] is None
+    assert any(i.event.event_id=='position-1' for i in c.engine.query_market_evidence(c.write.command_id).inputs)

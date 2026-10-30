@@ -298,8 +298,8 @@ BEGIN
     AND s.depth_event_id=NEW.payload->>'depth_event_id' AND i.payload_hash=NEW.payload->>'depth_hash')
    THEN RAISE EXCEPTION 'exact current liquidity source required'; END IF;
   FOR point IN SELECT * FROM jsonb_array_elements(NEW.payload->'owners') LOOP
-   IF NOT EXISTS(SELECT FROM public.paper_market_levels WHERE market_key=NEW.market_key AND side=point->>'side'
-    AND price=(point->>'price')::numeric AND reported=(point->>'source_quantity')::numeric)
+   IF NOT EXISTS(SELECT FROM public.paper_market_levels levels WHERE levels.market_key=NEW.market_key AND levels.side=point->>'side'
+    AND levels.price=(point->>'price')::numeric AND levels.reported=(point->>'source_quantity')::numeric)
     THEN RAISE EXCEPTION 'liquidity ownership quantity changed'; END IF;
    INSERT INTO public.paper_liquidity_owners_v2 VALUES(NEW.market_key,NEW.payload->>'depth_event_id',point->>'side',
     (point->>'price')::numeric,(point->>'source_quantity')::numeric,point->>'venue_account_id',point->>'venue_order_id',NEW.event_id);
@@ -428,12 +428,12 @@ BEGIN
   SELECT * INTO position_state FROM public.paper_venue_positions_v2 WHERE account_id=terms->'scope'->>'venue_account_id'
    AND product=terms->'scope'->>'product' AND instrument_uid=terms->'scope'->>'instrument_uid'
    AND venue_leg=terms->'scope'->>'venue_leg' FOR UPDATE;
-  IF position_state IS NOT NULL THEN
+  IF position_state.account_id IS NOT NULL THEN
    INSERT INTO public.paper_order_input_dependencies_v2 SELECT p_scope,p_client,d.market_key,d.event_id FROM public.paper_position_input_dependencies_v2 d
     WHERE d.account_id=position_state.account_id AND d.product=position_state.product AND d.instrument_uid=position_state.instrument_uid
      AND d.venue_leg=position_state.venue_leg AND d.position_event_id=position_state.source_event_id ON CONFLICT DO NOTHING;
   END IF;
-  IF position_state IS NULL OR NOT position_state.known OR position_state.quantity_unit<>terms->'compilation'->'nodes'->0->>'quantity_unit'
+  IF position_state.account_id IS NULL OR NOT position_state.known OR position_state.quantity_unit<>terms->'compilation'->'nodes'->0->>'quantity_unit'
    OR position_state.notional_multiplier<>(terms->>'multiplier')::numeric THEN
    UPDATE public.paper_order_runtime_v2 SET phase='WAITING_POSITION_SOURCE' WHERE scope_key=p_scope AND client_id=p_client;RETURN false;
   END IF;
@@ -606,13 +606,13 @@ BEGIN
    SELECT * INTO position_state FROM public.paper_venue_positions_v2 WHERE account_id=terms->'scope'->>'venue_account_id'
     AND product=terms->'scope'->>'product' AND instrument_uid=terms->'scope'->>'instrument_uid'
     AND venue_leg=terms->'scope'->>'venue_leg' FOR UPDATE;
-   IF position_state IS NOT NULL THEN
+   IF position_state.account_id IS NOT NULL THEN
     INSERT INTO public.paper_native_parent_input_dependencies_v2
      SELECT parent.scope_key,parent.parent_client_id,d.market_key,d.event_id FROM public.paper_position_input_dependencies_v2 d
       WHERE d.account_id=position_state.account_id AND d.product=position_state.product AND d.instrument_uid=position_state.instrument_uid
        AND d.venue_leg=position_state.venue_leg AND d.position_event_id=position_state.source_event_id ON CONFLICT DO NOTHING;
    END IF;
-   IF position_state IS NULL OR NOT position_state.known OR position_state.quantity_unit<>terms->>'quantity_unit'
+   IF position_state.account_id IS NULL OR NOT position_state.known OR position_state.quantity_unit<>terms->>'quantity_unit'
     OR position_state.notional_multiplier<>(terms->>'multiplier')::numeric THEN
     UPDATE public.paper_native_parents_v2 SET status='WAITING_POSITION_SOURCE' WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
    END IF;
@@ -772,7 +772,7 @@ BEGIN
    AND product=ord.terms->'scope'->>'product' AND instrument_uid=ord.terms->'scope'->>'instrument_uid'
    AND venue_leg=ord.terms->'scope'->>'venue_leg' FOR UPDATE;
   IF coalesce((actual_spec->>'reduce_only')::boolean,false) OR actual_spec->>'position_side'<>'BOTH' THEN
-   IF position_state IS NULL OR NOT position_state.known OR position_state.quantity_unit<>ord.quantity_unit
+   IF position_state.account_id IS NULL OR NOT position_state.known OR position_state.quantity_unit<>ord.quantity_unit
     OR position_state.notional_multiplier<>(ord.terms->>'multiplier')::numeric THEN CONTINUE; END IF;
    IF (actual_spec->>'reduce_only')::boolean OR (actual_spec->>'position_side'='LONG' AND actual_spec->>'side'='SELL')
     OR (actual_spec->>'position_side'='SHORT' AND actual_spec->>'side'='BUY') THEN
@@ -891,7 +891,7 @@ BEGIN
      VALUES('PAPER',ord.scope_key,fill_identifier,ord.client_id,encode(sha256(convert_to(fill_payload::text,'UTF8')),'hex'),fill_payload,take_quantity,level.price,execution_at);
     UPDATE public.paper_market_levels SET available=available-take_quantity
      WHERE market_key=market_id AND side=opposite_side AND price=level.price;
-    IF position_state IS NOT NULL AND position_state.known AND position_state.quantity_unit=ord.quantity_unit
+    IF position_state.account_id IS NOT NULL AND position_state.known AND position_state.quantity_unit=ord.quantity_unit
      AND position_state.notional_multiplier=(ord.terms->>'multiplier')::numeric THEN
      UPDATE public.paper_venue_positions_v2 SET quantity=quantity+CASE WHEN original_side='BUY' THEN take_quantity ELSE -take_quantity END
       WHERE account_id=position_state.account_id AND product=position_state.product AND instrument_uid=position_state.instrument_uid AND venue_leg=position_state.venue_leg;
