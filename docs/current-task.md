@@ -1,5 +1,29 @@
 # Current task
 
+## CURRENT_PHYSICAL_SCOPE_GREEN — 2026-10-30
+
+Exact stable product ef80b58a3a003d5a5c0b8916fd5b95ad600e33e8 (not ef80b585)
+actual11PG GREEN0fail/error/skip24.81s, original52785/run56c2a02dfbcb TERMINALexit0.
+Genuine same-account/group AthenB both accepted-unfilled, tightcash once/localqty0,
+raw/financial hashes and real forged/omitted/scopemap/projection/immutable negatives
+passed. Focused67unit GREEN15.04s; purec9Scoped+archive50unit earlierGREEN7.02s.
+Exact8path/SHA manifest ROOT-CASH-PHYSICAL-DEPENDENCY-ef80b58.json sent CASH together
+with complete27path b7 baseline.16 raw scoped files/maps and112 prior source/capital
+RED/GREEN originals are published. No own jobs remain live; no restarts due.
+
+Sourceb7actual8PG49.69s andfirst-capitala9actual3PG6.46s stay separate components.
+CASH85a919d has newer source/owned/book/readiness/historicalproof fixes and owns
+actual A/B posting integration; never overwrite those with older Root modules.
+No owned financial writer or executable host is enabled here. Root/Scope slice
+bounded review is parent-controlled; full62 PG+ordinary gate due after CASH chain.
+Official56 matrix still onlyORD47 complete; all46 targets remain required. Native
+quoteOrderQty remains actualproducer/source BLOCKED (new0025 parallel writer),
+not qualified by13quote-finance or BASE producer. Management0022/23 and D0026 are
+separate reviewed/unmerged work; frozen0013/14 hashes remain unchanged.
+
+Parent requested this writer idle after this checkpoint, RETAINING ROOT+D sole
+write ownership for followup. This is no user pause, goal completion or release.
+
 ## CURRENT_PHYSICAL_SCOPE_CANDIDATE — 2026-10-30
 
 StableROOTb7f6d85 actual0021 source-knownness8PG GREEN0fail/error/skip49.69s;

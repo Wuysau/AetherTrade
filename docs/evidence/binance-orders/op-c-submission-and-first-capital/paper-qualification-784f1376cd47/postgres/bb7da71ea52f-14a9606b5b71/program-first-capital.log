@@ -1,0 +1,18 @@
+F.F                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_first_generic_intent_cannot_spend_a_book_without_actual_initial_capital _
+tests/integration/test_program_first_capital.py:22: in test_first_generic_intent_cannot_spend_a_book_without_actual_initial_capital
+    with pytest.raises((MissingEvidence,ValueError),match='ACCOUNT_OPENING_REQUIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE any of (MissingEvidence, ValueError)
+_ test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory _
+tests/integration/test_program_first_capital.py:49: in test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory
+    assert raw.status=='NEW' and not raw.fills and raw.remaining_quantity==1
+E   AssertionError: assert ('SUBMITTED' == 'NEW'
+E     
+E     - NEW
+E     + SUBMITTED)
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_first_capital.py::test_first_generic_intent_cannot_spend_a_book_without_actual_initial_capital
+FAILED tests/integration/test_program_first_capital.py::test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory
+2 failed, 1 passed in 8.03s

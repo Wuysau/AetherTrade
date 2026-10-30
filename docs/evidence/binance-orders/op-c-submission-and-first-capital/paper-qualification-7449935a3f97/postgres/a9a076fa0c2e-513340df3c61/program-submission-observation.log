@@ -1,0 +1,207 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[1] _
+tests/integration/test_program_submission_observation.py:43: in test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release
+    submit(c)
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:369: in submit_creation
+    consumed=boundary.consume(permit,lease)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:459: in consume
+    request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:408: in consume
+    context,clock,_,_,request=self._current(w,lease)
+                              ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:324: in _current
+    obligations=application_write_obligations(self.tx)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/application_writes.py:118: in application_write_obligations
+    observed=read_program_submission_observation(tx,original)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_submission_observation.py:92: in read_program_submission_observation
+    context=_source_context(view,original.command_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_fill_source.py:67: in _source_context
+    require(row is not None and row[4]==row[5],'PROGRAM_COMMITTED_SOURCE_REQUIRED')
+src/trading_system/execution/program_fill_source.py:25: in require
+    if not condition:raise ValueError(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_COMMITTED_SOURCE_REQUIRED
+_ test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[2] _
+tests/integration/test_program_submission_observation.py:43: in test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release
+    submit(c)
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:369: in submit_creation
+    consumed=boundary.consume(permit,lease)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:459: in consume
+    request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:408: in consume
+    context,clock,_,_,request=self._current(w,lease)
+                              ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:324: in _current
+    obligations=application_write_obligations(self.tx)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/application_writes.py:118: in application_write_obligations
+    observed=read_program_submission_observation(tx,original)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_submission_observation.py:92: in read_program_submission_observation
+    context=_source_context(view,original.command_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_fill_source.py:67: in _source_context
+    require(row is not None and row[4]==row[5],'PROGRAM_COMMITTED_SOURCE_REQUIRED')
+src/trading_system/execution/program_fill_source.py:25: in require
+    if not condition:raise ValueError(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_COMMITTED_SOURCE_REQUIRED
+_ test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold __
+tests/integration/test_program_submission_observation.py:69: in test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold
+    PaperMatcher(c.engine).apply_market_event(event(c,ask='81490',quantity='1'));submit(c)
+                                                                                 ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:369: in submit_creation
+    consumed=boundary.consume(permit,lease)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:459: in consume
+    request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:408: in consume
+    context,clock,_,_,request=self._current(w,lease)
+                              ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:324: in _current
+    obligations=application_write_obligations(self.tx)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/application_writes.py:118: in application_write_obligations
+    observed=read_program_submission_observation(tx,original)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_submission_observation.py:92: in read_program_submission_observation
+    context=_source_context(view,original.command_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_fill_source.py:67: in _source_context
+    require(row is not None and row[4]==row[5],'PROGRAM_COMMITTED_SOURCE_REQUIRED')
+src/trading_system/execution/program_fill_source.py:25: in require
+    if not condition:raise ValueError(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_COMMITTED_SOURCE_REQUIRED
+_ test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty _
+tests/integration/test_program_submission_observation.py:81: in test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty
+    c=case(database,venue,tmp_path);submit(c);service,codec=observer(c,tmp_path/'unknown')
+                                    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:369: in submit_creation
+    consumed=boundary.consume(permit,lease)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:459: in consume
+    request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:408: in consume
+    context,clock,_,_,request=self._current(w,lease)
+                              ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:324: in _current
+    obligations=application_write_obligations(self.tx)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/application_writes.py:118: in application_write_obligations
+    observed=read_program_submission_observation(tx,original)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_submission_observation.py:92: in read_program_submission_observation
+    context=_source_context(view,original.command_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_fill_source.py:67: in _source_context
+    require(row is not None and row[4]==row[5],'PROGRAM_COMMITTED_SOURCE_REQUIRED')
+src/trading_system/execution/program_fill_source.py:25: in require
+    if not condition:raise ValueError(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_COMMITTED_SOURCE_REQUIRED
+_ test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness _
+tests/integration/test_program_submission_observation.py:98: in test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness
+    c=case(database,venue,tmp_path);submit(c)
+                                    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:369: in submit_creation
+    consumed=boundary.consume(permit,lease)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:459: in consume
+    request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:408: in consume
+    context,clock,_,_,request=self._current(w,lease)
+                              ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:324: in _current
+    obligations=application_write_obligations(self.tx)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/application_writes.py:118: in application_write_obligations
+    observed=read_program_submission_observation(tx,original)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_submission_observation.py:92: in read_program_submission_observation
+    context=_source_context(view,original.command_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_fill_source.py:67: in _source_context
+    require(row is not None and row[4]==row[5],'PROGRAM_COMMITTED_SOURCE_REQUIRED')
+src/trading_system/execution/program_fill_source.py:25: in require
+    if not condition:raise ValueError(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PROGRAM_COMMITTED_SOURCE_REQUIRED
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_submission_observation.py::test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[1]
+FAILED tests/integration/test_program_submission_observation.py::test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[2]
+FAILED tests/integration/test_program_submission_observation.py::test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold
+FAILED tests/integration/test_program_submission_observation.py::test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty
+FAILED tests/integration/test_program_submission_observation.py::test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness
+5 failed in 20.89s
