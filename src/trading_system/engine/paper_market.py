@@ -395,12 +395,12 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                 and consumption['assessment_hash']==digest(assessment),'PAPER_PROTECTED_CONTEXT_CHANGED')
         plan=assessment.compilation
         require(digest(plan)==original.compilation_hash,'PAPER_CURRENT_COMPILATION_CHANGED')
-        native_oco=v2 and engine.scope.product==t.Product.SPOT and plan.original_program.template=='OCO' and plan.original_program.execution_mode=='VENUE_NATIVE'
-        require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_oco)
+        native_list=v2 and engine.scope.product==t.Product.SPOT and plan.original_program.template in ('OCO','OTO','OTOCO') and plan.original_program.execution_mode=='VENUE_NATIVE'
+        require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
             and tuple(m.node_id for m in request.assigned_ids.members)==tuple(n.original.node_id for n in plan.nodes),
             'PAPER_PROGRAM_MATCHER_STAGE_REQUIRED')
-        if native_oco:
-            require(request.namespace.value=='BINANCE_SPOT_ORDER_LIST' and request.operation.value=='SUBMIT_OCO'
+        if native_list:
+            require(request.namespace.value=='BINANCE_SPOT_ORDER_LIST' and request.operation.value=='SUBMIT_'+plan.original_program.template
                 and request.assigned_ids.parent_client_id is not None,'PAPER_ACTUAL_NATIVE_PARENT_REQUIRED')
         execution_rows=[]
         for node in plan.nodes:
@@ -413,7 +413,10 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                     and (order.tif.kind in ('GTC','IOC','FOK','GTX') or node.order_type=='LIMIT_MAKER' and order.tif.kind=='NONE'),
                     'PAPER_EXECUTION_SEMANTICS_STAGE_REQUIRED')
             require(node.quantity.kind=='BASE_QUANTITY','PAPER_NATIVE_QUANTITY_REQUIRED')
-            quantity_fields=tuple(f for f in request.fields if f.name=='quantity')
+            quantity_name='quantity'
+            if native_list and plan.original_program.template!='OCO':
+                quantity_name='workingQuantity' if node.original.role=='WORKING' else 'pendingQuantity'
+            quantity_fields=tuple(f for f in request.fields if f.name==quantity_name)
             require(len(quantity_fields)==1 and type(quantity_fields[0].value) is str
                 and number(quantity_fields[0].value)==number(node.quantity.value),'PAPER_NATIVE_REQUEST_QUANTITY_CHANGED')
             qty=number(node.quantity.value);client=next(m.client_id for m in request.assigned_ids.members if m.node_id==node.original.node_id)
@@ -478,7 +481,7 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                 anchor=execution_rows[0][3]
                 db.execute('INSERT INTO public.paper_engine_commands VALUES(%s,%s,%s,%s,%s,%s,%s,%s)',
                     ('PAPER',engine._scope_key,write.command_id,anchor,anchor,'CREATE_REQUEST',digest(request),Jsonb(domain_payload(request))))
-                if native_oco:db.execute('SELECT public.paper_accept_native_program_v2(%s,%s)',(engine._scope_key,write.command_id))
+                if native_list:db.execute('SELECT public.paper_accept_native_program_v2(%s,%s)',(engine._scope_key,write.command_id))
                 db.execute('SELECT public.paper_match_order(%s,%s)',(engine._scope_key,anchor))
                 # Owner clock/lease remains held and current through SIM commit.
                 with owner.guard(lease):

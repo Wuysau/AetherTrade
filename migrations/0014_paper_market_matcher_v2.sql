@@ -52,7 +52,7 @@ CREATE TABLE public.paper_native_members_v2(
  FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
  FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 CREATE TABLE public.paper_native_exclusivity_v2(
- scope_key text NOT NULL,parent_client_id text NOT NULL,winner_client_id text,
+ scope_key text NOT NULL,parent_client_id text NOT NULL,winner_client_id text,node_ids jsonb NOT NULL,
  PRIMARY KEY(scope_key,parent_client_id),
  FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
  FOREIGN KEY(scope_key,winner_client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
@@ -60,7 +60,7 @@ CREATE TABLE public.paper_order_runtime_v2(
  scope_key text NOT NULL,client_id text NOT NULL,active boolean NOT NULL,phase text NOT NULL,
  activation_event_id text,high_water numeric,low_water numeric,trail_started boolean NOT NULL DEFAULT false,
  effective_type text NOT NULL,effective_limit numeric,visible_remaining numeric,queue_priority bigint NOT NULL,last_reveal_event_id text,
- calendar_event_id text,day_expires_at timestamptz,prevented_quantity numeric NOT NULL DEFAULT 0 CHECK(prevented_quantity>=0),
+ calendar_event_id text,day_expires_at timestamptz,prevented_quantity numeric NOT NULL DEFAULT 0 CHECK(prevented_quantity>=0),parent_activation_fill_id text,
  PRIMARY KEY(scope_key,client_id),FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 REVOKE ALL ON public.paper_market_state_v2,public.paper_reference_prices_v2,public.paper_published_rules_v2,
  public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2,public.paper_market_preventions_v2,
@@ -86,15 +86,17 @@ BEGIN
  SELECT * INTO command FROM public.paper_engine_commands WHERE scope_key=p_scope AND command_id=p_command;
  SELECT t.terms INTO terms FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=command.target_client_id;
  IF command IS NULL OR terms IS NULL OR terms->'request' IS DISTINCT FROM command.request
-  OR terms->'compilation'->'original_program'->>'template'<>'OCO'
+  OR terms->'compilation'->'original_program'->>'template' NOT IN ('OCO','OTO','OTOCO')
   OR terms->'compilation'->'original_program'->>'execution_mode'<>'VENUE_NATIVE'
-  OR command.request->>'namespace'<>'BINANCE_SPOT_ORDER_LIST' OR command.request->>'operation'<>'SUBMIT_OCO'
-  OR jsonb_array_length(command.request->'assigned_ids'->'members')<>2
-  OR jsonb_array_length(terms->'compilation'->'nodes')<>2 THEN RAISE EXCEPTION 'actual complete native OCO parent required'; END IF;
+  OR command.request->>'namespace'<>'BINANCE_SPOT_ORDER_LIST'
+  OR command.request->>'operation'<>'SUBMIT_'||(terms->'compilation'->'original_program'->>'template')
+  OR jsonb_array_length(command.request->'assigned_ids'->'members') NOT BETWEEN 2 AND 3
+  OR jsonb_array_length(terms->'compilation'->'nodes')<>jsonb_array_length(command.request->'assigned_ids'->'members')
+  THEN RAISE EXCEPTION 'actual complete native list parent required'; END IF;
  parent=command.request->'assigned_ids'->>'parent_client_id';
  IF parent IS NULL THEN RAISE EXCEPTION 'original native parent identity required'; END IF;
  INSERT INTO public.paper_native_parents_v2 VALUES(p_scope,parent,'paper-list:'||parent,p_command,command.request_hash,
-  command.request->>'namespace','OCO','EXECUTING',1);
+  command.request->>'namespace',terms->'compilation'->'original_program'->>'template','EXECUTING',1);
  FOR member IN SELECT * FROM jsonb_array_elements(command.request->'assigned_ids'->'members') LOOP
   SELECT t.terms INTO item FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=member->>'client_id';
   IF item IS NULL OR item->>'node_id' IS DISTINCT FROM member->>'node_id' OR item->'request' IS DISTINCT FROM command.request
@@ -103,7 +105,9 @@ BEGIN
     AND filled=0 AND revision=1 AND lifecycle='SUBMITTED') THEN RAISE EXCEPTION 'actual zero-fill native member required'; END IF;
   INSERT INTO public.paper_native_members_v2 VALUES(p_scope,parent,member->>'client_id',member->>'node_id',ordinal);ordinal=ordinal+1;
  END LOOP;
- INSERT INTO public.paper_native_exclusivity_v2 VALUES(p_scope,parent,NULL);
+ IF jsonb_array_length(terms->'compilation'->'original_program'->'exclusive_groups')=1 THEN
+  INSERT INTO public.paper_native_exclusivity_v2 VALUES(p_scope,parent,NULL,terms->'compilation'->'original_program'->'exclusive_groups'->0);
+ END IF;
 END $$;
 
 CREATE FUNCTION public.paper_claim_exclusive_v2(p_scope text,p_client text,p_market text) RETURNS boolean
@@ -113,14 +117,16 @@ DECLARE membership public.paper_native_members_v2;exclusive public.paper_native_
 BEGIN
  SELECT * INTO membership FROM public.paper_native_members_v2 WHERE scope_key=p_scope AND client_id=p_client;
  IF membership IS NULL THEN RETURN true; END IF;
- SELECT * INTO exclusive FROM public.paper_native_exclusivity_v2 WHERE scope_key=p_scope AND parent_client_id=membership.parent_client_id FOR UPDATE;
+ SELECT * INTO exclusive FROM public.paper_native_exclusivity_v2 WHERE scope_key=p_scope AND parent_client_id=membership.parent_client_id
+  AND node_ids ? membership.node_id FOR UPDATE;
+ IF exclusive IS NULL THEN RETURN true; END IF;
  IF exclusive.winner_client_id IS NOT NULL THEN RETURN exclusive.winner_client_id=p_client; END IF;
  UPDATE public.paper_native_exclusivity_v2 SET winner_client_id=p_client WHERE scope_key=p_scope AND parent_client_id=membership.parent_client_id;
  SELECT * INTO book FROM public.paper_market_books WHERE market_key=p_market;
  IF book IS NULL THEN RAISE EXCEPTION 'actual source for native activation required'; END IF;
  FOR peer IN SELECT o.*,t.terms FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id)
   JOIN public.paper_order_terms t USING(scope_key,client_id) WHERE m.scope_key=p_scope AND m.parent_client_id=membership.parent_client_id
-   AND m.client_id<>p_client FOR UPDATE OF o LOOP
+   AND m.client_id<>p_client AND exclusive.node_ids ? m.node_id FOR UPDATE OF o LOOP
   IF peer.filled>0 THEN RAISE EXCEPTION 'native exclusive members both executed'; END IF;
   CONTINUE WHEN peer.lifecycle IN ('FILLED','CANCELED','EXPIRED','REJECTED');
   execution_at=greatest((peer.terms->'accepted_clock'->>'utc_now')::timestamptz,(book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
@@ -215,6 +221,7 @@ DECLARE terms jsonb;spec jsonb;trigger_spec jsonb;runtime public.paper_order_run
  mark_price numeric;contract_price numeric;protect_ratio numeric;original public.paper_engine_orders;arrival bigint;
  current_event text;resolved_price numeric;book record;expired_at timestamptz;payload jsonb;event_identifier text;
  calendar_source record;session_kind text;current_time_at timestamptz;day_close timestamptz;
+ incoming_link jsonb;working_order record;full_fill_identifier text;working_sum numeric;
 BEGIN
  SELECT t.terms INTO terms FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=p_client;
  IF coalesce((terms->>'model_revision')::int,1)<>2 THEN RETURN true; END IF;
@@ -248,6 +255,26 @@ BEGIN
    CASE WHEN spec->>'iceberg_quantity' IS NULL THEN NULL ELSE least((spec->>'iceberg_quantity')::numeric,original.quantity-original.filled) END,arrival)
   ON CONFLICT(scope_key,client_id) DO NOTHING;
  SELECT * INTO runtime FROM public.paper_order_runtime_v2 r WHERE r.scope_key=p_scope AND r.client_id=p_client FOR UPDATE;
+ SELECT l INTO incoming_link FROM jsonb_array_elements(terms->'compilation'->'original_program'->'links') l WHERE l->>'target'=terms->>'node_id';
+ IF incoming_link IS NOT NULL AND runtime.parent_activation_fill_id IS NULL THEN
+  IF incoming_link->>'condition'<>'FULL_FILL' THEN RAISE EXCEPTION 'authentic net receipt activation stage required'; END IF;
+  SELECT o.* INTO working_order FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id)
+   WHERE m.scope_key=p_scope AND m.node_id=incoming_link->>'source'
+    AND m.parent_client_id=(SELECT parent_client_id FROM public.paper_native_members_v2 WHERE scope_key=p_scope AND client_id=p_client);
+  IF working_order IS NULL OR working_order.lifecycle<>'FILLED' OR working_order.filled<>working_order.quantity THEN
+   UPDATE public.paper_order_runtime_v2 SET active=false,phase='WAITING_FULL_WORKING_FILL' WHERE scope_key=p_scope AND client_id=p_client;RETURN false;
+  END IF;
+  SELECT sum(fill_delta) INTO working_sum FROM public.paper_engine_events WHERE scope_key=p_scope AND client_id=working_order.client_id AND fill_delta>0;
+  IF working_sum IS DISTINCT FROM working_order.quantity THEN RAISE EXCEPTION 'complete actual working fills required'; END IF;
+  SELECT event_id INTO full_fill_identifier FROM public.paper_engine_events WHERE scope_key=p_scope AND client_id=working_order.client_id AND fill_delta>0
+   ORDER BY occurred_at DESC,event_id DESC LIMIT 1;
+  UPDATE public.paper_order_runtime_v2 SET parent_activation_fill_id=full_fill_identifier,active=trigger_spec->>'kind'='NONE',
+   phase=CASE WHEN trigger_spec->>'kind'='NONE' THEN 'ACTIVE' ELSE 'WAITING_REFERENCE' END WHERE scope_key=p_scope AND client_id=p_client;
+  runtime.parent_activation_fill_id=full_fill_identifier;runtime.active=trigger_spec->>'kind'='NONE';
+  INSERT INTO public.paper_order_input_dependencies_v2
+   SELECT p_scope,p_client,market_key,event_id FROM public.paper_order_input_dependencies_v2
+    WHERE scope_key=p_scope AND client_id=working_order.client_id ON CONFLICT DO NOTHING;
+ END IF;
  IF terms->'scope'->>'product'='US_EQUITY' THEN
   session_kind=coalesce(spec->>'trading_session','RTH');
   current_time_at=greatest((terms->'accepted_clock'->>'utc_now')::timestamptz,(book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
@@ -546,7 +573,9 @@ BEGIN
      encode(sha256(convert_to(fill_payload::text,'UTF8')),'hex'),fill_payload,0,NULL,execution_at);
   END IF;
  END LOOP;
- UPDATE public.paper_native_parents_v2 p SET status='ALL_DONE',revision=revision+1 WHERE p.scope_key=p_scope AND p.status<>'ALL_DONE'
+ UPDATE public.paper_native_parents_v2 p SET status='ALL_DONE',revision=revision+1 WHERE p.status<>'ALL_DONE'
+  AND EXISTS(SELECT FROM public.paper_native_members_v2 m JOIN public.paper_order_terms t USING(scope_key,client_id)
+   WHERE m.scope_key=p.scope_key AND m.parent_client_id=p.parent_client_id AND t.market_key=market_id)
   AND NOT EXISTS(SELECT FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id)
    WHERE m.scope_key=p.scope_key AND m.parent_client_id=p.parent_client_id AND o.lifecycle NOT IN ('FILLED','CANCELED','EXPIRED','REJECTED'));
 END $$;

@@ -202,6 +202,7 @@ class PaperOrderRuntimeV2:
     visible_remaining:Decimal|None
     queue_priority:int
     prevented_quantity:Decimal
+    parent_activation_fill_id:str|None
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -314,7 +315,7 @@ def restore_accepted_context_v2(payload,request):
 def decorate_report_v2(engine,db,report):
     orders=[]
     for order in report.orders:
-        row=db.execute('SELECT active,phase,activation_event_id,high_water,low_water,effective_limit,visible_remaining,queue_priority,prevented_quantity FROM public.paper_order_runtime_v2 '
+        row=db.execute('SELECT active,phase,activation_event_id,high_water,low_water,effective_limit,visible_remaining,queue_priority,prevented_quantity,parent_activation_fill_id FROM public.paper_order_runtime_v2 '
             'WHERE scope_key=%s AND client_id=%s',(engine._scope_key,order.client_id)).fetchone()
         require(row is not None,'PAPER_V2_RUNTIME_SOURCE_REQUIRED')
         runtime=PaperOrderRuntimeV2(**row)
