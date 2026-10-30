@@ -10,6 +10,10 @@ runtime. Full46/56 remains ACTIVE; formal capability acceptance is unchanged.
 
 Actual final owned11PG GREEN91.91s (805aa53/run90da05c1bd21), working17PG
 GREEN137.53s (same product/rund0a9ed6ebd38), zero failures/errors/skips.
+Publicationdb2f953 contains737 raw artifacts across45 terminal runs. Every
+original/copy/actual committed Git blob SHA256 matches (COMMITTED-BYTES.json);
+eight grouped patches also match source Git diff/copy/committed bytes exactly
+(COMMITTED-PACKET.json). Both proof processes are terminal, zero SHA mismatch.
 Related actual PG cohorts: raw9, firstCapital3, knownness8, V2owned2, source16,
 physicalScope16, strictcash9, oldexecution37; all GREEN with no mandatory skips.
 Focused unit23PASS1.55s. No broad ordinary/119 rerun this slice.
