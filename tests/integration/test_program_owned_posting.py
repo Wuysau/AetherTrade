@@ -268,6 +268,43 @@ def test_every_native_member_of_a_real_owned_batch_needs_its_same_transaction_ma
     finally:codec.close()
 
 
+def test_disjoint_native_batches_cannot_reuse_one_actual_owned_transition(database,venue,tmp_path):
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+    from trading_system.execution.program_asset_postings import make_program_asset_posting,economic_signature
+    from trading_system.execution.program_owned_posting import ProgramOwnedPostingRecord,fee_cashflow
+    from trading_system.execution.program_account_cash import read_program_account_cash
+    from trading_system.contracts.canonical import canonical_hash
+    from trading_system.storage.events import EventStore
+    from trading_system.storage.models import MissingEvidence
+    c,s,codec=setup(database,venue,tmp_path);financial=s.financial_posting
+    try:
+        PaperMatcher(c.engine).apply_market_event(event(c,sequence=2,quantity='.4',kind='DEPTH_DELTA'))
+        s.financial_posting=None;s.apply(c.write.command_id)
+        approvals=s.source_service.approve(c.write.command_id).approvals
+        assert len(approvals)==2
+        with c.service.uow.transaction(c.scope) as tx:
+            _,complete=financial.post(tx,(approvals[0],),s._fills)
+            assert not complete
+            first=tx._latest('audit_events','program-owned-posting:'+approvals[0].identity_hash,ProgramOwnedPostingRecord)
+            other=ProgramAssetPostingReader(tx,fill_ledger=s._fills).read(approvals[1].approval_id)
+            asset=make_program_asset_posting(other);tx._append('audit_events',asset.record_id,asset,0)
+            forged=replace(first,identity_hash=other.approval.identity_hash,source_economic_hash=economic_signature(other),
+                source_approval_ids=(other.approval.approval_id,))
+            tx._append('audit_events','program-owned-posting:'+other.approval.identity_hash,forged,0)
+            for index,fee in enumerate(other.effects.fees):
+                tx._append('cashflows','program-fee:'+other.approval.identity_hash+':'+str(index),fee_cashflow(other,index,fee),0)
+            event_id='program-position:'+canonical_hash(dict(scope=domain_payload(c.scope),identities=[other.approval.identity_hash]))
+            EventStore().append(tx,t.DomainEvent(event_id=event_id,scope=c.scope,
+                aggregate_id='program-position:'+first.owner_after.position.position_id,revision=2,
+                occurred_at=other.fill.evidence.visible_at,evidence=(other.fill.evidence,),payload=first.owner_after.position),1)
+        with c.service.uow.transaction(c.scope) as tx:
+            with pytest.raises(MissingEvidence,match='OWNED_POSTING_TRANSITION_REUSED'):
+                read_program_account_cash(tx,read_opening=read_program_account_opening)
+            assert RegistryTx(tx).owner().position.actual_quantity.value==D('.4')
+            assert tx.execute('SELECT sum(quantity) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(D('.8'),)
+    finally:codec.close()
+
+
 def test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes(database,venue,tmp_path):
     from uuid import uuid4
     from integration.test_program_financial_admission import real_case
