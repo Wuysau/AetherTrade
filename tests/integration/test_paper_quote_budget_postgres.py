@@ -38,7 +38,7 @@ def execution_case(database, venue, tmp_path):
 def test_native_quote_request_executes_actual_depth_without_original_base_quantity(database,venue,tmp_path,price,expected_base,expected_gross):
     from trading_system.engine.paper_market import PaperMatcher,DepthLevel
     c=execution_case(database,venue,tmp_path)
-    snapshot=replace(event(c,ask=price,quantity='.1'),bids=(DepthLevel(price='49999',quantity='.1'),))
+    snapshot=replace(event(c),asks=(DepthLevel(price=price,quantity='.1'),),bids=(DepthLevel(price='49999',quantity='.1'),))
     PaperMatcher(c.engine).apply_market_event(snapshot)
     submit(c)
     report=c.engine.query_creation(c.cid)
@@ -49,4 +49,5 @@ def test_native_quote_request_executes_actual_depth_without_original_base_quanti
     assert report.gross_quote==D(expected_gross)
     assert report.remaining_quote==4000-D(expected_gross)
     assert sum((f.quantity*f.price for f in report.fills),D(0))==report.gross_quote
+
 
