@@ -1,5 +1,19 @@
 # Current task
 
+## Fresh accounting writer assigned — 2026-10-30
+
+Parent assigned `cash_fresh` as the sole writer of THIS accounting worktree
+after clean release `ffc1e269`. Parent only coordinates/reviews. Root
+`integration_fresh` alone owns binance-orders; no writes there are authorized.
+The account reconstruction section below was read in full; its statements that
+parent owns this tree are historical. Full46/56 remains ACTIVE. Current next
+cohort: protected legacy seed provenance, BookCashBinding and real cross-scope
+stale-book proof, then actual owned position/book financial transaction.
+Existing audit seed JSON is writable by ledger_owner, so a label by itself
+cannot authorize initial cash. New legacy provenance must be separately
+attested by the provisioner and reread under the collateral mutex. No current
+book funding fallback or assignment of unowned initial BTC is permitted.
+
 ## Write ownership release for fresh cash implementation
 
 Parent/root explicitly releases write ownership of this worktree at this clean
