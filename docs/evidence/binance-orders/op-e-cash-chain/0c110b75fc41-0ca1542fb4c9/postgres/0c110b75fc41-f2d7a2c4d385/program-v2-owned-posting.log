@@ -1,0 +1,16 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each _
+tests/integration/test_program_v2_owned_posting.py:39: in test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each
+    c,service,codec=setup(database,venue,tmp_path,source_version=2)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:35: in setup
+    provision_paper_market_v2(make_conninfo(**{**conninfo_to_dict(database),
+src/trading_system/engine/paper_market_v2.py:388: in provision_paper_market_v2
+    db.execute((Path(__file__).resolve().parents[3]/'migrations/0014_paper_market_matcher_v2.sql').read_text(encoding='utf-8'))
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "paper_market_state_v2" already exists
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_v2_owned_posting.py::test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each
+1 failed, 1 passed in 8.85s

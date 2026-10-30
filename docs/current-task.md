@@ -47,6 +47,63 @@ dependency before importing ROOT runtime code; frozen producer6adc2f9 needs
 actual consumed-boundary bundlecodec/continuation APIs absent this old CASHbase.
 Do not synthesize a parallel compatibility stack or bypass any guard.
 
+ROOT then explicitly confirmed the complete verbatim dependency import for
+independent single-scope V2 progress. Product0c110b7 installs exact6adc2f9
+paper_market.py/market_v2.py/0014 plus exactb188c87 command/consumedBoundary/
+cashGuard/financialAdmission/static bundle+archive restoration/quote helpers/
+continuation/original recovery/reservations and matcherfixture, with exactbb7da71
+initialcapital support/real_case/openingfixture. V2-DEPENDENCIES.json records
+source SHA equality; ALL7cash/source/owned/book/initialproof modules are intact.
+No0021 knownness or ROOT physicalscope runtime subset is installed here yet.
+
+Actual new programme-V2-owned-posting qualifier27c3d64 RED2missing0014;0c110b7
+1pass/1fixture DuplicateTable when the second test reprovisioned the sameSIM.
+Move to module-scoped SIMprovision fixturea1e8cc6: actual2PG GREEN16.11s,
+zero failures/errors/skips, original44543 terminalexit0/run55674d72f571. This is
+GENUINE V2producer→V2verifier→private sourceapproval→actual nativeFillLedger→
+ownedquantity/exactFEE/book/strict ROOTfundedguard, plus additionalnative/replay.
+It grants no reservation release/cost/history/protection/FLAT and no new venue
+family/product financial qualification. Source rawPaperMarketFill stays original.
+
+Actual firstCapital3 at3d3f519 gave2pass/1oldbb7fixture expectedNEW whereas exact
+reviewedb188fixture already expects SUBMITTED. Replaced whole test with verbatim
+b188 (7b8203f), preserved original failure: actual3PG GREEN6.35s in c34a9765592b,
+original15311 terminalexit0. No productstatus or assertion relaxation was made.
+An earlier diagnosis that producer versions differed was corrected by exact Git
+inspection:6adc andb188 market.py bytes are identical; only fixture revision was
+wrong. Actual3covers missingproof/no newintent/hold, inflatedbook deny, and full
+MAY/consume/venue with exact initialopening/revision and no minted inventory.
+
+Fresh regression fixed764c2c9 is TERMINAL: opening9GREEN5.50s/BookCash3GREEN11.77s;
+owned10pass/1same RESERVATION_QUANTITY_REQUIRED prerequisite59.90s; source15pass/
+1historicalfixture precondition (new capital fixture installed0018 prematurely)
+73.95s. No two-command financial-progress claim follows that old prerequisite.
+
+Do not skip0018 or fabricate its header tables to install0019: immutable0019
+actually GRANTs0018 headers/leaves. New test-only historical process194e2e6 uses
+EXACT archived3d13721cbcdc2e35cdd347c610372f13fee03b4f source from runner-local
+Git ancestry (no fetch/hosttree) to create genuine pre-capital financial/MAY/
+consume/SIMfill/private source against0017. The current process then applies
+0018 and checks original payload/hash/xmin, current source reader/replay and
+further genuine native fills. Initial15pass/1DTO shape assertion is preserved:
+old Approval had3fields while current reader additionally derives source review.
+Fixeef3b69 compares all original3fields EXACTLY, and new command/status/discrepancy/
+duties against actual protected original snapshot. Actual16PG GREEN78.19s,
+zero failures/errors/skips; existing JUnit record_property warning. Original14145
+terminalexit0,884c455e135c. No first-capital guard or historical migration changed.
+
+ROOT stableb7f6d85/d4db300 manifest now selected in081d76e:26paths verbatim,
+programmeAssessment EXACT ROOT plus ONLY scopedfacts import/union; full scoped
+AssessmentArchive override and all cash/source/owned/fills modules retained.
+Includes protected0021 actual query knownness, original-window boundaries,
+financial/recovery and test dependencies. No physical scalar subset runtime
+validator is yet installed here. Actual196focused unit GREEN16.49s after merge.
+Current original18532knownness8 /47288V2owned2 qualifiers are TERMINALexit0:
+actual8GREEN53.77s/2GREEN15.68s at081d76e, zero failures/errors/skips. Runs
+502679d2d59d/cdddeea830c5. All18 fresh cash-chain jobs are terminal; none should
+be restarted. ROOT owns actual physicalscope quantity validation and legal A/B
+accepted-unfilled composition. Full46/56 remains ACTIVE.
+
 ROOT dependencies are being coordinated before serial import. No fabrication
 of permits/accepted states/fees, no relaxed cross-command or cash guard, no
 foreign-scope writes or second running balance. Two-command proof remains a

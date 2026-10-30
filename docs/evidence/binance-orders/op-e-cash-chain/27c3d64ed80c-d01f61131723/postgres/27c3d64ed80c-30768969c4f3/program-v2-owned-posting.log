@@ -1,0 +1,38 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_actual_v2_source_posts_exact_native_owner_assets_fees_and_neutral_book_guard _
+tests/integration/test_program_v2_owned_posting.py:14: in test_actual_v2_source_posts_exact_native_owner_assets_fees_and_neutral_book_guard
+    c,service,codec=setup(database,venue,tmp_path,source_version=2)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:35: in setup
+    provision_paper_market_v2(make_conninfo(**{**conninfo_to_dict(database),
+src/trading_system/engine/paper_market_v2.py:388: in provision_paper_market_v2
+    db.execute((Path(__file__).resolve().parents[3]/'migrations/0014_paper_market_matcher_v2.sql').read_text(encoding='utf-8'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/tmp/source/migrations/0014_paper_market_matcher_v2.sql'
+_ test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each _
+tests/integration/test_program_v2_owned_posting.py:39: in test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each
+    c,service,codec=setup(database,venue,tmp_path,source_version=2)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:35: in setup
+    provision_paper_market_v2(make_conninfo(**{**conninfo_to_dict(database),
+src/trading_system/engine/paper_market_v2.py:388: in provision_paper_market_v2
+    db.execute((Path(__file__).resolve().parents[3]/'migrations/0014_paper_market_matcher_v2.sql').read_text(encoding='utf-8'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/tmp/source/migrations/0014_paper_market_matcher_v2.sql'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_v2_owned_posting.py::test_actual_v2_source_posts_exact_native_owner_assets_fees_and_neutral_book_guard
+FAILED tests/integration/test_program_v2_owned_posting.py::test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each
+2 failed in 3.76s

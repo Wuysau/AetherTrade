@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="8.847" timestamp="2026-10-30T07:27:09.368219+00:00" hostname="5b25a31abfd6"><testcase classname="tests.integration.test_program_v2_owned_posting" name="test_actual_v2_source_posts_exact_native_owner_assets_fees_and_neutral_book_guard" time="6.822" /><testcase classname="tests.integration.test_program_v2_owned_posting" name="test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each" time="1.054"><failure message="psycopg.errors.DuplicateTable: relation &quot;paper_market_state_v2&quot; already exists">tests/integration/test_program_v2_owned_posting.py:39: in test_actual_v2_additional_native_fill_and_source_replay_preserve_one_owned_effect_each
+    c,service,codec=setup(database,venue,tmp_path,source_version=2)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_owned_posting.py:35: in setup
+    provision_paper_market_v2(make_conninfo(**{**conninfo_to_dict(database),
+src/trading_system/engine/paper_market_v2.py:388: in provision_paper_market_v2
+    db.execute((Path(__file__).resolve().parents[3]/'migrations/0014_paper_market_matcher_v2.sql').read_text(encoding='utf-8'))
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "paper_market_state_v2" already exists</failure></testcase></testsuite></testsuites>

@@ -5,8 +5,12 @@ Historical dualproof direct-reader ambiguity is confirmed RED and bounded-review
 closed at9f1994c (9+9cash+5legacy+9opening PGgreen);80original/copy/committed
 artifacts verified0SHA mismatch. NEW scoped scalarfacts c30c632/c9b3fe4 is typed
 projection only,196focusedunitgreen/V1hashes intact; actual physicalscope SQL
-authentication belongs to ROOT and is not yet installed here. Actual2Scope/V2
-financial chain and full46/56 remain ACTIVE and unfinished. No trading resumed.
+authentication belongs to ROOT and is not yet installed here. Genuine single
+scope V2source→ownedquantity/FEE/book/strict ROOTcash2PG green at a1e8cc6, first
+capital3PG green7b8203f, historical17→18 source upgrade16PG greeneef3b69 using
+exact oldruntime process. StableROOTb7 knownness dependency selected081d76e,
+new combined component qualifiers pending. Actual2Scope financial chain and
+full46/56 remain ACTIVE and unfinished. No trading resumed.
 
 Accounting branch checkpoint2026-10-30: fresh writer released after product
 f0707c5/evidence0c13a96; exact continuation/ownership lives at current-task.md top.

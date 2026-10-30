@@ -1,0 +1,12 @@
+..F                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory _
+tests/integration/test_program_first_capital.py:49: in test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory
+    assert raw.status=='NEW' and not raw.fills and raw.remaining_quantity==1
+E   AssertionError: assert ('SUBMITTED' == 'NEW'
+E     
+E     - NEW
+E     + SUBMITTED)
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_first_capital.py::test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory
+1 failed, 2 passed in 7.03s
