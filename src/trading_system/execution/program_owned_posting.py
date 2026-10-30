@@ -168,7 +168,12 @@ class ProgramOwnedSpotPosting:
                 (scope_id(tx.scope),'ip16:owner',posted.owner_after.sequence)).fetchone()
             need(row is not None and row[0]==domain_payload(posted.owner_after),'OWNED_POSTING_HISTORY_REQUIRED')
         if not pending:
-            require_current_program_book_cash(tx,book,read_opening=self.read_opening)
+            try:require_current_program_book_cash(tx,book,read_opening=self.read_opening)
+            except MissingEvidence as error:
+                if str(error) not in ('UNPOSTED_PROGRAM_ASSET_EFFECTS','UNPOSTED_PROGRAM_OWNED_EFFECTS',
+                    'BOOK_CASH_BINDING_REQUIRED','STALE_BOOK_ACCOUNT_CASH'):raise
+                return ('COST_HISTORY_RECONCILIATION_REQUIRED','PROTECTION_RECHECK_REQUIRED',
+                    'ACCOUNT_OWNER_RECONCILIATION_REQUIRED'),False
             return ('COST_HISTORY_RECONCILIATION_REQUIRED','PROTECTION_RECHECK_REQUIRED'),True
         # Exact native signed delta only. Initial account assets and targets do
         # not enter allocation. Overshoots remain raw and are never clipped.

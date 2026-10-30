@@ -100,7 +100,7 @@ class ProgramPaperAccountingService:
                 missing=source.verification.discrepancies,retained_duties=source.verification.retained_duties)
         prepared={a.approval_id:self._prepare(a) for a in source.approvals}
         missing=tuple(dict.fromkeys(('CURRENT_ACCOUNTING_FACTS_REQUIRED',*source.verification.discrepancies)))
-        receipts=[];status='RAW_RECORDED_ECONOMICS_BLOCKED'
+        receipts=[];status='RAW_RECORDED_ECONOMICS_BLOCKED';retained=source.verification.retained_duties
         with self.uow.transaction(self.scope) as tx:
             book=tx.projections.book(self.scope)
             reader=CommittedProgramFillSources(tx)
@@ -148,6 +148,7 @@ class ProgramPaperAccountingService:
                 else:
                     status='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED' if complete else 'OWN_SCOPE_POSTED_ACCOUNT_RECONCILIATION_REQUIRED'
                     missing=tuple(dict.fromkeys((*source.verification.discrepancies,*duties)))
+                    retained=tuple(dict.fromkeys((*retained,*duties)))
                 tx.execute('RELEASE SAVEPOINT program_owned_financial')
         return ProgramAccountingResult(command_id=command_id,status=status,
-            fills=tuple(receipts),missing=missing,retained_duties=source.verification.retained_duties)
+            fills=tuple(receipts),missing=missing,retained_duties=retained)

@@ -298,10 +298,10 @@ def test_disjoint_native_batches_cannot_reuse_one_actual_owned_transition(databa
                 aggregate_id='program-position:'+first.owner_after.position.position_id,revision=2,
                 occurred_at=other.fill.evidence.visible_at,evidence=(other.fill.evidence,),payload=first.owner_after.position),1)
         with c.service.uow.transaction(c.scope) as tx:
-            with pytest.raises(MissingEvidence,match='OWNED_POSTING_TRANSITION_REUSED'):
-                read_program_account_cash(tx,read_opening=read_program_account_opening)
             assert RegistryTx(tx).owner().position.actual_quantity.value==D('.4')
             assert tx.execute('SELECT sum(quantity) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(D('.8'),)
+            with pytest.raises(MissingEvidence,match='OWNED_POSTING_TRANSITION_REUSED'):
+                read_program_account_cash(tx,read_opening=read_program_account_opening)
     finally:codec.close()
 
 
