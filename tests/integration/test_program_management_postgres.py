@@ -352,3 +352,25 @@ def test_direct_sql_consume_cannot_use_uncommitted_management_may(management_dat
             tx.execute('SELECT ledger.consume_management_permit(%s,%s,%s,%s::jsonb,%s)',
                 (scope_id(c.scope),w.command_id,token_hash('private-test-token'),canonical_json(ctx),tx.transaction_id))
     with s.verifier_uow.transaction(c.scope) as tx:assert ManagementRepository(tx).read(w.command_id).write.state=='DURABLE_READY'
+
+def test_stale_unsent_plan_can_abort_then_fresh_cancel_without_releasing_hold(management_database,venue_v2,management_venue,tmp_path):
+    from trading_system.engine.paper_market import PaperMatcher
+    from trading_system.intents.order_management_compilation import ManagementInstruction,ManagementKind
+    from trading_system.execution.program_management_paper import submit_management
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    with pytest.raises(ValueError,match='TARGET_CHANGED'):s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    receipt=s.abort_unsent(w.command_id,c.lease)
+    assert receipt.command_id==w.command_id and receipt.state=='ABORTED_UNSENT' and not receipt.funds_released
+    fresh=s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+    assert fresh.command_id!=w.command_id and fresh.target_hash!=w.target_hash
+    permit=s.boundary.mark_may_have_sent(fresh.command_id,c.lease)
+    with c.owner.session(c.lease.shard):
+        result=submit_management(c.engine,fresh,permit,boundary=s.boundary,lease=c.lease,owner=c.owner,bridge=management_venue)
+    assert result['cancel_result']=='CANCELED' and c.engine.query_creation(c.write.command_id).filled_quantity==D('.4')
+
+def test_committed_may_can_never_be_unsent_aborted(management_database,venue_v2,tmp_path):
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+    permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
+    with pytest.raises(Exception):s.abort_unsent(w.command_id,c.lease)
+    s.boundary.consume(permit,c.lease)
