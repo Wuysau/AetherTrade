@@ -10,6 +10,7 @@ from typing import Literal
 
 from trading_system.contracts import types as t
 from .paper_program_reports import NormalizedPaperFill,normalize_native_economics
+from .paper_program_v2_reports import NormalizedPaperFillV2
 
 
 def require(condition,code):
@@ -30,7 +31,7 @@ class SpotAssetEffects:
 
 
 def derive_spot_asset_effects(normalized,*,base_asset,quote_asset):
-    require(type(normalized) is NormalizedPaperFill and normalized.fill.scope.product==t.Product.SPOT,
+    require(type(normalized) in (NormalizedPaperFill,NormalizedPaperFillV2) and normalized.fill.scope.product==t.Product.SPOT,
         'SPOT_ASSET_EFFECTS_REQUIRED')
     require(normalized.fees_known is True,'FEE_RECONCILIATION_REQUIRED')
     economics=normalized.economics;unit=economics.unit;fill=normalized.fill

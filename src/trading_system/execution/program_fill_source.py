@@ -14,6 +14,11 @@ from trading_system.storage.models import scope_id,decode
 from trading_system.storage.uow import UnitOfWork
 from .paper_program_reports import (PaperProgramReportVerifier,PaperProgramVerification,
     NormalizedPaperFill,NativeFillEconomics,normalize_native_economics)
+from .paper_program_v2_reports import (PaperProgramV2ReportVerifier,PaperProgramVerificationV2,NormalizedPaperFillV2)
+
+
+SOURCE_VERSION_ROUTES=((PaperProgramReportVerifier,PaperProgramVerification,NormalizedPaperFill),
+    (PaperProgramV2ReportVerifier,PaperProgramVerificationV2,NormalizedPaperFillV2))
 
 
 def require(condition,code):
@@ -24,7 +29,7 @@ def require(condition,code):
 class ProgramFillSourceApproval:
     approval_id:str
     identity_hash:str
-    normalized:NormalizedPaperFill
+    normalized:NormalizedPaperFill|NormalizedPaperFillV2
     command_id:str
     verification_status:Literal['VERIFIED','DISCREPANCY']
     verification_discrepancies:tuple[str,...]
@@ -42,7 +47,7 @@ class ProgramFillSourceApproval:
 class ProgramFillSourceResult:
     command_id:str
     status:Literal['BLOCKED','NO_FILLS','APPROVED','SOURCE_ONLY']
-    verification:PaperProgramVerification
+    verification:PaperProgramVerification|PaperProgramVerificationV2
     approvals:tuple[ProgramFillSourceApproval,...]
 
     @property
@@ -65,6 +70,53 @@ def _source_context(tx,command_id):
         and canonical_hash(binding)==write['binding_hash'],'PROGRAM_ORIGINAL_SOURCE_CHANGED')
     return dict(consumption_hash=canonical_hash(consumed),dispatch_mark_hash=canonical_hash(marked),
         original_write_hash=canonical_hash(write),binding_hash=canonical_hash(binding),request_hash=write['request_hash'])
+
+
+def decode_source_normalized(stored,verification):
+    """Static tagged decoder. Untagged original V1 bytes keep their old codec."""
+    from trading_system.engine.paper_market import PaperMarketFill
+    tags=('contract_version','record_kind','source_v2')
+    if any(key in stored for key in tags):
+        require(stored.get('contract_version')=='2026-10-30' and stored.get('record_kind')=='NORMALIZED_PAPER_FILL_V2'
+            and 'source_v2' in stored and verification.get('contract_version')=='2026-10-30'
+            and verification.get('record_kind')=='PAPER_PROGRAM_VERIFICATION_V2','PROGRAM_NORMALIZED_SOURCE_VERSION_REQUIRED')
+        normalized=decode(NormalizedPaperFillV2,stored)
+        source=normalized.source_v2;raw=normalized.raw
+        require(type(raw) is PaperMarketFill and source.node_id==raw.node_id and source.client_id==raw.client_id
+            and source.client_id==normalized.fill.order.logical_client_order_id
+            and source.causal_graph_hash==verification.get('causal_graph_hash'), 'PROGRAM_V2_SOURCE_PROVENANCE_CHANGED')
+        return normalized
+    require(not any(key in verification for key in ('contract_version','record_kind')),
+        'PROGRAM_NORMALIZED_SOURCE_VERSION_REQUIRED')
+    return NormalizedPaperFill(fill=decode(t.Fill,stored['fill']),side=stored['side'],
+        economics=decode(NativeFillEconomics,stored['economics']),raw=decode(PaperMarketFill,stored['raw']),
+        fees_known=stored['fees_known'])
+
+
+def save_verification_snapshot(tx,verified):
+    """Persist an exact verifier result, including an accepted zero-fill query.
+
+    Verification/archive I/O belongs before this protected source transaction.
+    This helper does no cash, ownership, command-outcome, release or permit work.
+    """
+    route=next((r for r in SOURCE_VERSION_ROUTES if type(verified) is r[1]),None)
+    require(route is not None and verified.source_verified is True
+        and all(type(n) is route[2] for n in verified.fills),'ACTUAL_PAPER_VERIFICATION_REQUIRED')
+    command_id=verified.command_id;context=_source_context(tx,command_id)
+    verification_payload=domain_payload(verified)
+    normalized_payloads=tuple(domain_payload(n) for n in verified.fills)
+    hashes=tuple(canonical_hash(n) for n in normalized_payloads)
+    for stored in normalized_payloads:
+        require(domain_payload(decode_source_normalized(stored,verification_payload))==stored,
+            'PROGRAM_APPROVED_NATIVE_FACTS_CHANGED')
+    snapshot=dict(contract_version='2026-10-30',record_kind='PAPER_PROGRAM_FILL_SOURCE_SNAPSHOT_V1',
+        scope=domain_payload(tx.scope),command_id=command_id,**context,verification=verification_payload,
+        normalized_fills=dict(zip(hashes,normalized_payloads)))
+    source_hash=canonical_hash(snapshot)
+    saved=tx.execute('SELECT ledger.approve_program_fill_source_snapshot(%s,%s,%s::jsonb,%s)',
+        (scope_id(tx.scope),command_id,canonical_json(snapshot),tx.transaction_id)).fetchone()
+    require(saved==(source_hash,),'PROGRAM_SOURCE_COMMITMENT_CHANGED')
+    return source_hash,hashes
 
 
 def read_committed_fill_source(tx,approval_id):
@@ -137,11 +189,11 @@ def _read_committed_fill_source(tx,approval_id,reader):
         stored=source['normalized_fills'].get(payload['normalized_hash'])
         require(stored is not None and canonical_hash(stored)==payload['normalized_hash'],'PROGRAM_APPROVED_NATIVE_FACTS_CHANGED')
         verification=source['verification']
-    fill=decode(t.Fill,stored['fill'])
-    economics=decode(NativeFillEconomics,stored['economics'])
-    raw=decode(PaperMarketFill,stored['raw'])
-    normalized=NormalizedPaperFill(fill=fill,side=stored['side'],economics=economics,
-        raw=raw,fees_known=stored['fees_known'])
+    normalized=decode_source_normalized(stored,verification)
+    fill,economics,raw=normalized.fill,normalized.economics,normalized.raw
+    if type(normalized) is NormalizedPaperFillV2:
+        require(normalized.source_v2.consumption_context_hash==_source_context(tx,command_id)['consumption_hash'],
+            'PROGRAM_V2_SOURCE_PROVENANCE_CHANGED')
     rederived=normalize_native_economics(quantity=economics.native_quantity,price=economics.venue_price,
         fees=economics.fees,reported_gross=economics.reported_gross,unit=economics.unit)
     require(domain_payload(normalized)==stored and domain_payload(rederived)==domain_payload(economics)
@@ -167,15 +219,17 @@ class ProgramFillSourceService:
     def __init__(self,uow,scope,*,verifier):
         require(type(uow) is UnitOfWork,'PROGRAM_SOURCE_UOW_REQUIRED')
         require(type(scope) is t.ScopeKey and scope.environment==t.Environment.PAPER,'PAPER_SOURCE_ONLY')
-        require(type(verifier) is PaperProgramReportVerifier and verifier.scope==scope,
+        route=next((r for r in SOURCE_VERSION_ROUTES if type(verifier) is r[0]),None)
+        require(route is not None and verifier.scope==scope,
             'ACTUAL_SCOPED_PAPER_VERIFIER_REQUIRED')
         self.uow,self.scope,self.verifier=uow,scope,verifier
+        self.verification_type=route[1]
 
     def approve(self,command_id):
         require(type(command_id) is str and 0<len(command_id)<=256,'ORIGINAL_COMMAND_ID_REQUIRED')
         # All venue reads, normalization and durable archive fsync finish first.
         verified=self.verifier.verify(command_id)
-        require(type(verified) is PaperProgramVerification and verified.command_id==command_id,
+        require(type(verified) is self.verification_type and verified.command_id==command_id,
             'ACTUAL_PAPER_VERIFICATION_REQUIRED')
         if not verified.source_verified:
             return ProgramFillSourceResult(command_id=command_id,status='BLOCKED',verification=verified,approvals=())
@@ -185,18 +239,8 @@ class ProgramFillSourceService:
         # Serialize the full proof and each native fact once, outside the owner
         # posting transaction. V2 stores one proof snapshot per observation;
         # per-fill SQL parameters contain only hashes/IDs, never another report.
-        verification_payload=domain_payload(verified)
-        normalized_payloads=tuple(domain_payload(n) for n in verified.fills)
-        normalized_hashes=tuple(canonical_hash(n) for n in normalized_payloads)
         with self.uow.transaction(self.scope) as tx:
-            context=_source_context(tx,command_id)
-            snapshot=dict(contract_version='2026-10-30',record_kind='PAPER_PROGRAM_FILL_SOURCE_SNAPSHOT_V1',
-                scope=domain_payload(self.scope),command_id=command_id,**context,verification=verification_payload,
-                normalized_fills=dict(zip(normalized_hashes,normalized_payloads)))
-            source_hash=canonical_hash(snapshot)
-            saved=tx.execute('SELECT ledger.approve_program_fill_source_snapshot(%s,%s,%s::jsonb,%s)',
-                (scope_id(self.scope),command_id,canonical_json(snapshot),tx.transaction_id)).fetchone()
-            require(saved==(source_hash,),'PROGRAM_SOURCE_COMMITMENT_CHANGED')
+            source_hash,normalized_hashes=save_verification_snapshot(tx,verified)
             for normalized,normalized_hash in zip(verified.fills,normalized_hashes):
                 payload=dict(contract_version='2026-10-30',record_kind='PAPER_PROGRAM_FILL_SOURCE_V2',
                     scope=domain_payload(self.scope),command_id=command_id,
