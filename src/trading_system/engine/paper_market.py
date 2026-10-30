@@ -590,7 +590,8 @@ def _read_creation_members(engine,db,command_id,request,client_ids,*,decorate=Tr
         accepted_contexts=tuple(contexts),dispositions=tuple(dispositions),evidence=_evidence('paper-market-query:'+command_id,payload,engine._clock().utc_now))
     if decorate and any(getattr(context.terms,'model_revision',None)==2 for context in contexts):
         from .paper_market_v2 import decorate_report_v2
-        return decorate_report_v2(engine,db,report)
+        from trading_system.execution.program_effective_orders import decorate_managed_report
+        return decorate_managed_report(engine,db,decorate_report_v2(engine,db,report))
     return report
 
 

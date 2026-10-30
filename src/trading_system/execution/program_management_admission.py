@@ -37,10 +37,11 @@ class ManagementInputs:
 
 class ProgramManagementService:
     def __init__(self,reservation_service,verifier_uow,*,target_reader=None,load_clock=None,load_lease=None,
-                 load_inputs=None,load_authorization=None):
+                 load_inputs=None,load_authorization=None,source_uow=None):
         self.reservations=reservation_service;self.scope=reservation_service.scope;self.verifier_uow=verifier_uow
         self.target_reader=target_reader;self.load_clock=load_clock;self.load_lease=load_lease;self.load_inputs=load_inputs
         self.boundary=ManagementBoundary(self)
+        self.source_uow=source_uow
 
     def abort_unsent(self,command_id,lease):
         from trading_system.storage.models import scope_id,decode
@@ -170,13 +171,17 @@ class ProgramManagementService:
             require(type(clock) is t.ClockReading,'MANAGEMENT_CURRENT_CLOCK_REQUIRED')
             deadline=valid_until or (utc_timestamp(clock.utc_now)+timedelta(seconds=30)).isoformat()
             bundle,inputs,clock,expires,risk,funding,fence=self._facts(tx,original,target,lease,valid_until=deadline)
-            # Incremental/overlap financial admission is an independent remaining
-            # integration. No replacement or modified quantity can borrow holds.
-            require(instruction.kind==ManagementKind.CANCEL,'MANAGEMENT_MODIFICATION_FINANCIAL_ADMISSION_REQUIRED')
+            # Only a strict reduction retains the original complete risk envelope.
+            # Replacement and price modification still require separate admission.
+            require(instruction.kind in (ManagementKind.CANCEL,ManagementKind.KEEP_PRIORITY),'MANAGEMENT_MODIFICATION_FINANCIAL_ADMISSION_REQUIRED')
+            if instruction.kind==ManagementKind.KEEP_PRIORITY:
+                require(self.scope.product==t.Product.SPOT and target.parent_list_id is None
+                    and target.order.price.kind=='FIXED_LIMIT' and target.order.iceberg_quantity is None
+                    and target.order.stp=='NONE','MANAGEMENT_KEEP_PRIORITY_ATOMIC_LIMIT_REQUIRED')
             cid=command_id or 'management:'+uuid4().hex
             service='ORDER_LIST' if 'ORDER_LIST' in target.namespace.value else 'CONDITIONAL_ALGO' if 'CONDITIONAL' in target.namespace.value else 'EXECUTION_ALGO' if 'EXECUTION' in target.namespace.value else 'ORDINARY'
             metadata=ApplicationWrite(contract_version='2026-10-28',command_id=cid,program_id=target.program_id,scope=self.scope,
-                origin='APPLICATION_ACTION',operation='CANCEL' if service=='ORDINARY' else 'CANCEL_PROGRAM',parent_command_id=None,
+                origin='APPLICATION_ACTION',operation='AMEND' if instruction.kind==ManagementKind.KEEP_PRIORITY else ('CANCEL' if service=='ORDINARY' else 'CANCEL_PROGRAM'),parent_command_id=None,
                 target_venue_id=target.venue_id,canonical_program_hash=target.program_hash,ownership_epoch=target.ownership_epoch,
                 execution_epoch=target.execution_epoch,policy_revision=target.policy_revision,owner_strategy_id=target.owner_strategy_id,
                 venue_client_id='management-client:'+uuid4().hex,service_namespace=service,durable_record_ref='management:'+cid,
