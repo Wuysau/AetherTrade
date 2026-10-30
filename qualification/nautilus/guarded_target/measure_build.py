@@ -4,6 +4,7 @@ from hashlib import sha256
 import importlib.metadata
 import json
 import platform
+import os
 import subprocess
 import sys
 import sysconfig
@@ -34,7 +35,8 @@ print(json.dumps(dict(schema=1,source_commit='27a8e54e7ac3c57d6cbf8891f0283dfbae
     linker=subprocess.check_output(['ld','--version'],text=True).splitlines()[0],
     rustc_binary_sha256=digest(subprocess.check_output(['rustup','which','rustc'],text=True).strip()),
     cargo_binary_sha256=digest(subprocess.check_output(['rustup','which','cargo'],text=True).strip()),
-    profile='debug-pyo3',features=['arrow','cython-compat','extension-module','ffi','postgres','python','tracing-bridge','high-precision'],
+    profile='debug-pyo3',rust_debug_override=os.environ.get('CARGO_PROFILE_DEBUG_PYO3_DEBUG'),
+    cflags=os.environ.get('CFLAGS'),cxxflags=os.environ.get('CXXFLAGS'),features=['arrow','cython-compat','extension-module','ffi','postgres','python','tracing-bridge','high-precision'],
     platform_qualification='LOOPBACK_ONLY_NOT_WINDOWS_CP314_OR_VENUE',
     source_archive_sha256=digest(args.archive),patch_sha256=digest(args.patch),
     cargo_lock_sha256=digest(root/'Cargo.lock'),
