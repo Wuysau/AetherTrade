@@ -4,7 +4,7 @@
 
 **Goal:** Explicitly separate scalar quantity reservations from the full financial book without changing historical facts or money holds.
 
-**Architecture:** Parent/ROOT approved a NEW tagged `ProgramScopedTargetFactsV2(ProgramTargetFacts)` in `intents/program_scoped_target.py`, with the existing fields plus version/kind and explicit quantity reservation IDs. The full financial book is validated and hashed unchanged; only the existing TargetCompiler receives a subset projection. Pure subset declarations grant no authority. ROOT separately authenticates the exact IDs using physical scope SQL and independently bound external snapshot IDs at reserve/current boundaries.
+**Architecture:** Parent/ROOT final freeze places NEW tagged `ProgramScopedTargetFactsV2(ProgramTargetFacts)` inline in existing `intents/program_target_allocation.py`, with the existing fields plus version/kind, `quantity_scope` and explicit quantity reservation IDs. The full financial book is validated and hashed unchanged; only the existing TargetCompiler receives a subset projection. Pure subset declarations grant no authority. ROOT separately authenticates the exact IDs using physical scope SQL and independently bound external snapshot IDs at reserve/current boundaries.
 
 **Tech Stack:** Existing dataclasses/static decoder, same TargetCompiler/risk/archive, exact Decimal and isolated PostgreSQL.
 
@@ -19,9 +19,9 @@
 
 ## One reviewable typed/compiler slice
 
-Files: new `intents/program_scoped_target.py`; minimal `program_target_allocation.py` compiler call; annotation unions in `program_financial_records.py` and `risk/program_assessment.py`; focused tests in `tests/unit/test_program_scoped_target.py`.
+Files: inline dataclass/helper and minimal compiler call in `program_target_allocation.py`; annotation unions ONLY in full `program_assessment_archive.ProgramFinancialAssessmentArchive` subclass and `risk/program_assessment.py`; focused tests in `tests/unit/test_program_scoped_target.py`. Original `ProgramFinancialArchive` annotation stays V1.
 
-- [ ] Write and run RED: exact scoped type absent; full financial hash/foreign money hold retained with explicit empty quantity set, actual mapped local pending uses the same math, omitted mapped/duplicate/unknown IDs deny, unknown/partial tags fail decode, V1 byte hashes/replay unchanged and full assessment restores V2.
-- [ ] Implement exact tagged dataclass and `program_target_quantity_book(book,facts)` helper; V1 returns original object, exactV2 projects only reservations. No runtime authority inferred.
+- [x] Write and run RED: exact scoped type absent; full financial hash/foreign money hold retained with explicit empty quantity set, actual mapped local pending uses the same math, omitted mapped/duplicate/unknown IDs deny, unknown/partial tags fail decode, V1 byte hashes/replay unchanged and full assessment restores V2.
+- [x] Implement exact tagged dataclass and `program_target_quantity_book(book,facts)` helper; V1 returns original object, exactV2 checks claimed scope and projects only reservations. No runtime authority inferred.
 - [ ] Run focused new/old target and archive/risk regressions; inspect complete results, commit slice and send ROOT exact API before serial integration.
 - [ ] ROOT provides authenticated runtime/accepted-unfilled path; import coordinated dependencies and execute genuine A+B source/financial posting and V2 financial chain in fresh fixed-source PostgreSQL. Preserve all prerequisite failures and duties.
