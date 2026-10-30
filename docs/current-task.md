@@ -2,6 +2,15 @@
 
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
+FINAL PRE-RELEASE CHECKPOINT: original96697 TERMINALexit0, fixeda0ca274 full50
+mandatory PostgreSQL suites1167pass/0fail/error/skip. Ordinary3594pass721explicit
+environmentalskips96deselected1existingwarning96.40s. Complete launcher/XML and
+125 byteidentical originalfiles are preserved in
+docs/evidence/binance-orders/op-c-current-quote/root-full-a0ca-green.
+All ROOT testjobs TERMINAL, no restart. Later13f8914 exactlot precisionfix is
+outsidea0 source, separately12unitGREEN+parentindependentreview. No productWIP.
+Freshlead handoff: OP-C-INTEGRATION-CURRENT-HANDOFF.md. Fullgoal staysACTIVE.
+
 Parent explicitly REASSIGNED root SOLE WRITE ownership to integration_next after
 fresh-agent creation was rejected by the platform thread limit; no successor was
 created. The prior release below is historical. Implement0015/currentquote now.
@@ -42,10 +51,10 @@ Independentreview requested. Broadcurrentcomponents92690 RUNNING; nootherownjobs
 
 Subsequentcurrentcomponents92690 TERMINAL:1786pass81.20s. Source/native289+196
 imported artifact maps independently match485 CURRENT committed blobs. Current
-fixeda0ca274 full50mandatoryPG+ordinary gate96697 is RUNNING, timeout5400, fresh
+fixeda0ca274 full50mandatoryPG+ordinary gate96697 was started timeout5400, fresh
 private explicitoffline runner. Do not restart any earlier terminaljob. This
 gate includesoriginalwindow binding, currentquote13, nativeoffline8, exactPAPER23
-and newcontinuation3; source-specific results above remain honest until terminal.
+and newcontinuation3; authoritative successful terminal is recorded at top.
 
 Latest0015 actual current-quote cohort:58a36a1 fixed12 PG passed/0fail/error/skip
 after6 initial REDs and an actual SQL downgrade RED (10pass/1DID NOT RAISE).

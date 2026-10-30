@@ -22,9 +22,11 @@ qualification. No old history, schema or0012 bytes were rewritten.
 | paper-source-precision-green | 6b83371 | 23pass/0fail/error/skip |
 | native-owner-root-green | 8c89490 | 8pass/0fail/error/skip; concrete offlineprobe only/UNKNOWN, not a venue send |
 | root-full-28af-green | 28af8b3 | 48mandatory suites1155pass/0fail/error/skip; ordinary3526pass709environmentalskips96deselected1warning, combinedexit0 |
+| root-full-a0ca-green | a0ca274 | 50mandatory suites1167pass/0fail/error/skip; ordinary3594pass721environmentalskips96deselected1warning, combinedexit0 |
 
 Full28af precedes the later exact source-fee copy/native integration/continuation
-record. Old0a combined run remains independently classified INTERRUPTED with
+record. Fulla0 includes those stages; subsequent13f exactlotprecisionfix is
+separate12unit/independentreviewGREEN, not retroactively included. Old0a combined run remains independently classified INTERRUPTED with
 42 complete green PG suites and incomplete ordinary output; this newer genuine
 gate is not a restart/reclassification of that old job.
 

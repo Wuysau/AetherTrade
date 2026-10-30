@@ -24,7 +24,14 @@ safety tests. Venue-generated children are observations only, never resent.
 
 ## Sole active root test job
 
-Exec96697 is ORIGINAL fixeda0ca274 full50mandatoryPG+ordinary run, timeout5400,
+FINAL: this original job is now TERMINALexit0. All50 mandatoryPG suites1167pass/
+0fail/error/skip; ordinary3594pass721environmentalskips96deselected1warning96.40s.
+Complete launcher/XML125original files copied withSHA map at
+op-c-current-quote/root-full-a0ca-green. No ROOT livejobs remain. Do NOT restart.
+One-line lotfix13f8914 is outsidea0 source and independently12unit/reviewGREEN.
+The following start details are preserved provenance, no longer a live instruction.
+
+Exec96697 was ORIGINAL fixeda0ca274 full50mandatoryPG+ordinary run, timeout5400,
 fresh Docker/immutable offline image
 sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7.
 Artifacts .runtime/paper-qualification-992d4e437dfe/evidence. Keep/poll THIS handle;
@@ -150,6 +157,17 @@ No old plannedmetric/legacy assertion was changed. Local false-contract probe
 expecting oldplanned_loss=NOFILL was rejected/reverted, not claimed vulnerability.
 
 ## Unmerged cash tree / next actual critical steps
+
+FINAL CASH checkpoint is CLEANbaa34ab, no parentlivejobs, stronger distinctclock/
+2snapshot/1native/stablerevision actual6PG GREEN. Parent now plans freshCASH-only
+worker first after oldDagentrelease, freshROOT-only lead after this oldrootrelease;
+parentcoordinates ownership. Do not assume both trees already share a newwriter.
+LatestunintegratedD position sourceca57f79 is ACTUALRED:0.2fill leavesposition1
+instead0.8; nullablecompositecondition is UNVERIFIED candidate. FreshROOT must
+fix/prove before qualifying evolving parent/position families. Frozen1b12 producer
+and actualPAPER V2verifier baseline must not silentlyfollow thisred source.
+Parent's newPAPER V2writer is reports_v2_fresh, oldreports thread finished, no
+Root/parent concurrentwrites allowed. Refer actualpeercheckpoint/ownership first.
 
 Parent CASH CLEANbaa34ab (later stronger test included2204549). Read its
 docs/current-task.md FIRST. Source/protected opening0019/assetreader/current
