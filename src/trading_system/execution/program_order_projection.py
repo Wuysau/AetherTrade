@@ -218,14 +218,15 @@ class ProgramPaperOrderProjectionService:
                 else 'ORDER_PROJECTED_FINANCIAL_RECONCILIATION_REQUIRED',reasons=('ORDER_HISTORY_AND_PROTECTION_DUTIES_RETAINED',))
 
 
-def read_program_working_inputs(tx,book):
+def read_program_working_inputs(tx,book,*,load_released_balances=None):
     """Observation inputs for target math, not financial approval or a permit."""
     from trading_system.storage.application_writes import application_write_obligations
     tx.require_scope(book.scope)
     need(tx.projections.book(tx.scope)==book,'PROGRAM_ORDER_CURRENT_BOOK_REQUIRED')
-    prepared=prepare_collateral(tx,book)
+    prepared=prepare_collateral(tx,book,load_released_balances=load_released_balances)
     need(not prepared.rejection_codes,','.join(prepared.rejection_codes))
-    ids=set(current_program_quantity_reservation_ids(tx,book,prepared.book))
+    ids=set(current_program_quantity_reservation_ids(tx,book,prepared.book,
+        load_released_balances=load_released_balances))
     positive={p.reservation.reservation_id:p for p in prepared.holds if p.reservation.reservation_id in ids
         and (p.held or p.reflected or p.release_pending)}
     reader=CommittedProgramFillSources(tx);sides=[];pending=[];mapped=set();active={}
