@@ -402,6 +402,7 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
         if native_list:
             require(request.namespace.value=='BINANCE_SPOT_ORDER_LIST' and request.operation.value=='SUBMIT_'+plan.original_program.template
                 and request.assigned_ids.parent_client_id is not None,'PAPER_ACTUAL_NATIVE_PARENT_REQUIRED')
+            require(all(n.original.order.stp=='NONE' for n in plan.nodes),'PAPER_NATIVE_LIST_STP_STAGE_REQUIRED')
         execution_rows=[]
         for node in plan.nodes:
             order=node.original.order

@@ -404,7 +404,8 @@ BEGIN
   PERFORM public.paper_prepare_order_v2(prepared.scope_key,prepared.client_id,market_id);
  END LOOP;
  -- FIFO spans accounts and orders sharing the exact product/instrument source.
- FOR ord IN SELECT o.*,t.terms,t.arrival_sequence,r.effective_limit AS model_limit,r.visible_remaining AS model_visible FROM public.paper_order_terms t
+ FOR ord IN SELECT o.*,t.terms,t.arrival_sequence,r.effective_limit AS model_limit,r.visible_remaining AS model_visible,
+  r.prevented_quantity AS model_prevented FROM public.paper_order_terms t
   JOIN public.paper_engine_orders o ON o.scope_key=t.scope_key AND o.client_id=t.client_id
   LEFT JOIN public.paper_order_runtime_v2 r ON r.scope_key=o.scope_key AND r.client_id=o.client_id
   WHERE t.market_key=market_id AND o.lifecycle NOT IN ('FILLED','CANCELED','EXPIRED','REJECTED')
@@ -439,7 +440,8 @@ BEGIN
   IF ord.terms->'scope'->>'product' IS DISTINCT FROM book.product
    OR ord.terms->'scope'->>'instrument_uid' IS DISTINCT FROM book.instrument_uid THEN RAISE EXCEPTION 'market scope mismatch'; END IF;
   original_side=ord.terms->>'side';opposite_side=CASE WHEN original_side='BUY' THEN 'ASK' ELSE 'BID' END;
-  limit_price=CASE WHEN model_revision=2 THEN ord.model_limit ELSE (ord.terms->>'limit_price')::numeric END;need=ord.quantity-ord.filled;reason=NULL;
+  limit_price=CASE WHEN model_revision=2 THEN ord.model_limit ELSE (ord.terms->>'limit_price')::numeric END;
+  need=ord.quantity-ord.filled-coalesce(ord.model_prevented,0);reason=NULL;
   execution_at=greatest(activity_at,(ord.terms->'accepted_clock'->>'utc_now')::timestamptz,
    (book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
   envelope_min=(ord.terms->'execution_envelope'->>'minimum_price')::numeric;
@@ -498,14 +500,14 @@ BEGIN
       UPDATE public.paper_order_runtime_v2 SET phase='WAITING_COUNTERPARTY_DATA' WHERE scope_key=ord.scope_key AND client_id=ord.client_id;EXIT;
      END IF;
      IF liquidity_owner.venue_account_id=ord.terms->'scope'->>'venue_account_id' THEN
-      maker_prevented=CASE WHEN stp_mode IN ('EXPIRE_MAKER','EXPIRE_BOTH') THEN level.available ELSE 0 END;
-      taker_prevented=CASE WHEN stp_mode IN ('EXPIRE_TAKER','EXPIRE_BOTH') THEN need ELSE 0 END;
+      maker_prevented=CASE WHEN stp_mode IN ('EXPIRE_MAKER','EXPIRE_BOTH') THEN level.available WHEN stp_mode='DECREMENT' THEN take_quantity ELSE 0 END;
+      taker_prevented=CASE WHEN stp_mode IN ('EXPIRE_TAKER','EXPIRE_BOTH') THEN need WHEN stp_mode='DECREMENT' THEN take_quantity ELSE 0 END;
       prevention_identifier='paper-stp:'||encode(sha256(convert_to(jsonb_build_array(market_id,book.event_id,ord.scope_key::jsonb,
        ord.client_id,depth_identifier,opposite_side,trim_scale(level.price),stp_mode)::text,'UTF8')),'hex');
       INSERT INTO public.paper_market_preventions_v2 VALUES(market_id,book.event_id,ord.scope_key,ord.client_id,prevention_identifier,
        depth_identifier,opposite_side,level.price,maker_prevented,taker_prevented,stp_mode,liquidity_owner.venue_account_id,liquidity_owner.venue_order_id);
       prevention_payload=jsonb_build_object('record_kind','PAPER_MARKET_DISPOSITION','source','PAPER_MARKET_REPLAY_SYNTHETIC',
-       'reason','STP_'||stp_mode,'status',CASE WHEN taker_prevented>0 THEN 'EXPIRED' ELSE 'SUBMITTED' END,
+       'reason','STP_'||stp_mode,'status',CASE WHEN taker_prevented>0 AND (stp_mode<>'DECREMENT' OR taker_prevented>=need) THEN 'EXPIRED' ELSE 'SUBMITTED' END,
        'market_key',market_id,'market_event_id',book.event_id,'depth_event_id',depth_identifier,
        'market_hash',(SELECT payload_hash FROM public.paper_market_inputs WHERE market_key=market_id AND event_id=book.event_id),
        'maker_quantity',maker_prevented::text,'taker_quantity',taker_prevented::text,'liquidity_owner',to_jsonb(liquidity_owner),
@@ -515,7 +517,12 @@ BEGIN
         prevention_payload,0,NULL,execution_at);
       UPDATE public.paper_market_levels SET available=available-maker_prevented WHERE market_key=market_id AND side=opposite_side AND price=level.price;
       UPDATE public.paper_order_runtime_v2 SET prevented_quantity=prevented_quantity+taker_prevented WHERE scope_key=ord.scope_key AND client_id=ord.client_id;
-      IF taker_prevented>0 THEN reason='STP_'||stp_mode;EXIT; END IF;
+      IF stp_mode='DECREMENT' THEN
+       need=need-taker_prevented;
+       UPDATE public.paper_order_runtime_v2 SET phase='STP_DECREMENTED' WHERE scope_key=ord.scope_key AND client_id=ord.client_id;
+       IF need=0 THEN reason='STP_DECREMENT';EXIT; END IF;
+      ELSIF taker_prevented>0 THEN reason='STP_'||stp_mode;EXIT;
+      END IF;
       CONTINUE;
      END IF;
     END IF;

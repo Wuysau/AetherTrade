@@ -1,6 +1,6 @@
 """Additive venue model/source revision. No financial admission or send grants."""
 from dataclasses import dataclass,fields,replace
-from decimal import Decimal
+from decimal import Decimal,localcontext,Inexact,Rounded
 from pathlib import Path
 from typing import Literal
 from datetime import date,timedelta
@@ -268,13 +268,14 @@ def validate_atomic_v2(scope,node):
     o=node.original.order
     require(scope.product in (t.Product.SPOT,t.Product.USD_M_PERP,t.Product.US_EQUITY),'PAPER_PRODUCT_MODEL_REQUIRED')
     require(o.price.kind in ('FIXED_LIMIT','MARKET','PEG','PRICE_MATCH') and o.trigger.kind in ('NONE','STATIC','TRAILING')
-        and o.stp in ('NONE','EXPIRE_TAKER','EXPIRE_MAKER','EXPIRE_BOTH') and o.routing=='STANDARD'
+        and o.stp in ('NONE','EXPIRE_TAKER','EXPIRE_MAKER','EXPIRE_BOTH','DECREMENT') and o.routing=='STANDARD'
         and (o.trading_session is None or scope.product==t.Product.US_EQUITY)
         and o.tif.kind in ('NONE','GTC','IOC','FOK','GTX','GTD','DAY'),'PAPER_V2_EXECUTION_STAGE_REQUIRED')
     if scope.product==t.Product.US_EQUITY:
         require(o.tif.kind in ('DAY','GTC') and (o.price.kind=='MARKET' and o.trading_session is None
             or o.price.kind=='FIXED_LIMIT' and o.trading_session in ('RTH','EXTENDED','24H')),'PAPER_EQUITY_SESSION_MODEL_REQUIRED')
     require(o.stp=='NONE' or o.tif.kind=='GTC','PAPER_STP_COMBINATION_STAGE_REQUIRED')
+    require(o.stp!='DECREMENT' or o.iceberg_quantity is None,'PAPER_STP_DISPLAY_COMBINATION_STAGE_REQUIRED')
     # Conditional USD-M has a separate native parent/ordinary-child identity.
     # Its model is added with native parent membership; never alias the algo ID.
     require(scope.product!=t.Product.USD_M_PERP or o.trigger.kind=='NONE','PAPER_USDM_CONDITIONAL_MEMBERSHIP_REQUIRED')
@@ -319,7 +320,13 @@ def decorate_report_v2(engine,db,report):
             'WHERE scope_key=%s AND client_id=%s',(engine._scope_key,order.client_id)).fetchone()
         require(row is not None,'PAPER_V2_RUNTIME_SOURCE_REQUIRED')
         runtime=PaperOrderRuntimeV2(**row)
-        orders.append(PaperMatchedOrderV2(**{f.name:getattr(order,f.name) for f in fields(PaperMatchedOrder)},runtime=runtime))
+        values={f.name:getattr(order,f.name) for f in fields(PaperMatchedOrder)}
+        if order.status not in ('FILLED','CANCELED','EXPIRED','REJECTED'):
+            with localcontext() as arithmetic:
+                arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
+                values['remaining_quantity']=order.quantity-order.filled_quantity-runtime.prevented_quantity
+            require(values['remaining_quantity']>=0,'PAPER_PREVENTED_QUANTITY_EXCEEDS_ORIGINAL')
+        orders.append(PaperMatchedOrderV2(**values,runtime=runtime))
     parent=None
     if report.request.assigned_ids.parent_client_id is not None:
         row=db.execute('SELECT * FROM public.paper_native_parents_v2 WHERE scope_key=%s AND command_id=%s',
