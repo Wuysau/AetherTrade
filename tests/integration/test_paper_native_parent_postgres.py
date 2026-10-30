@@ -238,7 +238,7 @@ def test_native_source_authenticates_actual_parent_and_children(database,venue_v
     finally:codec.close()
 
 
-@pytest.mark.parametrize('tamper',['parent','child','fill','budget'])
+@pytest.mark.parametrize('tamper',['parent','child','fill','budget','remaining','fill_time','market_hash','allocation'])
 def test_native_source_rejects_fabricated_relationship_and_retains_raw(database,venue_v2,tmp_path,monkeypatch,tamper):
     from trading_system.engine.paper_market import PaperMatcher
     c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
@@ -248,6 +248,11 @@ def test_native_source_rejects_fabricated_relationship_and_retains_raw(database,
     if tamper=='child':report=replace(report,orders=(replace(report.orders[0],client_id='f'*32),))
     if tamper=='fill':report=replace(report,fills=(replace(report.fills[0],quantity=D('10')),))
     if tamper=='budget':report=replace(report,pool=replace(report.pool,maximum_gross_notional=D('999999')))
+    if tamper=='remaining':report=replace(report,orders=(replace(report.orders[0],remaining_quantity=D('-1')),))
+    if tamper=='fill_time':report=replace(report,fills=(replace(report.fills[0],occurred_at='2000-01-01T00:00:00+00:00'),))
+    if tamper=='market_hash':report=replace(report,fills=(replace(report.fills[0],market_hash='a'*64),))
+    if tamper=='allocation':report=replace(report,accepted_contexts=(report.accepted_contexts[0],replace(report.accepted_contexts[1],
+        allocation=replace(report.accepted_contexts[1].allocation,quantity=D('99')))))
     monkeypatch.setattr(c.engine,'query_creation',lambda _:report)
     service,codec=native_verifier(c,tmp_path/'native-tampered')
     try:
