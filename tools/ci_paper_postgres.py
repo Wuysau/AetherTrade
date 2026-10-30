@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
     ('program-opening-exclusivity','03','tests/integration/test_program_opening_exclusivity.py'),
     ('program-owned-posting','03','tests/integration/test_program_owned_posting.py'),
+    ('program-working-orders','03','tests/integration/test_program_working_orders.py'),
     ('program-v2-owned-posting','03','tests/integration/test_program_v2_owned_posting.py'),
     ('program-first-capital','03','tests/integration/test_program_first_capital.py'),
     ('program-submission-observation','03','tests/integration/test_program_submission_observation.py'),
