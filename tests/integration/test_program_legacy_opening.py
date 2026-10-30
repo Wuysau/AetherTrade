@@ -71,8 +71,20 @@ def test_owner_cannot_approve_its_seed_and_explicit_provisioner_attests_exact_or
         assert actual==proof and actual.balances==(t.Money(amount=D('100000'),currency='USDT'),)
         frame=read_program_account_cash(tx,read_opening=read_program_legacy_opening)
         assert frame.balances==actual.balances and not frame.native_identities
-    with pytest.raises((ValueError,psycopg.errors.CheckViolation),match='LEGACY_SEED'):
+    from trading_system.storage.models import MissingEvidence
+    with pytest.raises(MissingEvidence,match='LEGACY_SEED'):
         service.attest('f'*64,evidence=evidence(seeded))
+
+
+def test_owner_cannot_mint_a_new_initialization_audit_or_direct_protected_opening(database,seeded):
+    import psycopg
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with owner_uow(database).transaction(scope_for('BTCUSDT')) as tx:
+            tx._append('audit_events','console:seed',seeded,0)
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with owner_uow(database).transaction(scope_for('BTCUSDT')) as tx:
+            tx.execute('INSERT INTO ledger.program_legacy_account_openings(account_key,payload,payload_hash,transaction_id) '
+                "VALUES('forged','{}','forged',%s)",(tx.transaction_id,))
 
 
 def test_duplicate_seed_is_not_ignored_by_protected_reader(database,seeded):
