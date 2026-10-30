@@ -282,6 +282,8 @@ class ProgramCommandRepository:
         require(digest(source)==digest(bundle.intent.source),'PROGRAM_SOURCE_CHANGED')
         fence=current_fence(self.tx,source.context)
         book=self.tx.projections.book(self.tx.scope)
+        from trading_system.risk.program_cash_guard import require_current_account_book
+        require_current_account_book(self.tx,book)
         before=digest(book)
         from trading_system.risk.quote_financial_admission import (QuoteProgramFinancialBundleV1,
             current_quote_financial_book,quote_quantity_reservation_ids,validate_current_quote_bounds)

@@ -193,6 +193,12 @@ class ReservationService:
         repo = ReservationRepository(tx)
         deny = lambda *codes: PreparedCollateral(book=book, holds=(),
             released_proof=None, rejection_codes=tuple(codes))
+        from trading_system.risk.program_cash_guard import require_current_account_book
+        from trading_system.storage.models import MissingEvidence
+        try:
+            require_current_account_book(tx,book)
+        except (MissingEvidence,ValueError) as error:
+            return deny(str(error))
         originals = repo.group()
         group = merge_holds(originals, book)
         released_proof = None

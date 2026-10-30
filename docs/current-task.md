@@ -67,6 +67,16 @@ binding, actual approved/recorded effects make mark/consume and post-wait guards
 stale. No hooks installed yet. Five neutral source suites added alongside every
 old mandatory suite; asset arithmetic/accounting12unitGREEN0.30s. Full46/56 ACTIVE.
 
+Fixed3533b98 actual cash guard RED original19864/run484bbef136c9 TERMINALexit1:
+3testfail/0error/skip13.10s. Collateral accepted an unbound actual protected
+opening; current/consumed paths reached old PROGRAM_ACTIVE_RISK_LOCK rather than
+independently rederiving changed account cash. The latter are missing specific
+cash checks, not claims that old risk locks allowed a send. Candidate adds one
+strict registered-local-reader adapter, called on raw book before hold subtraction
+in _prepare_collateral, _current(mark/consume) and consumed recheck after waits.
+No preview, new owner/cash posting, running balance or proposal renewal exists.
+Selected29 unit tests passed6.23s; fresh actual3-case proof is due after commit.
+
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
 ROOT WRITE RELEASE: parent-approved checkpoint complete; integration_next now

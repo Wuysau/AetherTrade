@@ -135,6 +135,8 @@ def recheck_consumed(boundary,permit,lease):
         fence=current_fence(tx,assessment.source.context)
         require(digest(fence)==canonical_hash(consumed['fence']),'PROGRAM_CONSUMED_FENCE_CHANGED')
         book=tx.projections.book(write.scope)
+        from trading_system.risk.program_cash_guard import require_current_account_book
+        require_current_account_book(tx,book)
         from trading_system.risk.quote_financial_admission import (QuoteProgramFinancialBundleV1,
             current_quote_financial_book,validate_current_quote_bounds)
         quote=type(bundle) is QuoteProgramFinancialBundleV1
