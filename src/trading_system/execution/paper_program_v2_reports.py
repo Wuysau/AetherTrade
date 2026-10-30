@@ -11,7 +11,7 @@ from trading_system.contracts.order_lifecycle_v3 import exact_time
 from trading_system.contracts.order_lifecycle import AssetBudget
 from trading_system.engine.paper_market import SOURCE,PaperMarketFill,PaperExecutionEnvelope,PaperMarketEvent
 from trading_system.engine.paper_market_v2 import (PaperCreationReportV2,PaperMarketEvidenceV2,PaperAcceptedContextV2,
-    PaperExecutionTermsV2,PaperReferenceEventV2,execution_tif)
+    PaperExecutionTermsV2,PaperReferenceEventV2,PaperMatchingModelV2,execution_tif)
 from .paper_program_reports import (NativeFillEconomics,normalize_native_economics,PaperProgramReportVerifier,
     _SourceError,_check,_raw_object,_raw_decimal)
 from .paper_program_v2_liquidity import v2_market_evidence_codes
@@ -147,6 +147,7 @@ class PaperProgramV2ReportVerifier:
             and report.evidence.id=='paper-market-v2-query:'+write.command_id and report.evidence.hash==canonical_hash(body)
             and report.evidence.source==SOURCE and report.evidence.environment==t.Environment.PAPER,'PAPER_V2_REPORT_HASH_CHANGED')
         nodes={n.original.node_id:n for n in plan.nodes};assigned={m.node_id:m.client_id for m in request.assigned_ids.members}
+        _check(plan.original_program.template in ('ATOMIC','OCO'),'PAPER_V2_NATIVE_LINEAGE_INTERFACE_UNSUPPORTED')
         _check(set(nodes)==set(assigned) and len(report.orders)==len(report.accepted_contexts)==len(nodes),'PAPER_V2_NODE_INVENTORY_CHANGED')
         if request.assigned_ids.parent_client_id is not None:
             parent=report.native_parent
@@ -170,6 +171,8 @@ class PaperProgramV2ReportVerifier:
             _check(type(accepted) is PaperAcceptedContextV2 and digest(accepted.original_write)==digest(replace(write,state='MAY_HAVE_SENT'))
                 and digest(accepted.request)==write.request_hash and digest(accepted.compilation)==write.compilation_hash
                 and digest(accepted.rules)==digest(a.rules),'PAPER_V2_ACCEPTED_SOURCE_CHANGED')
+            _check(type(accepted.model) is PaperMatchingModelV2,'PAPER_V2_MODEL_INTERFACE_UNSUPPORTED')
+            accepted.model.__post_init__()
             terms=PaperExecutionTermsV2(scope=self.scope,client_id=client,node_id=n.original.node_id,namespace=n.namespace.value,
                 quantity=n.quantity.value,quantity_step=a.rules.quantity_step,side=spec.side,order_type=n.order_type,
                 limit_price=spec.price.value,post_only=spec.post_only,tif=execution_tif(n),multiplier=n.quantity_multiplier,
