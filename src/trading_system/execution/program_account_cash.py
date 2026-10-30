@@ -125,6 +125,11 @@ def read_program_account_cash(tx,*,read_opening=None):
         need(not sources and not generic_fills,'ACCOUNT_OPENING_REQUIRED')
         return None
     need(opening.account==account,'ACCOUNT_OPENING_BINDING_CHANGED')
+    # The historical command table and owner-written fill/audit rows are not a
+    # source attestation. No authenticated legacy fee/history adapter is yet
+    # registered. Preserve that history but block mixed credit until an actual
+    # protected legacy source contract is available; never infer .001 fees.
+    need(not any(origins[_native_key(f)] for f in fills),'LEGACY_AUTHENTICATED_SOURCE_REQUIRED')
     readers={};facts={};covered=set();duties=[]
     for stored_scope,approval_id,identity,payload in sources:
         scope=decode(t.ScopeKey,payload['scope'])
