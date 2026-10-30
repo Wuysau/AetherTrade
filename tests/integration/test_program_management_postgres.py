@@ -47,14 +47,22 @@ def management(c):
     from trading_system.accounts.authorization import AuthorizationBinding
     from trading_system.storage.uow import UnitOfWork
     import psycopg
-    # Current authorization is resolved through the actual existing LOCAL reader.
+    # Independent LOCAL management grant. Replaying a creation assessment here
+    # would incorrectly reintroduce its old proposal/intent submission TTL.
+    ctx=c.source.context
+    grant=t.Authorization(authorization_id=ctx.authorization_id,owner_strategy_id=c.bundle.intent.owner_strategy_id,
+        environment=c.scope.environment,deployment_id=ctx.deployment_id,scopes=(c.scope,),
+        maximum_capital=t.Money(currency='USDT',amount=D('1000000')),policy_revision=ctx.policy_revision,
+        protection_options=(c.c.terms.protection_policy,),model_cost_budget=t.Money(currency='USDT',amount=D(0)),
+        valid_from=c.bundle.intent.created_at,expires_at=c.c.terms.valid_until,revoked_at=None)
+    authorization=AuthorizationBinding(authorization=grant,identity_id=ctx.identity_id,strategy_revision=ctx.strategy_revision,
+        ownership_epoch=ctx.ownership_epoch,queue_environment=ctx.environment,capabilities=(),evidence=c.bundle.archive.book.evidence)
     def inputs(tx,original,target,book,clock):
-        current=c.load(tx,c.source,c.record,book,clock)
         return ManagementInputs(rules=c.bundle.archive.rules,profile=c.bundle.archive.profile,
             capabilities=replace(c.bundle.archive.capabilities,capability_ids=(*c.bundle.archive.capabilities.capability_ids,
                 'SPOT-CANCEL_QUERY','SPOT-AMEND','USDM-CANCEL_QUERY','USDM-AMEND')),
-            authorization=current.authorization,group_capacity=current.group_capacity,
-            strategy_capacity=current.strategy_capacity,buffer=current.buffer)
+            authorization=authorization,group_capacity=(t.Money(currency='USDT',amount=D('1000000')),),
+            strategy_capacity=(t.Money(currency='USDT',amount=D('1000000')),),buffer=(t.Money(currency='USDT',amount=D(0)),))
     def verifier():
         return psycopg.connect(_VERIFIER_DSNS[c.dsn])
     return ProgramManagementService(c.service,UnitOfWork(verifier,permit_ttl_ms=5000),
@@ -235,7 +243,7 @@ def test_existing_gtc_management_outlives_creation_ttl_with_fresh_current_grant(
     from trading_system.execution.program_management_paper import submit_management
     import integration.test_paper_market_matcher as fixture_module
     original_case=fixture_module.real_case
-    short='2026-10-28T10:00:01Z'
+    short='2026-10-28T10:00:30Z'
     def short_case(*args,proposal_transform=None,**kwargs):
         def transform(p):
             p=proposal_transform(p) if proposal_transform else p
@@ -243,7 +251,7 @@ def test_existing_gtc_management_outlives_creation_ttl_with_fresh_current_grant(
         return original_case(*args,proposal_transform=transform,**kwargs)
     with patch.object(fixture_module,'real_case',short_case):c=advanced_case(management_database,venue_v2,tmp_path)
     submit(c)
-    base=c.engine._clock();later=replace(base,utc_now='2026-10-28T10:00:02Z',monotonic_ns=base.monotonic_ns+2*10**9)
+    base=c.engine._clock();later=replace(base,utc_now='2026-10-28T10:00:31Z',monotonic_ns=base.monotonic_ns+31*10**9)
     assert utc_timestamp(c.write.valid_until)<utc_timestamp(later.utc_now)
     c.engine._clock=lambda:later
     c.lease=replace(c.lease,expires_at='2026-10-28T10:01:00Z');c.owner.lease=c.lease
