@@ -118,3 +118,21 @@ def test_failed_commit_does_not_create_spendable_opening(database):
     with pytest.raises(RuntimeError,match='injected opening commit failure'):broken.initialize(balances,evidence=evidence)
     with c.service.uow.transaction(c.scope) as tx:assert read_program_account_opening(tx) is None
     assert s.initialize(balances,evidence=evidence)
+
+
+@pytest.mark.parametrize('fault',('null_time','boolean_currency'))
+def test_provision_function_rejects_malformed_initial_asset_proof(database,fault):
+    import psycopg
+    from trading_system.execution.program_account_opening import ProgramAccountOpening,account_key
+    from trading_system.contracts.canonical import domain_payload,canonical_json
+    c=real_case(database);balances,evidence=inputs(c);s=service(database,c)
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with s.uow.transaction(c.scope) as tx:
+            proof=ProgramAccountOpening(contract_version='2026-10-30',record_kind='PROGRAM_ACCOUNT_OPENING_V1',
+                source_kind='EXPLICIT_NEW_PAPER_VIRTUAL_CAPITAL',account=account_key(c.scope),collateral_group_id=tx.group_id,
+                balances=tuple(sorted(balances,key=lambda m:m.currency)),evidence=evidence,as_of=evidence.visible_at)
+            payload=domain_payload(proof)
+            if fault=='null_time':payload['as_of']=payload['evidence']['visible_at']=None
+            else:payload['balances'][0]['currency']=True
+            tx.execute('SELECT ledger.provision_program_account_opening(%s,%s::jsonb,%s)',
+                (proof.account.key,canonical_json(payload),tx.transaction_id)).fetchone()
