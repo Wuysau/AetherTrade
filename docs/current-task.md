@@ -29,6 +29,14 @@ are added alongside all50 prior suites. Focused78 command/financial/report/
 liquidity unit tests passed8.63s. Fresh actual root PG cohorts are still due;
 peer source21/23 results do not establish a combined root pass.
 
+Fresh fixed6adc root component jobs41796/63862 now TERMINALexit0: actual V2
+producer21pass/0fail/error/skip123.971s; unchanged V1-on0014 compatibility23pass/
+0fail/error/skip126.102s.32 original raw files/maps retained at
+docs/evidence/binance-orders/op-d-root-frozen-components. Old178 producer raw
+files imported with source/checkpoint identity; all182 imported files independently
+match CURRENT committed Git blobs. These components do not upgrade olda0ca full
+gate, evolving D source, verifier registry or full46/56. No root livejobs.
+
 ## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
 
 ROOT WRITE RELEASE: parent-approved checkpoint complete; integration_next now
