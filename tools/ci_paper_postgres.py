@@ -31,6 +31,7 @@ SUITES = (
     ('program-opening-exclusivity','03','tests/integration/test_program_opening_exclusivity.py'),
     ('program-owned-posting','03','tests/integration/test_program_owned_posting.py'),
     ('program-v2-owned-posting','03','tests/integration/test_program_v2_owned_posting.py'),
+    ('program-first-capital','03','tests/integration/test_program_first_capital.py'),
     ('program-legacy-opening','03','tests/integration/test_program_legacy_opening.py'),
     ('program-book-cash','03','tests/integration/test_program_book_cash.py'),
     ('program-account-cash','03','tests/integration/test_program_account_cash.py'),
