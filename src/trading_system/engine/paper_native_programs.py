@@ -177,8 +177,15 @@ def query_native_program(engine,db,command):
         unused_quantity=row['unused_quantity'],remaining_pool_quantity=remaining,maximum_gross_notional=row['maximum_gross_notional'],
         allocated_gross_notional=row['allocated_gross_notional'],cumulative_gross_notional=row['cumulative_gross_notional'],
         fee_ceilings=tuple(decode(AssetBudget,f) for f in row['fee_ceilings']),maximum_live_children=row['maximum_live_children'])
+    require(pool.maximum_gross_notional==number(context.execution_envelope.maximum_gross_notional)
+        and digest(pool.fee_ceilings)==digest(context.execution_envelope.fee_ceilings)
+        and pool.maximum_live_children==context.terms.maximum_live_children
+        and row['parent_client_id']==request.assigned_ids.parent_client_id and row['namespace']==request.namespace.value
+        and row['template']==context.terms.template,'PAPER_NATIVE_POOL_SOURCE_CHANGED')
     require(pool.original_quantity==number(context.terms.quantity) and pool.executed_quantity+pool.unused_quantity<=pool.allocated_quantity<=pool.original_quantity,
         'PAPER_NATIVE_POOL_CHANGED')
+    require(pool.allocated_quantity==pool.executed_quantity==pool.unused_quantity==pool.allocated_gross_notional==pool.cumulative_gross_notional==0,
+        'PAPER_NATIVE_CHILD_READER_STAGE_REQUIRED')
     parent=PaperNativeParentV2(parent_client_id=row['parent_client_id'],venue_parent_id=row['venue_parent_id'],namespace=row['namespace'],
         template=row['template'],status=row['status'],lifecycle_revision=row['revision'],members=())
     payload=dict(request=domain_payload(request),native_parent=domain_payload(parent),pool=domain_payload(pool),accepted_contexts=[domain_payload(context)],
