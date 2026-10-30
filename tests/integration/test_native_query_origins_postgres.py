@@ -1,10 +1,12 @@
 """Original query identities are read from real protected history, not a DTO."""
 from dataclasses import replace
+from decimal import Decimal
 
 import pytest
 
 from integration.test_program_commands_postgres import isolated_postgres,database
 from integration.test_program_consumed_boundary_postgres import ready
+from trading_system.contracts import types as t
 
 
 def test_actual_original_identity_reads_do_not_require_or_create_new_send_authority(database):
@@ -37,7 +39,9 @@ def test_actual_native_list_preserves_full_original_parent_and_member_ids_for_qu
     from integration.test_program_financial_admission import real_case
     from integration.test_program_commands_postgres import attach,boundary,lease
     from trading_system.engine.nautilus.native_query_origins import load_native_query_origins
-    c=real_case(database,template='OCO',mode='VENUE_NATIVE',actual='1',target='0',side='SELL')
+    c=real_case(database,template='OCO',mode='VENUE_NATIVE',actual='1',target='0',side='SELL',
+        financial_capacity=(t.Money(currency='USDT',amount=Decimal('1000000')),t.Money(currency='BTC',amount=Decimal('10'))),
+        financial_buffer=(t.Money(currency='USDT',amount=Decimal(0)),t.Money(currency='BTC',amount=Decimal(0))))
     write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
     gate=boundary(c);current_lease=lease(c);permit=gate.mark_may_have_sent(write.command_id,current_lease)
     gate.consume(permit,current_lease)
