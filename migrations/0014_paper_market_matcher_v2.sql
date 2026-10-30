@@ -41,6 +41,21 @@ CREATE TABLE public.paper_order_input_dependencies_v2(
  PRIMARY KEY(scope_key,client_id,market_key,event_id),
  FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id),
  FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
+CREATE TABLE public.paper_native_parents_v2(
+ scope_key text NOT NULL,parent_client_id text NOT NULL,venue_parent_id text NOT NULL,command_id text NOT NULL,
+ request_hash text NOT NULL,namespace text NOT NULL,template text NOT NULL,status text NOT NULL,revision bigint NOT NULL DEFAULT 1,
+ PRIMARY KEY(scope_key,parent_client_id),UNIQUE(scope_key,command_id),UNIQUE(scope_key,venue_parent_id),
+ FOREIGN KEY(scope_key,command_id) REFERENCES public.paper_engine_commands(scope_key,command_id));
+CREATE TABLE public.paper_native_members_v2(
+ scope_key text NOT NULL,parent_client_id text NOT NULL,client_id text NOT NULL,node_id text NOT NULL,ordinal integer NOT NULL,
+ PRIMARY KEY(scope_key,client_id),UNIQUE(scope_key,parent_client_id,node_id),
+ FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
+ FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
+CREATE TABLE public.paper_native_exclusivity_v2(
+ scope_key text NOT NULL,parent_client_id text NOT NULL,winner_client_id text,
+ PRIMARY KEY(scope_key,parent_client_id),
+ FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
+ FOREIGN KEY(scope_key,winner_client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 CREATE TABLE public.paper_order_runtime_v2(
  scope_key text NOT NULL,client_id text NOT NULL,active boolean NOT NULL,phase text NOT NULL,
  activation_event_id text,high_water numeric,low_water numeric,trail_started boolean NOT NULL DEFAULT false,
@@ -49,15 +64,84 @@ CREATE TABLE public.paper_order_runtime_v2(
  PRIMARY KEY(scope_key,client_id),FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 REVOKE ALL ON public.paper_market_state_v2,public.paper_reference_prices_v2,public.paper_published_rules_v2,
  public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2,public.paper_market_preventions_v2,
- public.paper_order_input_dependencies_v2 FROM PUBLIC;
+ public.paper_order_input_dependencies_v2,public.paper_native_parents_v2,public.paper_native_members_v2,public.paper_native_exclusivity_v2 FROM PUBLIC;
 GRANT SELECT,INSERT,UPDATE ON public.paper_market_state_v2,public.paper_reference_prices_v2,
  public.paper_published_rules_v2,public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT ON public.paper_market_preventions_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT ON public.paper_order_input_dependencies_v2 TO paper_matcher_definer;
+GRANT SELECT,INSERT,UPDATE ON public.paper_native_parents_v2,public.paper_native_exclusivity_v2 TO paper_matcher_definer;
+GRANT SELECT,INSERT ON public.paper_native_members_v2 TO paper_matcher_definer;
 CREATE TRIGGER immutable_market_preventions_v2 BEFORE UPDATE OR DELETE ON public.paper_market_preventions_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 CREATE TRIGGER immutable_input_dependencies_v2 BEFORE UPDATE OR DELETE ON public.paper_order_input_dependencies_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
+CREATE TRIGGER immutable_native_members_v2 BEFORE UPDATE OR DELETE ON public.paper_native_members_v2
+ FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
+
+CREATE FUNCTION public.paper_accept_native_program_v2(p_scope text,p_command text) RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE command public.paper_engine_commands;terms jsonb;member jsonb;parent text;item jsonb;ordinal integer=0;
+BEGIN
+ SELECT * INTO command FROM public.paper_engine_commands WHERE scope_key=p_scope AND command_id=p_command FOR SHARE;
+ SELECT t.terms INTO terms FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=command.target_client_id;
+ IF command IS NULL OR terms IS NULL OR terms->'request' IS DISTINCT FROM command.request
+  OR terms->'compilation'->'original_program'->>'template'<>'OCO'
+  OR terms->'compilation'->'original_program'->>'execution_mode'<>'VENUE_NATIVE'
+  OR command.request->>'namespace'<>'BINANCE_SPOT_ORDER_LIST' OR command.request->>'operation'<>'SUBMIT_OCO'
+  OR jsonb_array_length(command.request->'assigned_ids'->'members')<>2
+  OR jsonb_array_length(terms->'compilation'->'nodes')<>2 THEN RAISE EXCEPTION 'actual complete native OCO parent required'; END IF;
+ parent=command.request->'assigned_ids'->>'parent_client_id';
+ IF parent IS NULL THEN RAISE EXCEPTION 'original native parent identity required'; END IF;
+ INSERT INTO public.paper_native_parents_v2 VALUES(p_scope,parent,'paper-list:'||parent,p_command,command.request_hash,
+  command.request->>'namespace','OCO','EXECUTING',1);
+ FOR member IN SELECT * FROM jsonb_array_elements(command.request->'assigned_ids'->'members') LOOP
+  SELECT t.terms INTO item FROM public.paper_order_terms t WHERE t.scope_key=p_scope AND t.client_id=member->>'client_id';
+  IF item IS NULL OR item->>'node_id' IS DISTINCT FROM member->>'node_id' OR item->'request' IS DISTINCT FROM command.request
+   OR item->'compilation' IS DISTINCT FROM terms->'compilation'
+   OR NOT EXISTS(SELECT FROM public.paper_engine_orders WHERE scope_key=p_scope AND client_id=member->>'client_id'
+    AND filled=0 AND revision=1 AND lifecycle='SUBMITTED') THEN RAISE EXCEPTION 'actual zero-fill native member required'; END IF;
+  INSERT INTO public.paper_native_members_v2 VALUES(p_scope,parent,member->>'client_id',member->>'node_id',ordinal);ordinal=ordinal+1;
+ END LOOP;
+ INSERT INTO public.paper_native_exclusivity_v2 VALUES(p_scope,parent,NULL);
+END $$;
+
+CREATE FUNCTION public.paper_claim_exclusive_v2(p_scope text,p_client text,p_market text) RETURNS boolean
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE membership public.paper_native_members_v2;exclusive public.paper_native_exclusivity_v2;peer record;book record;
+ payload jsonb;event_identifier text;execution_at timestamptz;
+BEGIN
+ SELECT * INTO membership FROM public.paper_native_members_v2 WHERE scope_key=p_scope AND client_id=p_client;
+ IF membership IS NULL THEN RETURN true; END IF;
+ SELECT * INTO exclusive FROM public.paper_native_exclusivity_v2 WHERE scope_key=p_scope AND parent_client_id=membership.parent_client_id FOR UPDATE;
+ IF exclusive.winner_client_id IS NOT NULL THEN RETURN exclusive.winner_client_id=p_client; END IF;
+ UPDATE public.paper_native_exclusivity_v2 SET winner_client_id=p_client WHERE scope_key=p_scope AND parent_client_id=membership.parent_client_id;
+ SELECT * INTO book FROM public.paper_market_books WHERE market_key=p_market;
+ IF book IS NULL THEN RAISE EXCEPTION 'actual source for native activation required'; END IF;
+ FOR peer IN SELECT o.*,t.terms FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id)
+  JOIN public.paper_order_terms t USING(scope_key,client_id) WHERE m.scope_key=p_scope AND m.parent_client_id=membership.parent_client_id
+   AND m.client_id<>p_client FOR UPDATE OF o LOOP
+  IF peer.filled>0 THEN RAISE EXCEPTION 'native exclusive members both executed'; END IF;
+  CONTINUE WHEN peer.lifecycle IN ('FILLED','CANCELED','EXPIRED','REJECTED');
+  execution_at=greatest((peer.terms->'accepted_clock'->>'utc_now')::timestamptz,(book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
+  payload=jsonb_build_object('record_kind','PAPER_MARKET_DISPOSITION','source','PAPER_MARKET_REPLAY_SYNTHETIC',
+   'status','CANCELED','reason','NATIVE_EXCLUSIVE_SIBLING_ACTIVATED','parent_client_id',membership.parent_client_id,'winner_client_id',p_client,
+   'market_key',p_market,'market_event_id',book.event_id,
+   'market_hash',(SELECT payload_hash FROM public.paper_market_inputs WHERE market_key=p_market AND event_id=book.event_id),
+   'model',peer.terms->'model','execution_envelope',peer.terms->'execution_envelope','execution_at',execution_at,'market_occurred_at',book.occurred_at);
+  event_identifier='paper-native-cancel:'||encode(sha256(convert_to(jsonb_build_array(p_scope::jsonb,peer.client_id,book.event_id,p_client)::text,'UTF8')),'hex');
+  INSERT INTO public.paper_engine_events(environment,scope_key,event_id,client_id,payload_hash,payload,fill_delta,price,occurred_at)
+   VALUES('PAPER',p_scope,event_identifier,peer.client_id,encode(sha256(convert_to(payload::text,'UTF8')),'hex'),payload,0,NULL,execution_at);
+  UPDATE public.paper_engine_orders SET lifecycle='CANCELED',revision=revision+1 WHERE scope_key=p_scope AND client_id=peer.client_id;
+  UPDATE public.paper_order_runtime_v2 SET active=false,phase='CANCELED',visible_remaining=0 WHERE scope_key=p_scope AND client_id=peer.client_id;
+  INSERT INTO public.paper_order_input_dependencies_v2 VALUES(p_scope,peer.client_id,p_market,book.event_id) ON CONFLICT DO NOTHING;
+ END LOOP;
+ RETURN true;
+END $$;
+REVOKE ALL ON FUNCTION public.paper_accept_native_program_v2(text,text),public.paper_claim_exclusive_v2(text,text,text) FROM PUBLIC;
+GRANT USAGE,CREATE ON SCHEMA public TO paper_matcher_definer;
+ALTER FUNCTION public.paper_accept_native_program_v2(text,text) OWNER TO paper_matcher_definer;
+ALTER FUNCTION public.paper_claim_exclusive_v2(text,text,text) OWNER TO paper_matcher_definer;
+REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
 
 CREATE FUNCTION public.paper_record_market_input_v2() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE point jsonb;
@@ -257,6 +341,7 @@ BEGIN
    RETURN false;
   END IF;
  END IF;
+ IF NOT public.paper_claim_exclusive_v2(p_scope,p_client,p_market) THEN RETURN false; END IF;
  UPDATE public.paper_order_runtime_v2 SET active=true,phase='ACTIVE',activation_event_id=ref.event_id
   WHERE scope_key=p_scope AND client_id=p_client;
  RETURN public.paper_prepare_order_v2(p_scope,p_client,p_market);
@@ -410,6 +495,7 @@ BEGIN
      OR gross_candidate>envelope_gross OR fee_candidate>fee_ceiling THEN
      reason='EXECUTION_ENVELOPE_REQUIRES_RECONCILIATION';EXIT;
     END IF;
+    IF model_revision=2 AND NOT public.paper_claim_exclusive_v2(ord.scope_key,ord.client_id,market_id) THEN EXIT; END IF;
     accumulated=accumulated+take_quantity;need=need-take_quantity;spent_gross=gross_candidate;spent_fee=fee_candidate;
     fill_identifier='paper-market-fill:'||encode(sha256(convert_to(jsonb_build_array(market_id,book.event_id,
      ord.scope_key::jsonb,ord.client_id,trim_scale(level.price),trim_scale(accumulated))::text,'UTF8')),'hex');
@@ -457,6 +543,9 @@ BEGIN
      encode(sha256(convert_to(fill_payload::text,'UTF8')),'hex'),fill_payload,0,NULL,execution_at);
   END IF;
  END LOOP;
+ UPDATE public.paper_native_parents_v2 p SET status='ALL_DONE',revision=revision+1 WHERE p.scope_key=p_scope AND p.status<>'ALL_DONE'
+  AND NOT EXISTS(SELECT FROM public.paper_native_members_v2 m JOIN public.paper_engine_orders o USING(scope_key,client_id)
+   WHERE m.scope_key=p.scope_key AND m.parent_client_id=p.parent_client_id AND o.lifecycle NOT IN ('FILLED','CANCELED','EXPIRED','REJECTED'));
 END $$;
 
 REVOKE ALL ON FUNCTION public.paper_match_order(text,text) FROM PUBLIC;

@@ -210,11 +210,33 @@ class PaperMatchedOrderV2(PaperMatchedOrder):
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
+class PaperNativeMemberV2:
+    node_id:str
+    client_id:str
+    venue_order_id:str
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperNativeParentV2:
+    parent_client_id:str
+    venue_parent_id:str
+    namespace:str
+    template:str
+    status:str
+    lifecycle_revision:int
+    members:tuple[PaperNativeMemberV2,...]
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
 class PaperCreationReportV2(PaperCreationReport):
     orders:tuple[PaperMatchedOrderV2,...]
     accepted_contexts:tuple[PaperAcceptedContextV2,...]=()
     contract_version:Literal['2026-10-30']='2026-10-30'
     record_kind:Literal['PAPER_CREATION_REPORT_V2']='PAPER_CREATION_REPORT_V2'
+    native_parent:PaperNativeParentV2|None=None
+    @property
+    def status(self):
+        return self.native_parent.status if self.native_parent is not None else PaperCreationReport.status.fget(self)
 
 
 @dataclass(frozen=True,slots=True,kw_only=True)
@@ -269,12 +291,16 @@ def restore_accepted_context_v2(payload,request):
         compilation=decode(ProgramCompilation,payload['compilation']),rules=decode(OrderRuleSnapshot,payload['rules']),
         model=decode(PaperMatchingModelV2,payload['model']),terms=decode(PaperExecutionTermsV2,{k:payload[k] for k in names}),
         execution_envelope=decode(PaperExecutionEnvelope,payload['execution_envelope']))
-    p=c.compilation;n=p.nodes[0];o=n.original.order;w=c.original_write;e=c.execution_envelope
+    p=c.compilation;nodes=tuple(n for n in p.nodes if n.original.node_id==c.terms.node_id)
+    require(len(nodes)==1,'PAPER_V2_ACCEPTED_NODE_CHANGED')
+    n=nodes[0];o=n.original.order;w=c.original_write;e=c.execution_envelope
+    members=tuple(m for m in request.assigned_ids.members if m.node_id==n.original.node_id)
+    require(len(members)==1,'PAPER_V2_MEMBER_IDENTITY_REQUIRED')
     require(digest(c.request)==digest(request) and w.command_id==request.command_id and w.request_hash==digest(request)
         and w.compilation_hash==request.compilation_hash==digest(p) and p.rules_hash==digest(c.rules)
         and c.terms.scope==request.scope,'PAPER_V2_ACCEPTED_SOURCE_CHANGED')
-    expected=PaperExecutionTermsV2(scope=request.scope,client_id=request.assigned_ids.members[0].client_id,node_id=n.original.node_id,
-        namespace=request.namespace.value,quantity=n.quantity.value,quantity_step=c.rules.quantity_step,side=o.side,
+    expected=PaperExecutionTermsV2(scope=request.scope,client_id=members[0].client_id,node_id=n.original.node_id,
+        namespace=n.namespace.value,quantity=n.quantity.value,quantity_step=c.rules.quantity_step,side=o.side,
         order_type=n.order_type,limit_price=o.price.value,post_only=o.post_only,tif=execution_tif(n),multiplier=n.quantity_multiplier,
         quote_asset=c.rules.quote_asset,quote_fee_rate=c.model.quote_fee_rate,accepted_clock=c.terms.accepted_clock,
         contract_version='2026-10-30',record_kind='PAPER_EXECUTION_TERMS_V2',model_revision=2,spec=o)
@@ -293,11 +319,25 @@ def decorate_report_v2(engine,db,report):
         require(row is not None,'PAPER_V2_RUNTIME_SOURCE_REQUIRED')
         runtime=PaperOrderRuntimeV2(**row)
         orders.append(PaperMatchedOrderV2(**{f.name:getattr(order,f.name) for f in fields(PaperMatchedOrder)},runtime=runtime))
+    parent=None
+    if report.request.assigned_ids.parent_client_id is not None:
+        row=db.execute('SELECT * FROM public.paper_native_parents_v2 WHERE scope_key=%s AND command_id=%s',
+            (engine._scope_key,report.command_id)).fetchone()
+        require(row is not None and row['request_hash']==digest(report.request)
+            and row['parent_client_id']==report.request.assigned_ids.parent_client_id,'PAPER_NATIVE_PARENT_SOURCE_REQUIRED')
+        members=db.execute('SELECT m.node_id,m.client_id,o.order_id AS venue_order_id FROM public.paper_native_members_v2 m '
+            'JOIN public.paper_engine_orders o USING(scope_key,client_id) WHERE m.scope_key=%s AND m.parent_client_id=%s ORDER BY m.ordinal',
+            (engine._scope_key,row['parent_client_id'])).fetchall()
+        require(tuple((m['node_id'],m['client_id']) for m in members)==tuple((m.node_id,m.client_id) for m in report.request.assigned_ids.members),
+            'PAPER_NATIVE_MEMBER_INVENTORY_CHANGED')
+        parent=PaperNativeParentV2(parent_client_id=row['parent_client_id'],venue_parent_id=row['venue_parent_id'],namespace=row['namespace'],
+            template=row['template'],status=row['status'],lifecycle_revision=row['revision'],members=tuple(PaperNativeMemberV2(**m) for m in members))
     payload={'request':domain_payload(report.request),'orders':[domain_payload(o) for o in orders],
         'fills':[domain_payload(f) for f in report.fills],'accepted_contexts':[domain_payload(c) for c in report.accepted_contexts],
-        'dispositions':[domain_payload(d) for d in report.dispositions],'contract_version':'2026-10-30','record_kind':'PAPER_CREATION_REPORT_V2'}
+        'dispositions':[domain_payload(d) for d in report.dispositions],'contract_version':'2026-10-30','record_kind':'PAPER_CREATION_REPORT_V2',
+        'native_parent':domain_payload(parent) if parent is not None else None}
     return PaperCreationReportV2(command_id=report.command_id,request=report.request,orders=tuple(orders),fills=report.fills,
-        accepted_contexts=report.accepted_contexts,dispositions=report.dispositions,
+        accepted_contexts=report.accepted_contexts,dispositions=report.dispositions,native_parent=parent,
         evidence=_evidence('paper-market-v2-query:'+report.command_id,payload,engine._clock().utc_now))
 
 
@@ -340,8 +380,10 @@ def provision_paper_market_v2(admin_dsn,roles):
         db.execute((Path(__file__).resolve().parents[3]/'migrations/0014_paper_market_matcher_v2.sql').read_text(encoding='utf-8'))
         for role in (roles.runtime_role,roles.event_role):
             db.execute(sql.SQL('GRANT SELECT ON public.paper_reference_prices_v2,public.paper_order_runtime_v2,'
-                'public.paper_market_state_v2,public.paper_market_preventions_v2,public.paper_order_input_dependencies_v2 TO {}').format(sql.Identifier(role)))
+                'public.paper_market_state_v2,public.paper_market_preventions_v2,public.paper_order_input_dependencies_v2,'
+                'public.paper_native_parents_v2,public.paper_native_members_v2 TO {}').format(sql.Identifier(role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_match_order(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
+        db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_accept_native_program_v2(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_match_order(text,text) TO {}').format(sql.Identifier(roles.event_role)))
 
 
