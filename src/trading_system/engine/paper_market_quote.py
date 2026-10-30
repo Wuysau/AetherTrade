@@ -156,11 +156,13 @@ def query_quote_creation(engine,command_id):
         db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
         # Additive optional schema: historical BASE deployments need no migration.
         if db.execute("SELECT to_regclass('public.paper_quote_terms_v1') AS relation").fetchone()['relation'] is None:return None
-        row=db.execute('SELECT t.terms,r.* FROM public.paper_quote_terms_v1 t JOIN public.paper_quote_runtime_v1 r '
+        row=db.execute('SELECT t.terms,t.client_id AS source_client_id,t.market_key AS source_market_key,r.* FROM public.paper_quote_terms_v1 t JOIN public.paper_quote_runtime_v1 r '
             'USING(scope_key,command_id) WHERE scope_key=%s AND command_id=%s',(engine._scope_key,command_id)).fetchone()
         if row is None:return None
         terms=decode(PaperQuoteTermsV1,row['terms'])
         require(terms.scope==engine.scope and terms.write.command_id==command_id
+            and terms.client_id==row['source_client_id']
+            and row['source_market_key']==market_key(engine.scope.product,engine.scope.instrument_uid)
             and digest(terms.request)==terms.write.request_hash,'PAPER_QUOTE_SOURCE_BINDING_CHANGED')
         rows=db.execute('SELECT a.*,i.payload_hash FROM public.paper_quote_allocations_v1 a JOIN public.paper_market_inputs i '
             'USING(market_key,event_id) WHERE a.scope_key=%s AND a.command_id=%s ORDER BY a.fill_id LIMIT 8193',
@@ -172,4 +174,5 @@ def query_quote_creation(engine,command_id):
             reason=row['reason'],actual_base=row['actual_base'],gross_quote=row['gross_quote'],remaining_quote=row['remaining_quote'],fills=fills)
         return PaperQuoteReportV1(**payload,evidence=_evidence('paper-quote:'+command_id,
             {k:domain_payload(v) if hasattr(v,'__dataclass_fields__') else [domain_payload(f) for f in v] if k=='fills' else str(v) if isinstance(v,Decimal) else v for k,v in payload.items()},terms.accepted_clock.utc_now))
+
 
