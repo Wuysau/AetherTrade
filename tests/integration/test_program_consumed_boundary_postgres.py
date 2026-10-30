@@ -13,9 +13,10 @@ from trading_system.contracts.canonical import utc_timestamp,canonical_hash,doma
 from trading_system.storage.models import scope_id
 
 
-def ready(database,*,consume=True):
+def ready(database,*,consume=True,ttl_ms=5000):
     c=real_case(database);c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
-    c.gate=boundary(c);c.lease=lease(c);c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
+    c.gate=boundary(c);c.gate.uow.permit_ttl_ms=ttl_ms
+    c.lease=lease(c);c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
     if consume:c.gate.consume(c.permit,c.lease)
     return c
 
@@ -39,13 +40,18 @@ def test_actual_committed_context_rechecks_without_historical_math_or_second_per
         assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
 
 
-@pytest.mark.parametrize('fault',['missing_consumption','token','request_hash','binding_hash','scope','lease','clock','fence','book','lock','unknown'])
+@pytest.mark.parametrize('fault',['missing_consumption','token','request_hash','binding_hash','scope','lease','clock','fence','book','lock','unknown',
+    'expiry_label','deadline_label','both_window_labels'])
 def test_real_post_consumption_changes_never_clear_a_new_side_effect(database,fault):
     c=ready(database,consume=fault!='missing_consumption');permit=c.permit
     if fault=='token':permit=replace(permit,token='forged')
     if fault=='request_hash':permit=replace(permit,request_hash='f'*64)
     if fault=='binding_hash':permit=replace(permit,binding_hash='f'*64)
     if fault=='scope':permit=replace(permit,scope=replace(c.scope,venue_account_id='foreign-account'))
+    if fault in ('expiry_label','both_window_labels'):
+        permit=replace(permit,expires_at=(utc_timestamp(permit.expires_at)+timedelta(milliseconds=1)).isoformat())
+    if fault in ('deadline_label','both_window_labels'):
+        permit=replace(permit,deadline_monotonic_ns=permit.deadline_monotonic_ns+1_000_000)
     if fault=='lease':c.gate.readers['load_lease']=lambda _:replace(c.lease,instance_id='new-owner-instance')
     if fault=='clock':
         before=c.c.facts.inputs.clock
@@ -92,3 +98,48 @@ def test_uncommitted_actual_consumption_in_same_physical_transaction_is_rejected
         try:
             with pytest.raises(ValueError):check(c)
         finally:c.gate.uow=original_uow
+
+
+def test_original_token_window_survives_a_later_shorter_trusted_boundary_policy(database):
+    c=ready(database)
+    c.gate.uow.permit_ttl_ms=1000
+    result=check(c)
+    assert result.write.command_id==c.write.command_id and not result.execution_authorized
+    with c.owner.transaction(c.scope) as tx:
+        stored=tx.execute('SELECT context FROM ledger.program_dispatch_marks WHERE scope_id=%s AND command_id=%s',
+            (scope_id(c.scope),c.write.command_id)).fetchone()[0]
+    assert stored['permit_window']==dict(expires_at=c.permit.expires_at,deadline_monotonic_ns=c.permit.deadline_monotonic_ns)
+
+
+def test_later_longer_policy_cannot_authenticate_relabelled_original_shorter_token(database):
+    c=ready(database,ttl_ms=4000)
+    c.gate.uow.permit_ttl_ms=5000
+    changed=replace(c.permit,expires_at=(utc_timestamp(c.permit.expires_at)+timedelta(milliseconds=1000)).isoformat(),
+        deadline_monotonic_ns=c.permit.deadline_monotonic_ns+1_000_000_000)
+    with pytest.raises(ValueError):check(c,permit=changed)
+
+
+def test_genuine_historical_mark_without_window_keeps_original_query_but_cannot_clear_send(database):
+    import secrets
+    from trading_system.execution.program_commands import ProgramCommandRepository,ProgramWritePermit,_token_hash
+    from trading_system.contracts.canonical import canonical_json
+    from trading_system.recovery.original_creation import read_original_creation
+    c=real_case(database);c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+    c.gate=boundary(c);c.lease=lease(c);token=secrets.token_urlsafe(32)
+    # Reproduce the historical server implementation through the genuine
+    # restricted SQL function and current financial verifier, never forged rows.
+    with c.gate.uow.transaction(c.scope) as tx:
+        repo=ProgramCommandRepository(tx,**c.gate.readers)
+        context,clock,current,expires,request=repo._current(c.write,c.lease)
+        assert 'permit_window' not in context
+        ttl=min(tx.permit_ttl_ms,int((expires-utc_timestamp(clock.utc_now)).total_seconds()*1000),
+            (current.deadline_monotonic_ns-clock.monotonic_ns)//1_000_000)
+        tx.execute('SELECT ledger.mark_program_may(%s,%s,%s::jsonb,%s,%s,%s)',
+            (scope_id(c.scope),c.write.command_id,canonical_json(context),_token_hash(token),ttl,tx.transaction_id))
+    c.permit=ProgramWritePermit(command_id=c.write.command_id,scope=c.scope,request_hash=c.write.request_hash,
+        binding_hash=c.write.binding_hash,token=token,expires_at=(utc_timestamp(clock.utc_now)+timedelta(milliseconds=ttl)).isoformat(),
+        deadline_monotonic_ns=clock.monotonic_ns+ttl*1_000_000)
+    c.gate.consume(c.permit,c.lease)
+    with pytest.raises(ValueError):check(c)
+    with c.owner.transaction(c.scope) as tx:restored=read_original_creation(tx,c.write.command_id)
+    assert restored.request==c.request and restored.current_state=='MAY_HAVE_SENT' and not restored.can_resubmit

@@ -377,3 +377,20 @@ def test_depth_delta_never_rounds_tiny_unexecutable_residual_into_a_fill(databas
     assert report.filled_quantity==D('.999999') and report.remaining_quantity==D('.000001')
     source=c.engine.query_market_evidence(c.write.command_id)
     assert sum((q.quantity for q in source.consumptions),D(0))==D('.999999')
+
+
+@pytest.mark.parametrize('label',['expiry','deadline','both'])
+def test_paper_side_effect_rechecks_the_committed_original_permit_labels(database,venue,tmp_path,label):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    c=case(database,venue,tmp_path)
+    c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
+    changed=c.permit
+    if label in ('expiry','both'):changed=replace(changed,
+        expires_at=(utc_timestamp(changed.expires_at)+timedelta(milliseconds=1)).isoformat())
+    if label in ('deadline','both'):changed=replace(changed,
+        deadline_monotonic_ns=changed.deadline_monotonic_ns+1_000_000)
+    with c.owner.session(c.lease.shard):
+        with pytest.raises(ValueError,match='ORIGINAL_PERMIT_WINDOW_CHANGED'):
+            c.engine.submit_creation(c.write,c.request,changed,boundary=c.gate,lease=c.lease,owner=c.owner)
+    assert c.engine.query_creation(c.write.command_id) is None
