@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from decimal import Decimal as D
 from dataclasses import replace
 import pytest
-from integration.test_quote_current_boundary_postgres import database, isolated_postgres, admitted, gate
+from integration.test_quote_current_boundary_postgres import database, base_database, isolated_postgres, admitted, gate
 from integration.test_paper_market_matcher import venue, event, submit
 from integration.test_program_commands_postgres import lease
 from trading_system.execution.program_commands import ProgramCommandRepository
@@ -49,3 +49,4 @@ def test_native_quote_request_executes_actual_depth_without_original_base_quanti
     assert report.gross_quote==D(expected_gross)
     assert report.remaining_quote==4000-D(expected_gross)
     assert sum((f.quantity*f.price for f in report.fills),D(0))==report.gross_quote
+
