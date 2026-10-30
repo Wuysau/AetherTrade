@@ -41,6 +41,8 @@ class PaperManagementBridge:
     bridge_dsn:str
 
 def submit_management(engine,write,permit,*,boundary,lease,owner,bridge=None):
+    from trading_system.contracts.management_write_v4 import ManagementWriteV4
+    require(type(write) is ManagementWriteV4,'MANAGEMENT_V4_REQUIRED')
     require(type(boundary) is ManagementBoundary and type(permit) is ManagementPermit,
         'MANAGEMENT_PRIVATE_PERMIT_REQUIRED')
     require(type(owner) is ExecutionOwner and owner.engine is engine and type(engine) is PaperEngine,
@@ -48,6 +50,14 @@ def submit_management(engine,write,permit,*,boundary,lease,owner,bridge=None):
     require(write.scope==engine.scope==boundary.scope and write.command_id==permit.command_id,
         'MANAGEMENT_SCOPE_REQUIRED')
     require(type(bridge) is PaperManagementBridge,'MANAGEMENT_PRIVATE_PAPER_BRIDGE_REQUIRED')
+    try:return _submit_management(engine,write,permit,boundary=boundary,lease=lease,owner=owner,bridge=bridge)
+    except Exception:
+        # Failed/uncertain IO never mints another token or infers rollback of a
+        # separately committed venue transaction. Recovery queries this ID.
+        boundary.record_unknown(write.command_id)
+        raise
+
+def _submit_management(engine,write,permit,*,boundary,lease,owner,bridge):
     with owner.guard(lease):
         binding=boundary.consume(permit,lease)
         require(digest(replace(binding.write,state=write.state))==digest(write),'MANAGEMENT_WRITE_CHANGED')

@@ -117,3 +117,8 @@ class ManagementBoundary:
     def recheck_consumed(self,permit,lease):
         from .program_management_consumed_boundary import recheck_consumed
         return recheck_consumed(self,permit,lease)
+
+    def record_unknown(self,command_id):
+        with self.uow.transaction(self.scope) as tx:
+            tx.execute('SELECT ledger.mark_management_unknown(%s,%s,%s)',
+                (scope_id(self.scope),command_id,tx.transaction_id))

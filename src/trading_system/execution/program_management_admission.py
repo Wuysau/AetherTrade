@@ -71,6 +71,10 @@ class ProgramManagementService:
             'MANAGEMENT_CURRENT_LEASE_REQUIRED')
         bundle=read_program_bundle(tx,w.intent_id)
         require(bundle is not None and digest(bundle.intent)==w.intent_hash,'MANAGEMENT_ORIGINAL_FINANCIAL_REQUIRED')
+        require(bundle.archive.allocation.delta.classification=='INCREASE' and target.order is not None
+            and target.order.reduce_only is False and target.order.trigger.kind=='NONE'
+            and bundle.archive.compilation.original_program.template=='ATOMIC',
+            'MANAGEMENT_PROTECTION_ACTION_PROOF_REQUIRED')
         context=bundle.intent.source.context;fence=current_fence(tx,context)
         require((fence.owner_strategy_id,fence.ownership_epoch,fence.risk_policy_revision)==(
             w.owner_strategy_id,w.ownership_epoch,w.policy_revision),'MANAGEMENT_CURRENT_OWNER_REQUIRED')

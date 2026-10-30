@@ -143,10 +143,19 @@ DECLARE m ledger.management_dispatch_marks;w jsonb;BEGIN
  IF m.command_id IS NULL OR m.database_transaction=pg_current_xact_id() OR m.expires_at<=clock_timestamp()
   OR m.token_hash IS DISTINCT FROM token OR w->>'state' IS DISTINCT FROM 'MAY_HAVE_SENT'
   OR c->'lease' IS DISTINCT FROM m.context->'lease' OR NOT ledger.management_context_current(s,c,w)
-  OR w-'state' IS DISTINCT FROM m.context->'write'-'state' THEN
+  OR (w-'state') IS DISTINCT FROM ((m.context->'write')-'state') THEN
   RAISE EXCEPTION 'committed unused current management permit required' USING ERRCODE='23514';END IF;
  INSERT INTO ledger.management_permit_consumptions VALUES(s,id,token,c,tx);
 END $$;
+CREATE FUNCTION ledger.mark_management_unknown(s text,id text,tx text) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$ DECLARE w jsonb;BEGIN
+ SELECT payload INTO w FROM ledger.management_writes WHERE scope_id=s AND record_id=id ORDER BY sequence DESC LIMIT 1;
+ IF w->>'state' IS DISTINCT FROM 'MAY_HAVE_SENT' THEN RETURN;END IF;
+ INSERT INTO ledger.management_writes(scope_id,record_id,sequence,payload,transaction_id)
+  VALUES(s,id,3,jsonb_set(w,'{state}','"UNKNOWN"'),tx);
+END $$;
+REVOKE ALL ON FUNCTION ledger.mark_management_unknown(text,text,text) FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_program_dispatch_verifier;
+GRANT EXECUTE ON FUNCTION ledger.mark_management_unknown(text,text,text) TO ledger_management_dispatch_verifier;
 REVOKE ALL ON FUNCTION ledger.management_context_current(text,jsonb,jsonb),ledger.admit_management(text,text,jsonb,jsonb,text),
  ledger.mark_management_may(text,text,jsonb,text,integer,text),ledger.consume_management_permit(text,text,text,jsonb,text)
  FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_program_dispatch_verifier;

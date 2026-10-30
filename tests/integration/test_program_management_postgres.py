@@ -5,6 +5,8 @@ import pytest
 from integration.test_paper_market_matcher_v2 import isolated_postgres,database,venue,venue_v2,advanced_case
 from integration.test_paper_market_matcher import submit,event
 
+_VERIFIER_DSNS={}
+
 
 @pytest.fixture(scope='module')
 def management_database(database):
@@ -12,6 +14,23 @@ def management_database(database):
     from integration.support_ip_03 import ROOT
     with psycopg.connect(database) as db:
         db.execute((ROOT/'migrations/0022_program_management_boundary.sql').read_text(encoding='utf-8'))
+        from psycopg import sql
+        from psycopg.conninfo import conninfo_to_dict,make_conninfo
+        import secrets
+        from uuid import uuid4
+        name='management_verifier_'+uuid4().hex[:12];password=secrets.token_urlsafe(32)
+        db.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS').format(sql.Identifier(name),sql.Literal(password)))
+        for grant in ('USAGE ON SCHEMA ledger','SELECT ON ALL TABLES IN SCHEMA ledger',
+            'UPDATE(group_id) ON ledger.collateral_mutex','UPDATE(collateral_group_id) ON ledger.account_bindings',
+            'UPDATE(ownership_epoch) ON ledger.active_owners','INSERT ON ledger.transaction_observations',
+            'EXECUTE ON FUNCTION ledger.admit_management(text,text,jsonb,jsonb,text)',
+            'EXECUTE ON FUNCTION ledger.mark_management_may(text,text,jsonb,text,integer,text)',
+            'EXECUTE ON FUNCTION ledger.consume_management_permit(text,text,text,jsonb,text)',
+            'EXECUTE ON FUNCTION ledger.mark_management_unknown(text,text,text)',
+            'EXECUTE ON FUNCTION ledger.record_management_outcome(text,text,jsonb,text)'):
+            db.execute(sql.SQL('GRANT '+grant+' TO {}').format(sql.Identifier(name)))
+        db.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(conninfo_to_dict(database)['dbname']),sql.Identifier(name)))
+        _VERIFIER_DSNS[database]=make_conninfo(**{**conninfo_to_dict(database),'user':name,'password':password})
     return database
 
 @pytest.fixture(scope='module')
@@ -37,7 +56,7 @@ def management(c):
             authorization=current.authorization,group_capacity=current.group_capacity,
             strategy_capacity=current.strategy_capacity,buffer=current.buffer)
     def verifier():
-        db=psycopg.connect(c.dsn);db.execute('SET ROLE ledger_management_dispatch_verifier');db.commit();return db
+        return psycopg.connect(_VERIFIER_DSNS[c.dsn])
     return ProgramManagementService(c.service,UnitOfWork(verifier,permit_ttl_ms=5000),
         target_reader=PaperManagementTargetReader(c.engine),load_clock=lambda _:c.engine._clock(),
         load_lease=lambda _:c.lease,load_inputs=inputs)
