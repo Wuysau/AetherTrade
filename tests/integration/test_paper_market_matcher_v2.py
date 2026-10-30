@@ -448,5 +448,14 @@ def test_nullable_native_target_does_not_weaken_ordinary_or_incomplete_parent_co
                 # A null target alone does not manufacture a native parent.
                 db.execute('INSERT INTO public.paper_engine_commands VALUES(%s,%s,%s,%s,NULL,%s,%s,%s)',
                     ('PAPER',c.engine._scope_key,'unbacked-'+operation,'f'*32,operation,'f'*64,Jsonb(request)))
+    from trading_system.execution.creation_requests import assign_client_ids,materialize_creation
+    from trading_system.engine.paper_market import digest
+    p=c.bundle.archive.compilation
+    unsigned=materialize_creation(p,0,c.bundle.archive.profile,assign_client_ids(p,0,'unbacked-valid-native-parent'))
+    with pytest.raises(psycopg.errors.RaiseException,match='complete genuine pool'):
+        with psycopg.connect(venue_v2.runtime_dsn) as db:
+            db.execute('INSERT INTO public.paper_engine_commands VALUES(%s,%s,%s,%s,NULL,%s,%s,%s)',
+                ('PAPER',c.engine._scope_key,unsigned.command_id,unsigned.assigned_ids.parent_client_id,'CREATE_REQUEST',
+                    digest(unsigned),Jsonb(domain_payload(unsigned))))
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with psycopg.connect(venue_v2.runtime_dsn) as db:db.execute('UPDATE public.paper_native_algorithm_progress_v2 SET allocated_quantity=0')
