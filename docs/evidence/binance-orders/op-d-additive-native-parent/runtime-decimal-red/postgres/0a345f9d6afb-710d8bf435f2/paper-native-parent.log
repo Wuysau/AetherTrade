@@ -1,0 +1,11 @@
+..............F.........                                                 [100%]
+=================================== FAILURES ===================================
+______ test_native_source_authenticates_actual_parent_and_children[True] _______
+tests/integration/test_paper_native_parent_postgres.py:233: in test_native_source_authenticates_actual_parent_and_children
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_NATIVE_CHILD_RUNTIME_CHANGED',)
+E   assert False
+E    +  where False = PaperNativeParentVerification(command_id='isolated-command-aa1191a593e34d20aaa1afed645ff257', status='BLOCKED', source...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_authenticates_actual_parent_and_children[True]
+1 failed, 23 passed in 111.89s (0:01:51)
