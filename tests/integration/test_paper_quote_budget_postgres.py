@@ -231,3 +231,23 @@ def test_quote_missing_execution_evidence_and_owner_leave_no_sim_order(database,
         with pytest.raises(ValueError,match='DEPTH_REQUIRED|FEE_MODEL_UNSUPPORTED|FEE_MODEL_EXCEEDS'):
             submit(c)
     assert c.engine.query_creation(c.cid) is None
+
+@pytest.mark.parametrize('changed',['client','market'])
+def test_independent_quote_verifier_binds_actual_sql_row_identity(database,quote_venue,tmp_path,changed):
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
+    from psycopg.types.json import Jsonb
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=execution_case(database,quote_venue,tmp_path)
+    PaperMatcher(c.engine).apply_market_event(replace(event(c),asks=(DepthLevel(price='50000',quantity='.1'),),bids=()))
+    submit(c)
+    # Administrator adversarial corruption of source identity, not a DTO forgery.
+    # A real runtime cannot disable immutable source triggers (tested separately).
+    admin=make_conninfo(**{**conninfo_to_dict(database),'dbname':conninfo_to_dict(quote_venue.runtime_dsn)['dbname']})
+    with psycopg.connect(admin) as db:
+        db.execute('ALTER TABLE public.paper_quote_terms_v1 DISABLE TRIGGER immutable_quote_terms')
+        column='client_id' if changed=='client' else 'market_key'
+        from psycopg import sql
+        db.execute(sql.SQL('UPDATE public.paper_quote_terms_v1 SET {}=%s WHERE command_id=%s').format(sql.Identifier(column)),('forged',c.cid))
+        db.execute('ALTER TABLE public.paper_quote_terms_v1 ENABLE TRIGGER immutable_quote_terms')
+    with pytest.raises(ValueError,match='SOURCE_BINDING_CHANGED'):c.engine.query_creation(c.cid)
