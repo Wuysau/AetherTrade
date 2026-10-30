@@ -15,7 +15,7 @@ from trading_system.storage.models import MissingEvidence,scope_id,decode
 from trading_system.ownership.registry import RegistryTx,OwnerRecord
 from .program_asset_reader import ProgramAssetPostingReader
 from .program_asset_postings import ProgramAssetPostingRecord,make_program_asset_posting,economic_signature
-from .program_account_cash import read_program_account_cash
+from .program_account_cash import read_program_account_cash,observe_program_account_cash
 from .program_account_opening import read_program_account_opening
 from .program_legacy_opening import read_program_local_account_opening,read_program_legacy_opening
 from .program_book_cash import bind_program_book_cash,require_current_program_book_cash
@@ -151,7 +151,7 @@ class ProgramOwnedSpotPosting:
             need(row is not None and row[0]==domain_payload(posted.owner_after),'OWNED_POSTING_HISTORY_REQUIRED')
         if not pending:
             require_current_program_book_cash(tx,book,read_opening=self.read_opening)
-            return ('COST_HISTORY_RECONCILIATION_REQUIRED','PROTECTION_RECHECK_REQUIRED')
+            return ('COST_HISTORY_RECONCILIATION_REQUIRED','PROTECTION_RECHECK_REQUIRED'),True
         # Exact native signed delta only. Initial account assets and targets do
         # not enter allocation. Overshoots remain raw and are never clipped.
         with localcontext() as arithmetic:
@@ -166,7 +166,7 @@ class ProgramOwnedSpotPosting:
             old=tx._latest('audit_events',record.record_id,ProgramAssetPostingRecord)
             if old is None:tx._append('audit_events',record.record_id,record,0)
             else:need(old==record or old.source_economic_hash==record.source_economic_hash,'PROGRAM_ASSET_POSTING_MISMATCH')
-        frame=read_program_account_cash(tx,read_opening=self.read_opening)
+        frame=observe_program_account_cash(tx,read_opening=self.read_opening)
         need(frame is not None,'ACCOUNT_OPENING_REQUIRED')
         cost=replace(p.cost_evidence,query_succeeded=False,pagination_complete=False,
             missing=tuple(dict.fromkeys((*p.cost_evidence.missing,'PROGRAM_COST_HISTORY_RECONCILIATION_REQUIRED'))))
@@ -190,7 +190,6 @@ class ProgramOwnedSpotPosting:
             basis_fingerprint=canonical_hash(dict(prior=canonical_hash(domain_payload(book)),
                 account_revision=frame.economic_revision,owner=domain_payload(new_owner))))
         tx.projections.save_book(updated_book,book.sequence)
-        bind_program_book_cash(tx,updated_book,read_opening=self.read_opening)
         for fact in pending:
             identity=fact.approval.identity_hash
             for index,fee in enumerate(fact.effects.fees):
@@ -201,4 +200,14 @@ class ProgramOwnedSpotPosting:
                 position_sequence=position_sequence,book_sequence=updated_book.sequence,owner_before=owner,
                 source_approval_ids=tuple(f.approval.approval_id for f in pending))
             tx._append('audit_events','program-owned-posting:'+identity,posting,0)
-        return ('COST_HISTORY_RECONCILIATION_REQUIRED','PROTECTION_RECHECK_REQUIRED')
+        # A different scope may still own an unprojected native execution. Our
+        # actual financial transition commits without touching it. No cash
+        # binding is created until the STRICT account read proves every owner
+        # transition; that scope must later reconcile its own book and replan.
+        try:read_program_account_cash(tx,read_opening=self.read_opening)
+        except MissingEvidence as error:
+            if str(error) not in ('UNPOSTED_PROGRAM_ASSET_EFFECTS','UNPOSTED_PROGRAM_OWNED_EFFECTS'):raise
+            return ('COST_HISTORY_RECONCILIATION_REQUIRED','PROTECTION_RECHECK_REQUIRED',
+                'ACCOUNT_OTHER_OWNER_RECONCILIATION_REQUIRED'),False
+        bind_program_book_cash(tx,updated_book,read_opening=self.read_opening)
+        return ('COST_HISTORY_RECONCILIATION_REQUIRED','PROTECTION_RECHECK_REQUIRED'),True

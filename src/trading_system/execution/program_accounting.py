@@ -45,7 +45,7 @@ class ProgramFillAccountingRecord:
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramAccountingResult:
     command_id:str
-    status:Literal['SOURCE_BLOCKED','NO_FILLS','RAW_RECORDED_ECONOMICS_BLOCKED','ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED']
+    status:Literal['SOURCE_BLOCKED','NO_FILLS','RAW_RECORDED_ECONOMICS_BLOCKED','ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED','OWN_SCOPE_POSTED_ACCOUNT_RECONCILIATION_REQUIRED']
     fills:tuple[t.FillReceipt,...]
     missing:tuple[str,...]
     retained_duties:tuple[str,...]
@@ -140,13 +140,13 @@ class ProgramPaperAccountingService:
                 # are rolled back together if reconstruction cannot complete.
                 tx.execute('SAVEPOINT program_owned_financial')
                 try:
-                    duties=self.financial_posting.post(tx,source.approvals,self._fills)
+                    duties,complete=self.financial_posting.post(tx,source.approvals,self._fills)
                 except (MissingEvidence,ValueError) as error:
                     if tx.failed:raise
                     tx.execute('ROLLBACK TO SAVEPOINT program_owned_financial')
                     missing=tuple(dict.fromkeys((*missing,str(error))))
                 else:
-                    status='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+                    status='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED' if complete else 'OWN_SCOPE_POSTED_ACCOUNT_RECONCILIATION_REQUIRED'
                     missing=tuple(dict.fromkeys((*source.verification.discrepancies,*duties)))
                 tx.execute('RELEASE SAVEPOINT program_owned_financial')
         return ProgramAccountingResult(command_id=command_id,status=status,

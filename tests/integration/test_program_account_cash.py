@@ -62,7 +62,7 @@ def test_no_generic_history_preserves_legacy_branch_and_explicit_opening_reconst
 
 
 def test_real_native_effects_are_counted_once_across_repeated_source_snapshots(database,venue,tmp_path):
-    from trading_system.execution.program_account_cash import read_program_account_cash
+    from trading_system.execution.program_account_cash import observe_program_account_cash as read_program_account_cash
     c,s,codec,approval=matched(database,venue,tmp_path)
     try:
         with c.service.uow.transaction(c.scope) as tx:
@@ -146,7 +146,7 @@ def test_callable_equality_cannot_impersonate_a_registered_capital_reader(databa
 
 
 def test_actual_unapproved_extra_fill_cannot_be_ignored_by_account_reconstruction(database,venue,tmp_path):
-    from trading_system.execution.program_account_cash import read_program_account_cash
+    from trading_system.execution.program_account_cash import observe_program_account_cash as read_program_account_cash
     c,s,codec,approval=matched(database,venue,tmp_path)
     try:
         with c.service.uow.transaction(c.scope) as tx:

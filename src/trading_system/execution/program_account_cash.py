@@ -91,7 +91,7 @@ def _legacy_effects(tx,fill,raw_commands):
     return deltas,signature
 
 
-def read_program_account_cash(tx,*,read_opening=None):
+def _read_program_account_cash(tx,*,read_opening,require_projection):
     """Return None only for the legacy/no-generic branch, never unknown cash.
 
     read_opening is an explicitly registered local provenance reader. The
@@ -145,14 +145,18 @@ def read_program_account_cash(tx,*,read_opening=None):
         else:
             marker=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
                 (stored_scope,'program-asset-posting:'+identity)).fetchone()
-            need(marker is not None,'UNPOSTED_PROGRAM_ASSET_EFFECTS')
-            try:
-                record=decode(ProgramAssetPostingRecord,marker[0])
-                original=reader.read(record.source_approval_id)
-                need(record==make_program_asset_posting(original) and economic_signature(original)==signature,
-                    'PROGRAM_ASSET_POSTING_MISMATCH')
-            except (ValueError,TypeError,KeyError) as error:
-                raise MissingEvidence('PROGRAM_ASSET_POSTING_MISMATCH') from error
+            need(marker is not None or not require_projection,'UNPOSTED_PROGRAM_ASSET_EFFECTS')
+            if marker is not None:
+                try:
+                    record=decode(ProgramAssetPostingRecord,marker[0])
+                    original=reader.read(record.source_approval_id)
+                    need(record==make_program_asset_posting(original) and economic_signature(original)==signature,
+                        'PROGRAM_ASSET_POSTING_MISMATCH')
+                except (ValueError,TypeError,KeyError) as error:
+                    raise MissingEvidence('PROGRAM_ASSET_POSTING_MISMATCH') from error
+            if require_projection:
+                from .program_owned_posting import require_owned_program_posting
+                require_owned_program_posting(reader.tx,fact)
             facts[identity]=fact
         covered.add(_native_key(fact.fill));duties.extend(fact.approval.retained_duties)
     need({_native_key(f) for f in generic_fills}==covered,'UNAPPROVED_ACCOUNT_FILL_HISTORY')
@@ -175,3 +179,18 @@ def read_program_account_cash(tx,*,read_opening=None):
         balances=tuple(t.Money(currency=asset,amount=value) for asset,value in sorted(vector.items())),
         native_identities=tuple(sorted(facts)),legacy_fill_ids=tuple(k for k,_ in sorted(legacy_signatures)),
         retained_duties=tuple(dict.fromkeys(duties)))
+
+
+def read_program_account_cash(tx,*,read_opening=None):
+    """Strict neutral read: all actual native-to-owner projections are required."""
+    return _read_program_account_cash(tx,read_opening=read_opening,require_projection=True)
+
+
+def observe_program_account_cash(tx,*,read_opening=None):
+    """Financial-only observed vector from protected source plus real FillLedger.
+
+    Unprojected native facts are real account economics, never a spendable or
+    owned-position attestation. Never use this reader at admission/mark/consume,
+    in BookCashBinding, or to renew an intake. Those use the strict reader above.
+    """
+    return _read_program_account_cash(tx,read_opening=read_opening,require_projection=False)

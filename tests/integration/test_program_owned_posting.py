@@ -230,6 +230,42 @@ def test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted(da
     finally:codec.close()
 
 
+def test_every_native_member_of_a_real_owned_batch_needs_its_same_transaction_marker(database,venue,tmp_path):
+    import os
+    import psycopg
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+    from trading_system.execution.program_owned_posting import require_owned_program_posting
+    from trading_system.storage.models import MissingEvidence
+    c,s,codec=setup(database,venue,tmp_path)
+    try:
+        PaperMatcher(c.engine).apply_market_event(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'))
+        assert s.apply(c.write.command_id).status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+        approvals=s.source_service.approve(c.write.command_id).approvals
+        assert len(approvals)==2
+        marker='program-owned-posting:'+approvals[1].identity_hash
+        # An incomplete historical restore is injected by the isolated admin,
+        # never through an owner/source role. Restore the guard BEFORE reading.
+        assert os.environ.get('IP03_ISOLATED_DATABASE')=='YES'
+        with pytest.raises(psycopg.errors.CheckViolation):
+            with psycopg.connect(database) as db:
+                db.execute('DELETE FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s',
+                    (scope_id(c.scope),marker))
+        with psycopg.connect(database) as db:
+            assert db.execute('SELECT current_database()').fetchone()[0].startswith('ip03_test_')
+            db.execute('ALTER TABLE ledger.audit_events DISABLE TRIGGER immutable_history')
+            removed=db.execute('DELETE FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s RETURNING record_id',
+                (scope_id(c.scope),marker)).fetchall()
+            db.execute('ALTER TABLE ledger.audit_events ENABLE TRIGGER immutable_history')
+            assert removed==[(marker,)]
+            assert db.execute("SELECT tgenabled FROM pg_trigger WHERE tgrelid='ledger.audit_events'::regclass AND tgname='immutable_history'").fetchone()==('O',)
+        with c.service.uow.transaction(c.scope) as tx:
+            fact=ProgramAssetPostingReader(tx,fill_ledger=s._fills).read(approvals[0].approval_id)
+            with pytest.raises(MissingEvidence,match='OWNED_POSTING_BATCH_INCOMPLETE'):
+                require_owned_program_posting(tx,fact)
+            assert RegistryTx(tx).owner().position.actual_quantity.value==D('.6')
+    finally:codec.close()
+
+
 def test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes(database,venue,tmp_path):
     from uuid import uuid4
     from integration.test_program_financial_admission import real_case
