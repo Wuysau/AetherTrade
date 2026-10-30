@@ -179,3 +179,66 @@ def test_gtd_expires_from_actual_clock_source_after_proposal_window_without_fake
     assert report.status=='EXPIRED' and not report.fills and report.remaining_quantity==0
     assert report.dispositions[-1].reason=='VENUE_GTD_EXPIRED'
     assert utc_timestamp(report.dispositions[-1].occurred_at)==utc_timestamp(expiry)
+
+
+def test_equity_rth_day_waits_for_published_window_and_expires_without_consuming_closed_depth(database,venue_v2,tmp_path):
+    from datetime import timedelta
+    from trading_system.contracts.canonical import utc_timestamp
+    from trading_system.engine.paper_market import PaperMatcher
+    from trading_system.engine.paper_market_v2 import PaperCalendarEventV2,PaperSessionWindowV2,PaperClockEventV2
+    def rth_day(p):
+        n=p.program.nodes[0]
+        return replace(p,program=replace(p.program,nodes=(replace(n,order=replace(n.order,trading_session='RTH',
+            tif=TimeInForceSpec(kind='DAY',expires_at=None))),)))
+    c=advanced_case(database,venue_v2,tmp_path,product=t.Product.US_EQUITY,actual='1',target='0',quantity='1',side='SELL',
+        plan_proposal_transform=rth_day,
+        financial_capacity=(t.Money(currency='USD',amount=D('1000000')),t.Money(currency='AAPL',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USD',amount=D(0)),t.Money(currency='AAPL',amount=D(0))))
+    submit(c);matcher=PaperMatcher(c.engine);matcher.apply_market_event(event(c,quantity='1'))
+    assert not c.engine.query_creation(c.write.command_id).fills
+    calendar=PaperCalendarEventV2(contract_version='2026-10-30',event_id='calendar-rth',stream_id=c.scope.instrument_uid,
+        product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=2,kind='SESSION_CALENDAR',
+        calendar_id='SYNTHETIC_US_EQUITY_CALENDAR',revision='2026a',timezone='America/New_York',
+        windows=(PaperSessionWindowV2(session='RTH',trading_date='2026-10-28',opens_at='2026-10-28T13:30:00Z',
+            closes_at='2026-10-28T20:00:00Z'),),valid_until='2026-10-29T00:00:00Z',
+        occurred_at=c.c.facts.inputs.clock.utc_now,source='PAPER_MARKET_REPLAY_SYNTHETIC')
+    matcher.apply_market_event(calendar)
+    assert not c.engine.query_creation(c.write.command_id).fills
+    base=c.c.facts.inputs.clock
+    def clock(sequence,when):
+        elapsed=int((utc_timestamp(when)-utc_timestamp(base.utc_now)).total_seconds()*10**9)
+        c.engine._clock=lambda:replace(base,utc_now=when,monotonic_ns=base.monotonic_ns+elapsed)
+        return PaperClockEventV2(contract_version='2026-10-30',event_id='session-clock-'+str(sequence),stream_id=c.scope.instrument_uid,
+            product=c.scope.product,instrument_uid=c.scope.instrument_uid,sequence=sequence,kind='CLOCK',occurred_at=when,
+            source='PAPER_MARKET_REPLAY_SYNTHETIC')
+    matcher.apply_market_event(clock(3,'2026-10-28T13:30:00Z'))
+    report=c.engine.query_creation(c.write.command_id)
+    assert report.filled_quantity==1 and report.fills[0].price==D('81489')
+    proof=c.engine.query_market_evidence(c.write.command_id)
+    assert any(i.event.event_id=='calendar-rth' for i in proof.inputs)
+    # A separate real admitted DAY order cannot trade after its associated close.
+    other=advanced_case(database,venue_v2,tmp_path,product=t.Product.US_EQUITY,actual='1',target='0',quantity='1',side='SELL',
+        plan_proposal_transform=rth_day,
+        financial_capacity=(t.Money(currency='USD',amount=D('1000000')),t.Money(currency='AAPL',amount=D('10'))),
+        financial_buffer=(t.Money(currency='USD',amount=D(0)),t.Money(currency='AAPL',amount=D(0))))
+    submit(other);other_matcher=PaperMatcher(other.engine)
+    other_matcher.apply_market_event(event(other,quantity='1'))
+    other_matcher.apply_market_event(replace(calendar,stream_id=other.scope.instrument_uid,instrument_uid=other.scope.instrument_uid))
+    c=other;base=other.c.facts.inputs.clock
+    other_matcher.apply_market_event(clock(3,'2026-10-28T20:00:00Z'))
+    expired=other.engine.query_creation(other.write.command_id)
+    assert expired.status=='EXPIRED' and not expired.fills
+    assert expired.dispositions[-1].reason=='VENUE_DAY_EXPIRED'
+
+
+def test_calendar_timezone_windows_keep_real_dst_offsets_and_reject_inverted_or_overlapping_windows():
+    from trading_system.engine.paper_market_v2 import PaperCalendarEventV2,PaperSessionWindowV2
+    windows=(PaperSessionWindowV2(session='RTH',trading_date='2026-10-30',opens_at='2026-10-30T13:30:00Z',closes_at='2026-10-30T20:00:00Z'),
+        PaperSessionWindowV2(session='RTH',trading_date='2026-11-02',opens_at='2026-11-02T14:30:00Z',closes_at='2026-11-02T21:00:00Z'))
+    source=PaperCalendarEventV2(contract_version='2026-10-30',event_id='dst-calendar',stream_id='AAPL',product=t.Product.US_EQUITY,
+        instrument_uid='AAPL',sequence=1,kind='SESSION_CALENDAR',calendar_id='SYNTHETIC_DST_CALENDAR',revision='2026a',
+        timezone='America/New_York',windows=windows,valid_until='2026-11-03T00:00:00Z',occurred_at='2026-10-28T10:00:00Z',
+        source='PAPER_MARKET_REPLAY_SYNTHETIC')
+    assert source.windows==windows
+    with pytest.raises(ValueError):replace(source,windows=(windows[0],windows[0]))
+    with pytest.raises(ValueError):replace(windows[0],closes_at=windows[0].opens_at)

@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,financial_capacity=None,financial_buffer=None,**risk_options):
+def real_case(dsn,*,qualified=True,proposal_transform=None,plan_proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,financial_capacity=None,financial_buffer=None,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -61,7 +61,12 @@ def real_case(dsn,*,qualified=True,proposal_transform=None,instrument_uid=None,n
         return p,r,c,k
     original_plan_for=risk_module.plan_for
     def selected_plan(**options):
-        if not preserve_quote_limit:return original_plan_for(**options)
+        if not preserve_quote_limit:
+            plan,r=original_plan_for(**options)
+            if plan_proposal_transform is None:return plan,r
+            _,_,c,k=scoped_inputs(options.get('product',t.Product.SPOT))
+            from trading_system.intents.program_compilation import compile_order_program
+            return compile_order_program(plan_proposal_transform(plan.original_proposal),r,c,**k),r
         from trading_system.intents.program_compilation import compile_order_program
         p,r,c,k=scoped_inputs(options.get('product',t.Product.SPOT))
         return compile_order_program(p,r,c,**k),r
