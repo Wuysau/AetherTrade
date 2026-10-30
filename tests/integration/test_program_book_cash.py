@@ -33,7 +33,10 @@ def test_exact_current_cash_binding_is_required_and_a_forged_book_grants_nothing
 def test_actual_fill_changes_other_instrument_revision_until_its_own_owner_reconciles(database,venue,tmp_path):
     import psycopg
     from trading_system.ownership.registry import OwnershipRegistry
-    bind,guard,reconcile=functions();c,s,codec,approval=matched(database,venue,tmp_path)
+    from integration.test_program_owned_posting import setup
+    bind,guard,reconcile=functions();c,s,codec=setup(database,venue,tmp_path)
+    financial=s.financial_posting;s.financial_posting=None
+    s.apply(c.write.command_id);s.financial_posting=financial
     other=replace(c.scope,instrument_uid='other-instrument')
     try:
         # Source is already committed but not posted, so opening-only cash is
@@ -41,7 +44,7 @@ def test_actual_fill_changes_other_instrument_revision_until_its_own_owner_recon
         with c.service.uow.transaction(c.scope) as tx:
             with pytest.raises(MissingEvidence,match='UNPOSTED_PROGRAM_ASSET_EFFECTS'):
                 guard(tx,tx.projections.book(c.scope),read_opening=read_program_account_opening)
-            economic_marker(tx,s,approval)
+        s.apply(c.write.command_id)
         with psycopg.connect(database) as db:
             db.execute('INSERT INTO ledger.active_owners VALUES(%s,%s,%s,%s,%s,%s,1,1)',
                 ('PAPER',other.venue_account_id,'SPOT',other.instrument_uid,'BOTH',c.c.terms.owner_strategy_id))
@@ -59,7 +62,7 @@ def test_actual_fill_changes_other_instrument_revision_until_its_own_owner_recon
                 guard(tx,old,read_opening=read_program_account_opening)
             current=reconcile(tx,read_opening=read_program_account_opening)
             assert current.sequence==old.sequence+1
-            assert {m.currency:m.amount for m in current.balances}==dict(BTC=D('10.4'),USDT=D('967404'))
+            assert {m.currency:m.amount for m in current.balances}==dict(BTC=D('10.4'),USDT=D('967371.404'))
             assert current.positions==() # initial account inventory is not strategy inventory
             before=guard(tx,current,read_opening=read_program_account_opening)
         # A second genuine venue fill makes the other instrument stale again.
@@ -67,15 +70,13 @@ def test_actual_fill_changes_other_instrument_revision_until_its_own_owner_recon
         from trading_system.engine.paper_market import PaperMatcher
         PaperMatcher(c.engine).apply_market_event(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'))
         s.apply(c.write.command_id)
-        second=s.source_service.approve(c.write.command_id).approvals[-1]
-        with c.service.uow.transaction(c.scope) as tx:economic_marker(tx,s,second)
         with c.service.uow.transaction(other) as tx:
             with pytest.raises(MissingEvidence,match='STALE_BOOK_ACCOUNT_CASH'):
                 guard(tx,current,read_opening=read_program_account_opening)
             updated=reconcile(tx,read_opening=read_program_account_opening)
             after=guard(tx,updated,read_opening=read_program_account_opening)
             assert after.economic_revision!=before.economic_revision
-            assert {m.currency:m.amount for m in updated.balances}==dict(BTC=D('10.6'),USDT=D('951106'))
+            assert {m.currency:m.amount for m in updated.balances}==dict(BTC=D('10.6'),USDT=D('951057.106'))
             assert updated.sequence==current.sequence+1
             assert reconcile(tx,read_opening=read_program_account_opening)==updated
     finally:codec.close()

@@ -35,6 +35,8 @@ def dependency_setup(image,*,offline=False):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--commit', required=True, help='Exact committed source to test')
+    parser.add_argument('--historical-source-commit', action='append', default=[],
+                        help='Explicit immutable old runtime included in the offline source bundle for migration fixtures')
     parser.add_argument('--timeout', type=int, default=5400, help='Whole run deadline in seconds')
     parser.add_argument('--suite', help='One diagnostic PostgreSQL suite; not full qualification')
     parser.add_argument('--python-suite', action='store_true', help='Also run the ordinary full Python suite (DB skips remain explicit)')
@@ -46,6 +48,13 @@ def main(argv=None):
     try:linux_setup,python_setup=dependency_setup(args.runner_image,offline=args.offline_dependencies)
     except ValueError as exc:parser.error(str(exc))
     commit = subprocess.check_output(['git', 'rev-parse', '--verify', args.commit + '^{commit}'], cwd=ROOT, text=True).strip()
+    historical_sources = []
+    for revision in args.historical_source_commit:
+        if not re.fullmatch(r'[0-9a-f]{40}', revision):
+            parser.error('--historical-source-commit requires a full immutable SHA')
+        actual = subprocess.check_output(['git', '-c', 'core.longpaths=true', 'rev-parse', '--verify', revision + '^{commit}'],
+                                        cwd=ROOT, text=True).strip()
+        if actual not in historical_sources:historical_sources.append(actual)
     tag = secrets.token_hex(6)
     run = ROOT / '.runtime' / ('paper-qualification-' + tag)
     run.mkdir(parents=True, exist_ok=False)
@@ -62,7 +71,8 @@ def main(argv=None):
                    + '\nPAPER_CI_ADMIN_DSN=host=127.0.0.1 port=5432 dbname=paper_ci_admin user=paper_admin password=' + password
                    + '\nGITHUB_SHA=' + commit + '\n', encoding='utf-8')
     os.chmod(env, 0o600)
-    manifest = {'source_commit': commit, 'started_utc': datetime.now(timezone.utc).isoformat(),
+    manifest = {'source_commit': commit, 'historical_source_commits': historical_sources,
+                'started_utc': datetime.now(timezone.utc).isoformat(),
                 'postgres_container': pg, 'runner_container': runner, 'commands': [],
                 'launcher_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 'scope': 'LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION', 'diagnostic_suite': args.suite, 'deadline_seconds': args.timeout,
@@ -89,7 +99,8 @@ def main(argv=None):
 
     status = 1
     try:
-        invoke(['git', 'bundle', 'create', str(run / 'source.bundle'), 'HEAD', commit], 'bundle')
+        invoke(['git', '-c', 'core.longpaths=true', 'bundle', 'create', str(run / 'source.bundle'), 'HEAD', commit,
+                *historical_sources], 'bundle')
         invoke(['docker', 'run', '-d', '--name', pg, '--env-file', str(env), 'postgres:17-alpine'], 'postgres-start')
         for _ in range(60):
             ready = subprocess.run(['docker', 'exec', pg, 'pg_isready', '-U', 'paper_admin', '-d', 'paper_ci_admin'],

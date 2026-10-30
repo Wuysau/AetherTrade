@@ -22,8 +22,7 @@ from trading_system.storage.uow import UnitOfWork
 def database(command_database):
     import psycopg
     for name in ('0016_program_fill_source_approval.sql','0017_program_fill_source_snapshots.sql',
-                 '0018_program_fill_source_leaves.sql','0019_program_account_opening.sql',
-                 '0020_program_legacy_opening.sql'):
+                 '0018_program_fill_source_leaves.sql'):
         path=Path(__file__).resolve().parents[2]/'migrations'/name
         if path.exists():
             with psycopg.connect(command_database) as db:db.execute(path.read_text(encoding='utf-8'))
@@ -98,6 +97,26 @@ def test_genuine_fill_source_is_committed_without_posting_or_authorizing(databas
         assert proof['verification']['raw_refs']
         assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
         assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+
+
+def test_actual_accepted_unfilled_gtc_snapshot_can_be_committed_without_fill_or_credit(database,venue,tmp_path):
+    c=case(database,venue,tmp_path);submit(c)
+    observer,codec=actual_verifier(c,tmp_path/'empty-accepted-archive')
+    try:verified=observer.verify(c.write.command_id)
+    finally:codec.close()
+    assert verified.source_verified and not verified.fills and len(verified.orders)==1
+    assert verified.orders[0].leaves_quantity.value==__import__('decimal').Decimal('1')
+    from trading_system.execution.program_fill_source import save_verification_snapshot
+    with source_uow(database).transaction(c.scope) as tx:
+        snapshot,hashes=save_verification_snapshot(tx,verified)
+    assert hashes==() and len(snapshot)==64
+    with c.service.uow.transaction(c.scope) as tx:
+        row=tx.execute('SELECT payload FROM ledger.program_fill_source_snapshots WHERE scope_id=%s AND snapshot_id=%s',
+            (scope_id(c.scope),snapshot)).fetchone()
+        assert row[0]['verification']['raw_report']['request']['command_id']==c.write.command_id
+        assert row[0]['normalized_fills']=={}
+        assert tx.execute('SELECT count(*) FROM ledger.program_fill_source_approvals WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
+        assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
 
 
 def test_owner_cannot_mint_or_mutate_source_approval(database,venue,tmp_path):
@@ -366,16 +385,26 @@ def test_0018_backfills_existing_v2_source_without_rewriting_history(database,ve
             'migrations/0012_program_command_boundary.sql','migrations/0016_program_fill_source_approval.sql',
             'migrations/0017_program_fill_source_snapshots.sql'):
             db.execute((root/relative).read_text(encoding='utf-8'))
-    c=case(old_dsn,venue,tmp_path);submit(c)
-    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
-    verifier,codec=actual_verifier(c,tmp_path/'old-source-archive')
+    from integration.support_historical_program_source import historical_source_case,VINTAGE
+    c,original_approvals,archive=historical_source_case(old_dsn,venue,tmp_path)
+    assert VINTAGE=='3d13721cbcdc2e35cdd347c610372f13fee03b4f'
+    verifier,codec=actual_verifier(c,archive)
     service=ProgramFillSourceService(source_uow(old_dsn),c.scope,verifier=verifier)
     try:
-        prior=service.approve(c.write.command_id)
+        with c.service.uow.transaction(c.scope) as tx:
+            prior=tuple(read_committed_fill_source(tx,a['approval_id']) for a in original_approvals)
+            for actual,original in zip(prior,original_approvals,strict=True):
+                assert set(original)=={'approval_id','identity_hash','normalized'}
+                assert {key:domain_payload(actual)[key] for key in original}==original
+                assert actual.command_id==c.write.command_id
         with psycopg.connect(old_dsn) as db:
             assert db.execute("SELECT to_regclass('ledger.program_fill_source_headers')").fetchone()==(None,)
             snapshots=db.execute('SELECT scope_id,snapshot_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_snapshots').fetchall()
             approvals=db.execute('SELECT scope_id,approval_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_approvals').fetchall()
+            verification=snapshots[0][2]['verification']
+            assert prior[0].verification_status==verification['status']
+            assert prior[0].verification_discrepancies==tuple(verification['discrepancies'])
+            assert prior[0].retained_duties==tuple(verification['retained_duties'])
             db.execute((root/'migrations/0018_program_fill_source_leaves.sql').read_text(encoding='utf-8'))
         with psycopg.connect(old_dsn) as db:
             assert db.execute('SELECT scope_id,snapshot_id,payload,payload_hash,xmin::text FROM ledger.program_fill_source_snapshots').fetchall()==snapshots
@@ -383,8 +412,8 @@ def test_0018_backfills_existing_v2_source_without_rewriting_history(database,ve
             assert db.execute('SELECT count(*) FROM ledger.program_fill_source_headers').fetchone()==(1,)
             assert db.execute('SELECT count(*) FROM ledger.program_fill_source_leaves').fetchone()==(1,)
         with c.service.uow.transaction(c.scope) as tx:
-            assert read_committed_fill_source(tx,prior.approvals[0].approval_id)==prior.approvals[0]
-        assert service.approve(c.write.command_id).approvals==prior.approvals
+            assert read_committed_fill_source(tx,prior[0].approval_id)==prior[0]
+        assert service.approve(c.write.command_id).approvals==prior
         PaperMatcher(c.engine).apply_market_event(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'))
         assert len(service.approve(c.write.command_id).approvals)==2
     finally:codec.close()

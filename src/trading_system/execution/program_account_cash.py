@@ -17,6 +17,7 @@ from .fills import FillLedger
 from .program_account_opening import ProgramAccountKey,account_key,read_program_account_opening
 from .program_asset_reader import ProgramAssetPostingReader
 from .program_asset_postings import ProgramAssetPostingRecord,make_program_asset_posting,economic_signature
+from .program_observed_cash import observed_source_rows,require_observed_cash_coverage
 
 
 def need(condition,code):
@@ -91,7 +92,7 @@ def _legacy_effects(tx,fill,raw_commands):
     return deltas,signature
 
 
-def read_program_account_cash(tx,*,read_opening=None):
+def _read_program_account_cash(tx,*,read_opening,require_projection):
     """Return None only for the legacy/no-generic branch, never unknown cash.
 
     read_opening is an explicitly registered local provenance reader. The
@@ -105,6 +106,8 @@ def read_program_account_cash(tx,*,read_opening=None):
         "WHERE payload#>>'{scope,environment}'=%s AND payload#>>'{scope,venue_account_id}'=%s "
         "AND payload#>>'{scope,product}'=%s ORDER BY scope_id,approval_id",
         (str(account.environment),account.venue_account_id,str(account.product))).fetchall()
+    observations=observed_source_rows(tx,account)
+    observed_native=any(row[8] is not None for row in observations)
     rows=tx.execute('SELECT f.payload FROM ledger.fills f WHERE f.environment=%s AND f.account_id=%s AND f.product=%s',
         (str(account.environment),account.venue_account_id,str(account.product))).fetchall()
     fills=tuple(decode(t.Fill,row[0]) for row in rows)
@@ -115,24 +118,32 @@ def read_program_account_cash(tx,*,read_opening=None):
         origins[_native_key(fill)]=tuple(row[0] for row in legacy)
     generic_fills=tuple(f for f in fills if not origins[_native_key(f)])
     if read_opening is None:
-        need(not sources and not generic_fills,'ACCOUNT_OPENING_REQUIRED')
+        need(not sources and not generic_fills and not observed_native,'ACCOUNT_OPENING_REQUIRED')
         return None
     from .program_legacy_opening import read_program_legacy_opening,read_program_local_account_opening
     need(any(read_opening is reader for reader in (read_program_account_opening,read_program_legacy_opening,read_program_local_account_opening)),
         'TRUSTED_ACCOUNT_OPENING_READER_REQUIRED')
     opening=read_opening(tx)
     if opening is None:
-        need(not sources and not generic_fills,'ACCOUNT_OPENING_REQUIRED')
+        need(not sources and not generic_fills and not observed_native,'ACCOUNT_OPENING_REQUIRED')
         return None
     need(opening.account==account,'ACCOUNT_OPENING_BINDING_CHANGED')
+    # The historical command table and owner-written fill/audit rows are not a
+    # source attestation. No authenticated legacy fee/history adapter is yet
+    # registered. Preserve that history but block mixed credit until an actual
+    # protected legacy source contract is available; never infer .001 fees.
+    need(not any(origins[_native_key(f)] for f in fills),'LEGACY_AUTHENTICATED_SOURCE_REQUIRED')
     readers={};facts={};covered=set();duties=[]
-    for stored_scope,approval_id,identity,payload in sources:
-        scope=decode(t.ScopeKey,payload['scope'])
-        need(stored_scope==scope_id(scope),'ACCOUNT_SOURCE_SCOPE_CHANGED')
+    def read_scope(scope):
+        stored_scope=scope_id(scope)
         if stored_scope not in readers:
             view=_AccountScopeRead(tx,scope)
             readers[stored_scope]=ProgramAssetPostingReader(view,fill_ledger=FillLedger(None,scope,trade_id_scope='INSTRUMENT'))
-        reader=readers[stored_scope];fact=reader.read(approval_id)
+        return readers[stored_scope]
+    for stored_scope,approval_id,identity,payload in sources:
+        scope=decode(t.ScopeKey,payload['scope'])
+        need(stored_scope==scope_id(scope),'ACCOUNT_SOURCE_SCOPE_CHANGED')
+        reader=read_scope(scope);fact=reader.read(approval_id)
         need(fact.approval.identity_hash==identity,'ACCOUNT_NATIVE_IDENTITY_CHANGED')
         signature=economic_signature(fact)
         if identity in facts:
@@ -140,16 +151,21 @@ def read_program_account_cash(tx,*,read_opening=None):
         else:
             marker=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
                 (stored_scope,'program-asset-posting:'+identity)).fetchone()
-            need(marker is not None,'UNPOSTED_PROGRAM_ASSET_EFFECTS')
-            try:
-                record=decode(ProgramAssetPostingRecord,marker[0])
-                original=reader.read(record.source_approval_id)
-                need(record==make_program_asset_posting(original) and economic_signature(original)==signature,
-                    'PROGRAM_ASSET_POSTING_MISMATCH')
-            except (ValueError,TypeError,KeyError) as error:
-                raise MissingEvidence('PROGRAM_ASSET_POSTING_MISMATCH') from error
+            need(marker is not None or not require_projection,'UNPOSTED_PROGRAM_ASSET_EFFECTS')
+            if marker is not None:
+                try:
+                    record=decode(ProgramAssetPostingRecord,marker[0])
+                    original=reader.read(record.source_approval_id)
+                    need(record==make_program_asset_posting(original) and economic_signature(original)==signature,
+                        'PROGRAM_ASSET_POSTING_MISMATCH')
+                except (ValueError,TypeError,KeyError) as error:
+                    raise MissingEvidence('PROGRAM_ASSET_POSTING_MISMATCH') from error
+            if require_projection:
+                from .program_owned_posting import require_owned_program_posting
+                require_owned_program_posting(reader.tx,fact)
             facts[identity]=fact
         covered.add(_native_key(fact.fill));duties.extend(fact.approval.retained_duties)
+    duties.extend(require_observed_cash_coverage(observations,facts,read_scope))
     need({_native_key(f) for f in generic_fills}==covered,'UNAPPROVED_ACCOUNT_FILL_HISTORY')
     vector={m.currency:m.amount for m in opening.balances};legacy_signatures=[]
     with localcontext() as arithmetic:
@@ -170,3 +186,18 @@ def read_program_account_cash(tx,*,read_opening=None):
         balances=tuple(t.Money(currency=asset,amount=value) for asset,value in sorted(vector.items())),
         native_identities=tuple(sorted(facts)),legacy_fill_ids=tuple(k for k,_ in sorted(legacy_signatures)),
         retained_duties=tuple(dict.fromkeys(duties)))
+
+
+def read_program_account_cash(tx,*,read_opening=None):
+    """Strict neutral read: all actual native-to-owner projections are required."""
+    return _read_program_account_cash(tx,read_opening=read_opening,require_projection=True)
+
+
+def observe_program_account_cash(tx,*,read_opening=None):
+    """Financial-only observed vector from protected source plus real FillLedger.
+
+    Unprojected native facts are real account economics, never a spendable or
+    owned-position attestation. Never use this reader at admission/mark/consume,
+    in BookCashBinding, or to renew an intake. Those use the strict reader above.
+    """
+    return _read_program_account_cash(tx,read_opening=read_opening,require_projection=False)

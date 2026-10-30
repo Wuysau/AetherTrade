@@ -17,9 +17,7 @@ def database(opening_database):
     import psycopg
     path=Path(__file__).resolve().parents[2]/'migrations/0020_program_legacy_opening.sql'
     if path.exists():
-        with psycopg.connect(opening_database) as db:
-            if db.execute("SELECT to_regclass('ledger.program_legacy_account_openings')").fetchone()[0] is None:
-                db.execute(path.read_text(encoding='utf-8'))
+        with psycopg.connect(opening_database) as db:db.execute(path.read_text(encoding='utf-8'))
     return opening_database
 
 
@@ -88,6 +86,36 @@ def test_owner_cannot_mint_a_new_initialization_audit_or_direct_protected_openin
         with owner_uow(database).transaction(scope_for('BTCUSDT')) as tx:
             tx.execute('INSERT INTO ledger.program_legacy_account_openings(account_key,payload,payload_hash,transaction_id) '
                 "VALUES('forged','{}','forged',%s)",(tx.transaction_id,))
+
+
+def test_original_zero_base_console_book_reconciles_once_to_the_full_account_vector(database,seeded):
+    import psycopg
+    from trading_system.execution.program_legacy_opening import read_program_local_account_opening
+    from trading_system.execution.program_book_cash import bind_program_book_cash,reconcile_program_book_cash,require_current_program_book_cash
+    from trading_system.ownership.registry import OwnershipRegistry
+    from trading_system.storage.models import MissingEvidence
+    scope=scope_for('ETHUSDT');uow=owner_uow(database)
+    with psycopg.connect(database) as db:
+        db.execute('INSERT INTO ledger.active_owners VALUES(%s,%s,%s,%s,%s,%s,1,1)',
+            ('PAPER',ACCOUNT,'SPOT',scope.instrument_uid,'BOTH','console-paper-owner'))
+    coverage=t.Coverage(scope=scope,query_succeeded=True,pagination_complete=True,supported=True,missing=())
+    initial=t.BookSnapshot(scope=scope,positions=(),active_orders=(),reservations=(),
+        balances=(t.Money(currency='USDT',amount=D('100000')),t.Money(currency='ETH',amount=D(0))),
+        sequence=1,basis_fingerprint=canonical_hash(dict(legacy_book='zero-ETH')),coverage=coverage,evidence=(evidence(seeded),))
+    with uow.transaction(scope) as tx:tx.projections.save_book(initial,0)
+    position=t.ManagedPosition(position_id='legacy-zero-ETH',scope=scope,actual_quantity=t.Quantity(unit='BASE',value=D(0)),
+        owner_strategy_id='console-paper-owner',owner_book_id='legacy-ETH-book',ownership_epoch=1,cost_evidence=coverage,
+        realized_pnl=None,unrealized_valuation=None,active_exit_plan_id=None,risk_locks=())
+    OwnershipRegistry(uow).register(position,1)
+    with uow.transaction(scope) as tx:
+        with pytest.raises(MissingEvidence,match='BOOK_CASH_VECTOR_MISMATCH'):
+            bind_program_book_cash(tx,initial,read_opening=read_program_local_account_opening)
+        reconciled=reconcile_program_book_cash(tx,read_opening=read_program_local_account_opening)
+        assert reconciled.sequence==2 and reconciled.balances==(t.Money(currency='USDT',amount=D('100000')),)
+        assert reconciled.positions==()
+        assert require_current_program_book_cash(tx,reconciled,read_opening=read_program_local_account_opening).balances==reconciled.balances
+    with uow.transaction(scope) as tx:
+        assert reconcile_program_book_cash(tx,read_opening=read_program_local_account_opening)==reconciled
 
 
 def test_duplicate_seed_is_not_ignored_by_protected_reader(database,seeded):

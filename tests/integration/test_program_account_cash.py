@@ -62,7 +62,7 @@ def test_no_generic_history_preserves_legacy_branch_and_explicit_opening_reconst
 
 
 def test_real_native_effects_are_counted_once_across_repeated_source_snapshots(database,venue,tmp_path):
-    from trading_system.execution.program_account_cash import read_program_account_cash
+    from trading_system.execution.program_account_cash import observe_program_account_cash as read_program_account_cash
     c,s,codec,approval=matched(database,venue,tmp_path)
     try:
         with c.service.uow.transaction(c.scope) as tx:
@@ -89,6 +89,17 @@ def test_unposted_source_is_a_blocker_and_never_zero_contribution(database,venue
     try:
         with c.service.uow.transaction(c.scope) as tx:
             with pytest.raises(MissingEvidence,match='UNPOSTED_PROGRAM_ASSET_EFFECTS'):
+                read_program_account_cash(tx,read_opening=read_program_account_opening)
+    finally:codec.close()
+
+
+def test_economic_audit_marker_without_actual_owned_transition_cannot_be_spendable(database,venue,tmp_path):
+    from trading_system.execution.program_account_cash import read_program_account_cash
+    c,s,codec,approval=matched(database,venue,tmp_path)
+    try:
+        with c.service.uow.transaction(c.scope) as tx:
+            economic_marker(tx,s,approval)
+            with pytest.raises(MissingEvidence,match='UNPOSTED_PROGRAM_OWNED_EFFECTS'):
                 read_program_account_cash(tx,read_opening=read_program_account_opening)
     finally:codec.close()
 
@@ -135,7 +146,7 @@ def test_callable_equality_cannot_impersonate_a_registered_capital_reader(databa
 
 
 def test_actual_unapproved_extra_fill_cannot_be_ignored_by_account_reconstruction(database,venue,tmp_path):
-    from trading_system.execution.program_account_cash import read_program_account_cash
+    from trading_system.execution.program_account_cash import observe_program_account_cash as read_program_account_cash
     c,s,codec,approval=matched(database,venue,tmp_path)
     try:
         with c.service.uow.transaction(c.scope) as tx:
@@ -146,5 +157,38 @@ def test_actual_unapproved_extra_fill_cannot_be_ignored_by_account_reconstructio
             s._fills.record_in_tx(tx,forged)
         with c.service.uow.transaction(c.scope) as tx:
             with pytest.raises(MissingEvidence,match='UNAPPROVED_ACCOUNT_FILL_HISTORY'):
+                read_program_account_cash(tx,read_opening=read_program_account_opening)
+    finally:codec.close()
+
+
+def test_owner_sql_legacy_origin_and_fill_cannot_mint_mixed_account_credit(database,venue,tmp_path):
+    import json
+    from pathlib import Path
+    from trading_system.contracts.canonical import canonical_json,canonical_hash
+    from trading_system.storage.events import EventStore
+    from trading_system.execution.program_account_cash import read_program_account_cash
+    c,s,codec,approval=matched(database,venue,tmp_path)
+    try:
+        with c.service.uow.transaction(c.scope) as tx:
+            economic_marker(tx,s,approval)
+            command=json.loads((Path(__file__).resolve().parents[1]/'fixtures/contracts/examples/execution-command.paper.json').read_text())
+            command.update(command_id='owner-forged-legacy',venue_account_id=c.scope.venue_account_id,
+                instrument_uid=c.scope.instrument_uid,logical_client_order_id='owner-forged-legacy-logical')
+            command['canonical_payload']['side']='SELL'
+            command['payload_hash']=canonical_hash(command['canonical_payload'])
+            tx.execute('INSERT INTO ledger.commands(scope_id,record_id,sequence,payload,transaction_id) '
+                'VALUES(%s,%s,1,%s::jsonb,%s)',(scope_id(c.scope),command['command_id'],canonical_json(command),tx.transaction_id))
+            tx.execute('INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) '
+                'VALUES(%s,%s,1,%s::jsonb,%s)',(scope_id(c.scope),'console:request:'+command['command_id'],
+                canonical_json(dict(symbol='BTCUSDT')),tx.transaction_id))
+            # Adversarial ordinary owner writes, never a legitimate native fill.
+            fake=replace(approval.normalized.fill,fill_id='owner-forged-legacy-fill',native_trade_id='owner-forged-legacy-trade',
+                order=replace(approval.normalized.fill.order,logical_client_order_id='owner-forged-legacy-logical'),
+                quantity=t.Quantity(unit='BASE',value=D(1)),price=t.Price(currency='USDT',value=D('1000000')),
+                fees=(t.Money(currency='USDT',amount=D(0)),))
+            EventStore().append(tx,t.DomainEvent(event_id='owner-forged-legacy-event',scope=c.scope,
+                aggregate_id='owner-forged-legacy-fill',revision=1,occurred_at=fake.occurred_at,evidence=(fake.evidence,),payload=fake),0)
+        with c.service.uow.transaction(c.scope) as tx:
+            with pytest.raises(MissingEvidence,match='LEGACY_AUTHENTICATED_SOURCE_REQUIRED'):
                 read_program_account_cash(tx,read_opening=read_program_account_opening)
     finally:codec.close()

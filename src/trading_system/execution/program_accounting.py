@@ -15,7 +15,7 @@ from trading_system.contracts.canonical import canonical_hash,domain_payload
 from trading_system.contracts.program_financial import FinancialUnit
 from trading_system.risk.locks import RiskLockService,POLICIES
 from trading_system.storage.events import EventStore
-from trading_system.storage.models import scope_id
+from trading_system.storage.models import scope_id,MissingEvidence
 from trading_system.storage.uow import UnitOfWork
 from .evidence import EvidenceIngestor
 from .fills import FillLedger
@@ -45,7 +45,7 @@ class ProgramFillAccountingRecord:
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ProgramAccountingResult:
     command_id:str
-    status:Literal['SOURCE_BLOCKED','NO_FILLS','RAW_RECORDED_ECONOMICS_BLOCKED']
+    status:Literal['SOURCE_BLOCKED','NO_FILLS','RAW_RECORDED_ECONOMICS_BLOCKED','ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED','OWN_SCOPE_POSTED_ACCOUNT_RECONCILIATION_REQUIRED']
     fills:tuple[t.FillReceipt,...]
     missing:tuple[str,...]
     retained_duties:tuple[str,...]
@@ -59,7 +59,7 @@ class ProgramAccountingResult:
 
 
 class ProgramPaperAccountingService:
-    def __init__(self,uow,scope,*,source_service,trade_id_scope):
+    def __init__(self,uow,scope,*,source_service,trade_id_scope,financial_posting=None):
         require(type(uow) is UnitOfWork and type(scope) is t.ScopeKey
             and scope.environment==t.Environment.PAPER,'PAPER_ACCOUNTING_UOW_REQUIRED')
         require(type(source_service) is ProgramFillSourceService and source_service.scope==scope,
@@ -67,6 +67,10 @@ class ProgramPaperAccountingService:
         self.uow,self.scope,self.source_service=uow,scope,source_service
         self._fills=FillLedger(uow,scope,trade_id_scope=trade_id_scope)
         self._evidence=EvidenceIngestor(uow,scope,read_raw=self._read_raw)
+        from .program_owned_posting import ProgramOwnedSpotPosting
+        require(financial_posting is None or type(financial_posting) is ProgramOwnedSpotPosting,
+            'ACTUAL_OWNED_FINANCIAL_POSTING_REQUIRED')
+        self.financial_posting=financial_posting
 
     def _read_raw(self,ref):
         bridge=self.source_service.verifier.archive_bridge
@@ -96,7 +100,7 @@ class ProgramPaperAccountingService:
                 missing=source.verification.discrepancies,retained_duties=source.verification.retained_duties)
         prepared={a.approval_id:self._prepare(a) for a in source.approvals}
         missing=tuple(dict.fromkeys(('CURRENT_ACCOUNTING_FACTS_REQUIRED',*source.verification.discrepancies)))
-        receipts=[]
+        receipts=[];status='RAW_RECORDED_ECONOMICS_BLOCKED';retained=source.verification.retained_duties
         with self.uow.transaction(self.scope) as tx:
             book=tx.projections.book(self.scope)
             reader=CommittedProgramFillSources(tx)
@@ -130,5 +134,21 @@ class ProgramPaperAccountingService:
                     require(old.scope==self.scope and old.command_id==command_id and old.identity_hash==actual.identity_hash
                         and old.fill_id==receipt.fill_id and old.native_unit_bridge==actual.normalized.economics.unit,
                         'PROGRAM_ACCOUNTING_NATIVE_IDENTITY_CONFLICT')
-        return ProgramAccountingResult(command_id=command_id,status='RAW_RECORDED_ECONOMICS_BLOCKED',
-            fills=tuple(receipts),missing=missing,retained_duties=source.verification.retained_duties)
+            if self.financial_posting is not None:
+                # Preserve authenticated raw native facts on unresolved current
+                # economics. All financial writes share this physical TX and
+                # are rolled back together if reconstruction cannot complete.
+                tx.execute('SAVEPOINT program_owned_financial')
+                try:
+                    duties,complete=self.financial_posting.post(tx,source.approvals,self._fills)
+                except (MissingEvidence,ValueError) as error:
+                    if tx.failed:raise
+                    tx.execute('ROLLBACK TO SAVEPOINT program_owned_financial')
+                    missing=tuple(dict.fromkeys((*missing,str(error))))
+                else:
+                    status='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED' if complete else 'OWN_SCOPE_POSTED_ACCOUNT_RECONCILIATION_REQUIRED'
+                    missing=tuple(dict.fromkeys((*source.verification.discrepancies,*duties)))
+                    retained=tuple(dict.fromkeys((*retained,*duties)))
+                tx.execute('RELEASE SAVEPOINT program_owned_financial')
+        return ProgramAccountingResult(command_id=command_id,status=status,
+            fills=tuple(receipts),missing=missing,retained_duties=retained)
