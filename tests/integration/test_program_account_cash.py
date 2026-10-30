@@ -93,6 +93,17 @@ def test_unposted_source_is_a_blocker_and_never_zero_contribution(database,venue
     finally:codec.close()
 
 
+def test_economic_audit_marker_without_actual_owned_transition_cannot_be_spendable(database,venue,tmp_path):
+    from trading_system.execution.program_account_cash import read_program_account_cash
+    c,s,codec,approval=matched(database,venue,tmp_path)
+    try:
+        with c.service.uow.transaction(c.scope) as tx:
+            economic_marker(tx,s,approval)
+            with pytest.raises(MissingEvidence,match='UNPOSTED_PROGRAM_OWNED_EFFECTS'):
+                read_program_account_cash(tx,read_opening=read_program_account_opening)
+    finally:codec.close()
+
+
 def test_ordinary_audit_delta_cannot_mint_more_than_approved_native_effects(database,venue,tmp_path):
     from trading_system.execution.program_account_cash import read_program_account_cash
     from trading_system.execution.program_asset_reader import ProgramAssetPostingReader

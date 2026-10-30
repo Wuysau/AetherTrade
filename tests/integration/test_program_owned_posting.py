@@ -228,3 +228,56 @@ def test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted(da
             assert tx.execute('SELECT count(*) FROM ledger.positions WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
             assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
     finally:codec.close()
+
+
+def test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes(database,venue,tmp_path):
+    from uuid import uuid4
+    from integration.test_program_financial_admission import real_case
+    from integration.test_program_account_opening import inputs,provision_uow
+    from trading_system.execution.program_account_opening import ProgramAccountOpeningService
+    from trading_system.execution.program_accounting import ProgramPaperAccountingService
+    from trading_system.execution.program_fill_source import ProgramFillSourceService
+    from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
+    from trading_system.execution.program_book_cash import require_current_program_book_cash,reconcile_program_book_cash
+    from trading_system.storage.models import MissingEvidence
+    first=real_case(database,instrument_uid='peer-a-'+uuid4().hex)
+    balances,proof=inputs(first)
+    ProgramAccountOpeningService(provision_uow(database),first.scope).initialize(balances,evidence=proof)
+    group=first.c.terms.collateral_group_id
+    second=real_case(database,venue_account_id=first.scope.venue_account_id,collateral_group_id=group,
+        instrument_uid='peer-b-'+uuid4().hex)
+    cases=[case(database,venue,tmp_path,prepared_case=initial) for initial in (first,second)]
+    services=[];codecs=[]
+    try:
+        for index,c in enumerate(cases):
+            p=t.ManagedPosition(position_id='owned:'+c.scope.instrument_uid,scope=c.scope,
+                actual_quantity=t.Quantity(unit='BASE',value=D(0)),owner_strategy_id=c.c.terms.owner_strategy_id,
+                owner_book_id='book:'+c.scope.instrument_uid,ownership_epoch=1,cost_evidence=c.c.book.coverage,
+                realized_pnl=None,unrealized_valuation=None,active_exit_plan_id=None,risk_locks=())
+            OwnershipRegistry(c.service.uow).register(p,c.c.terms.policy_revision)
+            submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+            observer,codec=actual_verifier(c,tmp_path/('peer-source-'+str(index)));codecs.append(codec)
+            source=ProgramFillSourceService(source_uow(database),c.scope,verifier=observer)
+            s=ProgramPaperAccountingService(c.service.uow,c.scope,source_service=source,trade_id_scope='INSTRUMENT')
+            assert s.apply(c.write.command_id).status=='RAW_RECORDED_ECONOMICS_BLOCKED'
+            s.financial_posting=ProgramOwnedSpotPosting(read_opening=read_program_account_opening);services.append(s)
+        a,b=cases
+        assert services[0].apply(a.write.command_id).status=='OWN_SCOPE_POSTED_ACCOUNT_RECONCILIATION_REQUIRED'
+        with a.service.uow.transaction(a.scope) as tx:
+            assert RegistryTx(tx).owner().position.actual_quantity.value==D('.4')
+            before=tx.projections.book(a.scope)
+            with pytest.raises(MissingEvidence):require_current_program_book_cash(tx,before,read_opening=read_program_account_opening)
+        assert services[1].apply(b.write.command_id).status=='ASSET_POSITION_BOOK_POSTED_DUTIES_RETAINED'
+        with a.service.uow.transaction(a.scope) as tx:
+            assert tx.projections.book(a.scope)==before # B did not write A
+            with pytest.raises(MissingEvidence,match='BOOK_CASH_BINDING_REQUIRED'):
+                require_current_program_book_cash(tx,before,read_opening=read_program_account_opening)
+            current=reconcile_program_book_cash(tx,read_opening=read_program_account_opening)
+            assert current.sequence==before.sequence+1
+            assert {m.currency:m.amount for m in current.balances}==dict(BTC=D('10.8'),USDT=D('934808'))
+            require_current_program_book_cash(tx,current,read_opening=read_program_account_opening)
+        with b.service.uow.transaction(b.scope) as tx:
+            assert RegistryTx(tx).owner().position.actual_quantity.value==D('.4')
+            assert tx.projections.book(b.scope).sequence==2
+    finally:
+        for codec in codecs:codec.close()

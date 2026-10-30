@@ -37,7 +37,7 @@ def database(isolated_postgres):
     return isolated_postgres
 
 
-def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,**risk_options):
+def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,venue_account_id=None,**risk_options):
     import psycopg
     from unit.support_program_financial import financial_case
     financial_case()
@@ -46,7 +46,7 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
     import test_program_exposure as exposure_module
     original_inputs=risk_module.inputs;suffix=uuid4().hex
     def scoped_inputs(product):
-        p,r,c,k=original_inputs(product);scope=replace(k['scope'],venue_account_id='isolated-'+suffix)
+        p,r,c,k=original_inputs(product);scope=replace(k['scope'],venue_account_id=venue_account_id or 'isolated-'+suffix)
         if instrument_uid is not None:
             scope=replace(scope,instrument_uid=instrument_uid)
             p=replace(p,instrument_ref=instrument_uid,program=replace(p.program,instrument_ref=instrument_uid))
@@ -97,8 +97,12 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
     owner,intake=role_uow('ledger_owner'),role_uow('ledger_intake')
     with psycopg.connect(dsn) as db:
         db.execute('INSERT INTO ledger.collateral_mutex VALUES(%s,%s) ON CONFLICT DO NOTHING',(scope.environment.value,group))
-        db.execute('INSERT INTO ledger.account_bindings VALUES(%s,%s,%s,%s,NULL)',
-            (scope.environment.value,scope.venue_account_id,scope.product.value,group))
+        existing=db.execute('SELECT collateral_group_id FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s',
+            (scope.environment.value,scope.venue_account_id,scope.product.value)).fetchone()
+        if existing is None:
+            db.execute('INSERT INTO ledger.account_bindings VALUES(%s,%s,%s,%s,NULL)',
+                (scope.environment.value,scope.venue_account_id,scope.product.value,group))
+        else:assert venue_account_id is not None and existing==(group,)
         db.execute('INSERT INTO ledger.active_owners VALUES(%s,%s,%s,%s,%s,%s,%s,%s)',
             (scope.environment.value,scope.venue_account_id,scope.product.value,scope.instrument_uid,scope.venue_leg,
                 c.terms.owner_strategy_id,c.terms.ownership_epoch,c.terms.policy_revision))
