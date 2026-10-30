@@ -6,6 +6,9 @@ Accounting tree parent/root remains sole writer, current product3d13721 (only
 new regression afterfdecbc5). Root integration_next solely owns binance-orders;
 source/accounting selected-path review is pending before serial integration.
 No parent test jobs remain live. Full46/56 OP-C→D/E/F→G stays ACTIVE.
+Evidence publicationa690f2a was independently checked against ALL241 original
+runtime files, working copies and actual committed Git blobs:0 SHA mismatch.
+The original proof job38493 is TERMINALexit0, not an active qualification job.
 
 Source13PG passed at08c05ae but followup review identified server-side TOAST
 amplification. Actual115af52 RED:13pass/1fail,9 perfill calls changed shared-proof
