@@ -77,6 +77,7 @@ def test_owned_plus_real_working_leaves_new_bounded_intake_is_no_action_and_repl
             values={f.name:getattr(old,f.name) for f in fields(ProgramTargetFacts)}
             values.update(transaction_id=tx.transaction_id,compilation_hash=canonical_hash(domain_payload(facts.compilation)),
                 book_sequence=financial.sequence,book_hash=canonical_hash(domain_payload(financial)),
+                unit_binding=replace(old.unit_binding,compilation_hash=canonical_hash(domain_payload(facts.compilation))),
                 inputs=replace(old.inputs,pending=working.pending,order_sides=working.order_sides))
             scoped=ProgramScopedTargetFactsV2(**values,contract_version='2026-10-30',record_kind='PROGRAM_SCOPED_TARGET_FACTS_V2',
                 quantity_scope=c.scope,quantity_reservation_ids=current_program_quantity_reservation_ids(tx,raw,financial))
@@ -116,5 +117,8 @@ def test_owner_authored_order_quantities_cannot_replace_private_source(database,
             forged=replace(book,sequence=book.sequence+1,active_orders=(replace(order,
                 leaves_quantity=replace(order.leaves_quantity,value=D(0))),))
             tx.projections.save_book(forged,book.sequence)
+            from trading_system.execution.program_book_cash import bind_program_book_cash
+            from trading_system.execution.program_legacy_opening import read_program_local_account_opening
+            bind_program_book_cash(tx,forged,read_opening=read_program_local_account_opening)
             with pytest.raises(MissingEvidence,match='PROGRAM_ORDER_BOOK_MISMATCH'):read_program_working_inputs(tx,forged)
     finally:codec.close();old_codec.close()
