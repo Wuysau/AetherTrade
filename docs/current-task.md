@@ -9,7 +9,9 @@ raw/financial hashes and real forged/omitted/scopemap/projection/immutable negat
 passed. Focused67unit GREEN15.04s; purec9Scoped+archive50unit earlierGREEN7.02s.
 Exact8path/SHA manifest ROOT-CASH-PHYSICAL-DEPENDENCY-ef80b58.json sent CASH together
 with complete27path b7 baseline.16 raw scoped files/maps and112 prior source/capital
-RED/GREEN originals are published. No own jobs remain live; no restarts due.
+RED/GREEN originals are published. All128 original/copy/actualCURRENTb0178597
+committed Git blobs independently SHA-verified0mismatch; recorded proof in
+op-c-physical-quantity-scope/COMMITTED-BYTES.json. No own jobs live or restarts due.
 
 Sourceb7actual8PG49.69s andfirst-capitala9actual3PG6.46s stay separate components.
 CASH85a919d has newer source/owned/book/readiness/historicalproof fixes and owns
