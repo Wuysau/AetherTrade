@@ -395,6 +395,10 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                 and consumption['assessment_hash']==digest(assessment),'PAPER_PROTECTED_CONTEXT_CHANGED')
         plan=assessment.compilation
         require(digest(plan)==original.compilation_hash,'PAPER_CURRENT_COMPILATION_CHANGED')
+        if v2 and plan.original_program.template in ('TWAP','VP'):
+            from .paper_native_programs import submit_native_program
+            return submit_native_program(engine,write,request,permit,boundary=boundary,lease=lease,owner=owner,
+                original=original,consumption=consumption,assessment=assessment)
         native_list=v2 and engine.scope.product==t.Product.SPOT and plan.original_program.template in ('OCO','OTO','OTOCO') and plan.original_program.execution_mode=='VENUE_NATIVE'
         require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
             and tuple(m.node_id for m in request.assigned_ids.members)==tuple(n.original.node_id for n in plan.nodes),
@@ -520,6 +524,9 @@ def query_creation(engine,command_id):
         request=decode(VenueCreationRequest,command['request'])
         require(request.command_id==command_id and request.scope==engine.scope and digest(request)==command['request_hash'],
             'PAPER_REQUEST_QUERY_BINDING_CHANGED')
+        if command['target_client_id'] is None:
+            from .paper_native_programs import query_native_program
+            return query_native_program(engine,db,command)
         rows=db.execute('SELECT o.*,t.terms FROM public.paper_engine_orders o JOIN public.paper_order_terms t '
             'USING(scope_key,client_id) WHERE o.scope_key=%s AND o.client_id=ANY(%s) ORDER BY t.arrival_sequence',
             (engine._scope_key,[m.client_id for m in request.assigned_ids.members])).fetchall()
@@ -600,6 +607,7 @@ def query_market_evidence(engine,command_id):
         request=decode(VenueCreationRequest,command['request'])
         require(request.scope==engine.scope and request.command_id==command_id and digest(request)==command['request_hash'],
             'PAPER_MARKET_QUERY_BINDING_CHANGED')
+        require(command['target_client_id'] is not None,'PAPER_NATIVE_PROGRAM_SOURCE_STAGE_REQUIRED')
         v2=db.execute("SELECT terms->>'model_revision' AS revision FROM public.paper_order_terms WHERE scope_key=%s AND client_id=%s",
             (engine._scope_key,command['target_client_id'])).fetchone()['revision']=='2'
         inputs=[];consumptions=[];used_bytes=512

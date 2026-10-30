@@ -389,9 +389,12 @@ def provision_paper_market_v2(admin_dsn,roles):
         for role in (roles.runtime_role,roles.event_role):
             db.execute(sql.SQL('GRANT SELECT ON public.paper_reference_prices_v2,public.paper_order_runtime_v2,'
                 'public.paper_market_state_v2,public.paper_market_preventions_v2,public.paper_order_input_dependencies_v2,'
-                'public.paper_native_parents_v2,public.paper_native_members_v2 TO {}').format(sql.Identifier(role)))
+                'public.paper_native_parents_v2,public.paper_native_members_v2,public.paper_native_parent_terms_v2,'
+                'public.paper_native_algorithm_progress_v2 TO {}').format(sql.Identifier(role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_match_order(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_accept_native_program_v2(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
+        db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_accept_native_algorithm_v2(text,text) TO {}').format(sql.Identifier(roles.runtime_role)))
+        db.execute(sql.SQL('GRANT INSERT ON public.paper_native_parent_terms_v2 TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_match_order(text,text) TO {}').format(sql.Identifier(roles.event_role)))
 
 

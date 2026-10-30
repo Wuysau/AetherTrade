@@ -9,6 +9,11 @@ DO $$ BEGIN
  IF EXISTS(SELECT FROM pg_auth_members WHERE member=(SELECT oid FROM pg_roles WHERE rolname='paper_matcher_definer')
   OR roleid=(SELECT oid FROM pg_roles WHERE rolname='paper_matcher_definer')) THEN RAISE EXCEPTION 'matcher role membership denied'; END IF;
 END $$;
+ALTER TABLE public.paper_engine_commands ALTER COLUMN target_client_id DROP NOT NULL;
+ALTER TABLE public.paper_engine_commands ADD CONSTRAINT paper_command_target_v2 CHECK(target_client_id IS NOT NULL OR coalesce(
+ operation='CREATE_REQUEST' AND request->>'namespace' IN ('BINANCE_USD_M_CONDITIONAL_ALGO','BINANCE_SPOT_EXECUTION_ALGO','BINANCE_USD_M_EXECUTION_ALGO')
+ AND request->'scope'=scope_key::jsonb AND request->>'command_id'=command_id AND request->'assigned_ids'->>'parent_client_id'=client_id
+ AND length(client_id)=32 AND jsonb_array_length(request->'assigned_ids'->'members')=0,false));
 CREATE TABLE public.paper_market_state_v2(
  market_key text PRIMARY KEY,depth_event_id text,
  FOREIGN KEY(market_key,depth_event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
@@ -56,6 +61,20 @@ CREATE TABLE public.paper_native_exclusivity_v2(
  PRIMARY KEY(scope_key,parent_client_id),
  FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
  FOREIGN KEY(scope_key,winner_client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
+CREATE TABLE public.paper_native_parent_terms_v2(
+ scope_key text NOT NULL,parent_client_id text NOT NULL,command_id text NOT NULL,market_key text NOT NULL,terms jsonb NOT NULL,
+ PRIMARY KEY(scope_key,parent_client_id),UNIQUE(scope_key,command_id),
+ FOREIGN KEY(scope_key,command_id) REFERENCES public.paper_engine_commands(scope_key,command_id));
+CREATE TABLE public.paper_native_algorithm_progress_v2(
+ scope_key text NOT NULL,parent_client_id text NOT NULL,original_quantity numeric NOT NULL CHECK(original_quantity>0),
+ allocated_quantity numeric NOT NULL DEFAULT 0,executed_quantity numeric NOT NULL DEFAULT 0,unused_quantity numeric NOT NULL DEFAULT 0,
+ maximum_gross_notional numeric NOT NULL CHECK(maximum_gross_notional>0),allocated_gross_notional numeric NOT NULL DEFAULT 0,
+ cumulative_gross_notional numeric NOT NULL DEFAULT 0,fee_ceilings jsonb NOT NULL,maximum_live_children integer NOT NULL CHECK(maximum_live_children>0),
+ accepted_at timestamptz NOT NULL,ending_at timestamptz,
+ PRIMARY KEY(scope_key,parent_client_id),FOREIGN KEY(scope_key,parent_client_id) REFERENCES public.paper_native_parents_v2(scope_key,parent_client_id),
+ CHECK(allocated_quantity>=0 AND allocated_quantity<=original_quantity AND executed_quantity>=0 AND unused_quantity>=0
+  AND executed_quantity+unused_quantity<=allocated_quantity AND cumulative_gross_notional>=0
+  AND cumulative_gross_notional<=allocated_gross_notional AND allocated_gross_notional<=maximum_gross_notional));
 CREATE TABLE public.paper_order_runtime_v2(
  scope_key text NOT NULL,client_id text NOT NULL,active boolean NOT NULL,phase text NOT NULL,
  activation_event_id text,high_water numeric,low_water numeric,trail_started boolean NOT NULL DEFAULT false,
@@ -64,7 +83,8 @@ CREATE TABLE public.paper_order_runtime_v2(
  PRIMARY KEY(scope_key,client_id),FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 REVOKE ALL ON public.paper_market_state_v2,public.paper_reference_prices_v2,public.paper_published_rules_v2,
  public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2,public.paper_market_preventions_v2,
- public.paper_order_input_dependencies_v2,public.paper_native_parents_v2,public.paper_native_members_v2,public.paper_native_exclusivity_v2 FROM PUBLIC;
+ public.paper_order_input_dependencies_v2,public.paper_native_parents_v2,public.paper_native_members_v2,public.paper_native_exclusivity_v2,
+ public.paper_native_parent_terms_v2,public.paper_native_algorithm_progress_v2 FROM PUBLIC;
 GRANT SELECT,INSERT,UPDATE ON public.paper_market_state_v2,public.paper_reference_prices_v2,
  public.paper_published_rules_v2,public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT ON public.paper_market_preventions_v2 TO paper_matcher_definer;
@@ -72,12 +92,67 @@ GRANT SELECT,INSERT ON public.paper_order_input_dependencies_v2 TO paper_matcher
 GRANT SELECT,INSERT,UPDATE ON public.paper_native_parents_v2,public.paper_native_exclusivity_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT ON public.paper_native_members_v2 TO paper_matcher_definer;
 GRANT SELECT ON public.paper_engine_commands TO paper_matcher_definer;
+GRANT SELECT ON public.paper_native_parent_terms_v2 TO paper_matcher_definer;
+GRANT SELECT,INSERT,UPDATE ON public.paper_native_algorithm_progress_v2 TO paper_matcher_definer;
 CREATE TRIGGER immutable_market_preventions_v2 BEFORE UPDATE OR DELETE ON public.paper_market_preventions_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 CREATE TRIGGER immutable_input_dependencies_v2 BEFORE UPDATE OR DELETE ON public.paper_order_input_dependencies_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 CREATE TRIGGER immutable_native_members_v2 BEFORE UPDATE OR DELETE ON public.paper_native_members_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
+CREATE TRIGGER immutable_native_parent_terms_v2 BEFORE UPDATE OR DELETE OR TRUNCATE ON public.paper_native_parent_terms_v2
+ FOR EACH STATEMENT EXECUTE FUNCTION public.paper_market_immutable();
+
+CREATE FUNCTION public.paper_accept_native_algorithm_v2(p_scope text,p_command text) RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE command public.paper_engine_commands;terms jsonb;parent text;quantity numeric;envelope jsonb;accepted timestamptz;ending timestamptz;
+BEGIN
+ SELECT * INTO command FROM public.paper_engine_commands WHERE scope_key=p_scope AND command_id=p_command;
+ SELECT t.terms INTO terms FROM public.paper_native_parent_terms_v2 t WHERE t.scope_key=p_scope AND t.command_id=p_command;
+ IF command IS NULL OR terms IS NULL OR command.target_client_id IS NOT NULL OR command.operation IS DISTINCT FROM 'CREATE_REQUEST'
+  OR terms->'request' IS DISTINCT FROM command.request OR terms->'scope' IS DISTINCT FROM p_scope::jsonb
+  OR terms->>'record_kind' IS DISTINCT FROM 'PAPER_NATIVE_PARENT_TERMS_V2' OR terms->>'contract_version' IS DISTINCT FROM '2026-10-30'
+  OR NOT coalesce(terms->>'template' IN ('TWAP','VP'),false)
+  OR terms->'compilation'->'original_program'->>'execution_mode' IS DISTINCT FROM 'VENUE_NATIVE'
+  OR terms->'compilation'->'original_program'->>'template' IS DISTINCT FROM terms->>'template'
+  OR command.request->>'operation' IS DISTINCT FROM 'SUBMIT_'||(terms->>'template')
+  OR NOT coalesce(command.request->>'namespace' IN ('BINANCE_SPOT_EXECUTION_ALGO','BINANCE_USD_M_EXECUTION_ALGO'),false)
+  OR jsonb_array_length(command.request->'assigned_ids'->'members')<>0
+  OR terms->'write'->>'state' IS DISTINCT FROM 'MAY_HAVE_SENT'
+  OR terms->'write'->>'request_hash' IS DISTINCT FROM command.request_hash
+  OR terms->'accepted_clock'->>'clock_health' IS DISTINCT FROM 'HEALTHY'
+  THEN RAISE EXCEPTION 'exact native parent source required'; END IF;
+ parent=command.request->'assigned_ids'->>'parent_client_id';envelope=terms->'execution_envelope';quantity=(terms->>'quantity')::numeric;
+ IF parent IS NULL OR parent IS DISTINCT FROM command.client_id OR parent IS DISTINCT FROM terms->>'parent_client_id'
+  OR envelope->>'request_hash' IS DISTINCT FROM command.request_hash OR envelope->>'command_id' IS DISTINCT FROM p_command
+  OR envelope->'scope' IS DISTINCT FROM p_scope::jsonb OR quantity IS NULL OR quantity<=0
+  OR (envelope->>'maximum_gross_notional')::numeric IS NULL THEN RAISE EXCEPTION 'finite original native parent pool required'; END IF;
+ accepted=(terms->'accepted_clock'->>'utc_now')::timestamptz;
+ ending=accepted+((terms->'compilation'->'original_program'->'algorithm'->>'duration_seconds')::integer)*interval '1 second';
+ INSERT INTO public.paper_native_parents_v2 VALUES(p_scope,parent,'paper-native:'||parent,p_command,command.request_hash,
+  command.request->>'namespace',terms->>'template','WAITING_MARKET_SOURCE',1);
+ INSERT INTO public.paper_native_algorithm_progress_v2(scope_key,parent_client_id,original_quantity,maximum_gross_notional,
+  fee_ceilings,maximum_live_children,accepted_at,ending_at) VALUES(p_scope,parent,quantity,(envelope->>'maximum_gross_notional')::numeric,
+   envelope->'fee_ceilings',(terms->>'maximum_live_children')::integer,accepted,ending);
+END $$;
+CREATE FUNCTION public.paper_check_parent_target_v2() RETURNS trigger
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+BEGIN
+ IF NEW.target_client_id IS NULL AND NOT EXISTS(SELECT FROM public.paper_native_parents_v2 p
+  JOIN public.paper_native_parent_terms_v2 t USING(scope_key,parent_client_id,command_id)
+  JOIN public.paper_native_algorithm_progress_v2 a USING(scope_key,parent_client_id)
+  WHERE p.scope_key=NEW.scope_key AND p.command_id=NEW.command_id AND p.parent_client_id=NEW.client_id
+   AND p.request_hash=NEW.request_hash AND t.terms->'request'=NEW.request AND a.original_quantity=(t.terms->>'quantity')::numeric)
+  THEN RAISE EXCEPTION 'native parent command requires its complete genuine pool'; END IF;
+ RETURN NEW;
+END $$;
+CREATE CONSTRAINT TRIGGER native_parent_command_target_v2 AFTER INSERT ON public.paper_engine_commands
+ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.paper_check_parent_target_v2();
+REVOKE ALL ON FUNCTION public.paper_accept_native_algorithm_v2(text,text),public.paper_check_parent_target_v2() FROM PUBLIC;
+GRANT USAGE,CREATE ON SCHEMA public TO paper_matcher_definer;
+ALTER FUNCTION public.paper_accept_native_algorithm_v2(text,text) OWNER TO paper_matcher_definer;
+ALTER FUNCTION public.paper_check_parent_target_v2() OWNER TO paper_matcher_definer;
+REVOKE CREATE ON SCHEMA public FROM paper_matcher_definer;
 
 CREATE FUNCTION public.paper_accept_native_program_v2(p_scope text,p_command text) RETURNS void
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
