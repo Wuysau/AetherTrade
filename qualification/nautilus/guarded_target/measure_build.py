@@ -9,7 +9,11 @@ import sys
 import sysconfig
 import nautilus_trader.core.nautilus_pyo3 as native
 
-def digest(path):return sha256(Path(path).read_bytes()).hexdigest()
+def digest(path):
+    h=sha256()
+    with Path(path).open('rb') as stream:
+        for chunk in iter(lambda:stream.read(1024*1024),b''):h.update(chunk)
+    return h.hexdigest()
 import argparse
 parser=argparse.ArgumentParser()
 parser.add_argument('--root',default='/build/source')
@@ -26,6 +30,8 @@ print(json.dumps(dict(schema=1,source_commit='27a8e54e7ac3c57d6cbf8891f0283dfbae
     libc=platform.libc_ver(),python_build=platform.python_build(),sysconfig_platform=sysconfig.get_platform(),
     rustc=subprocess.check_output(['rustc','--version'],text=True).strip(),
     cargo=subprocess.check_output(['cargo','--version'],text=True).strip(),
+    clang=subprocess.check_output(['clang','--version'],text=True).strip(),
+    linker=subprocess.check_output(['ld','--version'],text=True).splitlines()[0],
     rustc_binary_sha256=digest(subprocess.check_output(['rustup','which','rustc'],text=True).strip()),
     cargo_binary_sha256=digest(subprocess.check_output(['rustup','which','cargo'],text=True).strip()),
     profile='debug-pyo3',features=['arrow','cython-compat','extension-module','ffi','postgres','python','tracing-bridge','high-precision'],

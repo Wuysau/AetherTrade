@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/mnt/d/Projects/Python/AetherTrade/TradingHandoff/AutoDispatchWorktrees/binance-ope-sdk-final-send/qualification/nautilus/guarded_target/probe_budget.py", line 21, in <module>
+    try:client.request_guarded(HttpMethod.POST,url,nullcontext(),keys=['slow'],budget_ms=100)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: HttpClient.request_guarded() got an unexpected keyword argument 'budget_ms'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/mnt/d/Projects/Python/AetherTrade/TradingHandoff/AutoDispatchWorktrees/binance-ope-sdk-final-send/qualification/nautilus/guarded_target/probe_budget.py", line 22, in <module>
+    except Exception as exc:assert 'GUARDED_ORIGINAL_BUDGET_EXPIRED' in str(exc),repr(exc)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: TypeError("HttpClient.request_guarded() got an unexpected keyword argument 'budget_ms'")

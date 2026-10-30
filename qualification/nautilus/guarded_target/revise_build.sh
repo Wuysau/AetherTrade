@@ -3,6 +3,7 @@ set -eu
 # Run ONLY in a new image snapshot after candidate1 reaches a terminal state.
 export CARGO_BUILD_JOBS=2 MAX_JOBS=2 CARGO_HOME=/build/cargo RUSTUP_HOME=/build/rustup
 export PATH="$CARGO_HOME/bin:$PATH" BUILD_MODE=debug-pyo3 CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true
+export PIP_CONSTRAINT=/tooling/build-constraints.txt
 mkdir -p /outputs/candidate2 /build/wheels-v2
 set +e
 python /tooling/probe_budget.py > /outputs/budget-red.txt 2>&1

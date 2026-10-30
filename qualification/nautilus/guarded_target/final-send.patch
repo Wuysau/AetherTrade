@@ -1,9 +1,6 @@
 --- a/crates/network/src/python/http.rs
 +++ b/crates/network/src/python/http.rs
-@@ -112,6 +112,73 @@
- #[pymethods]
- #[pyo3_stub_gen::derive::gen_stub_pymethods]
- impl HttpClient {
+@@ -114,0 +115,67 @@
 +
 +    /// AetherTrade qualification-only post-quota dispatch on the owner OS thread.
 +    /// The guard is a trusted internal context manager, not a business API.
@@ -71,26 +68,11 @@
 +            })
 +        })
 +    }
-     /// An HTTP client that supports rate limiting and timeouts.
-     ///
-     /// Built on `reqwest` for async I/O. Allows per-endpoint and default quotas
 --- a/build.py
 +++ b/build.py
-@@ -335,7 +335,7 @@
- 
- 
- def _build_distribution(extensions: list[Extension]) -> Distribution:
+@@ -338 +338 @@
 -    nthreads = os.cpu_count() or 1
 +    nthreads = min(2, os.cpu_count() or 1)
- 
-     if IS_WINDOWS:
-         nthreads = min(nthreads, 60)
-@@ -601,7 +601,7 @@
-         cmd: build_ext = build_ext(distribution)
- 
-         if PARALLEL_BUILD:
+@@ -604 +604 @@
 -            cmd.parallel = os.cpu_count()
 +            cmd.parallel = min(2, os.cpu_count() or 1)
-         cmd.ensure_finalized()
-         cmd.run()
- 
