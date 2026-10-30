@@ -21,7 +21,8 @@ from trading_system.storage.uow import UnitOfWork
 @pytest.fixture(scope='module')
 def database(command_database):
     import psycopg
-    for name in ('0016_program_fill_source_approval.sql','0017_program_fill_source_snapshots.sql'):
+    for name in ('0016_program_fill_source_approval.sql','0017_program_fill_source_snapshots.sql',
+                 '0018_program_fill_source_leaves.sql'):
         path=Path(__file__).resolve().parents[2]/'migrations'/name
         if path.exists():
             with psycopg.connect(command_database) as db:db.execute(path.read_text(encoding='utf-8'))
@@ -62,6 +63,12 @@ def test_source_authority_is_separate_and_cannot_be_enrolled_implicitly(database
             assert not db.execute("SELECT has_function_privilege(%s,'ledger.approve_program_fill_source_snapshot(text,text,jsonb,text)','EXECUTE')",(role,)).fetchone()[0]
             assert not db.execute("SELECT has_function_privilege(%s,'ledger.approve_program_fill_source_v2(text,text,text,text,text)','EXECUTE')",(role,)).fetchone()[0]
             assert not db.execute("SELECT has_table_privilege(%s,'ledger.program_fill_source_snapshots','INSERT')",(role,)).fetchone()[0]
+        for role in ('ledger_owner','ledger_control','ledger_decision','ledger_program_dispatch_verifier',
+                     'ledger_order_closure_resolver','ledger_program_source_verifier'):
+            assert not db.execute("SELECT has_function_privilege(%s,'ledger.approve_program_fill_source_snapshot_v1(text,text,jsonb,text)','EXECUTE')",(role,)).fetchone()[0]
+            assert not db.execute("SELECT has_function_privilege(%s,'ledger.materialize_program_fill_source(text,text)','EXECUTE')",(role,)).fetchone()[0]
+            for table in ('program_fill_source_headers','program_fill_source_leaves'):
+                assert not db.execute('SELECT has_table_privilege(%s,%s,\'INSERT\')',(role,'ledger.'+table)).fetchone()[0]
 
 
 def test_genuine_fill_source_is_committed_without_posting_or_authorizing(database,venue,tmp_path):
