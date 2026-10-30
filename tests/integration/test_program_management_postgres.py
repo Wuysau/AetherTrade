@@ -2,6 +2,7 @@
 from dataclasses import replace
 from decimal import Decimal as D
 import pytest
+from trading_system.contracts import types as t
 from integration.test_paper_market_matcher_v2 import isolated_postgres,database,venue,venue_v2,advanced_case
 from integration.test_paper_market_matcher import submit,event
 
@@ -311,3 +312,11 @@ def test_fresh_execution_owner_epoch_manages_old_original_without_creation_rewri
     with c.owner.session(c.lease.shard):
         result=submit_management(c.engine,w,permit,boundary=s.boundary,lease=c.lease,owner=c.owner,bridge=management_venue)
     assert result['cancel_result']=='CANCELED' and c.write==old
+
+def test_neutral_management_duty_is_visible_across_instrument_scope(management_database,venue_v2,tmp_path):
+    from trading_system.execution.program_management_obligations import management_obligations
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+    with s.verifier_uow.transaction(replace(c.scope,instrument_uid='other-isolated-instrument')) as tx:
+        obligations=management_obligations(tx)
+        assert len(obligations)==1 and obligations[0].original==w and obligations[0].unresolved
+        assert management_obligations(tx,scope_only=True)==()
