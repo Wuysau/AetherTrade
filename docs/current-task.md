@@ -1,60 +1,62 @@
 # Current task
 
-## ACTIVE CASH A/B and source-backed working observations
+## ACTIVE CASH checkpoint — review ready, ownership retained
 
-`cash_chain_fresh` still owns this tree alone. Resumed85a919d, imported ONLY the
-reviewed5ef20a4 nine-path physical manifest (11existing cash/source/fill files
-byte-preserved at import). No ROOT/main/quote/native WIP writes or imports.
-Full46/56 remains ACTIVE; prior20jobs/335artifact proof is terminal history.
+`cash_chain_fresh` remains the sole writer of this existing worktree. Runtime
+product805aa53f4b8698b2e79524971974cc93c86a0013; review base85a919d. All45
+qualification jobs (20prior +25new) are terminal. No live cash/proof handle and
+no old run restarted. The final documentation/evidence commits do not change
+runtime. Full46/56 remains ACTIVE; formal capability acceptance is unchanged.
 
-Actual A/B financial11PG GREEN at9f485b6,83.50s,8d644e6f73dd/original60404:
-scoped current loader, explicit opening/zero owned before financial intents,
-real Aaccepted-unfilled then Baccepted-unfilled BEFORE either fill, real.4/.001
-per order, both raw, Aown projection/no cashbinding whileBunposted, Bcomplete
-without any Afinancial row/xmin change, A OWN reconcile/bind. GlobalBTC10.8 /
-USD934742.808; ownerqty.4each, not initialBTC10. Full163180holds, residual.6each,
-fees32.596each, cost/protection/history/risk duties and original permits retained.
-Affected finalcode74aa479 owned11PG GREEN78.85s; old execution-evidence37PG
-GREEN3.65s including old projector gap/scope/evidence semantics.
+Actual final owned11PG GREEN91.91s (805aa53/run90da05c1bd21), working17PG
+GREEN137.53s (same product/rund0a9ed6ebd38), zero failures/errors/skips.
+Related actual PG cohorts: raw9, firstCapital3, knownness8, V2owned2, source16,
+physicalScope16, strictcash9, oldexecution37; all GREEN with no mandatory skips.
+Focused unit23PASS1.55s. No broad ordinary/119 rerun this slice.
 
-New `ProgramPaperOrderProjectionService` uses real protected source observation
-(zero-fill included), originalseq1 command/bundle/unit/funding links, actual
-FillLedger cumulative coverage, existing OrderProjector/ProjectionRepository/
-EventStore/UoW and strict bookcash binding. Only own book activeorders/seq/basis
-changes; assets/positions/holds/locks stay. `apply_observation` is an explicit
-snapshot event-sequence interface; OLD apply remains strict. Actual event/revision
-is unchanged at the verifier; marker binds actual aggregate revision separately
-from projection row sequence. No invented previous venue state or event wrapper.
+Genuine A/B both explicitly funded and accepted-unfilled BEFORE either finite
+market fill. Actual.4 each at.001 fee; both raw first, Aown posts without binding
+while Bunposted, Bcompletes with no Afinancial row/xmin write, A OWN reconciles.
+GlobalBTC10.8 /USDT934742.808; each owner.4, initialBTC10 remains unowned.
+Full163180 holds, residual.6 each, fee32.596 each and all risk/cost/history/
+protection duties remain. Current scoped loader and exact physical ROOT IDs
+replace the old RESERVATION_QUANTITY_REQUIRED prerequisite; no global facts
+mutation, fake fill, bypass or renewed permit.
 
-Actual working89c2133 11PG GREEN79.93s included V1/V2 nofill/partial, historical
-creationTTL query, replay/forkrestart/rollback and real Fill1→Snapshot2(row1)→
-Fill3→Snapshot4(row2). A real new bounded data intake binds the new current book;
-owned.4+working.6 covers target1 but existing TargetCompiler correctly retains
-POSITION_EVIDENCE due unknown cost. No fake NO_ACTION/ALLOW/new command or renewal.
-New original-bundle test1ea9665 really scaled1→2 via later owner audit;8f3cd16
-fix always reloads/validates originalseq1 bundle, not latest audit. All failures
-remain original evidence, including initial missing API/aggregate/fixture cases.
+Source/order slice uses original command+sequence1 financial bundle/unit/funding
+link, protected V1/V2 snapshots, actual FillLedger, existing projector/event/UoW.
+Only own book active_orders/seq/basis changes; same-account peer no-write proved.
+Actual mixed stream Fill1→Snapshot2(row1)→Fill3→Snapshot4(row2), rollback,
+replay/forkrestart, historical creationTTL GTC, UNKNOWN and source/book conflicts
+are covered. Original apply remains contiguous; explicit apply_observation keeps
+the actual event/revision at the verifier and binds separate projection rowseq.
+Later owner audit bundle cannot rescale original issued quantity. Replay checks
+current book and cash READONLY and retains FINANCIAL_RECONCILIATION_REQUIRED
+while B is unposted; true10pass/1false-completion RED3bd8c57 is preserved.
 
-Important private-observation completeness defect confirmedb39740e: actual12pass/
-4DID NOT RAISE114.30s,3c2124335d70/original56687. A real private-observed.4 fill
-with0perfillapproval/0FillLedger permitted Bfunding; new sameNative unit/fee/
-globalstatus conflicts were hidden by older approved/owned facts. Fixe61f5e9 adds
-account/product-wide 0018compact header/leaf completeness, including missing
-indices, exact native economics and global source status. Full proof is loaded/
-hashed once per snapshot with the existing per-scope source cache, not perfill.
-It derives NO new cash credit. Normal newClock/snapshot with identical native
-facts remains idempotent. Actual16PG GREEN113.64s in25a80b52dd1b/original63666.
-First attempted counterexamplea407217 hit fixtureOPENING_IMMUTABLE (not a bug
-proof); corrected existing-opening B path produced the true4RED above.
+True completeness REDb39740e had12pass/4DIDNOTRAISE: private-observed fill with
+no approval/FillLedger allowed Bfunding, and new sameNative unit/fee/globalstatus
+conflicts escaped older financial facts. Fixe61f5e9 enumerates actual0018compact
+headers/leaves across the same environment/account/product, checks complete
+authenticated coverage and immutable economics/global status. Full proof hashes
+once per snapshot/cache, never perfill; no new cash credit. Zero-fill snapshots
+and identical native facts at new observedClock remain valid/idempotent.
 
-Current fixedHEADd349ec9 is producte61f5e9 plus exact reviewed optional physical
-tests and test-only legacy seed fixture correction. Raw9 first affected run was
-5pass/4owner-seed privilege preconditions after0020; normalowner DENY now asserted
-and only isolated testadmin seeds unqualified negative audit shape. No protected
-attestation/oldseed rewrite or permission relaxation. Original96287raw9,
-25669firstCapital3,64936knownness8,63616V2owned2 qualifiers RUNNING. All earlier
-new handles above terminal. No old job restarted. Source16/scoped16/strictcash9
-affected checks remain next; no broad ordinary/119 rerun.
+Bounded new data intake binds current book/owned.4+working.6. Existing compiler
+returns explicit POSITION_EVIDENCE because cost evidence is incomplete. No fake
+NO_ACTION/ALLOW/new risk permission or removal of generic write barrier.
+ROOT's nine physical/release dependency paths remain VERBATIM5ef20a4; no quote,
+native0026, management27/28 or SDK WIP imported. No DDL/history/hash rewriting.
+
+Exact review packet: `docs/reviews/2026-10-30-cash-working/README.md`, eight
+grouped patches, DIFF-MANIFEST.json, DEPENDENCY-EXACTNESS.json and RUNS.json.
+Raw originals/copies and actual committed blob SHA proof are under
+`docs/evidence/binance-orders/op-e-cash-chain/`; failed setup/prerequisite runs
+remain labeled there. Next step is parent-assigned independent bounded review
+before ROOT integration. This final checkpoint means idle, NOT ownership release
+or user pause; continue the same worktree on followup.
+
+## Historical checkpoints (superseded where the current section differs)
 
 ## CASH checkpoint — ownership retained, ROOT dependency next
 

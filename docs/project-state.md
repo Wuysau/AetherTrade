@@ -1,5 +1,21 @@
 # Project state
 
+Current CASH engineering checkpoint2026-10-30: sole writer cash_chain_fresh,
+runtime805aa53, exact review BASE85a919d..805aa53. Genuine accepted-unfilled A/B
+then finite fills→raw→own financial posting→OWN reconciliation is qualified:
+final owned11PG/working17PG GREEN, no mandatory skip. Protected source-backed
+V1/V2 working-order observations and account-wide observed-fill completeness
+gate are implemented; no new financial approval/send/release authority. All45
+cash-chain qualifier runs are terminal; originals, failures, copied evidence and
+actual committed bytes remain checkable. The nine ROOT5ef20a4 dependency paths
+are still verbatim. New review packet is docs/reviews/2026-10-30-cash-working.
+Independent bounded review before ROOT integration is next; ownership retained
+while idle. POSITION_EVIDENCE/cost, protection/history and original permit duties
+remain explicit. Full Binance46/56 acceptance stays ACTIVE and unpromoted.
+No operational trading, paid model, TESTNET or LIVE action occurred.
+
+The following entries are historical; current-task.md top is authoritative.
+
 Fresh accounting solewriter2026-10-30 is cash_chain_fresh in the existing tree.
 Historical dualproof direct-reader ambiguity is confirmed RED and bounded-review
 closed at9f1994c (9+9cash+5legacy+9opening PGgreen);80original/copy/committed

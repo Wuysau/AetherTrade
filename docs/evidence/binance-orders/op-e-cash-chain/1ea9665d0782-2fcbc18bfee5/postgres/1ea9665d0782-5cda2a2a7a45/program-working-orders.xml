@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="5" time="40.179" timestamp="2026-10-30T09:47:18.652713+00:00" hostname="81fee86fc79b"><testcase classname="tests.integration.test_program_working_orders" name="test_actual_accepted_unfilled_order_is_working_quantity_without_inventory_or_fill" time="7.749" /><testcase classname="tests.integration.test_program_working_orders" name="test_owned_plus_real_working_leaves_new_bounded_intake_is_no_action_and_replay_stable" time="8.782"><failure message="trading_system.intents.semantic_validation.ProposalRejected: POSITION_EVIDENCE">tests/integration/test_program_working_orders.py:84: in test_owned_plus_real_working_leaves_new_bounded_intake_is_no_action_and_replay_stable
+    result=compile_program_target(facts.compilation,financial,scoped)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:177: in compile_program_target
+    return _compile_program_target(plan,book,facts)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:270: in _compile_program_target
+    delta=TargetCompiler(facts.inputs).compile_terms(terms,program_target_quantity_book(book,facts))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/target_compiler.py:149: in compile_terms
+    return self._compile_terms(terms, book)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/target_compiler.py:160: in _compile_terms
+    return self._compile(terms, book)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/target_compiler.py:286: in _compile
+    scope_state=self._read_scope_quantities(intent,book,unit)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/target_compiler.py:208: in _read_scope_quantities
+    require(p.actual_quantity.unit == unit and complete(p.cost_evidence, scope), 'POSITION_EVIDENCE')
+src/trading_system/intents/semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: POSITION_EVIDENCE</failure></testcase><testcase classname="tests.integration.test_program_working_orders" name="test_unknown_query_keeps_actual_leaves_and_denies_current_working_authority" time="8.874" /><testcase classname="tests.integration.test_program_working_orders" name="test_owner_authored_order_quantities_cannot_replace_private_source" time="8.116" /><testcase classname="tests.integration.test_program_working_orders" name="test_later_owner_bundle_revision_cannot_rescale_original_native_order" time="5.718"><failure message="AssertionError: assert Quantity(valu..., unit='BASE') == Quantity(valu..., unit='BASE')&#10;  &#10;  Omitting 1 identical items, use -vv to show&#10;  Differing attributes:&#10;  ['value']&#10;  &#10;  Drill down into differing attribute value:&#10;    value: Decimal('2') != Decimal('1')">tests/integration/test_program_working_orders.py:140: in test_later_owner_bundle_revision_cannot_rescale_original_native_order
+    assert tx.projections.book(c.scope).active_orders[0].leaves_quantity==t.Quantity(unit='BASE',value=D(1))
+E   AssertionError: assert Quantity(valu..., unit='BASE') == Quantity(valu..., unit='BASE')
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing attributes:
+E     ['value']
+E     
+E     Drill down into differing attribute value:
+E       value: Decimal('2') != Decimal('1')</failure></testcase></testsuite></testsuites>

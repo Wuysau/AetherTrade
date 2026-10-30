@@ -1,0 +1,32 @@
+diff --git a/src/trading_system/execution/program_order_projection.py b/src/trading_system/execution/program_order_projection.py
+index 40ba1c7..1f44f1a 100644
+--- a/src/trading_system/execution/program_order_projection.py
++++ b/src/trading_system/execution/program_order_projection.py
+@@ -23,7 +23,7 @@ from trading_system.storage.models import MissingEvidence,decode,encode,scope_id
+ from trading_system.storage.uow import UnitOfWork
+ from .fills import FillLedger
+ from .projections import OrderProjector,TERMINAL
+-from .program_book_cash import bind_program_book_cash
++from .program_book_cash import bind_program_book_cash,require_current_program_book_cash
+ from .program_fill_source import CommittedProgramFillSources,decode_source_normalized
+ from .program_legacy_opening import read_program_local_account_opening
+ from .program_submission_observation import ProgramSubmissionObservationService,read_program_submission_observation
+@@ -184,7 +184,17 @@ class ProgramPaperOrderProjectionService:
+             if previous is not None:_persisted(tx,command_id,previous,reader)
+             if previous is not None and replace(derived,sequence=previous.sequence)==previous:
+                 _persisted(tx,command_id,derived,reader)
+-                return ProgramOrderProjectionResult(status='ORDER_BOOK_PROJECTED_DUTIES_RETAINED',reasons=('ORDER_HISTORY_AND_PROTECTION_DUTIES_RETAINED',))
++                actual=tuple(p for p in book.active_orders if p.order.identity.logical_client_order_id==logical)
++                need(actual==(() if previous.lifecycle_state in TERMINAL else (previous,)),
++                    'PROGRAM_ORDER_BOOK_MISMATCH')
++                # Replay is read-only: it cannot silently reconcile an account
++                # binding after another scope changed its economics.
++                try:cash=require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
++                except (MissingEvidence,ValueError) as error:
++                    if tx.failed:raise
++                    return ProgramOrderProjectionResult(status='ORDER_PROJECTED_FINANCIAL_RECONCILIATION_REQUIRED',reasons=(str(error),))
++                return ProgramOrderProjectionResult(status='ORDER_BOOK_PROJECTED_DUTIES_RETAINED' if cash is not None
++                    else 'ORDER_PROJECTED_FINANCIAL_RECONCILIATION_REQUIRED',reasons=('ORDER_HISTORY_AND_PROTECTION_DUTIES_RETAINED',))
+             expected=0 if previous is None else previous.sequence
+             projection=replace(derived,sequence=expected+1)
+             head=tx.execute('SELECT sequence FROM ledger.aggregate_heads WHERE scope_id=%s AND aggregate_id=%s',

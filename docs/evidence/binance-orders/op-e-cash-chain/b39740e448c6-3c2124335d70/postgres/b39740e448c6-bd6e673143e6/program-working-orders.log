@@ -1,0 +1,28 @@
+.......FFFF.....                                                         [100%]
+=================================== FAILURES ===================================
+_ test_observed_native_fill_without_per_fill_approval_blocks_new_account_funding _
+tests/integration/test_program_working_orders.py:184: in test_observed_native_fill_without_per_fill_approval_blocks_new_account_funding
+    with pytest.raises(MissingEvidence,match='OBSERVED_PROGRAM_EXECUTIONS_UNPOSTED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity[unit] _
+tests/integration/test_program_working_orders.py:218: in test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity
+    with pytest.raises(MissingEvidence,match=reason):read_program_account_cash(tx,read_opening=read_program_account_opening)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity[fees] _
+tests/integration/test_program_working_orders.py:218: in test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity
+    with pytest.raises(MissingEvidence,match=reason):read_program_account_cash(tx,read_opening=read_program_account_opening)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity[global_status] _
+tests/integration/test_program_working_orders.py:218: in test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity
+    with pytest.raises(MissingEvidence,match=reason):read_program_account_cash(tx,read_opening=read_program_account_opening)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_working_orders.py::test_observed_native_fill_without_per_fill_approval_blocks_new_account_funding
+FAILED tests/integration/test_program_working_orders.py::test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity[unit]
+FAILED tests/integration/test_program_working_orders.py::test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity[fees]
+FAILED tests/integration/test_program_working_orders.py::test_new_private_snapshot_conflict_cannot_hide_behind_old_approved_native_identity[global_status]
+4 failed, 12 passed in 114.30s (0:01:54)
