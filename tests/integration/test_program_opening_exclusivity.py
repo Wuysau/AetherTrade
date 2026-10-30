@@ -18,7 +18,7 @@ from trading_system.storage.uow import UnitOfWork
 
 
 @pytest.fixture
-def database(isolated_postgres):
+def database(isolated_postgres,request):
     import psycopg
     from psycopg import sql
     from psycopg.conninfo import conninfo_to_dict,make_conninfo
@@ -35,6 +35,7 @@ def database(isolated_postgres):
         db.execute((ROOT/'migrations/0001_business_ledger.sql').read_text(encoding='utf-8'))
         db.execute((ROOT/'deploy/db/roles.sql').read_text(encoding='utf-8'))
         for name in names:
+            if name=='0024_program_opening_exclusivity.sql' and not getattr(request,'param',True):continue
             path=ROOT/'migrations'/name
             if path.exists():db.execute(path.read_text(encoding='utf-8'))
         db.execute('INSERT INTO ledger.collateral_mutex VALUES(%s,%s)',('PAPER',GROUP))
@@ -42,6 +43,37 @@ def database(isolated_postgres):
         db.execute('INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) '
             "VALUES(%s,'console:seed',1,%s::jsonb,%s)",(scope_id(scope_for('BTCUSDT')),canonical_json(seed()),uuid4().hex))
     return dsn
+
+
+@pytest.mark.parametrize('database',(False,),indirect=True)
+@pytest.mark.parametrize('reader_name',('read_program_account_opening','read_program_legacy_opening',
+    'read_program_local_account_opening'))
+@pytest.mark.parametrize('strict_cash',(False,True))
+def test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects(database,reader_name,strict_cash):
+    import psycopg
+    from trading_system.execution import program_account_opening,program_legacy_opening
+    from trading_system.execution.program_account_cash import read_program_account_cash
+    from trading_system.storage.models import MissingEvidence
+    new,legacy,ref=services(database)
+    legacy.attest(canonical_hash(seed()),evidence=ref)
+    new.initialize((t.Money(currency='USDT',amount=D('100000')),),evidence=ref)
+    def stored(db):
+        return tuple(db.execute('SELECT payload,payload_hash,xmin::text,database_transaction::text '
+            'FROM ledger.'+table).fetchall() for table in
+            ('program_account_openings','program_legacy_account_openings'))
+    with psycopg.connect(database) as db:before=stored(db)
+    assert tuple(map(len,before))==(1,1) # genuine protected pre-0024 history
+    with psycopg.connect(database) as db:
+        db.execute((ROOT/'migrations/0024_program_opening_exclusivity.sql').read_text(encoding='utf-8'))
+    with psycopg.connect(database) as db:assert stored(db)==before
+    reader=getattr(program_account_opening,reader_name,None) or getattr(program_legacy_opening,reader_name)
+    def connect():
+        db=psycopg.connect(database);db.execute('SET ROLE ledger_owner');db.commit();return db
+    with UnitOfWork(connect).transaction(scope_for('BTCUSDT')) as tx:
+        with pytest.raises(MissingEvidence,match='AMBIGUOUS_ACCOUNT_OPENING'):
+            if strict_cash:read_program_account_cash(tx,read_opening=reader)
+            else:reader(tx)
+    with psycopg.connect(database) as db:assert stored(db)==before
 
 
 def seed():return dict(initial_cash='100000',source='EXPLICIT_NEW_VIRTUAL_CAPITAL')
