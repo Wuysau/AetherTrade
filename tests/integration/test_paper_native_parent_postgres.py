@@ -37,6 +37,11 @@ def test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read(da
         db.execute('UPDATE public.paper_native_algorithm_progress_v2 SET maximum_gross_notional=maximum_gross_notional+1 '
             'WHERE scope_key=%s AND parent_client_id=%s',(c.engine._scope_key,c.request.assigned_ids.parent_client_id))
     with pytest.raises(ValueError,match='PAPER_NATIVE_POOL_SOURCE_CHANGED'):c.engine.query_creation(c.write.command_id)
+    service,codec=native_verifier(c,tmp_path/'invalid-source-raw')
+    try:
+        result=service.verify(c.write.command_id)
+        assert not result.source_verified and result.raw_refs
+    finally:codec.close()
 
 
 def test_nullable_native_target_does_not_weaken_ordinary_or_incomplete_parent_command_constraints(database,venue_v2,tmp_path):
@@ -295,4 +300,3 @@ def test_native_parent_cannot_start_after_actual_sim_lock_wait(database,venue_v2
     with c.service.uow.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',
             (c.write.command_id,)).fetchone()==(1,)
-
