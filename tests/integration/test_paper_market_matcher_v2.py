@@ -591,7 +591,7 @@ def test_stale_position_snapshot_replays_actual_fill_tail_and_conflicting_waterm
 
 def test_actual_reduce_only_position_capacity_is_debited_between_depth_levels(database,venue_v2,tmp_path):
     from trading_system.engine.paper_market import PaperMatcher,DepthLevel
-    c=advanced_case(database,venue_v2,tmp_path,tif='NONE',order_transform=market_order,
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,price=replace(o.price,value='81489')),
         product=t.Product.USD_M_PERP,actual='1',target='0',side='SELL',reduce_only=True)
     submit(c);matcher=PaperMatcher(c.engine)
     matcher.apply_market_event(position_source(c,1,'0.15',0))

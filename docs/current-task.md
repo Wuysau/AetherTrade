@@ -18,7 +18,13 @@ three consuming functions and qualifies the depth column shadowed by reported.
 The existing projection regression additionally requires a NULL discrepancy;
 a new real two-price-level reduction checks0.1+0.05 against actual position0.15,
 exact zero residual position and retained position-source dependency. Candidate
-is NOT YET VERIFIED. No frozen1b12 verifier producer or root0014 was changed.
+fixed6543655 actual33prior cases now pass; the new MARKET fixture stopped at
+the required arrival-depth barrier before the intended split-level assertion.
+It now uses an ordinary GTC limit81489, preserving both executable bid levels
+and the actual position0.15. Original96948/run22ce72644c13 terminalexit1 retains
+33pass/1fixturefail/0error/skip157.86s. Parent independently reviewed6543655
+without a new scoped blocker; current full cohort still requires a new result.
+No frozen1b12 verifier producer or root0014 was changed by this D repair.
 
 ## OP_D_MATCHER_V2_OWN_WORKTREE — 2026-10-30
 
