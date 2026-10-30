@@ -510,3 +510,80 @@ def test_actual_native_exclusivity_needs_complete_unique_source_witness_not_memb
     result=observe(c,tmp_path/'raw')
     assert not result.source_verified and not result.fills and result.raw_refs,result.discrepancies
     assert 'RESERVATION_RECONCILIATION_REQUIRED' in result.retained_duties and not result.funds_release_authorized
+
+
+@pytest.mark.parametrize('field,value',[('price_asset','CALLER_CURRENCY'),('quantity_unit','CALLER_UNIT')])
+def test_resealed_fill_currency_and_unit_must_match_actual_order_source(database,venue_v2,tmp_path,field,value):
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    report=c.engine.query_creation(c.write.command_id)
+    c.engine.query_creation=lambda _:reseal_report(replace(report,fills=(replace(report.fills[0],**{field:value}),)))
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and not result.fills and result.raw_refs,result.discrepancies
+    assert 'PAPER_V2_FILL_ORDER_ECONOMIC_SOURCE_CHANGED' in result.discrepancies
+    assert not result.funds_release_authorized
+
+
+def corrupt_actual_venue_source(database,venue_v2,statement,parameters):
+    """Admin fault injection into existing real observations, never fabricate fills.
+
+    Runtime roles retain their original denied UPDATE/DDL privileges. Only this
+    isolated test administrator can emulate a contradictory persisted source.
+    """
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
+    admin=make_conninfo(**{**conninfo_to_dict(database),'dbname':conninfo_to_dict(venue_v2.runtime_dsn)['dbname']})
+    with psycopg.connect(admin) as db:
+        db.execute('SET LOCAL session_replication_role=replica')
+        assert db.execute(statement,parameters).rowcount==1
+
+
+def test_actual_stored_foreign_currency_retains_native_facts_as_economic_conflict(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    corrupt_actual_venue_source(database,venue_v2,'UPDATE public.paper_engine_orders SET price_currency=%s WHERE scope_key=%s AND client_id=%s',
+        ('ACTUAL_FOREIGN_CURRENCY',c.engine._scope_key,c.request.assigned_ids.members[0].client_id))
+    actual=c.engine.query_creation(c.write.command_id);result=observe(c,tmp_path/'raw')
+    assert result.source_verified and result.status=='DISCREPANCY',result.discrepancies
+    assert 'FILL_QUOTE_ASSET_MISMATCH' in result.discrepancies
+    assert result.fills[0].raw==actual.fills[0] and result.fills[0].fill.price.currency=='ACTUAL_FOREIGN_CURRENCY'
+    assert result.fills[0].fill.quantity.value==D('.4') and result.fills[0].economics.reported_gross.amount==D('32596')
+    assert 'SOURCE_OR_ECONOMIC_RECONCILIATION_REQUIRED' in result.retained_duties and not result.funds_release_authorized
+
+
+@pytest.mark.parametrize('fault,code',[('gross','GROSS_NOTIONAL_MISMATCH'),('fees','PROGRAM_FEE_ENVELOPE_EXCEEDED'),
+    ('missing_fees','FILL_FEES_UNKNOWN'),('gross_cap','PROGRAM_GROSS_ENVELOPE_EXCEEDED')])
+def test_actual_v2_source_economic_conflicts_retain_uncapped_native_fills(database,venue_v2,tmp_path,fault,code):
+    from pathlib import Path
+    from trading_system.engine.paper_market_v2 import PaperMatchingModelV2
+    from trading_system.risk.program_exposure import FeeBound
+    options=dict(node_fees=(FeeBound(amount=t.Money(amount=D('100'),currency='USDT'),debit='EXTERNAL_BALANCE'),)) if fault=='missing_fees' else {}
+    c=advanced_case(database,venue_v2,tmp_path,**options)
+    if fault=='missing_fees':
+        c.engine._matching_model=PaperMatchingModelV2(model_id='ISOLATED_V2_NONZERO_FEE_SOURCE',quote_fee_rate='.001')
+    submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    actual=c.engine.query_creation(c.write.command_id);fill=actual.fills[0]
+    change={'gross':dict(gross_notional='1'),'gross_cap':dict(gross_notional='1000001'),
+        'fees':dict(fees=[dict(asset='USDT',amount='200',receipt_effect='NO_RECEIPT_DEBIT',position_effect='NO_POSITION_DEBIT')]),
+        'missing_fees':dict(fees=[])}[fault]
+    from psycopg.types.json import Jsonb
+    corrupt_actual_venue_source(database,venue_v2,'UPDATE public.paper_engine_events SET payload=payload || %s WHERE scope_key=%s AND event_id=%s',
+        (Jsonb(change),c.engine._scope_key,fill.fill_id))
+    # The stored SQL event hash domain is payload::text, independently recomputed
+    # by the isolated administrator after fault injection; the verifier still
+    # reads the real event, order, allocation, input and accepted model.
+    corrupt_actual_venue_source(database,venue_v2,"UPDATE public.paper_engine_events SET payload_hash=encode(sha256(convert_to(payload::text,'UTF8')),'hex') WHERE scope_key=%s AND event_id=%s",
+        (c.engine._scope_key,fill.fill_id))
+    observed=c.engine.query_creation(c.write.command_id);result=observe(c,tmp_path/'raw')
+    assert result.source_verified and result.status=='DISCREPANCY',result.discrepancies
+    assert code in result.discrepancies
+    assert result.fills[0].raw==observed.fills[0] and result.fills[0].fill.quantity.value==D('.4')
+    assert result.fills[0].fill.price.value==D('81490') and result.fills[0].economics.expected_gross.amount==D('32596')
+    assert result.fills[0].economics.reported_gross.amount==observed.fills[0].gross_notional
+    assert result.fills[0].economics.fees==result.fills[0].fill.fees
+    assert any(Path(ref.id).read_bytes()==observed.fills[0].raw_payload_json.encode('utf-8') for ref in result.raw_refs)
+    if fault=='fees':assert result.fills[0].fill.fees[0].amount==200 and 'FILL_FEE_MODEL_DISCREPANCY' in result.discrepancies
+    if fault=='missing_fees':
+        assert not result.fills[0].fees_known and result.fills[0].fill.fees==()
+        assert 'FEE_RECONCILIATION_REQUIRED' in result.retained_duties and 'FILL_FEE_MODEL_DISCREPANCY' in result.discrepancies
+    assert 'SOURCE_OR_ECONOMIC_RECONCILIATION_REQUIRED' in result.retained_duties and not result.funds_release_authorized
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
