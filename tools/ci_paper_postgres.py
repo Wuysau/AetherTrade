@@ -28,6 +28,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('paper-program-v2-reports', '03', 'tests/integration/test_paper_program_v2_reports_postgres.py'),
     ('paper-market-matcher-v2', '03', 'tests/integration/test_paper_market_matcher_v2.py'),
     ('paper-market-matcher-v2-compat', '03', 'tests/integration/test_paper_market_matcher_v2_compat.py'),
     ('execution-evidence-atomic', '12', 'tests/integration/test_execution_evidence_atomic.py'),
