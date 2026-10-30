@@ -453,6 +453,11 @@ def submit_creation(engine,write,request,permit,*,boundary,lease,owner):
                 with owner.guard(lease):
                     _current_consumed_owner(boundary,original,lease,consumption,assessment)
                     clock=_consumed_permit_clock(engine,permit,after=clock,created_at=original.created_at)
+                source_book=db.execute('SELECT occurred_at,observed_clock FROM public.paper_market_books WHERE market_key=%s',(key,)).fetchone()
+                if source_book is not None:
+                    observed=decode(t.ClockReading,source_book['observed_clock'])
+                    require(observed.clock_health=='HEALTHY' and utc_timestamp(observed.utc_now)<=utc_timestamp(clock.utc_now)
+                        and source_book['occurred_at']<=utc_timestamp(clock.utc_now),'PAPER_MARKET_CLOCK_AHEAD_OF_ACCEPTANCE')
                 terms['accepted_clock']=domain_payload(clock)
                 require(db.execute('SELECT 1 FROM public.paper_engine_commands WHERE scope_key=%s AND command_id=%s',
                     (engine._scope_key,write.command_id)).fetchone() is None,'PAPER_ORIGINAL_ID_ALREADY_OBSERVED')
