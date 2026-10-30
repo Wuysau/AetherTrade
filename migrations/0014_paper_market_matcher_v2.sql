@@ -36,6 +36,11 @@ CREATE TABLE public.paper_market_preventions_v2(
  CHECK(maker_quantity>0 OR taker_quantity>0),
  FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id),
  FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
+CREATE TABLE public.paper_order_input_dependencies_v2(
+ scope_key text NOT NULL,client_id text NOT NULL,market_key text NOT NULL,event_id text NOT NULL,
+ PRIMARY KEY(scope_key,client_id,market_key,event_id),
+ FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id),
+ FOREIGN KEY(market_key,event_id) REFERENCES public.paper_market_inputs(market_key,event_id));
 CREATE TABLE public.paper_order_runtime_v2(
  scope_key text NOT NULL,client_id text NOT NULL,active boolean NOT NULL,phase text NOT NULL,
  activation_event_id text,high_water numeric,low_water numeric,trail_started boolean NOT NULL DEFAULT false,
@@ -43,11 +48,15 @@ CREATE TABLE public.paper_order_runtime_v2(
  calendar_event_id text,day_expires_at timestamptz,prevented_quantity numeric NOT NULL DEFAULT 0 CHECK(prevented_quantity>=0),
  PRIMARY KEY(scope_key,client_id),FOREIGN KEY(scope_key,client_id) REFERENCES public.paper_engine_orders(scope_key,client_id));
 REVOKE ALL ON public.paper_market_state_v2,public.paper_reference_prices_v2,public.paper_published_rules_v2,
- public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2,public.paper_market_preventions_v2 FROM PUBLIC;
+ public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2,public.paper_market_preventions_v2,
+ public.paper_order_input_dependencies_v2 FROM PUBLIC;
 GRANT SELECT,INSERT,UPDATE ON public.paper_market_state_v2,public.paper_reference_prices_v2,
  public.paper_published_rules_v2,public.paper_order_runtime_v2,public.paper_session_calendars_v2,public.paper_liquidity_owners_v2 TO paper_matcher_definer;
 GRANT SELECT,INSERT ON public.paper_market_preventions_v2 TO paper_matcher_definer;
+GRANT SELECT,INSERT ON public.paper_order_input_dependencies_v2 TO paper_matcher_definer;
 CREATE TRIGGER immutable_market_preventions_v2 BEFORE UPDATE OR DELETE ON public.paper_market_preventions_v2
+ FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
+CREATE TRIGGER immutable_input_dependencies_v2 BEFORE UPDATE OR DELETE ON public.paper_order_input_dependencies_v2
  FOR EACH ROW EXECUTE FUNCTION public.paper_market_immutable();
 
 CREATE FUNCTION public.paper_record_market_input_v2() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
@@ -128,6 +137,10 @@ BEGIN
  SELECT * INTO original FROM public.paper_engine_orders WHERE scope_key=p_scope AND client_id=p_client FOR UPDATE;
  IF original.lifecycle IN ('FILLED','CANCELED','EXPIRED','REJECTED') THEN RETURN false; END IF;
  SELECT * INTO book FROM public.paper_market_books WHERE market_key=p_market;
+ INSERT INTO public.paper_order_input_dependencies_v2
+  SELECT p_scope,p_client,p_market,i.event_id FROM public.paper_market_inputs i WHERE i.market_key=p_market
+   AND (i.event_id=book.event_id OR i.event_id=(SELECT depth_event_id FROM public.paper_market_state_v2 WHERE market_key=p_market))
+  ON CONFLICT DO NOTHING;
  IF spec->'tif'->>'kind'='GTD' AND book IS NOT NULL
   AND (book.observed_clock->>'utc_now')::timestamptz>=(spec->'tif'->>'expires_at')::timestamptz THEN
   expired_at=greatest((terms->'accepted_clock'->>'utc_now')::timestamptz,(book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
@@ -154,6 +167,9 @@ BEGIN
   session_kind=coalesce(spec->>'trading_session','RTH');
   current_time_at=greatest((terms->'accepted_clock'->>'utc_now')::timestamptz,(book.observed_clock->>'utc_now')::timestamptz,book.occurred_at);
   SELECT * INTO calendar_source FROM public.paper_session_calendars_v2 WHERE market_key=p_market;
+  IF calendar_source IS NOT NULL THEN
+   INSERT INTO public.paper_order_input_dependencies_v2 VALUES(p_scope,p_client,p_market,calendar_source.event_id) ON CONFLICT DO NOTHING;
+  END IF;
   IF spec->'tif'->>'kind'='DAY' AND runtime.day_expires_at IS NULL AND calendar_source IS NOT NULL THEN
    SELECT min((w->>'closes_at')::timestamptz) INTO day_close FROM jsonb_array_elements(calendar_source.calendar->'windows') w
     WHERE w->>'session'=session_kind AND (w->>'closes_at')::timestamptz>(terms->'accepted_clock'->>'utc_now')::timestamptz;
@@ -205,6 +221,7 @@ BEGIN
  IF price_source='BID_ASK' THEN price_source=CASE WHEN spec->>'side'='BUY' THEN 'ASK' ELSE 'BID' END; END IF;
  SELECT price,event_id INTO ref FROM public.paper_reference_prices_v2 WHERE market_key=p_market AND source=price_source;
  IF ref IS NULL THEN RETURN false; END IF;
+ INSERT INTO public.paper_order_input_dependencies_v2 VALUES(p_scope,p_client,p_market,ref.event_id) ON CONFLICT DO NOTHING;
  IF trigger_spec->>'kind'='STATIC' THEN
   activation=(trigger_spec->>'price')::numeric;
   fired=CASE WHEN (spec->>'side'='BUY')=(trigger_spec->>'purpose'='STOP_LOSS') THEN ref.price>=activation ELSE ref.price<=activation END;
@@ -228,6 +245,10 @@ BEGIN
  ELSE RAISE EXCEPTION 'unsupported V2 trigger'; END IF;
  IF NOT fired THEN RETURN false; END IF;
  IF coalesce((trigger_spec->>'price_protect')::boolean,false) THEN
+  INSERT INTO public.paper_order_input_dependencies_v2
+   SELECT p_scope,p_client,p_market,event_id FROM public.paper_reference_prices_v2 WHERE market_key=p_market AND source IN ('MARK_PRICE','CONTRACT_PRICE')
+   UNION SELECT p_scope,p_client,p_market,event_id FROM public.paper_published_rules_v2 WHERE market_key=p_market
+   ON CONFLICT DO NOTHING;
   SELECT trigger_protect_ratio INTO protect_ratio FROM public.paper_published_rules_v2 WHERE market_key=p_market;
   SELECT price INTO mark_price FROM public.paper_reference_prices_v2 WHERE market_key=p_market AND source='MARK_PRICE';
   SELECT price INTO contract_price FROM public.paper_reference_prices_v2 WHERE market_key=p_market AND source='CONTRACT_PRICE';

@@ -567,17 +567,23 @@ def query_market_evidence(engine,command_id):
         request=decode(VenueCreationRequest,command['request'])
         require(request.scope==engine.scope and request.command_id==command_id and digest(request)==command['request_hash'],
             'PAPER_MARKET_QUERY_BINDING_CHANGED')
+        v2=db.execute("SELECT terms->>'model_revision' AS revision FROM public.paper_order_terms WHERE scope_key=%s AND client_id=%s",
+            (engine._scope_key,command['target_client_id'])).fetchone()['revision']=='2'
         inputs=[];consumptions=[];used_bytes=512
         # Named cursors fetch one source/allocation at a time. Bounds apply
         # globally before append, not per event after loading an entire history.
         with db.cursor(name='paper_market_evidence_sources') as source_cursor:
             source_cursor.itersize=1
-            source_cursor.execute('SELECT DISTINCT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels,i.observed_clock '
+            source_query=('SELECT DISTINCT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels,i.observed_clock '
                 "FROM public.paper_market_inputs i JOIN public.paper_engine_events e ON e.payload->>'market_key'=i.market_key "
                 "AND (e.payload->>'market_event_id'=i.event_id OR e.payload->>'calendar_event_id'=i.event_id "
                 "OR e.payload->>'depth_event_id'=i.event_id) WHERE e.scope_key=%s AND e.client_id=%s "
-                'ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097',
-                (engine._scope_key,command['target_client_id']))
+                'ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097')
+            if v2:
+                source_query=('SELECT i.market_key,i.sequence,i.event_id,i.payload_hash,i.payload,i.before_levels,i.observed_clock '
+                    'FROM public.paper_market_inputs i JOIN public.paper_order_input_dependencies_v2 d USING(market_key,event_id) '
+                    'WHERE d.scope_key=%s AND d.client_id=%s ORDER BY i.market_key,i.sequence,i.event_id LIMIT 4097')
+            source_cursor.execute(source_query,(engine._scope_key,command['target_client_id']))
             for row in source_cursor:
                 require(len(inputs)<4096,'PAPER_MARKET_EVIDENCE_BOUND_EXCEEDED')
                 from .paper_market_v2 import decode_source_event
@@ -600,8 +606,7 @@ def query_market_evidence(engine,command_id):
                             side=allocated['side'],price=allocated['price'],quantity=allocated['quantity'])
                         used_bytes+=len(canonical_json(domain_payload(item)).encode('utf-8'))
                         require(used_bytes<=16777216,'PAPER_MARKET_TOTAL_EVIDENCE_BOUND_EXCEEDED');consumptions.append(item)
-        if db.execute("SELECT terms->>'model_revision' AS revision FROM public.paper_order_terms WHERE scope_key=%s AND client_id=%s",
-                (engine._scope_key,command['target_client_id'])).fetchone()['revision']=='2':
+        if v2:
             from .paper_market_v2 import decorate_market_evidence_v2
             return decorate_market_evidence_v2(engine,db,command_id,request,inputs,consumptions,used_bytes)
         payload={'command_id':command_id,'request_hash':digest(request),'inputs':[domain_payload(i) for i in inputs],
