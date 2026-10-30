@@ -357,6 +357,10 @@ BEGIN
    CASE WHEN spec->>'iceberg_quantity' IS NULL THEN NULL ELSE least((spec->>'iceberg_quantity')::numeric,original.quantity-original.filled) END,arrival)
   ON CONFLICT(scope_key,client_id) DO NOTHING;
  SELECT * INTO runtime FROM public.paper_order_runtime_v2 r WHERE r.scope_key=p_scope AND r.client_id=p_client FOR UPDATE;
+ IF coalesce((spec->>'reduce_only')::boolean,false) OR spec->>'position_side'<>'BOTH' THEN
+  UPDATE public.paper_order_runtime_v2 SET phase='WAITING_POSITION_SOURCE' WHERE scope_key=p_scope AND client_id=p_client;
+  RETURN false;
+ END IF;
  SELECT l INTO incoming_link FROM jsonb_array_elements(terms->'compilation'->'original_program'->'links') l WHERE l->>'target'=terms->>'node_id';
  IF incoming_link IS NOT NULL AND runtime.parent_activation_fill_id IS NULL THEN
   IF incoming_link->>'condition'<>'FULL_FILL' THEN RAISE EXCEPTION 'authentic net receipt activation stage required'; END IF;
@@ -494,7 +498,7 @@ BEGIN
  IF book IS NULL THEN RETURN; END IF;
  FOR parent IN SELECT p.*,g.*,t.terms FROM public.paper_native_parents_v2 p JOIN public.paper_native_parent_terms_v2 t
   USING(scope_key,parent_client_id,command_id) JOIN public.paper_native_algorithm_progress_v2 g USING(scope_key,parent_client_id)
-  WHERE t.market_key=p_market AND p.status IN ('WAITING_MARKET_SOURCE','EXECUTING','WAITING_CHILD_SIZE','WAITING_DEPTH')
+  WHERE t.market_key=p_market AND p.status IN ('WAITING_MARKET_SOURCE','EXECUTING','WAITING_CHILD_SIZE','WAITING_DEPTH','WAITING_POSITION_SOURCE')
   ORDER BY g.accepted_at,p.scope_key,p.parent_client_id FOR UPDATE OF p,g LOOP
   terms=parent.terms;
   -- An older parent-only record never silently gains child-generation semantics.
@@ -519,6 +523,10 @@ BEGIN
   IF current_at>=parent.ending_at THEN
    UPDATE public.paper_native_parents_v2 SET status='STOPPED_WITH_REMAINING_POOL',revision=revision+1
     WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
+  END IF;
+  IF coalesce((spec->>'reduce_only')::boolean,false) OR spec->>'position_side'<>'BOTH' THEN
+   UPDATE public.paper_native_parents_v2 SET status='WAITING_POSITION_SOURCE' WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;
+   CONTINUE;
   END IF;
   IF NOT EXISTS(SELECT FROM public.paper_market_state_v2 WHERE market_key=p_market AND depth_event_id IS NOT NULL) THEN
    UPDATE public.paper_native_parents_v2 SET status='WAITING_DEPTH' WHERE scope_key=parent.scope_key AND parent_client_id=parent.parent_client_id;CONTINUE;
