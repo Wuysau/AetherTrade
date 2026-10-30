@@ -1,0 +1,38 @@
+{
+  "source_commit": "3d62d06ba95f3e9a3027628df3b82894a675418a",
+  "command": [
+    "D:/Projects/Python/AetherTrade/AetherTrade/.venv/Scripts/python.exe",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/qualification/test_nautilus_bridge.py",
+    "tests/qualification/test_nautilus_order_target.py",
+    "tests/qualification/test_native_sdk_inspection.py",
+    "tests/intents/test_native_creation_call.py",
+    "tests/intents/test_creation_request_binding.py",
+    "tests/intents/test_program_compilation.py",
+    "tests/intents/test_native_management_call.py",
+    "tests/intents/test_management_requests.py",
+    "tests/intents/test_order_query.py",
+    "tests/intents/test_order_management_compilation.py",
+    "tests/unit/test_program_commands.py",
+    "tests/unit/test_original_creation_recovery.py",
+    "tests/ops/test_paper_ci_gate.py",
+    "tests/intents/test_native_creation_response.py",
+    "tests/intents/test_native_management_response.py",
+    "--tb=short",
+    "--junitxml=.runtime\\native-adapter\\response-cohort-related.xml"
+  ],
+  "exit_code": 0,
+  "results": {
+    "passed": 463,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "tracked_python_changes_before_and_after": false,
+  "sha256": {
+    "response-cohort-related.txt": "c1f60390cc8f224ceb81682d71f9795015a80611f88bd41025bd70a90b820556",
+    "response-cohort-related.xml": "90dba67ee1feeebea8490b8f59704897acb0b81ae50daebd2e1558f101a90462"
+  }
+}

@@ -26,3 +26,11 @@ downloads returned empty bodies and are recorded as EMPTY_RESPONSE, not usable
 schema or implementation evidence. Raw response parsing must archive original
 bytes first, retain unknown/fractional economics and failed/partial outcomes,
 and keep source authentication separate from structural identity matching.
+
+Spot cancel-replace has independent cancelResult/newOrderResult, including
+partial HTTP error envelopes. Cancellation can fail while placement succeeds;
+placement can fail or remain NOT_ATTEMPTED after cancellation. Keep both raw
+outcomes and old/new IDs separately; neither HTTP status nor one success proves
+the other result or releases any reservation. origClientOrderId identifies the
+old target; a cancellation's new clientOrderId is not a replacement for that
+original identity. [Official Spot cancel-replace schema](https://developers.binance.com/en/docs/catalog/core-trading-spot-trading/api/rest-api/trade).

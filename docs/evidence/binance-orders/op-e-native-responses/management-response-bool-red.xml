@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.333" timestamp="2026-10-30T11:13:07.719969+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.intents.test_native_management_response" name="test_boolean_code_is_not_an_integer_success_code[BINANCE_SPOT_EXECUTION_ALGO]" time="0.026"><failure message="AssertionError: assert 'ACK_ONLY' == 'ERROR'&#10;  &#10;  - ERROR&#10;  + ACK_ONLY">tests\intents\test_native_management_response.py:73: in test_boolean_code_is_not_an_integer_success_code
+    assert result.status=='ERROR'
+E   AssertionError: assert 'ACK_ONLY' == 'ERROR'
+E     
+E     - ERROR
+E     + ACK_ONLY</failure></testcase><testcase classname="tests.intents.test_native_management_response" name="test_boolean_code_is_not_an_integer_success_code[BINANCE_USD_M_CONDITIONAL_ALGO]" time="0.008"><failure message="AssertionError: assert 'ACK_ONLY' == 'ERROR'&#10;  &#10;  - ERROR&#10;  + ACK_ONLY">tests\intents\test_native_management_response.py:73: in test_boolean_code_is_not_an_integer_success_code
+    assert result.status=='ERROR'
+E   AssertionError: assert 'ACK_ONLY' == 'ERROR'
+E     
+E     - ERROR
+E     + ACK_ONLY</failure></testcase></testsuite></testsuites>
