@@ -112,3 +112,85 @@ def test_real_two_accepted_unfilled_commands_count_cash_once_and_have_zero_cross
         assert len(held)==1 and held[0]['reservation']['reservation_id']==a.bundle.reservations[0].reservation.reservation_id
         assert context['assessment']['target_facts']['quantity_reservation_ids']==[]
         assert tx.execute('SELECT count(*) FROM ledger.fills WHERE account_id=%s',(b.scope.venue_account_id,)).fetchone()==(0,)
+
+
+def released_legacy_collateral(database):
+    """Actual unsent abort + reconciled legacy release, then a newer raw book."""
+    from integration.support_ip_07 import ReservationCase
+    from trading_system.risk.reservations import ReleasedBalanceAttestation
+    from trading_system.risk.reservation_repository import for_balance
+    c=real_case(database,scoped_quantities=True,
+        financial_capacity=(t.Money(currency='USDT',amount=D('81490')),))
+    old=ReservationCase(database,group=c.c.terms.collateral_group_id,available='1000')
+    outcome=old.reserve()
+    assert outcome.accepted
+    reservation=outcome.reservations[0].reservation
+    old.command_state('ABORTED_UNSENT')
+    evidence=old.evidence(reservation,reflected='0',certainty='NOT_SENT',terminal=True,available='1000')
+    released=old.service.reconcile(evidence)
+    assert released.held==0 and released.reservation.state==t.ReservationState.RELEASED
+    with c.owner.transaction(c.scope) as tx:
+        raw=tx.projections.book(c.scope)
+        # This newer balance cannot inherit the older exact watermark itself.
+        assert for_balance(released,raw).held==reservation.amount
+    def current_release(tx,book,originals):
+        assert released in originals
+        return ReleasedBalanceAttestation(transaction_id=tx.transaction_id,
+            book_hash=canonical_hash(domain_payload(book)),reservation_ids=(reservation.reservation_id,),
+            evidence=book.evidence)
+    c.service.load_released_balances=current_release
+    return c,old,released,current_release
+
+
+def test_authenticated_newer_balance_reattestation_survives_scoped_admission_and_every_send_boundary(database):
+    from integration.test_program_commands_postgres import boundary,lease
+    c,old,released,reader=released_legacy_collateral(database)
+    with c.owner.transaction(c.scope) as tx:
+        before=tx.execute('SELECT payload,xmin::text FROM ledger.reservations WHERE scope_id=%s AND record_id=%s',
+            (scope_id(old.scope),released.reservation.reservation_id)).fetchone()
+        prepared=c.service._prepare_collateral(tx,tx.projections.book(c.scope))
+        assert not prepared.rejection_codes and prepared.holds==(released,)
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+    assert bundle.archive.book.reservations==(released,)
+    assert bundle.archive.target_facts.quantity_reservation_ids==()
+    gate=boundary(c);gate.readers['load_released_balances']=reader
+    permit=gate.mark_may_have_sent(write.command_id,lease(c))
+    assert gate.consume(permit,lease(c))==request
+    assert gate.recheck_consumed(permit,lease(c)).request==request
+    with c.owner.transaction(c.scope) as tx:
+        assert tx.execute('SELECT payload,xmin::text FROM ledger.reservations WHERE scope_id=%s AND record_id=%s',
+            (scope_id(old.scope),released.reservation.reservation_id)).fetchone()==before
+
+
+@pytest.mark.parametrize('phase',['admission','mark','consume','afterwait'])
+def test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit(database,phase):
+    from integration.test_program_commands_postgres import boundary,lease
+    c,old,released,reader=released_legacy_collateral(database)
+    if phase=='admission':
+        c.service.load_released_balances=None
+        with c.owner.transaction(c.scope) as tx:
+            raw=tx.projections.book(c.scope)
+            assert c.service._prepare_collateral(tx,raw).holds[0].held==released.reservation.amount
+            # Even the authentic historical zero projection is not current credit.
+            with pytest.raises(MissingEvidence,match='PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED'):
+                current_program_quantity_reservation_ids(tx,raw,replace(raw,reservations=(released,)))
+        with pytest.raises(ValueError,match='CAPACITY'):
+            c.service._transaction(lambda tx:attach(c,tx))
+        return
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+    gate=boundary(c);gate.readers['load_released_balances']=reader
+    if phase=='mark':
+        gate.readers['load_released_balances']=None
+        with pytest.raises(ValueError,match='PROGRAM_CURRENT_(BOOK_CHANGED|GROUP_HOLDS_CHANGED|ECONOMICS_CHANGED)'):
+            gate.mark_may_have_sent(write.command_id,lease(c))
+        return
+    permit=gate.mark_may_have_sent(write.command_id,lease(c))
+    if phase=='consume':
+        gate.readers['load_released_balances']=None
+        with pytest.raises(ValueError,match='PROGRAM_CURRENT_(BOOK_CHANGED|GROUP_HOLDS_CHANGED|ECONOMICS_CHANGED)'):
+            gate.consume(permit,lease(c))
+        return
+    assert gate.consume(permit,lease(c))==request
+    gate.readers['load_released_balances']=None
+    with pytest.raises(ValueError,match='PROGRAM_CONSUMED_FINANCIAL_BOOK_CHANGED'):
+        gate.recheck_consumed(permit,lease(c))
