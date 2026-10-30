@@ -18,7 +18,7 @@ def quote_venue(database,venue):
     return venue
 
 
-def execution_case(database, venue, tmp_path, *, side='BUY'):
+def execution_case(database, venue, tmp_path, *, side='BUY', fees=(), rate='0'):
     from trading_system.engine.paper import PaperEngine
     from trading_system.engine.paper_market import PaperMatchingModel
     from trading_system.runtime.execution_owner import ExecutionOwner
@@ -29,7 +29,7 @@ def execution_case(database, venue, tmp_path, *, side='BUY'):
     assets=(t.Money(currency='USDT',amount=D('1000000')),t.Money(currency='BTC',amount=D('10')))
     options={'instrument_uid':'quote-'+uuid4().hex}
     if side=='SELL':options.update(actual='.15',quantity='.85')
-    c=quote_case(database,real_options=options,quote_options={'side':side,'actual':'.15' if side=='SELL' else '0'},quote_assets=assets)
+    c=quote_case(database,real_options=options,quote_options={'side':side,'actual':'.15' if side=='SELL' else '0','fees':fees},quote_assets=assets)
     receipt=public(c).admit(c.qrecord.proposal,c.qrecord.context,c.q.plan);c.cid=receipt.attachment.command_ids[0]
     with c.owner.transaction(c.scope) as tx:
         repo=ProgramCommandRepository(tx);c.write=repo.write(c.cid);c.request=repo.request(c.cid)
@@ -38,7 +38,7 @@ def execution_case(database, venue, tmp_path, *, side='BUY'):
     c.engine=PaperEngine(c.scope,dsn=venue.runtime_dsn,event_dsn=venue.event_dsn,
         authority_guard=denied,owner_strategy_id=c.write.owner_strategy_id,
         quantity_unit='BASE',price_currency='USDT',clock=lambda:c.c.facts.inputs.clock,
-        matching_model=PaperMatchingModel(model_id='ISOLATED_QUOTE_DEPTH_V1',quote_fee_rate='0'))
+        matching_model=PaperMatchingModel(model_id='ISOLATED_QUOTE_DEPTH_V1',quote_fee_rate=rate))
     @contextmanager
     def claim(shard):
         import fcntl
@@ -134,3 +134,38 @@ def test_quote_actual_lock_wait_does_not_renew_consumed_permit(database,quote_ve
     assert c.engine.query_creation(c.cid) is None
     with c.gate.uow.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',(c.cid,)).fetchone()==(1,)
+
+
+@pytest.mark.parametrize('side',['BUY','SELL'])
+def test_quote_external_fee_and_two_opposing_levels(database,quote_venue,tmp_path,side):
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    from trading_system.risk.program_exposure import FeeBound
+    from trading_system.contracts import types as t
+    from trading_system.execution.paper_quote_reports import verify_quote_report
+    from decimal import localcontext
+    fees=(FeeBound(amount=t.Money(currency='USDT',amount=D(4)),debit='EXTERNAL_BALANCE'),)
+    c=execution_case(database,quote_venue,tmp_path,side=side,fees=fees,rate='.001')
+    levels=(DepthLevel(price='50000',quantity='.04'),DepthLevel(price='60000',quantity='.04'))
+    snapshot=replace(event(c),asks=levels if side=='BUY' else (),bids=levels if side=='SELL' else ())
+    PaperMatcher(c.engine).apply_market_event(snapshot)
+    with localcontext() as ambient:
+        ambient.prec=3
+        submit(c);report=c.engine.query_creation(c.cid)
+        assert verify_quote_report(c.engine,report,boundary=c.gate).discrepancies==()
+    expected=D('3999.98') if side=='BUY' else D(4000)
+    assert len(report.fills)==2 and report.gross_quote==expected
+    assert sum((f.quote_fee for f in report.fills),D(0))==expected*D('.001')
+
+
+def test_base_and_quote_orders_share_each_actual_visible_unit(database,quote_venue,tmp_path):
+    from integration.test_paper_market_matcher import case
+    from trading_system.engine.paper_market import PaperMatcher,DepthLevel
+    c=execution_case(database,quote_venue,tmp_path)
+    base=case(database,quote_venue,tmp_path,market=c.scope.instrument_uid,quantity='.02',target='.02')
+    submit(base)
+    snapshot=replace(event(c),asks=(DepthLevel(price='50000',quantity='.05'),),bids=())
+    PaperMatcher(c.engine).apply_market_event(snapshot);submit(c)
+    assert base.engine.query_creation(base.write.command_id).filled_quantity==D('.02')
+    assert c.engine.query_creation(c.cid).actual_base==D('.03')
+    with c.engine._connect() as db:
+        assert db.execute("SELECT available FROM public.paper_market_levels WHERE market_key=%s AND side='ASK'",(snapshot.market_key,)).fetchone()['available']==0
