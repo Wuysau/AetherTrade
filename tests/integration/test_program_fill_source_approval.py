@@ -21,9 +21,10 @@ from trading_system.storage.uow import UnitOfWork
 @pytest.fixture(scope='module')
 def database(command_database):
     import psycopg
-    path=Path(__file__).resolve().parents[2]/'migrations/0016_program_fill_source_approval.sql'
-    if path.exists():
-        with psycopg.connect(command_database) as db:db.execute(path.read_text(encoding='utf-8'))
+    for name in ('0016_program_fill_source_approval.sql','0017_program_fill_source_snapshots.sql'):
+        path=Path(__file__).resolve().parents[2]/'migrations'/name
+        if path.exists():
+            with psycopg.connect(command_database) as db:db.execute(path.read_text(encoding='utf-8'))
     return command_database
 
 
@@ -58,6 +59,9 @@ def test_source_authority_is_separate_and_cannot_be_enrolled_implicitly(database
                      'ledger_order_closure_resolver'):
             assert not db.execute("SELECT has_function_privilege(%s,'ledger.approve_program_fill_source(text,text,jsonb,text)','EXECUTE')",(role,)).fetchone()[0]
             assert not db.execute("SELECT has_table_privilege(%s,'ledger.program_fill_source_approvals','INSERT')",(role,)).fetchone()[0]
+            assert not db.execute("SELECT has_function_privilege(%s,'ledger.approve_program_fill_source_snapshot(text,text,jsonb,text)','EXECUTE')",(role,)).fetchone()[0]
+            assert not db.execute("SELECT has_function_privilege(%s,'ledger.approve_program_fill_source_v2(text,text,text,text,text)','EXECUTE')",(role,)).fetchone()[0]
+            assert not db.execute("SELECT has_table_privilege(%s,'ledger.program_fill_source_snapshots','INSERT')",(role,)).fetchone()[0]
 
 
 def test_genuine_fill_source_is_committed_without_posting_or_authorizing(database,venue,tmp_path):
@@ -75,10 +79,15 @@ def test_genuine_fill_source_is_committed_without_posting_or_authorizing(databas
             'WHERE scope_id=%s AND approval_id=%s',(scope_id(c.scope),approval.approval_id)).fetchone()
         assert canonical_hash(row[0])==row[1]==approval.approval_id
         assert int(row[2])%(2**32)==int(row[3])
-        assert row[0]['consumption_hash']==canonical_hash(tx.execute('SELECT context FROM ledger.program_permit_consumptions '
+        proof=row[0]
+        if proof['record_kind']=='PAPER_PROGRAM_FILL_SOURCE_V2':
+            proof=tx.execute('SELECT payload FROM ledger.program_fill_source_snapshots WHERE scope_id=%s AND snapshot_id=%s',
+                (scope_id(c.scope),proof['source_snapshot_hash'])).fetchone()[0]
+            assert canonical_hash(proof)==row[0]['source_snapshot_hash']
+        assert proof['consumption_hash']==canonical_hash(tx.execute('SELECT context FROM ledger.program_permit_consumptions '
             'WHERE scope_id=%s AND command_id=%s',(scope_id(c.scope),c.write.command_id)).fetchone()[0])
-        assert row[0]['verification']['market_evidence']['consumptions']
-        assert row[0]['verification']['raw_refs']
+        assert proof['verification']['market_evidence']['consumptions']
+        assert proof['verification']['raw_refs']
         assert tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
         assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(0,)
 
@@ -255,3 +264,36 @@ def test_many_genuine_fills_send_one_source_proof_instead_of_one_copy_per_fill(d
     # Modest real-source probe: no enormous fixture/allocation is needed to
     # expose repeated full report/all-rival serialization inside the mutex.
     assert sum(sent)<=3*source_bytes+4096*len(verified.fills),(sum(sent),source_bytes)
+    from trading_system.execution.program_fill_source import CommittedProgramFillSources
+    with c.service.uow.transaction(c.scope) as tx:
+        assert tx.execute('SELECT count(*) FROM ledger.program_fill_source_snapshots WHERE scope_id=%s',
+            (scope_id(c.scope),)).fetchone()==(1,)
+        source_reads=[];original=tx.execute
+        def measured_read(sql,params=()):
+            if 'FROM ledger.program_fill_source_snapshots WHERE' in sql:source_reads.append(sql)
+            return original(sql,params)
+        tx.execute=measured_read
+        reader=CommittedProgramFillSources(tx)
+        assert tuple(reader.read(a.approval_id) for a in result.approvals)==result.approvals
+        assert len(source_reads)==1
+    with pytest.raises(ValueError,match='PROGRAM_SOURCE_TRANSACTION_CLOSED'):
+        reader.read(result.approvals[0].approval_id)
+
+
+def test_historical_v1_approval_still_reads_without_rewriting_its_payload(database,venue,tmp_path):
+    from trading_system.execution.program_fill_source import _source_context,read_committed_fill_source
+    from trading_system.contracts.canonical import canonical_json
+    c,service,codec=setup_source(database,venue,tmp_path)
+    try:verified=service.verifier.verify(c.write.command_id)
+    finally:codec.close()
+    with service.uow.transaction(c.scope) as tx:
+        payload=dict(contract_version='2026-10-30',record_kind='PAPER_PROGRAM_FILL_SOURCE_V1',
+            scope=domain_payload(c.scope),command_id=c.write.command_id,**_source_context(tx,c.write.command_id),
+            normalized=domain_payload(verified.fills[0]),verification=domain_payload(verified))
+        approval_id=tx.execute('SELECT ledger.approve_program_fill_source(%s,%s,%s::jsonb,%s)',
+            (scope_id(c.scope),c.write.command_id,canonical_json(payload),tx.transaction_id)).fetchone()[0]
+    with c.service.uow.transaction(c.scope) as tx:
+        found=read_committed_fill_source(tx,approval_id)
+        assert found.normalized==verified.fills[0] and not found.balance_credit_authorized
+        assert tx.execute('SELECT payload FROM ledger.program_fill_source_approvals WHERE scope_id=%s AND approval_id=%s',
+            (scope_id(c.scope),approval_id)).fetchone()[0]==payload

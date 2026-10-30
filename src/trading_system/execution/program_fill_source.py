@@ -64,6 +64,44 @@ def _source_context(tx,command_id):
 
 
 def read_committed_fill_source(tx,approval_id):
+    return CommittedProgramFillSources(tx).read(approval_id)
+
+
+class CommittedProgramFillSources:
+    """One transaction's immutable historical proofs; no current risk cache.
+
+    Batch consumers reuse this reader so each shared source snapshot is loaded
+    and hashed once. It never caches owner/book/lease/permission or an ALLOW.
+    """
+    def __init__(self,tx):
+        self.tx=tx
+        self._snapshots={}
+
+    def _snapshot(self,source_hash,command_id):
+        tx=self.tx
+        require(tx.active and not tx.failed,'PROGRAM_SOURCE_TRANSACTION_CLOSED')
+        if source_hash not in self._snapshots:
+            row=tx.execute('SELECT payload,payload_hash,database_transaction::text,xmin::text,pg_current_xact_id()::text '
+                'FROM ledger.program_fill_source_snapshots WHERE scope_id=%s AND command_id=%s AND snapshot_id=%s',
+                (scope_id(tx.scope),command_id,source_hash)).fetchone()
+            require(row is not None and row[2]!=row[4] and int(row[2])%(2**32)==int(row[3]),
+                'PROGRAM_COMMITTED_SOURCE_SNAPSHOT_REQUIRED')
+            payload=row[0]
+            require(source_hash==row[1]==canonical_hash(payload) and payload['scope']==domain_payload(tx.scope)
+                and payload['command_id']==command_id and payload['contract_version']=='2026-10-30'
+                and payload['record_kind']=='PAPER_PROGRAM_FILL_SOURCE_SNAPSHOT_V1',
+                'PROGRAM_SOURCE_SNAPSHOT_CHANGED')
+            context=_source_context(tx,command_id)
+            require(all(payload[key]==value for key,value in context.items()),'PROGRAM_ORIGINAL_SOURCE_CHANGED')
+            self._snapshots[source_hash]=payload
+        return self._snapshots[source_hash]
+
+    def read(self,approval_id):
+        require(self.tx.active and not self.tx.failed,'PROGRAM_SOURCE_TRANSACTION_CLOSED')
+        return _read_committed_fill_source(self.tx,approval_id,self)
+
+
+def _read_committed_fill_source(tx,approval_id,reader):
     """Read immutable historical facts only, without venue/file IO or new authority.
 
     An approval inserted by this physical transaction is unusable. Recheck the
@@ -81,12 +119,18 @@ def read_committed_fill_source(tx,approval_id):
         'PROGRAM_COMMITTED_SOURCE_APPROVAL_REQUIRED')
     command_id,identity,payload,payload_hash,*_=row
     require(payload_hash==approval_id==canonical_hash(payload)
-        and payload['contract_version']=='2026-10-30' and payload['record_kind']=='PAPER_PROGRAM_FILL_SOURCE_V1'
+        and payload['contract_version']=='2026-10-30'
+        and payload['record_kind'] in ('PAPER_PROGRAM_FILL_SOURCE_V1','PAPER_PROGRAM_FILL_SOURCE_V2')
         and payload['scope']==domain_payload(tx.scope) and tx.scope.environment==t.Environment.PAPER
         and payload['command_id']==command_id,'PROGRAM_SOURCE_COMMITMENT_CHANGED')
-    context=_source_context(tx,command_id)
-    require(all(payload[key]==value for key,value in context.items()),'PROGRAM_ORIGINAL_SOURCE_CHANGED')
-    stored=payload['normalized']
+    if payload['record_kind']=='PAPER_PROGRAM_FILL_SOURCE_V1':
+        context=_source_context(tx,command_id)
+        require(all(payload[key]==value for key,value in context.items()),'PROGRAM_ORIGINAL_SOURCE_CHANGED')
+        stored=payload['normalized']
+    else:
+        source=reader._snapshot(payload['source_snapshot_hash'],command_id)
+        stored=source['normalized_fills'].get(payload['normalized_hash'])
+        require(stored is not None and canonical_hash(stored)==payload['normalized_hash'],'PROGRAM_APPROVED_NATIVE_FACTS_CHANGED')
     fill=decode(t.Fill,stored['fill'])
     economics=decode(NativeFillEconomics,stored['economics'])
     raw=decode(PaperMarketFill,stored['raw'])
@@ -125,15 +169,28 @@ class ProgramFillSourceService:
         if not verified.fills:
             return ProgramFillSourceResult(command_id=command_id,status='NO_FILLS',verification=verified,approvals=())
         approvals=[]
+        # Serialize the full proof and each native fact once, outside the owner
+        # posting transaction. V2 stores one proof snapshot per observation;
+        # per-fill SQL parameters contain only hashes/IDs, never another report.
+        verification_payload=domain_payload(verified)
+        normalized_payloads=tuple(domain_payload(n) for n in verified.fills)
+        normalized_hashes=tuple(canonical_hash(n) for n in normalized_payloads)
         with self.uow.transaction(self.scope) as tx:
             context=_source_context(tx,command_id)
-            for normalized in verified.fills:
-                payload=dict(contract_version='2026-10-30',record_kind='PAPER_PROGRAM_FILL_SOURCE_V1',
-                    scope=domain_payload(self.scope),command_id=command_id,**context,
-                    normalized=domain_payload(normalized),verification=domain_payload(verified))
+            snapshot=dict(contract_version='2026-10-30',record_kind='PAPER_PROGRAM_FILL_SOURCE_SNAPSHOT_V1',
+                scope=domain_payload(self.scope),command_id=command_id,**context,verification=verification_payload,
+                normalized_fills=dict(zip(normalized_hashes,normalized_payloads)))
+            source_hash=canonical_hash(snapshot)
+            saved=tx.execute('SELECT ledger.approve_program_fill_source_snapshot(%s,%s,%s::jsonb,%s)',
+                (scope_id(self.scope),command_id,canonical_json(snapshot),tx.transaction_id)).fetchone()
+            require(saved==(source_hash,),'PROGRAM_SOURCE_COMMITMENT_CHANGED')
+            for normalized,normalized_hash in zip(verified.fills,normalized_hashes):
+                payload=dict(contract_version='2026-10-30',record_kind='PAPER_PROGRAM_FILL_SOURCE_V2',
+                    scope=domain_payload(self.scope),command_id=command_id,
+                    source_snapshot_hash=source_hash,normalized_hash=normalized_hash)
                 expected=canonical_hash(payload)
-                row=tx.execute('SELECT ledger.approve_program_fill_source(%s,%s,%s::jsonb,%s)',
-                    (scope_id(self.scope),command_id,canonical_json(payload),tx.transaction_id)).fetchone()
+                row=tx.execute('SELECT ledger.approve_program_fill_source_v2(%s,%s,%s,%s,%s)',
+                    (scope_id(self.scope),command_id,source_hash,normalized_hash,tx.transaction_id)).fetchone()
                 require(row==(expected,),'PROGRAM_SOURCE_COMMITMENT_CHANGED')
                 identity=canonical_hash(dict(scope=domain_payload(self.scope),venue=normalized.fill.venue,
                     native_trade_id=normalized.fill.native_trade_id))
