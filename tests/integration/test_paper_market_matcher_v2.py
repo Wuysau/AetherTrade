@@ -363,7 +363,9 @@ def test_native_pending_members_wait_for_actual_full_working_fill_then_activate_
     matcher.apply_market_event(replace(event(c,sequence=3,ask='83001',quantity='1'),bids=(DepthLevel(price='83000',quantity='1'),)))
     if template=='OTOCO':matcher.apply_market_event(reference(c,4,'LAST','83000'))
     after=c.engine.query_creation(c.write.command_id)
-    assert sum((f.quantity for f in after.fills if f.node_id!=working),D(0))==1
+    assert sum((f.quantity for f in after.fills if f.node_id!=working),D(0))==1,(
+        [(o.node_id,o.status,o.runtime.phase,o.runtime.effective_limit,o.runtime.parent_activation_fill_id) for o in after.orders],
+        [(d.client_id,d.reason) for d in after.dispositions])
     assert after.native_parent.status=='ALL_DONE'
     with c.engine._connect() as db:
         assert db.execute('SELECT count(*) AS n FROM public.paper_engine_commands WHERE scope_key=%s',(c.engine._scope_key,)).fetchone()['n']==1
