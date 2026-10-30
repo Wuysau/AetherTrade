@@ -99,6 +99,7 @@ def require_owned_program_posting(tx,fact):
         (scope_id(tx.scope),str(after.sequence))).fetchall()
     # Equal quantities are not interchangeable executions. Every native fact
     # using this actual owner revision must belong to the ONE declared batch.
+    need(len(transition)>=len(ids),'OWNED_POSTING_BATCH_INCOMPLETE')
     need(len(transition)==len(ids) and {r[0].get('identity_hash') for r in transition}==ids,
         'OWNED_POSTING_TRANSITION_REUSED')
     for member in facts:
