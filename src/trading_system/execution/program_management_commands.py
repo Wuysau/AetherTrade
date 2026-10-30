@@ -16,7 +16,9 @@ def payload(value):
     if type(value) is dict:return {k:payload(v) for k,v in value.items()}
     if type(value) in (str,int,bool) or value is None:return value
     return domain_payload(value)
-def digest(value):return canonical_hash(payload(value))
+def digest(value):
+    packed=payload(value)
+    return canonical_hash(packed if type(packed) is dict else {'items':packed})
 def require(ok,reason):
     if not ok:raise ValueError(reason)
 def token_hash(token):return canonical_hash({'management_v4_private_token':token})
