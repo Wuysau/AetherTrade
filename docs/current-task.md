@@ -40,6 +40,13 @@ required to persistSAMEphysicalTX withbundle/request. No newpermission/position
 assignment. Currentobservedpost-fill refresh stillparent-ownedpositionhook work.
 Independentreview requested. Broadcurrentcomponents92690 RUNNING; nootherownjobs.
 
+Subsequentcurrentcomponents92690 TERMINAL:1786pass81.20s. Source/native289+196
+imported artifact maps independently match485 CURRENT committed blobs. Current
+fixeda0ca274 full50mandatoryPG+ordinary gate96697 is RUNNING, timeout5400, fresh
+private explicitoffline runner. Do not restart any earlier terminaljob. This
+gate includesoriginalwindow binding, currentquote13, nativeoffline8, exactPAPER23
+and newcontinuation3; source-specific results above remain honest until terminal.
+
 Latest0015 actual current-quote cohort:58a36a1 fixed12 PG passed/0fail/error/skip
 after6 initial REDs and an actual SQL downgrade RED (10pass/1DID NOT RAISE).
 The new predicate binds current archive kind/version to immutable sequence1
