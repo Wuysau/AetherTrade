@@ -232,19 +232,21 @@ def test_actual_primary_peg_uses_earlier_placement_depth_not_later_quote(databas
     c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,
         price=PriceSpec(kind='PEG',value=None,peg_type='PRIMARY_PEG',offset_levels=1,price_match=None)))
     matcher=PaperMatcher(c.engine)
-    matcher.apply_market_event(replace(event(c,ask='81500'),bids=(DepthLevel(price='81489',quantity='1'),DepthLevel(price='81488',quantity='1'))))
+    placement=replace(event(c,ask='81500'),bids=(DepthLevel(price='81489',quantity='1'),DepthLevel(price='81488',quantity='1')))
+    matcher.apply_market_event(placement)
     submit(c)
-    matcher.apply_market_event(replace(event(c,sequence=2,ask='81488',quantity='.4'),bids=(DepthLevel(price='81487',quantity='1'),)))
+    moved=replace(event(c,sequence=2,ask='81500',quantity='.4'),asks=(DepthLevel(price='81488',quantity='.4'),),bids=(DepthLevel(price='81487',quantity='1'),))
+    matcher.apply_market_event(moved)
     result=observe(c,tmp_path/'raw')
     assert result.source_verified,result.discrepancies
     assert result.fills[0].fill.price.value==D('81488') and result.raw_report.orders[0].runtime.effective_limit==D('81488')
-    assert {d.event_id for d in result.causal_dependencies}=={'depth-1','depth-2'}
+    assert {d.event_id for d in result.causal_dependencies}=={placement.event_id,moved.event_id}
 
 
 def test_actual_iceberg_hidden_quantity_is_not_fill_or_released_reservation(database,venue_v2,tmp_path):
     from trading_system.risk.reservation_repository import ReservationRepository
     market='verifier-iceberg-'+uuid4().hex
-    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda o:replace(o,iceberg_quantity='.1'))
+    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda o:replace(o,iceberg_quantity='0.1'))
     rival=advanced_case(database,venue_v2,tmp_path,market=market);submit(c);submit(rival);matcher=PaperMatcher(c.engine)
     matcher.apply_market_event(event(c,quantity='.25'));matcher.apply_market_event(event(c,sequence=2,quantity='.2',kind='DEPTH_DELTA'))
     result=observe(c,tmp_path/'raw')
@@ -304,3 +306,25 @@ def test_disposition_market_identity_cannot_be_changed_while_actual_raw_is_retai
     result=observe(c,tmp_path/'raw')
     assert not result.source_verified and not result.fills and result.raw_refs
     assert 'PAPER_V2_DISPOSITION_SOURCE_CHANGED' in result.discrepancies
+
+
+@pytest.mark.parametrize('changed',['before_levels','observed_clock'])
+def test_resealed_input_snapshot_must_match_actual_archived_predepth_and_clock(database,venue_v2,tmp_path,changed):
+    from trading_system.engine.paper_market import PaperDepthState
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+    market=c.engine.query_market_evidence(c.write.command_id);item=market.inputs[0]
+    replacement=replace(item,before_levels=(PaperDepthState(side='ASK',price='81490',reported='0.1',available='0.1'),)) if changed=='before_levels' else replace(
+        item,observed_clock=replace(item.observed_clock,monotonic_ns=item.observed_clock.monotonic_ns+1))
+    c.engine.query_market_evidence=lambda _:reseal_market(replace(market,inputs=(replacement,)))
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and not result.fills and result.raw_refs
+    assert 'PAPER_V2_CAUSAL_INPUT_SOURCE_CHANGED' in result.discrepancies
+
+
+def test_accepted_model_must_be_actual_stored_model_even_without_any_fill(database,venue_v2,tmp_path):
+    c=advanced_case(database,venue_v2,tmp_path);submit(c);report=c.engine.query_creation(c.write.command_id)
+    altered=tuple(replace(a,model=replace(a.model,model_id='CALLER_MODEL')) for a in report.accepted_contexts)
+    c.engine.query_creation=lambda _:reseal_report(replace(report,accepted_contexts=altered))
+    result=observe(c,tmp_path/'raw')
+    assert not result.source_verified and result.raw_refs
+    assert 'PAPER_V2_ACCEPTED_DURABLE_TERMS_CHANGED' in result.discrepancies
