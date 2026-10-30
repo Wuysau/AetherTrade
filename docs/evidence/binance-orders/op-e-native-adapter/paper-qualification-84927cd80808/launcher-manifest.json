@@ -1,0 +1,220 @@
+{
+  "source_commit": "37449b84b7ae1e233628168c3f6c305c953701c3",
+  "started_utc": "2026-10-29T16:19:24.973050+00:00",
+  "postgres_container": "aethertrade-qualification-pg-84927cd80808",
+  "runner_container": "aethertrade-qualification-runner-84927cd80808",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-native-adapter\\.runtime\\paper-qualification-84927cd80808\\source.bundle",
+        "HEAD",
+        "37449b84b7ae1e233628168c3f6c305c953701c3"
+      ],
+      "log": "bundle.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        "aethertrade-qualification-pg-84927cd80808",
+        "--env-file",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-native-adapter\\.runtime\\paper-qualification-84927cd80808\\container.env",
+        "postgres:17-alpine"
+      ],
+      "log": "postgres-start.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        "aethertrade-qualification-runner-84927cd80808",
+        "--network",
+        "container:aethertrade-qualification-pg-84927cd80808",
+        "--env-file",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-native-adapter\\.runtime\\paper-qualification-84927cd80808\\container.env",
+        "--mount",
+        "type=bind,source=D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-native-adapter\\.runtime\\paper-qualification-84927cd80808,target=/handoff",
+        "sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7",
+        "sleep",
+        "14400"
+      ],
+      "log": "runner-start.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.Image}}",
+        "aethertrade-qualification-pg-84927cd80808",
+        "aethertrade-qualification-runner-84927cd80808"
+      ],
+      "log": "container-images.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-84927cd80808",
+        "git",
+        "clone",
+        "/handoff/source.bundle",
+        "/tmp/source"
+      ],
+      "log": "source-clone.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-84927cd80808",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "37449b84b7ae1e233628168c3f6c305c953701c3"
+      ],
+      "log": "source-checkout.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-84927cd80808",
+        "python",
+        "-m",
+        "pip",
+        "install",
+        "--no-deps",
+        "--no-build-isolation",
+        "-e",
+        "."
+      ],
+      "log": "python-dependencies.txt",
+      "timeout_seconds": 900,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-84927cd80808",
+        "python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "log": "dependency-check.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-84927cd80808",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--initialize"
+      ],
+      "log": "initialize-marker.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-84927cd80808",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--evidence-dir",
+        "/handoff/evidence/postgres",
+        "--suite",
+        "native-creation-owner"
+      ],
+      "log": "postgres-suites.txt",
+      "timeout_seconds": 1183,
+      "exit_code": 1
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-84927cd80808",
+        "python",
+        "-m",
+        "pip",
+        "freeze"
+      ],
+      "log": "resolved-dependencies.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "stop",
+        "--time",
+        "10",
+        "aethertrade-qualification-runner-84927cd80808"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 30,
+      "log": "runner-stop.txt"
+    }
+  ],
+  "launcher_sha256": "efab02253bdec0eead81b50a71edb35fd034b0efbfa1679fb3d96b42d5850843",
+  "scope": "LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION",
+  "diagnostic_suite": "native-creation-owner",
+  "deadline_seconds": 1200,
+  "runner_image": "sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7",
+  "offline_dependencies": true,
+  "exit_code": 1,
+  "finished_utc": "2026-10-29T16:20:14.182421+00:00",
+  "files_sha256": {
+    "bundle.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "container-images.txt": "dcdbf9e5024cdbd163a2f39f7ba9bd5e30b4d04812d40ddfa0d1c4908ee0ca0a",
+    "dependency-check.txt": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+    "initialize-marker.txt": "950d831a070494277c15b1de879def7661ade4d4c3e921e65eb4e8a79e8383f4",
+    "postgres/37449b84b7ae-9582680f4164/native-creation-owner.log": "ba1e8fd0e9970b5c9bbe5f3ed0673fcbb72884373afba4d90ee610abf6a14a6a",
+    "postgres/37449b84b7ae-9582680f4164/native-creation-owner.xml": "e5244668676d78960e4baa0415532517626c7d449aca5a217028fd9f4a799040",
+    "postgres/37449b84b7ae-9582680f4164/summary.json": "f2c8c93dd5e2c410f41a1e7da756d562dc40b88b0a5ef329993763cae3f63313",
+    "postgres-start.txt": "4cd809c83ad43d7b0d0f264eb5991de223ab0126df3e84e4b944d926b0a87544",
+    "postgres-suites.txt": "0449ec2f555b5a6f69e654eb959323f765a3985d57b9cdd5d44e6ee62c8dc13d",
+    "python-dependencies.txt": "aec0d6116e8e55a282657d06ce96a3d843817d4112d74745edf76ddf2bf72fc2",
+    "resolved-dependencies.txt": "5aaa9ef444eef2a26e8a097fba2089e37b5ab5f479c6da548b5155e13a671217",
+    "runner-start.txt": "b41c1a8e759b8e0b8f8896987e58dbaafc94bd679aea207bad48d79f463d2375",
+    "runner-stop.txt": "5b030b3cf5c26be5547c7d1e4d47650bf3df98280f7bed4524560a7a9c0900aa",
+    "source-checkout.txt": "1a90e5e5b127c427ab97515ec18ca5f94fc6fcde4e1eb3752865eca80d47647b",
+    "source-clone.txt": "dfbb89929e4b894144feb3f1c738e7aea0b53f200a6a6876bbc6a2df05926dd3"
+  }
+}

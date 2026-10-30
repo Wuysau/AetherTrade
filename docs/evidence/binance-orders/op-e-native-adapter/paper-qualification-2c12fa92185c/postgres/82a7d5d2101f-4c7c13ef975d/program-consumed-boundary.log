@@ -1,0 +1,22 @@
+............FFF..                                                        [100%]
+=================================== FAILURES ===================================
+_ test_real_post_consumption_changes_never_clear_a_new_side_effect[expiry_label] _
+tests/integration/test_program_consumed_boundary_postgres.py:74: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_real_post_consumption_changes_never_clear_a_new_side_effect[deadline_label] _
+tests/integration/test_program_consumed_boundary_postgres.py:74: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_real_post_consumption_changes_never_clear_a_new_side_effect[both_window_labels] _
+tests/integration/test_program_consumed_boundary_postgres.py:74: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_consumed_boundary_postgres.py::test_real_post_consumption_changes_never_clear_a_new_side_effect[expiry_label]
+FAILED tests/integration/test_program_consumed_boundary_postgres.py::test_real_post_consumption_changes_never_clear_a_new_side_effect[deadline_label]
+FAILED tests/integration/test_program_consumed_boundary_postgres.py::test_real_post_consumption_changes_never_clear_a_new_side_effect[both_window_labels]
+3 failed, 14 passed in 149.18s (0:02:29)

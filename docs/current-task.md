@@ -1,5 +1,46 @@
 # Current task
 
+## OP_E_NATIVE_ADAPTER_ACTIVE — 2026-10-30
+
+reports_fresh solely owns this NEW binance-ope-native-adapter worktree from
+committed root13bf1e3. Report verifier5ef7d9a stays read-only. Root owns shared
+integration/financial/schema/migration work; no root/0016/0017 edits here.
+Full46/56 C–G and full OP-E remain ACTIVE; no external activation/qualification.
+
+Current code04ceec6: all15 creation and19 management/query route-method shapes
+preserve complete frozen fields/originalIDs. Management is unsigned and has no
+sender; it needs a distinct future durable boundary, never a creation token.
+Actual Windows CPython3.14.2/Nautilus1.231.0 source/ABI/pyd pins inspected;
+SDK15+19 HMAC/URL shapes and15 adapter-component shapes matched fake HTTP only.
+Linux native deployment and post-Rust-queue last-send hook remain BLOCKED.
+
+Shared guardde747 first14PG passed121.85s; nativebf401 owner8PG passed65.30s,
+158related23.47s. Original97582/82a7d5d is authoritative TERMINAL realRED:
+14pass3fail149.18s (all three changed window labels DID NOT RAISE), complete
+manifest/XML/log/runner-stop0 retained. No blind restart occurred. Intermediate
+a222 original-formula reconstruction17PG passed67.45s but config-change audit
+28154 had17pass2fail74.56s, historicale030 had17pass3fail82.10s.
+
+Final fix2d6eda8 stores immutable original context.permit_window atomically with
+MAY, compares both labels without consulting today's TTL config, and retains DB
+expiry/physical/current-state checks. No migration/oldrow/hash rewrite. Historical
+unwindowed marks block new sends but genuine original-ID queries still work.
+Actual20PG0fail/error/skip76.21s; integration_next independently reviewed tiny mark
+hunk/helper clear and serially integrates it into root's quote-extended guard.
+Root quote/raw-prepared/static-kind branches must never be overwritten.
+
+Latest exact04ceec6 native-owner8PG passed0fail/error/skip29.49s after the final
+window change;417 related checks passed0fail/error/skip18.35s. Parent independently
+reviewed bounded adapterbf401 clear. All current jobs are TERMINAL; no job needs
+polling/restarting. Source/evidence publication is being completed under
+op-e-native-adapter; source contracts in OP-E-NATIVE-INTEGRATION.md.
+
+Next: preserve/verify all raw evidence against committed blobs, then continue
+creation/query/management raw response mapping. Equity S/F and execution-algo
+success are ACKs only, not lifecycle/fills; missing venue IDs require original
+query. Only pinned SDK schemas/reviewed official source evidence may map fields.
+No fake legacy intent, second ledger, inferred fills, native activation or release.
+
 ## OP_C_CURRENT_INTEGRATION_CHECKPOINT — 2026-10-29
 
 Sole binance-orders writer remains integration_next. Parent root coordinates and

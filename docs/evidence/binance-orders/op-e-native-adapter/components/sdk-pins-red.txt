@@ -1,0 +1,34 @@
+FFFFFF                                                                   [100%]
+================================== FAILURES ===================================
+___________ test_pinned_measurements_are_accepted_only_as_metadata ____________
+tests\qualification\test_native_sdk_inspection.py:13: in test_pinned_measurements_are_accepted_only_as_metadata
+    from trading_system.engine.nautilus.sdk_pins import validate_sdk_measurements
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.sdk_pins'
+_ test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[version] _
+tests\qualification\test_native_sdk_inspection.py:20: in test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client
+    from trading_system.engine.nautilus.sdk_pins import validate_sdk_measurements
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.sdk_pins'
+_ test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[python_version] _
+tests\qualification\test_native_sdk_inspection.py:20: in test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client
+    from trading_system.engine.nautilus.sdk_pins import validate_sdk_measurements
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.sdk_pins'
+_ test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[platform_tag] _
+tests\qualification\test_native_sdk_inspection.py:20: in test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client
+    from trading_system.engine.nautilus.sdk_pins import validate_sdk_measurements
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.sdk_pins'
+_ test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[source_hash] _
+tests\qualification\test_native_sdk_inspection.py:20: in test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client
+    from trading_system.engine.nautilus.sdk_pins import validate_sdk_measurements
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.sdk_pins'
+_ test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[missing_source] _
+tests\qualification\test_native_sdk_inspection.py:20: in test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client
+    from trading_system.engine.nautilus.sdk_pins import validate_sdk_measurements
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.sdk_pins'
+=========================== short test summary info ===========================
+FAILED tests/qualification/test_native_sdk_inspection.py::test_pinned_measurements_are_accepted_only_as_metadata
+FAILED tests/qualification/test_native_sdk_inspection.py::test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[version]
+FAILED tests/qualification/test_native_sdk_inspection.py::test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[python_version]
+FAILED tests/qualification/test_native_sdk_inspection.py::test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[platform_tag]
+FAILED tests/qualification/test_native_sdk_inspection.py::test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[source_hash]
+FAILED tests/qualification/test_native_sdk_inspection.py::test_changed_source_version_abi_or_platform_cannot_bind_the_pinned_client[missing_source]
+6 failed in 0.43s

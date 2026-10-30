@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="8" time="19.535" timestamp="2026-10-29T16:19:42.327003+00:00" hostname="674b8d42835d"><testcase classname="tests.integration.test_native_creation_owner_postgres" name="test_real_owner_consumption_emits_only_archived_offline_unknown_observation" time="3.207"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'">tests/integration/test_native_creation_owner_postgres.py:49: in test_real_owner_consumption_emits_only_archived_offline_unknown_observation
+    c=prepared(database,tmp_path)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'</failure></testcase><testcase classname="tests.integration.test_native_creation_owner_postgres" name="test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[default_disabled]" time="1.912"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'">tests/integration/test_native_creation_owner_postgres.py:65: in test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write
+    c=prepared(database,tmp_path,installed=fault!='default_disabled')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'</failure></testcase><testcase classname="tests.integration.test_native_creation_owner_postgres" name="test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[changed_request]" time="1.884"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'">tests/integration/test_native_creation_owner_postgres.py:65: in test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write
+    c=prepared(database,tmp_path,installed=fault!='default_disabled')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'</failure></testcase><testcase classname="tests.integration.test_native_creation_owner_postgres" name="test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[no_active_owner]" time="1.913"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'">tests/integration/test_native_creation_owner_postgres.py:65: in test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write
+    c=prepared(database,tmp_path,installed=fault!='default_disabled')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'</failure></testcase><testcase classname="tests.integration.test_native_creation_owner_postgres" name="test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write[reused_permit]" time="2.789"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'">tests/integration/test_native_creation_owner_postgres.py:65: in test_no_caller_can_convert_unsigned_or_stale_creation_data_into_an_offline_write
+    c=prepared(database,tmp_path,installed=fault!='default_disabled')
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'</failure></testcase><testcase classname="tests.integration.test_native_creation_owner_postgres" name="test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck[expiry]" time="2.336"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'">tests/integration/test_native_creation_owner_postgres.py:81: in test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck
+    c=prepared(database,tmp_path,blocked=True)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'</failure></testcase><testcase classname="tests.integration.test_native_creation_owner_postgres" name="test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck[fence]" time="2.304"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'">tests/integration/test_native_creation_owner_postgres.py:81: in test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck
+    c=prepared(database,tmp_path,blocked=True)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'</failure></testcase><testcase classname="tests.integration.test_native_creation_owner_postgres" name="test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck[lock]" time="2.029"><failure message="ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'">tests/integration/test_native_creation_owner_postgres.py:81: in test_actual_queue_wait_requires_fresh_owner_and_protected_current_recheck
+    c=prepared(database,tmp_path,blocked=True)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_native_creation_owner_postgres.py:19: in prepared
+    from trading_system.engine.nautilus.native_program_adapter import OfflineNativeCreationProbe,NativeCreationQueue
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_program_adapter'</failure></testcase></testsuite></testsuites>

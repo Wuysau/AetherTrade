@@ -1,0 +1,36 @@
+{
+  "source_commit": "04ceec6872a13d4c2e27915b2d7ea3b48304f66e",
+  "command": [
+    "D:/Projects/Python/AetherTrade/AetherTrade/.venv/Scripts/python.exe",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/qualification/test_nautilus_bridge.py",
+    "tests/qualification/test_nautilus_order_target.py",
+    "tests/qualification/test_native_sdk_inspection.py",
+    "tests/intents/test_native_creation_call.py",
+    "tests/intents/test_creation_request_binding.py",
+    "tests/intents/test_program_compilation.py",
+    "tests/intents/test_native_management_call.py",
+    "tests/intents/test_management_requests.py",
+    "tests/intents/test_order_query.py",
+    "tests/intents/test_order_management_compilation.py",
+    "tests/unit/test_program_commands.py",
+    "tests/unit/test_original_creation_recovery.py",
+    "tests/ops/test_paper_ci_gate.py",
+    "--tb=short",
+    "--junitxml=.runtime\\native-adapter\\final-related-green.xml"
+  ],
+  "exit_code": 0,
+  "results": {
+    "passed": 417,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "tracked_python_changes_before_and_after": false,
+  "sha256": {
+    "final-related-green.txt": "ca3903ab1e2e5430a6e9c0f7b3b00baef7db66aebcbdaa78c49673132c0c1411",
+    "final-related-green.xml": "cea2cad3ae25f1c0b447f3aeea30f84f5b3800df7b925e487e0b6ccf54642fb0"
+  }
+}
