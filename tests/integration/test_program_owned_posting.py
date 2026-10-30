@@ -19,7 +19,16 @@ def setup(database,venue,tmp_path,*,owned=True):
     from trading_system.execution.program_accounting import ProgramPaperAccountingService
     from trading_system.execution.program_owned_posting import ProgramOwnedSpotPosting
     from trading_system.execution.program_fill_source import ProgramFillSourceService
-    c=case(database,venue,tmp_path,prepared_case=prepared(database))
+    from uuid import uuid4
+    from integration.test_program_financial_admission import real_case
+    from integration.test_program_account_opening import provision_uow,inputs
+    from trading_system.risk.program_exposure import FeeBound
+    from trading_system.execution.program_account_opening import ProgramAccountOpeningService
+    initial=real_case(database,instrument_uid='owned-fee-market-'+uuid4().hex,
+        node_fees=(FeeBound(amount=t.Money(currency='USDT',amount=D('100')),debit='EXTERNAL_BALANCE'),))
+    balances,proof=inputs(initial)
+    ProgramAccountOpeningService(provision_uow(database),initial.scope).initialize(balances,evidence=proof)
+    c=case(database,venue,tmp_path,prepared_case=initial,quote_fee_rate='.001')
     if owned:
         # Existing trusted ownership registration of a genuinely empty owned
         # book; the account's initial BTC10 is intentionally not allocated.
@@ -48,7 +57,7 @@ def test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transa
         book=tx.projections.book(c.scope);owner=RegistryTx(tx).owner()
         assert owner.position.actual_quantity.value==D('.4') # never initial BTC10.4
         assert book.positions==(owner.position,)
-        assert {m.currency:m.amount for m in book.balances}==dict(BTC=D('10.4'),USDT=D('967404'))
+        assert {m.currency:m.amount for m in book.balances}==dict(BTC=D('10.4'),USDT=D('967371.404'))
         assert owner.position.realized_pnl is None and owner.position.cost_evidence.missing
         frame=require_current_program_book_cash(tx,book,read_opening=read_program_account_opening)
         assert len(frame.native_identities)==1
@@ -75,7 +84,7 @@ def test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta(da
         with c.service.uow.transaction(c.scope) as tx:
             assert RegistryTx(tx).owner().position.actual_quantity.value==D('.6')
             assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(2,)
-            assert {m.currency:m.amount for m in tx.projections.book(c.scope).balances}==dict(BTC=D('10.6'),USDT=D('951106'))
+            assert {m.currency:m.amount for m in tx.projections.book(c.scope).balances}==dict(BTC=D('10.6'),USDT=D('951057.106'))
     finally:codec.close()
 
 
