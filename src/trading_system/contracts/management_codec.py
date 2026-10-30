@@ -1,14 +1,14 @@
 """Closed V4 route, deliberately absent from the shared creation registry."""
 import json
-from pathlib import Path
 from jsonschema import Draft202012Validator
 from .canonical import canonical_json,domain_payload
 from .management_write_v4 import ManagementWriteV4
+from .resources import contract_path
 
 
 class ManagementCodec:
     def __init__(self):
-        self.validator=Draft202012Validator(json.loads(Path(__file__).with_name('management_write_v4.schema.json').read_text()))
+        self.validator=Draft202012Validator(json.loads(contract_path('management-write.v2026-10-30-v4.schema.json').read_text(encoding='utf-8')))
 
     def encode(self,record):
         if type(record) is not ManagementWriteV4:raise ValueError('MANAGEMENT_V4_REQUIRED')
