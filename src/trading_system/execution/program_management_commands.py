@@ -11,7 +11,12 @@ from trading_system.intents.order_management_compilation import ManagementCompil
 from trading_system.execution.management_requests import VenueManagementRequest
 from trading_system.storage.models import decode,scope_id,atomic_write
 
-def digest(value):return canonical_hash(domain_payload(value))
+def payload(value):
+    if type(value) in (tuple,list):return [payload(v) for v in value]
+    if type(value) is dict:return {k:payload(v) for k,v in value.items()}
+    if type(value) in (str,int,bool) or value is None:return value
+    return domain_payload(value)
+def digest(value):return canonical_hash(payload(value))
 def require(ok,reason):
     if not ok:raise ValueError(reason)
 def token_hash(token):return canonical_hash({'management_v4_private_token':token})

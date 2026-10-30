@@ -1,5 +1,12 @@
 -- Additive SIM-only management of the existing protected venue orders.
 BEGIN;
+CREATE TABLE public.paper_management_authorizations_v4(
+ scope_key text NOT NULL,command_id text NOT NULL,binding jsonb NOT NULL,token_hash text NOT NULL,
+ expires_at timestamptz NOT NULL DEFAULT clock_timestamp()+interval '5 seconds',
+ PRIMARY KEY(scope_key,command_id));
+CREATE TRIGGER immutable_management_authorizations BEFORE UPDATE OR DELETE OR TRUNCATE ON public.paper_management_authorizations_v4
+ FOR EACH STATEMENT EXECUTE FUNCTION public.paper_market_immutable();
+REVOKE ALL ON public.paper_management_authorizations_v4 FROM PUBLIC;
 CREATE TABLE public.paper_management_actions_v4(
  scope_key text NOT NULL,command_id text NOT NULL,binding_hash text NOT NULL,
  payload jsonb NOT NULL,observed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
@@ -11,6 +18,9 @@ CREATE FUNCTION public.paper_manage_order_v4(s text,id text,b jsonb) RETURNS jso
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE w jsonb;target jsonb;ord public.paper_engine_orders;market text;result jsonb;BEGIN
  w=b->'write';target=b#>'{plan,target}';
+ IF NOT EXISTS(SELECT FROM public.paper_management_authorizations_v4 a WHERE a.scope_key=s AND a.command_id=id
+  AND a.binding=b AND a.expires_at>clock_timestamp()) THEN
+  RAISE EXCEPTION 'private consumed management authorization required' USING ERRCODE='23514';END IF;
  SELECT market_key INTO market FROM public.paper_order_terms WHERE scope_key=s AND client_id=w->>'original_client_id';
  IF market IS NULL THEN RAISE EXCEPTION 'existing source order required';END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(market,0));
@@ -38,6 +48,5 @@ DECLARE w jsonb;target jsonb;ord public.paper_engine_orders;market text;result j
  RETURN result;
 END $$;
 REVOKE ALL ON FUNCTION public.paper_manage_order_v4(text,text,jsonb) FROM PUBLIC;
--- Runtime may execute only after trusted Python composition has consumed V4.
--- No event/fill authoring, market input changes or original terms rewrites.
+-- Runtime cannot author the private cross-database consumed authorization.
 COMMIT;

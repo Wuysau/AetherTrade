@@ -32,13 +32,36 @@ CREATE TABLE ledger.management_permit_consumptions(
  scope_id text NOT NULL,command_id text NOT NULL,token_hash text NOT NULL,context jsonb NOT NULL,
  transaction_id text NOT NULL,database_transaction xid8 NOT NULL DEFAULT pg_current_xact_id(),
  PRIMARY KEY(scope_id,command_id),FOREIGN KEY(scope_id,command_id) REFERENCES ledger.management_dispatch_marks);
+CREATE TABLE ledger.management_outcomes(
+ scope_id text NOT NULL,command_id text NOT NULL,source_hash text NOT NULL,payload jsonb NOT NULL,transaction_id text NOT NULL,
+ database_transaction xid8 NOT NULL DEFAULT pg_current_xact_id(),
+ PRIMARY KEY(scope_id,command_id,source_hash),FOREIGN KEY(scope_id,command_id) REFERENCES ledger.management_bindings);
 DO $$ DECLARE tab text; BEGIN
- FOREACH tab IN ARRAY ARRAY['management_bindings','management_writes','management_dispatch_marks','management_permit_consumptions'] LOOP
+ FOREACH tab IN ARRAY ARRAY['management_bindings','management_writes','management_dispatch_marks','management_permit_consumptions','management_outcomes'] LOOP
   EXECUTE format('CREATE TRIGGER immutable_history BEFORE UPDATE OR DELETE OR TRUNCATE ON ledger.%I FOR EACH STATEMENT EXECUTE FUNCTION ledger.reject_mutation()',tab);
   EXECUTE format('REVOKE ALL ON ledger.%I FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_program_dispatch_verifier,ledger_management_dispatch_verifier',tab);
   EXECUTE format('GRANT SELECT ON ledger.%I TO ledger_owner,ledger_management_dispatch_verifier',tab);
  END LOOP;
 END $$;
+CREATE FUNCTION ledger.record_management_outcome(s text,id text,p jsonb,tx text) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,ledger AS $$ DECLARE w jsonb;BEGIN
+ SELECT payload INTO w FROM ledger.management_writes WHERE scope_id=s AND record_id=id ORDER BY sequence DESC LIMIT 1;
+ IF w->>'state' NOT IN ('MAY_HAVE_SENT','UNKNOWN') OR w->>'binding_hash' IS DISTINCT FROM p->>'binding_hash'
+  OR p->>'command_id' IS DISTINCT FROM id OR p->'scope' IS DISTINCT FROM w->'scope'
+  OR p->>'original_client_id' IS DISTINCT FROM w->>'original_client_id'
+  OR p->>'target_venue_id' IS DISTINCT FROM w->>'target_venue_id'
+  OR p->'funds_released' IS DISTINCT FROM 'false'::jsonb OR p->'children_terminal' IS DISTINCT FROM 'false'::jsonb
+  OR encode(sha256(convert_to(p->>'raw_payload_json','UTF8')),'hex') IS DISTINCT FROM p->>'source_hash' THEN
+  RAISE EXCEPTION 'source-bound management observation required' USING ERRCODE='23514';END IF;
+ INSERT INTO ledger.management_outcomes(scope_id,command_id,source_hash,payload,transaction_id)
+  VALUES(s,id,p->>'source_hash',p,tx) ON CONFLICT DO NOTHING;
+ IF p->>'cancel_result'='UNKNOWN' AND w->>'state'='MAY_HAVE_SENT' THEN
+  INSERT INTO ledger.management_writes(scope_id,record_id,sequence,payload,transaction_id)
+   VALUES(s,id,3,jsonb_set(w,'{state}','"UNKNOWN"'),tx);
+ END IF;
+END $$;
+REVOKE ALL ON FUNCTION ledger.record_management_outcome(text,text,jsonb,text) FROM PUBLIC,ledger_owner,ledger_control,ledger_decision,ledger_program_dispatch_verifier;
+GRANT EXECUTE ON FUNCTION ledger.record_management_outcome(text,text,jsonb,text) TO ledger_management_dispatch_verifier;
 ALTER TABLE ledger.outbox DROP CONSTRAINT outbox_kind_check;
 ALTER TABLE ledger.outbox ADD CONSTRAINT outbox_kind_check CHECK(kind IN ('COMMAND_READY','DOMAIN_EVENT','PROGRAM_COMMAND_READY','PROGRAM_MANAGEMENT_READY'));
 

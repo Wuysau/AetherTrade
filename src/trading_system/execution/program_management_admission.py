@@ -23,7 +23,7 @@ from trading_system.risk.program_financial_admission import read_program_bundle
 from trading_system.risk.reservation_repository import ReservationRepository,merge_holds
 from trading_system.risk.asset_capacity import CapacityInputs,check_capacity
 from trading_system.risk.locks import ACTIONS
-from .program_management_commands import ManagementBinding,ManagementRepository,ManagementBoundary,binding_hash,digest,require
+from .program_management_commands import ManagementBinding,ManagementRepository,ManagementBoundary,binding_hash,digest,require,payload
 
 @dataclass(frozen=True,slots=True,kw_only=True)
 class ManagementInputs:
@@ -109,11 +109,11 @@ class ProgramManagementService:
         expires=min(map(utc_timestamp,(valid_until,lease.expires_at,inputs.authorization.authorization.expires_at,
             target.valid_until,inputs.rules.valid_until,inputs.capabilities.valid_until,inputs.profile.valid_until)))
         require(now<expires,'MANAGEMENT_WRITE_EXPIRED')
-        risk={'original_basis_hash':w.basis_hash,'target':domain_payload(target),'locks':domain_payload(locks),
+        risk={'original_basis_hash':w.basis_hash,'target':domain_payload(target),'locks':payload(locks),
             'authorization':domain_payload(auth),'capabilities_hash':digest(inputs.capabilities)}
-        funding={'group_id':tx.group_id,'holds':domain_payload(holds),'book_hash':digest(book),
-            'group_capacity':domain_payload(inputs.group_capacity),'strategy_capacity':domain_payload(inputs.strategy_capacity),
-            'buffer':domain_payload(inputs.buffer)}
+        funding={'group_id':tx.group_id,'holds':payload(holds),'book_hash':digest(book),
+            'group_capacity':payload(inputs.group_capacity),'strategy_capacity':payload(inputs.strategy_capacity),
+            'buffer':payload(inputs.buffer)}
         return bundle,inputs,clock,expires,risk,funding,fence
 
     def admit(self,original_command_id,instruction,lease,*,command_id=None,valid_until=None):
@@ -171,6 +171,13 @@ class ProgramManagementService:
     def current(self,tx,binding,target,lease):
         w=binding.write;original=read_original_creation(tx,w.original_command_id)
         require(original is not None and digest(original.initial)==binding.original_write_hash,'MANAGEMENT_ORIGINAL_CHANGED')
+        # Repeated trusted reads may have later observation timestamps, but must
+        # describe the exact same scoped source bytes and economic facts.
+        previous=binding.plan.target
+        require((target.evidence.id,target.evidence.hash,target.evidence.environment,target.evidence.source)==(
+            previous.evidence.id,previous.evidence.hash,previous.evidence.environment,previous.evidence.source),
+            'MANAGEMENT_CURRENT_TARGET_CHANGED')
+        target=replace(target,evidence=previous.evidence,as_of=previous.as_of,valid_until=previous.valid_until)
         bundle,inputs,clock,expires,risk,funding,fence=self._facts(tx,original,target,lease,valid_until=w.valid_until)
         require(digest(target)==w.target_hash,'MANAGEMENT_CURRENT_TARGET_CHANGED')
         requests=materialize_management(binding.plan,current_target=target,**self._compiler_kwargs(target,inputs,clock))

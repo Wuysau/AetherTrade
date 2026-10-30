@@ -1,10 +1,10 @@
 """Restricted management of actual existing PAPER orders; no matcher or fills."""
-from dataclasses import replace
+from dataclasses import dataclass,replace
 from datetime import timedelta
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import domain_payload,canonical_json,utc_timestamp
 from trading_system.engine.paper import PaperEngine
-from trading_system.execution.program_management_commands import (ManagementBoundary,ManagementPermit,ManagementRepository,digest,require)
+from trading_system.execution.program_management_commands import (ManagementBoundary,ManagementPermit,ManagementRepository,digest,require,token_hash)
 from trading_system.intents.order_management_compilation import OwnedTargetSnapshot
 from trading_system.runtime.execution_owner import ExecutionOwner
 from trading_system.storage.models import scope_id
@@ -34,24 +34,35 @@ class PaperManagementTargetReader:
             policy_revision=w.policy_revision,status='NEW' if row.status=='SUBMITTED' else row.status,
             order=context.compilation.nodes[0].original.order,original_quantity=format(row.quantity,'f'),
             cumulative_quantity=format(row.filled_quantity,'f'),parent_list_id=None,evidence=report.evidence,
-            # Source observation version is the actual immutable accepted clock
-            # plus report hash; capture time is independently checked below.
-            as_of=context.terms.accepted_clock.utc_now,
-            valid_until=(utc_timestamp(context.terms.accepted_clock.utc_now)+timedelta(days=1)).isoformat())
+            as_of=now.utc_now,valid_until=(utc_timestamp(now.utc_now)+timedelta(seconds=30)).isoformat())
 
-def submit_management(engine,write,permit,*,boundary,lease,owner):
+@dataclass(frozen=True,slots=True,kw_only=True)
+class PaperManagementBridge:
+    bridge_dsn:str
+
+def submit_management(engine,write,permit,*,boundary,lease,owner,bridge=None):
     require(type(boundary) is ManagementBoundary and type(permit) is ManagementPermit,
         'MANAGEMENT_PRIVATE_PERMIT_REQUIRED')
     require(type(owner) is ExecutionOwner and owner.engine is engine and type(engine) is PaperEngine,
         'MANAGEMENT_ACTUAL_OWNER_REQUIRED')
     require(write.scope==engine.scope==boundary.scope and write.command_id==permit.command_id,
         'MANAGEMENT_SCOPE_REQUIRED')
+    require(type(bridge) is PaperManagementBridge,'MANAGEMENT_PRIVATE_PAPER_BRIDGE_REQUIRED')
     with owner.guard(lease):
         binding=boundary.consume(permit,lease)
         require(digest(replace(binding.write,state=write.state))==digest(write),'MANAGEMENT_WRITE_CHANGED')
         # Fresh business guards run after consumption and again after connection
         # acquisition. Transactions close before SIM IO; no stale DTO authorizes.
         boundary.recheck_consumed(permit,lease)
+        with boundary.uow.transaction(engine.scope) as tx:
+            actual_expiry=tx.execute('SELECT expires_at FROM ledger.management_dispatch_marks WHERE scope_id=%s AND command_id=%s',
+                (scope_id(engine.scope),write.command_id)).fetchone()[0]
+        import psycopg
+        with psycopg.connect(bridge.bridge_dsn) as private:
+            boundary.recheck_consumed(permit,lease)
+            private.execute('INSERT INTO public.paper_management_authorizations_v4(scope_key,command_id,binding,token_hash,expires_at) '
+                'VALUES(%s,%s,%s::jsonb,%s,%s)',(engine._scope_key,write.command_id,
+                    canonical_json(domain_payload(binding)),token_hash(permit.token),actual_expiry))
         with engine._connect() as db:
             boundary.recheck_consumed(permit,lease)
             row=db.execute('SELECT public.paper_manage_order_v4(%s,%s,%s::jsonb)',
@@ -61,6 +72,9 @@ def submit_management(engine,write,permit,*,boundary,lease,owner):
 def provision_paper_management(admin_dsn,roles):
     from pathlib import Path
     import psycopg
+    import secrets
+    from uuid import uuid4
+    from psycopg.conninfo import conninfo_to_dict,make_conninfo
     from psycopg import sql
     from trading_system.engine.paper_db_roles import PaperDatabaseRoles
     require(type(roles) is PaperDatabaseRoles,'MANAGEMENT_RESTRICTED_PAPER_ROLES_REQUIRED')
@@ -70,3 +84,10 @@ def provision_paper_management(admin_dsn,roles):
         db.execute((Path(__file__).resolve().parents[3]/'migrations/0023_paper_management.sql').read_text(encoding='utf-8'))
         db.execute(sql.SQL('GRANT SELECT ON public.paper_management_actions_v4 TO {}').format(sql.Identifier(roles.runtime_role)))
         db.execute(sql.SQL('GRANT EXECUTE ON FUNCTION public.paper_manage_order_v4(text,text,jsonb) TO {}').format(sql.Identifier(roles.runtime_role)))
+        name='paper_engine_management_'+uuid4().hex[:12];password=secrets.token_urlsafe(32)
+        db.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS').format(
+            sql.Identifier(name),sql.Literal(password)))
+        db.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(conninfo_to_dict(admin_dsn)['dbname']),sql.Identifier(name)))
+        db.execute(sql.SQL('GRANT USAGE ON SCHEMA public TO {}').format(sql.Identifier(name)))
+        db.execute(sql.SQL('GRANT INSERT(scope_key,command_id,binding,token_hash,expires_at) ON public.paper_management_authorizations_v4 TO {}').format(sql.Identifier(name)))
+    return PaperManagementBridge(bridge_dsn=make_conninfo(**{**conninfo_to_dict(admin_dsn),'user':name,'password':password}))
