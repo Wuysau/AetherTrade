@@ -63,13 +63,19 @@ returns no send permit, terminal proof, credit or ownership grant.
 client IDs; `original_creation_case(record, *, now, budget)` reuses the existing
 ReconciliationCase/CaseScheduler read model, without persisting or changing writes.
 
-- [ ] Observe actual isolated PG RED for missing reader: stored READY read,
+- [x] Observe actual isolated PG RED for missing reader: stored READY read,
   committed MAY/UNKNOWN after a same-economic later reservation version, and
   cross-scope/missing-ID isolation. Register one new mandatory diagnostic suite.
-- [ ] Implement original record/hash/history validation, query-only target
+- [x] Implement original record/hash/history validation, query-only target
   extraction and same scheduler cases. No new order IDs or financial writes.
-- [ ] Run actual isolated PG and original recovery/native regressions; retain
+- [x] Run actual isolated PG4/0/0/0 and225 related regressions; retain
   real evidence, obtain review and integrate through root owner.
+
+Source2e30dfc verified4 actual PG passes; source3a1509b was the intended4-case
+missing-module RED. Firstfc6f32f additionally exposed an invalid creation-row
+update in the fixture, correctly denied by existing safety. The final independent
+reader review/integration remains with integration_next; downstream PAPER report
+normalization is assigned separately, without changes to its current kernels.
 
 Ruling: an expired submission or changed current collateral projection cannot
 erase a durable command's query identity. Current risk/owner/lease checks remain
