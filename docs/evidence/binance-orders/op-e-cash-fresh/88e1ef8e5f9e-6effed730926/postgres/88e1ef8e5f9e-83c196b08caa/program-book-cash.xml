@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="1.087" timestamp="2026-10-30T05:11:21.687093+00:00" hostname="a88904863c51"><testcase classname="tests.integration.test_program_book_cash" name="test_exact_current_cash_binding_is_required_and_a_forged_book_grants_nothing" time="0.292"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_book_cash'">tests/integration/test_program_book_cash.py:21: in test_exact_current_cash_binding_is_required_and_a_forged_book_grants_nothing
+    bind,guard,_=functions();c=prepared(database)
+                 ^^^^^^^^^^^
+tests/integration/test_program_book_cash.py:16: in functions
+    from trading_system.execution.program_book_cash import bind_program_book_cash,require_current_program_book_cash,reconcile_program_book_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_book_cash'</failure></testcase><testcase classname="tests.integration.test_program_book_cash" name="test_actual_fill_changes_other_instrument_revision_until_its_own_owner_reconciles" time="0.162"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_book_cash'">tests/integration/test_program_book_cash.py:36: in test_actual_fill_changes_other_instrument_revision_until_its_own_owner_reconciles
+    bind,guard,reconcile=functions();c,s,codec,approval=matched(database,venue,tmp_path)
+                         ^^^^^^^^^^^
+tests/integration/test_program_book_cash.py:16: in functions
+    from trading_system.execution.program_book_cash import bind_program_book_cash,require_current_program_book_cash,reconcile_program_book_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_book_cash'</failure></testcase><testcase classname="tests.integration.test_program_book_cash" name="test_current_cash_binding_requires_actual_owner_before_reconciliation" time="0.000"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_book_cash'">tests/integration/test_program_book_cash.py:85: in test_current_cash_binding_requires_actual_owner_before_reconciliation
+    _,_,reconcile=functions();c=prepared(database)
+                  ^^^^^^^^^^^
+tests/integration/test_program_book_cash.py:16: in functions
+    from trading_system.execution.program_book_cash import bind_program_book_cash,require_current_program_book_cash,reconcile_program_book_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_book_cash'</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,12 @@
+......F                                                                  [100%]
+=================================== FAILURES ===================================
+__ test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow __
+tests/integration/test_program_owned_posting.py:197: in test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow
+    assert D(report.fills[-1].fees[0].amount)==D('.1119')
+E   AssertionError: assert Decimal('32.596000000') == Decimal('0.1119')
+E    +  where Decimal('32.596000000') = D('32.596000000')
+E    +    where '32.596000000' = FeeV3(asset='USDT', amount='32.596000000', receipt_effect='NO_RECEIPT_DEBIT', position_effect='NO_POSITION_DEBIT').amount
+E    +  and   Decimal('0.1119') = D('.1119')
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow
+1 failed, 6 passed in 39.57s

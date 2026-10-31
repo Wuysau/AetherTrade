@@ -1,0 +1,125 @@
+{
+  "scope": "BOUNDED_PAPER_REVIEW_NOT_FULL46_56_QUALIFICATION",
+  "accounting_base": "85a919dedb1ab7e7ac74463e2c154ee2b9d793e7",
+  "product_head": "805aa53f4b8698b2e79524971974cc93c86a0013",
+  "all_changed_runtime_test_tool_paths": [
+    "src/trading_system/execution/program_account_cash.py",
+    "src/trading_system/execution/program_commands.py",
+    "src/trading_system/execution/program_consumed_boundary.py",
+    "src/trading_system/execution/program_fill_source.py",
+    "src/trading_system/execution/program_observed_cash.py",
+    "src/trading_system/execution/program_order_projection.py",
+    "src/trading_system/execution/projections.py",
+    "src/trading_system/risk/program_financial_admission.py",
+    "src/trading_system/risk/program_quantity_scope.py",
+    "src/trading_system/risk/reservations.py",
+    "tests/integration/test_program_accounting_postgres.py",
+    "tests/integration/test_program_financial_admission.py",
+    "tests/integration/test_program_owned_posting.py",
+    "tests/integration/test_program_scoped_financial.py",
+    "tests/integration/test_program_v2_owned_posting.py",
+    "tests/integration/test_program_working_orders.py",
+    "tests/unit/test_order_snapshot_sequence.py",
+    "tests/unit/test_program_release_preparation.py",
+    "tools/ci_paper_postgres.py"
+  ],
+  "diffs": [
+    {
+      "file": "01-root-physical-verbatim.patch",
+      "base": "85a919dedb1ab7e7ac74463e2c154ee2b9d793e7",
+      "head": "805aa53f4b8698b2e79524971974cc93c86a0013",
+      "paths": [
+        "src/trading_system/intents/program_target_allocation.py",
+        "src/trading_system/intents/program_assessment_archive.py",
+        "src/trading_system/risk/program_assessment.py",
+        "src/trading_system/risk/program_quantity_scope.py",
+        "src/trading_system/risk/program_financial_admission.py",
+        "src/trading_system/execution/program_commands.py",
+        "src/trading_system/execution/program_consumed_boundary.py",
+        "tests/integration/test_program_financial_admission.py",
+        "src/trading_system/risk/reservations.py"
+      ],
+      "bytes": 40949,
+      "sha256": "6bd93418c8a3f0d9f00fafd01c4e0913b47fe7480d4cfa9a58a6f419c8247e53"
+    },
+    {
+      "file": "02-working-order-product.patch",
+      "base": "85a919dedb1ab7e7ac74463e2c154ee2b9d793e7",
+      "head": "805aa53f4b8698b2e79524971974cc93c86a0013",
+      "paths": [
+        "src/trading_system/execution/program_order_projection.py",
+        "src/trading_system/execution/projections.py",
+        "src/trading_system/execution/program_fill_source.py"
+      ],
+      "bytes": 23106,
+      "sha256": "96f87e3053d71390798cd98ee4cc15980beaebf840fe80e9b20ebe545b3b3472"
+    },
+    {
+      "file": "03-observed-source-completeness.patch",
+      "base": "85a919dedb1ab7e7ac74463e2c154ee2b9d793e7",
+      "head": "805aa53f4b8698b2e79524971974cc93c86a0013",
+      "paths": [
+        "src/trading_system/execution/program_account_cash.py",
+        "src/trading_system/execution/program_observed_cash.py"
+      ],
+      "bytes": 9957,
+      "sha256": "7747301cb30c06af3f3ea39223091f78f5eb8bb83656be59e04b2be6b6a06f86"
+    },
+    {
+      "file": "04-cash-integration-and-safety-tests.patch",
+      "base": "85a919dedb1ab7e7ac74463e2c154ee2b9d793e7",
+      "head": "805aa53f4b8698b2e79524971974cc93c86a0013",
+      "paths": [
+        "tests/integration/test_program_owned_posting.py",
+        "tests/integration/test_program_v2_owned_posting.py",
+        "tests/integration/test_program_working_orders.py",
+        "tests/unit/test_order_snapshot_sequence.py",
+        "tools/ci_paper_postgres.py"
+      ],
+      "bytes": 42081,
+      "sha256": "c7ba89050ea1d6d757697eff9156d1dd3ae3ecb48a5968ac2e5ddc3bc576529b"
+    },
+    {
+      "file": "05-root-optional-validation-verbatim.patch",
+      "base": "85a919dedb1ab7e7ac74463e2c154ee2b9d793e7",
+      "head": "805aa53f4b8698b2e79524971974cc93c86a0013",
+      "paths": [
+        "tests/integration/test_program_scoped_financial.py",
+        "tests/unit/test_program_release_preparation.py"
+      ],
+      "bytes": 19318,
+      "sha256": "954983834f3202065ad2aefe6432161a27b296918ad88ad05f67d41dca859433"
+    },
+    {
+      "file": "06-legacy-negative-fixture-only.patch",
+      "base": "85a919dedb1ab7e7ac74463e2c154ee2b9d793e7",
+      "head": "805aa53f4b8698b2e79524971974cc93c86a0013",
+      "paths": [
+        "tests/integration/test_program_accounting_postgres.py"
+      ],
+      "bytes": 3531,
+      "sha256": "0edca43e552fe8ce6efb830ffe31665a95389a3b492527aac5b96df8fbfa9018"
+    },
+    {
+      "file": "07-counterexample-completeness-fix.patch",
+      "base": "b39740e448c67bc9b2d0a4f538c4d41b355c34cd",
+      "head": "e61f5e90f26bff7f5c2269521c65b1921b660841",
+      "paths": [
+        "src/trading_system/execution/program_account_cash.py",
+        "src/trading_system/execution/program_observed_cash.py"
+      ],
+      "bytes": 9957,
+      "sha256": "7747301cb30c06af3f3ea39223091f78f5eb8bb83656be59e04b2be6b6a06f86"
+    },
+    {
+      "file": "08-counterexample-replay-status-fix.patch",
+      "base": "3bd8c575912db5ebc84c05a0b680164b8820fd92",
+      "head": "805aa53f4b8698b2e79524971974cc93c86a0013",
+      "paths": [
+        "src/trading_system/execution/program_order_projection.py"
+      ],
+      "bytes": 2656,
+      "sha256": "b6d5a7e23331072fadbe748775a8fda766c5835ef5d1e2a273f9362554937b7a"
+    }
+  ]
+}

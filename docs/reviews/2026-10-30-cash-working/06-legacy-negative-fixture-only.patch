@@ -1,0 +1,53 @@
+diff --git a/tests/integration/test_program_accounting_postgres.py b/tests/integration/test_program_accounting_postgres.py
+index 005abc5..9e0c3f3 100644
+--- a/tests/integration/test_program_accounting_postgres.py
++++ b/tests/integration/test_program_accounting_postgres.py
+@@ -25,6 +25,24 @@ def setup_accounting(database,venue,tmp_path):
+     return c,service,codec
+ 
+ 
++def legacy_negative_seed(database,c,before):
++    import os
++    import psycopg
++    from uuid import uuid4
++    from trading_system.contracts.canonical import canonical_json
++    seed=next(b.amount for b in before.balances if b.currency=='USDT')
++    payload=canonical_json(dict(initial_cash=format(seed,'f'),source='EXPLICIT_ISOLATED_VIRTUAL_CAPITAL'))
++    sql="INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) VALUES(%s,'console:seed',1,%s::jsonb,%s)"
++    with pytest.raises(psycopg.errors.InsufficientPrivilege,match='CONSOLE_SEED_PROVISIONER_ONLY'):
++        with c.service.uow.transaction(c.scope) as tx:tx.execute(sql,(scope_id(c.scope),payload,tx.transaction_id))
++    # Test-admin original fixture only. This deliberately unqualified source is
++    # neither the fixed legacy seed shape/account nor a protected attestation.
++    assert os.environ.get('IP03_ISOLATED_DATABASE')=='YES'
++    with psycopg.connect(database) as db:
++        assert db.execute('SELECT current_database()').fetchone()[0].startswith('ip03_test_')
++        db.execute(sql,(scope_id(c.scope),payload,uuid4().hex))
++
++
+ def test_real_fill_evidence_notice_and_accounting_duties_are_atomic(database,venue,tmp_path):
+     c,service,codec=setup_accounting(database,venue,tmp_path)
+     with c.service.uow.transaction(c.scope) as tx:
+@@ -142,10 +160,7 @@ def test_legacy_refresh_cannot_ignore_source_approved_generic_execution(database
+     runtime.clock=lambda:c.c.facts.inputs.clock
+     with c.service.uow.transaction(c.scope) as tx:
+         before=tx.projections.book(c.scope)
+-        seed=next(b.amount for b in before.balances if b.currency=='USDT')
+-        tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
+-            "VALUES(%s,'console:seed',1,%s::jsonb,%s)",
+-            (scope_id(c.scope),canonical_json(dict(initial_cash=format(seed,'f'),source='EXPLICIT_ISOLATED_VIRTUAL_CAPITAL')),tx.transaction_id))
++    legacy_negative_seed(database,c,before)
+     with c.service.uow.transaction(c.scope) as tx:
+         with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
+             if operation=='cash':runtime._cash(tx)
+@@ -170,10 +185,7 @@ def test_missing_foreign_source_binding_cannot_hide_unreconciled_execution(datab
+     runtime.clock=lambda:receiver.c.facts.inputs.clock
+     with receiver.service.uow.transaction(receiver.scope) as tx:
+         before=tx.projections.book(receiver.scope)
+-        seed=next(b.amount for b in before.balances if b.currency=='USDT')
+-        tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
+-            "VALUES(%s,'console:seed',1,%s::jsonb,%s)",
+-            (scope_id(receiver.scope),canonical_json(dict(initial_cash=format(seed,'f'),source='EXPLICIT_ISOLATED_VIRTUAL_CAPITAL')),tx.transaction_id))
++    legacy_negative_seed(database,receiver,before)
+     # Normal writes must remain blocked. The following admin-only corruption
+     # fixture models incomplete historical restore, not runtime permissions.
+     assert os.environ.get('IP03_ISOLATED_DATABASE')=='YES'

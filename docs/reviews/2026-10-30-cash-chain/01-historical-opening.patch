@@ -1,0 +1,121 @@
+diff --git a/src/trading_system/execution/program_account_opening.py b/src/trading_system/execution/program_account_opening.py
+index 546e9b3..aaf6a09 100644
+--- a/src/trading_system/execution/program_account_opening.py
++++ b/src/trading_system/execution/program_account_opening.py
+@@ -10,7 +10,7 @@ from typing import Literal
+ 
+ from trading_system.contracts import types as t
+ from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload,utc_timestamp
+-from trading_system.storage.models import decode
++from trading_system.storage.models import decode,MissingEvidence
+ from trading_system.storage.uow import UnitOfWork
+ 
+ 
+@@ -71,9 +71,24 @@ class ProgramAccountOpening:
+     def funds_release_authorized(self)->Literal[False]:return False
+ 
+ 
++def require_unambiguous_program_account_opening(tx):
++    """Historical proof origins remain intact but cannot select capital twice.
++
++    0024 prevents new conflicts; it deliberately does not rewrite pre-existing
++    proofs. Every registered reader checks the same protected origin set, even
++    when its own proof type is absent or inapplicable to this account.
++    """
++    account=account_key(tx.scope);origins=0
++    for table in ('program_account_openings','program_legacy_account_openings'):
++        if tx.execute('SELECT to_regclass(%s)',('ledger.'+table,)).fetchone()[0] is None:continue
++        origins+=tx.execute('SELECT count(*) FROM ledger.'+table+' WHERE account_key=%s',(account.key,)).fetchone()[0]
++    if origins>1:raise MissingEvidence('AMBIGUOUS_ACCOUNT_OPENING')
++    return account
++
++
+ def read_program_account_opening(tx):
++    account=require_unambiguous_program_account_opening(tx)
+     if tx.execute("SELECT to_regclass('ledger.program_account_openings')").fetchone()[0] is None:return None
+-    account=account_key(tx.scope)
+     row=tx.execute('SELECT payload,payload_hash,database_transaction::text,xmin::text,pg_current_xact_id()::text '
+         'FROM ledger.program_account_openings WHERE account_key=%s',(account.key,)).fetchone()
+     if row is None:return None
+diff --git a/src/trading_system/execution/program_legacy_opening.py b/src/trading_system/execution/program_legacy_opening.py
+index 322aa97..6e55ec6 100644
+--- a/src/trading_system/execution/program_legacy_opening.py
++++ b/src/trading_system/execution/program_legacy_opening.py
+@@ -11,7 +11,8 @@ from typing import Literal
+ from trading_system.contracts import types as t
+ from trading_system.contracts.canonical import canonical_hash,canonical_json,domain_payload
+ from trading_system.storage.models import MissingEvidence,decode,scope_id
+-from .program_account_opening import ProgramAccountKey,account_key,read_program_account_opening
++from .program_account_opening import (ProgramAccountKey,account_key,read_program_account_opening,
++    require_unambiguous_program_account_opening)
+ 
+ 
+ def need(condition,code):
+@@ -53,7 +54,7 @@ def _seed(tx):
+ 
+ 
+ def read_program_legacy_opening(tx):
+-    account=account_key(tx.scope)
++    account=require_unambiguous_program_account_opening(tx)
+     if account!=account_key(console_seed_scope()):return None
+     if tx.execute("SELECT to_regclass('ledger.program_legacy_account_openings')").fetchone()[0] is None:return None
+     row=tx.execute('SELECT payload,payload_hash,database_transaction::text,xmin::text,pg_current_xact_id()::text '
+diff --git a/tests/integration/test_program_opening_exclusivity.py b/tests/integration/test_program_opening_exclusivity.py
+index 75e8496..303ed5d 100644
+--- a/tests/integration/test_program_opening_exclusivity.py
++++ b/tests/integration/test_program_opening_exclusivity.py
+@@ -18,7 +18,7 @@ from trading_system.storage.uow import UnitOfWork
+ 
+ 
+ @pytest.fixture
+-def database(isolated_postgres):
++def database(isolated_postgres,request):
+     import psycopg
+     from psycopg import sql
+     from psycopg.conninfo import conninfo_to_dict,make_conninfo
+@@ -35,6 +35,7 @@ def database(isolated_postgres):
+         db.execute((ROOT/'migrations/0001_business_ledger.sql').read_text(encoding='utf-8'))
+         db.execute((ROOT/'deploy/db/roles.sql').read_text(encoding='utf-8'))
+         for name in names:
++            if name=='0024_program_opening_exclusivity.sql' and not getattr(request,'param',True):continue
+             path=ROOT/'migrations'/name
+             if path.exists():db.execute(path.read_text(encoding='utf-8'))
+         db.execute('INSERT INTO ledger.collateral_mutex VALUES(%s,%s)',('PAPER',GROUP))
+@@ -44,6 +45,37 @@ def database(isolated_postgres):
+     return dsn
+ 
+ 
++@pytest.mark.parametrize('database',(False,),indirect=True)
++@pytest.mark.parametrize('reader_name',('read_program_account_opening','read_program_legacy_opening',
++    'read_program_local_account_opening'))
++@pytest.mark.parametrize('strict_cash',(False,True))
++def test_historical_dual_proofs_survive_upgrade_but_every_reader_rejects(database,reader_name,strict_cash):
++    import psycopg
++    from trading_system.execution import program_account_opening,program_legacy_opening
++    from trading_system.execution.program_account_cash import read_program_account_cash
++    from trading_system.storage.models import MissingEvidence
++    new,legacy,ref=services(database)
++    legacy.attest(canonical_hash(seed()),evidence=ref)
++    new.initialize((t.Money(currency='USDT',amount=D('100000')),),evidence=ref)
++    def stored(db):
++        return tuple(db.execute('SELECT payload,payload_hash,xmin::text,database_transaction::text '
++            'FROM ledger.'+table).fetchall() for table in
++            ('program_account_openings','program_legacy_account_openings'))
++    with psycopg.connect(database) as db:before=stored(db)
++    assert tuple(map(len,before))==(1,1) # genuine protected pre-0024 history
++    with psycopg.connect(database) as db:
++        db.execute((ROOT/'migrations/0024_program_opening_exclusivity.sql').read_text(encoding='utf-8'))
++    with psycopg.connect(database) as db:assert stored(db)==before
++    reader=getattr(program_account_opening,reader_name,None) or getattr(program_legacy_opening,reader_name)
++    def connect():
++        db=psycopg.connect(database);db.execute('SET ROLE ledger_owner');db.commit();return db
++    with UnitOfWork(connect).transaction(scope_for('BTCUSDT')) as tx:
++        with pytest.raises(MissingEvidence,match='AMBIGUOUS_ACCOUNT_OPENING'):
++            if strict_cash:read_program_account_cash(tx,read_opening=reader)
++            else:reader(tx)
++    with psycopg.connect(database) as db:assert stored(db)==before
++
++
+ def seed():return dict(initial_cash='100000',source='EXPLICIT_NEW_VIRTUAL_CAPITAL')
+ 
+ 

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="5" time="24.445" timestamp="2026-10-30T03:10:39.631300+00:00" hostname="74caf58e2d34"><testcase classname="tests.integration.test_program_asset_reader_postgres" name="test_genuine_ledger_fill_yields_authenticated_effects_without_issuing_credit" time="5.403"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'">tests/integration/test_program_asset_reader_postgres.py:29: in test_genuine_ledger_fill_yields_authenticated_effects_without_issuing_credit
+    result=reader(tx,c).read(approved.approval_id)
+           ^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'</failure></testcase><testcase classname="tests.integration.test_program_asset_reader_postgres" name="test_private_source_approval_without_ledger_fill_cannot_be_spent" time="4.074"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'">tests/integration/test_program_asset_reader_postgres.py:43: in test_private_source_approval_without_ledger_fill_cannot_be_spent
+    reader(tx,c).read(approved.approval_id)
+    ^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'</failure></testcase><testcase classname="tests.integration.test_program_asset_reader_postgres" name="test_global_source_discrepancy_is_not_hidden_by_consistent_individual_economics" time="4.854"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'">tests/integration/test_program_asset_reader_postgres.py:60: in test_global_source_discrepancy_is_not_hidden_by_consistent_individual_economics
+    reader(tx,c).read(approved.approval_id)
+    ^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'</failure></testcase><testcase classname="tests.integration.test_program_asset_reader_postgres" name="test_owner_normalized_quantity_cannot_override_private_source_quantity" time="4.341"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'">tests/integration/test_program_asset_reader_postgres.py:78: in test_owner_normalized_quantity_cannot_override_private_source_quantity
+    reader(tx,c).read(approved.approval_id)
+    ^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'</failure></testcase><testcase classname="tests.integration.test_program_asset_reader_postgres" name="test_foreign_approval_id_is_not_accepted_in_another_instrument" time="4.899"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'">tests/integration/test_program_asset_reader_postgres.py:89: in test_foreign_approval_id_is_not_accepted_in_another_instrument
+    reader(tx,replace_scope(c,tx.scope)).read(approved.approval_id)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_asset_reader_postgres.py:18: in reader
+    from trading_system.execution.program_asset_reader import ProgramAssetPostingReader
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_asset_reader'</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,72 @@
+.......FFF                                                               [100%]
+=================================== FAILURES ===================================
+__ test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted ___
+tests/integration/test_program_owned_posting.py:222: in test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted
+    reconcile_program_book_cash(tx,read_opening=read_program_account_opening)
+src/trading_system/execution/program_book_cash.py:84: in reconcile_program_book_cash
+    frame=read_program_account_cash(tx,read_opening=read_opening)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_account_cash.py:186: in read_program_account_cash
+    return _read_program_account_cash(tx,read_opening=read_opening,require_projection=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_account_cash.py:159: in _read_program_account_cash
+    require_owned_program_posting(reader.tx,fact)
+src/trading_system/execution/program_owned_posting.py:65: in require_owned_program_posting
+    need(posted.record_kind=='PROGRAM_OWNED_POSTING_V2' and before is not None
+src/trading_system/execution/program_owned_posting.py:26: in need
+    if not condition:raise MissingEvidence(code)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   trading_system.storage.models.MissingEvidence: OWNED_POSTING_HISTORY_REQUIRED
+_ test_every_native_member_of_a_real_owned_batch_needs_its_same_transaction_marker _
+tests/integration/test_program_owned_posting.py:263: in test_every_native_member_of_a_real_owned_batch_needs_its_same_transaction_marker
+    with pytest.raises(MissingEvidence,match='OWNED_POSTING_BATCH_INCOMPLETE'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes _
+tests/integration/test_program_owned_posting.py:285: in test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes
+    cases=[case(database,venue,tmp_path,prepared_case=initial) for initial in (first,second)]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:48: in case
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:48: in <lambda>
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                                ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:370: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:366: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:253: in _reserve_program
+    inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:128: in load
+    c.allocation=compile_program_target(c.plan,book,tf)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:145: in compile_program_target
+    return _compile_program_target(plan,book,facts)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:203: in _compile_program_target
+    scope,now,proposal,program,codec,digest,bridge,spec,ratio,rules=_validate_program_scope(plan,book,facts)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:159: in _validate_program_scope
+    require(facts.compilation_hash==digest and book.scope==scope
+src/trading_system/intents/semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: TARGET_BOOK_OR_COMPILATION_CHANGED
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted
+FAILED tests/integration/test_program_owned_posting.py::test_every_native_member_of_a_real_owned_batch_needs_its_same_transaction_marker
+FAILED tests/integration/test_program_owned_posting.py::test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes
+3 failed, 7 passed in 52.13s

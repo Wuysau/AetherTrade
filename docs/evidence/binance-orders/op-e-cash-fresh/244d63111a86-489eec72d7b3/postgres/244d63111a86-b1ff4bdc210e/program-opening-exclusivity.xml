@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="1.785" timestamp="2026-10-30T06:18:31.386451+00:00" hostname="14e46e842a4b"><testcase classname="tests.integration.test_program_opening_exclusivity" name="test_reverse_initialization_never_leaves_two_capital_proofs[legacy]" time="0.552"><failure message="Failed: DID NOT RAISE CheckViolation">tests/integration/test_program_opening_exclusivity.py:67: in test_reverse_initialization_never_leaves_two_capital_proofs
+    with pytest.raises(psycopg.errors.CheckViolation):actions['new' if first=='legacy' else 'legacy']()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE CheckViolation</failure></testcase><testcase classname="tests.integration.test_program_opening_exclusivity" name="test_reverse_initialization_never_leaves_two_capital_proofs[new]" time="0.350" /><testcase classname="tests.integration.test_program_opening_exclusivity" name="test_concurrent_initializers_cannot_both_win" time="0.395"><failure message="AssertionError: assert ['created', 'created'] == ['created', 'rejected']&#10;  &#10;  At index 1 diff: 'created' != 'rejected'&#10;  Use -v to get more diff">tests/integration/test_program_opening_exclusivity.py:85: in test_concurrent_initializers_cannot_both_win
+    assert sorted(results)==['created','rejected']
+E   AssertionError: assert ['created', 'created'] == ['created', 'rejected']
+E     
+E     At index 1 diff: 'created' != 'rejected'
+E     Use -v to get more diff</failure></testcase></testsuite></testsuites>

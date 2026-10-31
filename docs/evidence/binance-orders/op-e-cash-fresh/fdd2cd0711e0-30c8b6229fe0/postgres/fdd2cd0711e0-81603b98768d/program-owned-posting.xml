@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="4" time="22.620" timestamp="2026-10-30T05:17:59.658575+00:00" hostname="967ca24eca34"><testcase classname="tests.integration.test_program_owned_posting" name="test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction" time="5.550"><failure message="TypeError: 'NoneType' object is not subscriptable">tests/integration/test_program_owned_posting.py:56: in test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction
+    assert fee[0]['classification']=='FEE' and fee[0]['amount']==dict(currency='USDT',amount='-32.596')
+           ^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable</failure></testcase><testcase classname="tests.integration.test_program_owned_posting" name="test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta" time="6.449"><failure message="assert (0,) == (2,)&#10;  &#10;  At index 0 diff: 0 != 2&#10;  Use -v to get more diff">tests/integration/test_program_owned_posting.py:77: in test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta
+    assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(2,)
+E   assert (0,) == (2,)
+E     
+E     At index 0 diff: 0 != 2
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.integration.test_program_owned_posting" name="test_missing_owner_retains_native_facts_without_claiming_position_or_cash" time="4.425" /><testcase classname="tests.integration.test_program_owned_posting" name="test_failed_financial_commit_rolls_back_all_owner_effects_and_retry_posts_once" time="5.486" /></testsuite></testsuites>

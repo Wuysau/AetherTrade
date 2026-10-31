@@ -1,0 +1,34 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_no_generic_history_preserves_legacy_branch_and_explicit_opening_reconstructs _
+tests/integration/test_program_account_cash.py:53: in test_no_generic_history_preserves_legacy_branch_and_explicit_opening_reconstructs
+    from trading_system.execution.program_account_cash import read_program_account_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_cash'
+__ test_real_native_effects_are_counted_once_across_repeated_source_snapshots __
+tests/integration/test_program_account_cash.py:63: in test_real_native_effects_are_counted_once_across_repeated_source_snapshots
+    from trading_system.execution.program_account_cash import read_program_account_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_cash'
+________ test_unposted_source_is_a_blocker_and_never_zero_contribution _________
+tests/integration/test_program_account_cash.py:79: in test_unposted_source_is_a_blocker_and_never_zero_contribution
+    from trading_system.execution.program_account_cash import read_program_account_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_cash'
+___ test_ordinary_audit_delta_cannot_mint_more_than_approved_native_effects ____
+tests/integration/test_program_account_cash.py:89: in test_ordinary_audit_delta_cannot_mint_more_than_approved_native_effects
+    from trading_system.execution.program_account_cash import read_program_account_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_cash'
+_____ test_unknown_opening_provider_cannot_turn_a_dto_into_spendable_cash ______
+tests/integration/test_program_account_cash.py:106: in test_unknown_opening_provider_cannot_turn_a_dto_into_spendable_cash
+    from trading_system.execution.program_account_cash import read_program_account_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_cash'
+_ test_actual_unapproved_extra_fill_cannot_be_ignored_by_account_reconstruction _
+tests/integration/test_program_account_cash.py:117: in test_actual_unapproved_extra_fill_cannot_be_ignored_by_account_reconstruction
+    from trading_system.execution.program_account_cash import read_program_account_cash
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_account_cash'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_account_cash.py::test_no_generic_history_preserves_legacy_branch_and_explicit_opening_reconstructs
+FAILED tests/integration/test_program_account_cash.py::test_real_native_effects_are_counted_once_across_repeated_source_snapshots
+FAILED tests/integration/test_program_account_cash.py::test_unposted_source_is_a_blocker_and_never_zero_contribution
+FAILED tests/integration/test_program_account_cash.py::test_ordinary_audit_delta_cannot_mint_more_than_approved_native_effects
+FAILED tests/integration/test_program_account_cash.py::test_unknown_opening_provider_cannot_turn_a_dto_into_spendable_cash
+FAILED tests/integration/test_program_account_cash.py::test_actual_unapproved_extra_fill_cannot_be_ignored_by_account_reconstruction
+6 failed in 1.33s

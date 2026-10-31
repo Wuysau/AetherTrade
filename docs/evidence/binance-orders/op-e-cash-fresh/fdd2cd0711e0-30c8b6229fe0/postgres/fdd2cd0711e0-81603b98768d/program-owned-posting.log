@@ -1,0 +1,18 @@
+FF..                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction _
+tests/integration/test_program_owned_posting.py:56: in test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction
+    assert fee[0]['classification']=='FEE' and fee[0]['amount']==dict(currency='USDT',amount='-32.596')
+           ^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable
+__ test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta ___
+tests/integration/test_program_owned_posting.py:77: in test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta
+    assert tx.execute('SELECT count(*) FROM ledger.cashflows WHERE scope_id=%s',(scope_id(c.scope),)).fetchone()==(2,)
+E   assert (0,) == (2,)
+E     
+E     At index 0 diff: 0 != 2
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction
+FAILED tests/integration/test_program_owned_posting.py::test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta
+2 failed, 2 passed in 22.62s

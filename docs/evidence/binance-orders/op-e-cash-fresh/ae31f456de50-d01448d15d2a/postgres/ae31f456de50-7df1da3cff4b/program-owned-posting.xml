@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="9" time="44.681" timestamp="2026-10-30T05:44:49.355697+00:00" hostname="17817f846e77"><testcase classname="tests.integration.test_program_owned_posting" name="test_genuine_native_assets_owned_position_fees_and_book_commit_in_one_transaction" time="5.693" /><testcase classname="tests.integration.test_program_owned_posting" name="test_replay_restart_and_additional_native_fill_only_apply_new_owned_delta" time="6.533" /><testcase classname="tests.integration.test_program_owned_posting" name="test_missing_owner_retains_native_facts_without_claiming_position_or_cash" time="4.600" /><testcase classname="tests.integration.test_program_owned_posting" name="test_failed_financial_commit_rolls_back_all_owner_effects_and_retry_posts_once" time="5.444" /><testcase classname="tests.integration.test_program_owned_posting" name="test_concurrent_independent_source_approvals_apply_one_native_owned_effect" time="5.278" /><testcase classname="tests.integration.test_program_owned_posting" name="test_real_process_restart_does_not_duplicate_position_or_fees" time="5.131" /><testcase classname="tests.integration.test_program_owned_posting" name="test_low_decimal_precision_preserves_genuine_native_fee_cashflow" time="4.595" /><testcase classname="tests.integration.test_program_owned_posting" name="test_owner_forged_replay_marker_cannot_claim_unchanged_position_as_posted" time="5.441" /><testcase classname="tests.integration.test_program_owned_posting" name="test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes" time="1.112"><failure message="trading_system.intents.semantic_validation.ProposalRejected: TARGET_BOOK_OR_COMPILATION_CHANGED">tests/integration/test_program_owned_posting.py:249: in test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes
+    cases=[case(database,venue,tmp_path,prepared_case=initial) for initial in (first,second)]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:48: in case
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:48: in &lt;lambda&gt;
+    c.write,c.request,c.bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                                ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:370: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:366: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:253: in _reserve_program
+    inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:128: in load
+    c.allocation=compile_program_target(c.plan,book,tf)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:145: in compile_program_target
+    return _compile_program_target(plan,book,facts)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:203: in _compile_program_target
+    scope,now,proposal,program,codec,digest,bridge,spec,ratio,rules=_validate_program_scope(plan,book,facts)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_target_allocation.py:159: in _validate_program_scope
+    require(facts.compilation_hash==digest and book.scope==scope
+src/trading_system/intents/semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: TARGET_BOOK_OR_COMPILATION_CHANGED</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="6" time="23.704" timestamp="2026-10-30T04:28:57.441266+00:00" hostname="8232baf9a09a"><testcase classname="tests.integration.test_program_account_cash" name="test_no_generic_history_preserves_legacy_branch_and_explicit_opening_reconstructs" time="0.621" /><testcase classname="tests.integration.test_program_account_cash" name="test_real_native_effects_are_counted_once_across_repeated_source_snapshots" time="5.830" /><testcase classname="tests.integration.test_program_account_cash" name="test_unposted_source_is_a_blocker_and_never_zero_contribution" time="3.988"><failure message="ValueError: PAPER_MARKET_SEQUENCE_CONFLICT">tests/integration/test_program_account_cash.py:80: in test_unposted_source_is_a_blocker_and_never_zero_contribution
+    c,s,codec,approval=matched(database,venue,tmp_path)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_account_cash.py:34: in matched
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:607: in apply_market_event
+    require(book is None or (book['stream_id']==event.stream_id and event.sequence&gt;book['sequence']
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_MARKET_SEQUENCE_CONFLICT</failure></testcase><testcase classname="tests.integration.test_program_account_cash" name="test_ordinary_audit_delta_cannot_mint_more_than_approved_native_effects" time="4.155"><failure message="ValueError: PAPER_MARKET_SEQUENCE_CONFLICT">tests/integration/test_program_account_cash.py:92: in test_ordinary_audit_delta_cannot_mint_more_than_approved_native_effects
+    c,s,codec,approval=matched(database,venue,tmp_path)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_account_cash.py:34: in matched
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:607: in apply_market_event
+    require(book is None or (book['stream_id']==event.stream_id and event.sequence&gt;book['sequence']
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_MARKET_SEQUENCE_CONFLICT</failure></testcase><testcase classname="tests.integration.test_program_account_cash" name="test_unknown_opening_provider_cannot_turn_a_dto_into_spendable_cash" time="4.256"><failure message="ValueError: PAPER_MARKET_SEQUENCE_CONFLICT">tests/integration/test_program_account_cash.py:107: in test_unknown_opening_provider_cannot_turn_a_dto_into_spendable_cash
+    c,s,codec,approval=matched(database,venue,tmp_path)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_account_cash.py:34: in matched
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:607: in apply_market_event
+    require(book is None or (book['stream_id']==event.stream_id and event.sequence&gt;book['sequence']
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_MARKET_SEQUENCE_CONFLICT</failure></testcase><testcase classname="tests.integration.test_program_account_cash" name="test_actual_unapproved_extra_fill_cannot_be_ignored_by_account_reconstruction" time="4.120"><failure message="ValueError: PAPER_MARKET_SEQUENCE_CONFLICT">tests/integration/test_program_account_cash.py:118: in test_actual_unapproved_extra_fill_cannot_be_ignored_by_account_reconstruction
+    c,s,codec,approval=matched(database,venue,tmp_path)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_account_cash.py:34: in matched
+    PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:607: in apply_market_event
+    require(book is None or (book['stream_id']==event.stream_id and event.sequence&gt;book['sequence']
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_MARKET_SEQUENCE_CONFLICT</failure></testcase></testsuite></testsuites>

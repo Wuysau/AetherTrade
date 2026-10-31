@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="3" time="7.030" timestamp="2026-10-30T07:27:45.790132+00:00" hostname="00dae7bda5fd"><testcase classname="tests.integration.test_program_first_capital" name="test_first_generic_intent_cannot_spend_a_book_without_actual_initial_capital" time="0.660" /><testcase classname="tests.integration.test_program_first_capital" name="test_first_generic_intent_cannot_credit_owner_authored_inflated_book" time="0.207" /><testcase classname="tests.integration.test_program_first_capital" name="test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory" time="5.481"><failure message="AssertionError: assert ('SUBMITTED' == 'NEW'&#10;  &#10;  - NEW&#10;  + SUBMITTED)">tests/integration/test_program_first_capital.py:49: in test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory
+    assert raw.status=='NEW' and not raw.fills and raw.remaining_quantity==1
+E   AssertionError: assert ('SUBMITTED' == 'NEW'
+E     
+E     - NEW
+E     + SUBMITTED)</failure></testcase></testsuite></testsuites>

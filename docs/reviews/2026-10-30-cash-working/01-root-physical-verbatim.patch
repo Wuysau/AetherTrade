@@ -1,0 +1,576 @@
+diff --git a/src/trading_system/execution/program_commands.py b/src/trading_system/execution/program_commands.py
+index 8fc490a..5641cb8 100644
+--- a/src/trading_system/execution/program_commands.py
++++ b/src/trading_system/execution/program_commands.py
+@@ -108,12 +108,14 @@ def validate_stored_program_binding(tx,original,current):
+ 
+ class ProgramCommandRepository:
+     def __init__(self,tx,*,load_clock=None,load_lease=None,load_current_facts=None,
+-                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None):
++                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None,
++                 load_released_balances=None):
+         self.tx=tx;self.load_clock=load_clock;self.load_lease=load_lease
+         self.load_current_facts=load_current_facts;self.load_qualification=load_qualification
+         self.load_action_proof=load_action_proof
+         self.load_wallet_selection=load_wallet_selection
+         self.load_execution_bounds=load_execution_bounds
++        self.load_released_balances=load_released_balances
+ 
+     def _raw_binding(self,command_id):
+         return self.tx._latest('program_request_bindings',command_id,ProgramRequestBinding)
+@@ -288,10 +290,19 @@ class ProgramCommandRepository:
+         from trading_system.risk.quote_financial_admission import (QuoteProgramFinancialBundleV1,
+             current_quote_financial_book,quote_quantity_reservation_ids,validate_current_quote_bounds)
+         quote=type(bundle) is QuoteProgramFinancialBundleV1
+-        financial_book=current_quote_financial_book(self.tx,bundle,book) if quote else book
++        from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
++        from trading_system.risk.program_quantity_scope import (
++            current_scoped_program_financial_book,validate_current_program_quantity_scope)
++        scoped=not quote and type(bundle.archive.target_facts) is ProgramScopedTargetFactsV2
++        financial_book=current_quote_financial_book(self.tx,bundle,book) if quote else (
++            current_scoped_program_financial_book(self.tx,bundle,book,
++                load_released_balances=self.load_released_balances) if scoped else book)
+         inputs=self.load_current_facts(self.tx,source,intake,financial_book,clock) if self.load_current_facts else None
++        if scoped:validate_current_program_quantity_scope(self.tx,book,financial_book,inputs.archive.target_facts,bundle=bundle,
++            load_released_balances=self.load_released_balances)
+         intent,basis=validate_current_inputs(self.tx,source,intake,financial_book,inputs,clock,self.load_execution_bounds)
+         a=inputs.archive
++        require(quote or type(a.target_facts) is type(bundle.archive.target_facts),'PROGRAM_CURRENT_TARGET_FACT_KIND_CHANGED')
+         require(digest(a.compilation)==write.compilation_hash and digest(a.source)==digest(bundle.archive.source)
+             and intent.hashes.program==write.canonical_program_hash,'PROGRAM_CURRENT_ECONOMICS_CHANGED')
+         require((intent.owner_strategy_id,intent.ownership_epoch,intent.risk_policy_revision)==(
+@@ -313,7 +324,7 @@ class ProgramCommandRepository:
+         actual_own=tuple(reservations.get(p.reservation.reservation_id) for p in bundle.reservations)
+         require(digest(actual_own)==digest(bundle.reservations),'PROGRAM_RESERVATION_CHANGED')
+         holds=merge_holds(reservations.group(),book)
+-        others=tuple(p for p in holds if p.reservation.reservation_id not in own_ids)
++        others=financial_book.reservations if scoped else tuple(p for p in holds if p.reservation.reservation_id not in own_ids)
+         require(digest(others)==digest(inputs.reconciled_holds if quote else a.budget_facts.reservations),
+             'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
+         if quote:
+@@ -361,6 +372,12 @@ class ProgramCommandRepository:
+             validate_current_quote_bounds(self.tx,source,intake,financial_book,clock,a,self.load_execution_bounds)
+             require(digest(current_quote_financial_book(self.tx,bundle,self.tx.projections.book(self.tx.scope)))==digest(financial_book),
+                 'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
++        if scoped:
++            validate_current_program_quantity_scope(self.tx,book,financial_book,a.target_facts,bundle=bundle,
++                load_released_balances=self.load_released_balances)
++            require(digest(current_scoped_program_financial_book(self.tx,bundle,book,
++                load_released_balances=self.load_released_balances))==digest(financial_book),
++                'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED')
+         require(before==digest(self.tx.projections.book(self.tx.scope)) and
+             digest(current_fence(self.tx,source.context))==digest(fence),'PROGRAM_CURRENT_STATE_CHANGED')
+         end_clock,end_lease=self._clock_lease(write)
+@@ -377,9 +394,9 @@ class ProgramCommandRepository:
+             'fence_record_id':revision_key(source.context),'assessment':domain_payload(a),
+             'qualification':domain_payload(qualification),'valid_until':expires.isoformat(),
+             'account_opening_id':account_cash.opening_id,'account_cash_revision':account_cash.economic_revision}
+-        if quote:
++        if quote or scoped:
+             context.update(source_book_hash=before,financial_book_hash=digest(financial_book),
+-                execution_bounds_hash=digest(a.risk_facts.target_facts.bounds))
++                **({'execution_bounds_hash':digest(a.risk_facts.target_facts.bounds)} if quote else {}))
+         return context,end_clock,lease,expires,request
+ 
+     @atomic_write
+@@ -439,11 +456,12 @@ class ProgramCommandBoundary:
+     nothing. No UNKNOWN replay mints or renews a permit.
+     """
+     def __init__(self,uow,scope,*,load_clock=None,load_lease=None,load_current_facts=None,
+-                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None):
++                 load_qualification=None,load_action_proof=None,load_wallet_selection=None,load_execution_bounds=None,
++                 load_released_balances=None):
+         self.uow,self.scope=uow,scope
+         self.readers=dict(load_clock=load_clock,load_lease=load_lease,load_current_facts=load_current_facts,
+             load_qualification=load_qualification,load_action_proof=load_action_proof,load_wallet_selection=load_wallet_selection,
+-            load_execution_bounds=load_execution_bounds)
++            load_execution_bounds=load_execution_bounds,load_released_balances=load_released_balances)
+ 
+     def mark_may_have_sent(self,command_id,lease):
+         token=secrets.token_urlsafe(32)
+diff --git a/src/trading_system/execution/program_consumed_boundary.py b/src/trading_system/execution/program_consumed_boundary.py
+index 1206d7a..ad5dc8b 100644
+--- a/src/trading_system/execution/program_consumed_boundary.py
++++ b/src/trading_system/execution/program_consumed_boundary.py
+@@ -143,6 +143,10 @@ def recheck_consumed(boundary,permit,lease):
+         from trading_system.risk.quote_financial_admission import (QuoteProgramFinancialBundleV1,
+             current_quote_financial_book,validate_current_quote_bounds)
+         quote=type(bundle) is QuoteProgramFinancialBundleV1
++        from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
++        from trading_system.risk.program_quantity_scope import (
++            current_scoped_program_financial_book,validate_current_program_quantity_scope)
++        scoped=not quote and type(bundle.archive.target_facts) is ProgramScopedTargetFactsV2
+         financial_book=book
+         if quote:
+             from trading_system.intents.generic_program_intake import read_program_source
+@@ -160,6 +164,14 @@ def recheck_consumed(boundary,permit,lease):
+                 and digest(current_quote_financial_book(tx,bundle,tx.projections.book(write.scope)))==digest(financial_book)
+                 and digest(current_fence(tx,assessment.source.context))==canonical_hash(consumed['fence']),
+                 'PROGRAM_CONSUMED_CURRENT_STATE_CHANGED')
++        elif scoped:
++            require(digest(book)==consumed.get('source_book_hash'),'PROGRAM_CONSUMED_BOOK_CHANGED')
++            financial_book=current_scoped_program_financial_book(tx,bundle,book,
++                load_released_balances=boundary.readers.get('load_released_balances'))
++            require(digest(financial_book)==consumed.get('financial_book_hash')==digest(assessment.book),
++                'PROGRAM_CONSUMED_FINANCIAL_BOOK_CHANGED')
++            validate_current_program_quantity_scope(tx,book,financial_book,assessment.target_facts,bundle=bundle,
++                load_released_balances=boundary.readers.get('load_released_balances'))
+         else:
+             require(book is not None and digest(book)==digest(assessment.book),'PROGRAM_CONSUMED_BOOK_CHANGED')
+         duty=LockedActionVerifier().verify_program(tx,bundle.intent,assessment,clock.utc_now,
+diff --git a/src/trading_system/risk/program_financial_admission.py b/src/trading_system/risk/program_financial_admission.py
+index bb60d25..f407deb 100644
+--- a/src/trading_system/risk/program_financial_admission.py
++++ b/src/trading_system/risk/program_financial_admission.py
+@@ -275,13 +275,20 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
+     fence=current_fence(tx,source.context)
+     require(tx.intents.get(intake.intent_id) is None,'PROGRAM_FINANCIAL_ALREADY_ADMITTED')
+     book=tx.projections.book(tx.scope)
++    source_book=book
+     original_book_hash=digest(book)
+     from trading_system.risk.program_cash_guard import require_funded_program_account_book
+-    require_funded_program_account_book(tx,book)
++    account_cash=require_funded_program_account_book(tx,book)
+     collateral=service._prepare_collateral(tx,book)
+     require(not collateral.rejection_codes,','.join(collateral.rejection_codes))
+     book=collateral.book
+     inputs=load_inputs(tx,source,intake,book,clock) if load_inputs else None
++    from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
++    from .program_quantity_scope import validate_current_program_quantity_scope
++    proposed_archive=getattr(inputs,'archive',None)
++    scoped=type(getattr(proposed_archive,'target_facts',None)) is ProgramScopedTargetFactsV2
++    if scoped:validate_current_program_quantity_scope(tx,source_book,book,proposed_archive.target_facts,
++        load_released_balances=service.load_released_balances)
+     intent,basis=validate_current_inputs(tx,source,intake,book,inputs,clock,load_execution_bounds)
+     a=inputs.archive;sf=_scope_facts(a)
+     from .quote_financial_admission import (QuoteFinancialInputsV1,QuoteProgramFinancialBundleV1,
+@@ -349,6 +356,11 @@ def _reserve_program(service,tx,intake_record_id,command_ids,load_inputs,load_qu
+     require(window.poll(expires) is not None,'EXPIRED_OR_UNBOUND_CLOCK')
+     require(digest(current_fence(tx,source.context))==digest(fence),'STALE_REVISION')
+     require(digest(tx.projections.book(tx.scope))==original_book_hash,'PROGRAM_CURRENT_BOOK_CHANGED')
++    if scoped:validate_current_program_quantity_scope(tx,source_book,book,a.target_facts,
++        load_released_balances=service.load_released_balances)
++    final_cash=require_funded_program_account_book(tx,source_book)
++    require(final_cash.opening_id==account_cash.opening_id and final_cash.economic_revision==account_cash.economic_revision,
++        'PROGRAM_CURRENT_ACCOUNT_CASH_CHANGED')
+     if quote:
+         validate_current_quote_bounds(tx,source,intake,book,clock,a,load_execution_bounds)
+         require(window.poll(expires) is not None,'EXPIRED_OR_UNBOUND_CLOCK')
+diff --git a/src/trading_system/risk/program_quantity_scope.py b/src/trading_system/risk/program_quantity_scope.py
+new file mode 100644
+index 0000000..260dcd0
+--- /dev/null
++++ b/src/trading_system/risk/program_quantity_scope.py
+@@ -0,0 +1,150 @@
++"""Physical quantity scope is distinct from the complete financial hold set."""
++from dataclasses import replace
++from decimal import Decimal
++
++from trading_system.contracts import types as t
++from trading_system.contracts.canonical import canonical_hash,domain_payload
++from trading_system.contracts.wire import ExecutionCommand,TradeIntent
++from trading_system.intents.program_target_allocation import ProgramScopedTargetFactsV2
++from trading_system.storage.models import MissingEvidence,decode,scope_id,account_key
++from .reservation_repository import ReservationRepository
++
++
++def need(value,code):
++    if not value:raise MissingEvidence(code)
++
++
++def digest(value):return canonical_hash(domain_payload(value))
++
++
++def _actual_group(tx):
++    rows=tx.execute('SELECT r.scope_id,r.record_id,r.payload,p.sequence,p.payload FROM ledger.reservations r '
++        "LEFT JOIN LATERAL (SELECT sequence,payload FROM ledger.audit_events a WHERE a.scope_id=r.scope_id "
++        "AND a.record_id='ip07:reservation:'||r.record_id ORDER BY sequence DESC LIMIT 1) p ON true "
++        "WHERE r.payload->>'environment'=%s AND r.payload->>'collateral_group_id'=%s",
++        (str(tx.scope.environment),tx.group_id)).fetchall()
++    by_id={};group=[]
++    for physical,identifier,payload,projection_sequence,projection in rows:
++        r=decode(t.CapitalReservation,payload)
++        need(identifier==r.reservation_id and identifier not in by_id,'PROGRAM_RESERVATION_IDENTITY_AMBIGUOUS')
++        need(r.environment==tx.scope.environment and r.collateral_group_id==tx.group_id,'PROGRAM_RESERVATION_SCOPE_CHANGED')
++        p=ReservationRepository.initial(r) if projection is None else decode(t.ReservationProjection,projection)
++        immutable=lambda item:replace(item,state=t.ReservationState.HELD,reflected_amount=Decimal(0),evidence_watermark='')
++        need(immutable(p.reservation)==immutable(r),'PROGRAM_RESERVATION_PROJECTION_CHANGED')
++        need(all(type(v) is Decimal and v.is_finite() and v>=0 for v in
++            (r.amount,p.held,p.reflected,p.release_pending,p.reservation.reflected_amount))
++            and p.reflected<=p.held<=r.amount and p.release_pending<=p.held
++            and p.reservation.reflected_amount==p.reflected,'PROGRAM_RESERVATION_PROJECTION_CHANGED')
++        if projection is not None:
++            head=tx.execute('SELECT count(*),min(sequence),max(sequence) FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s',
++                (physical,'ip07:reservation:'+identifier)).fetchone()
++            need(type(p.sequence) is int and p.sequence==projection_sequence==head[2]
++                and head[1]==1 and head[0]==head[2],'PROGRAM_RESERVATION_PROJECTION_HISTORY_CHANGED')
++        if p.reservation.state==t.ReservationState.RELEASED:
++            need(p.held==p.reflected==p.release_pending==0,'PROGRAM_RESERVATION_PROJECTION_CHANGED')
++        if physical==scope_id(tx.scope):need(r.venue_account_id==tx.scope.venue_account_id,'PROGRAM_RESERVATION_SCOPE_CHANGED')
++        by_id[identifier]=(physical,p);group.append(p)
++    return by_id,tuple(group)
++
++
++def _external_scope(tx,projection):
++    """Only existing authenticated legacy references qualify snapshot-only IDs.
++
++    Truly external venue IDs without an independently registered source mapping
++    stay blocked. A raw snapshot label, asset or money value cannot prove scope.
++    """
++    r=projection.reservation
++    need(bool(r.command_refs),'PROGRAM_EXTERNAL_QUANTITY_SCOPE_EVIDENCE_REQUIRED')
++    physical_scopes=set()
++    for identifier in r.command_refs:
++        rows=tx.execute('SELECT scope_id,payload FROM ledger.commands WHERE record_id=%s AND sequence=1',(identifier,)).fetchall()
++        matched=[]
++        for physical,payload in rows:
++            command=decode(ExecutionCommand,payload)
++            if (str(command.environment),command.venue_account_id)!=(str(r.environment),r.venue_account_id):continue
++            need(command.intent_id==r.intent_id,'PROGRAM_EXTERNAL_QUANTITY_SCOPE_CHANGED')
++            position_side=command.canonical_payload.position_side
++            need(position_side in ('BOTH','LONG','SHORT'),'PROGRAM_EXTERNAL_QUANTITY_SCOPE_EVIDENCE_REQUIRED')
++            actual_scope=t.ScopeKey(environment=t.Environment(command.environment),venue_account_id=command.venue_account_id,
++                product=t.Product(command.product),instrument_uid=command.instrument_uid,venue_leg=position_side)
++            need(physical==scope_id(actual_scope),'PROGRAM_EXTERNAL_QUANTITY_SCOPE_CHANGED')
++            bound=tx.execute('SELECT collateral_group_id FROM ledger.account_bindings WHERE environment=%s AND account_id=%s AND product=%s',
++                account_key(actual_scope)).fetchone()
++            need(bound==(tx.group_id,),'PROGRAM_EXTERNAL_QUANTITY_SCOPE_CHANGED')
++            intent=tx.execute('SELECT payload FROM ledger.intents WHERE scope_id=%s AND record_id=%s AND sequence=1',
++                (physical,command.intent_id)).fetchone()
++            need(intent is not None,'PROGRAM_EXTERNAL_QUANTITY_SCOPE_EVIDENCE_REQUIRED')
++            original=decode(TradeIntent,intent[0])
++            need(original.owner_strategy_id==r.owner_strategy_id and original.ownership_epoch==command.ownership_epoch,
++                'PROGRAM_EXTERNAL_QUANTITY_SCOPE_CHANGED')
++            matched.append(physical)
++        need(len(matched)==1,'PROGRAM_EXTERNAL_QUANTITY_SCOPE_EVIDENCE_REQUIRED')
++        physical_scopes.add(matched[0])
++    need(len(physical_scopes)==1,'PROGRAM_EXTERNAL_QUANTITY_SCOPE_CHANGED')
++    return next(iter(physical_scopes))
++
++
++def _own_ids(tx,bundle,physical):
++    if bundle is None:return set()
++    from .program_financial_admission import ProgramFinancialBundle,BUNDLE_PREFIX
++    need(type(bundle) is ProgramFinancialBundle and bundle.intent.scope==tx.scope,'PROGRAM_FINANCIAL_BUNDLE_REQUIRED')
++    row=tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
++        (scope_id(tx.scope),BUNDLE_PREFIX+bundle.intent.intent_id)).fetchone()
++    need(row is not None and canonical_hash(row[0])==digest(bundle),'PROGRAM_ORIGINAL_FINANCIAL_BUNDLE_REQUIRED')
++    result=set()
++    for p in bundle.reservations:
++        actual=physical.get(p.reservation.reservation_id)
++        need(actual is not None and actual[0]==scope_id(tx.scope) and actual[1]==p,'PROGRAM_RESERVATION_CHANGED')
++        result.add(p.reservation.reservation_id)
++    return result
++
++
++def _prepared_holds(tx,raw_source_book,load_released_balances):
++    # Never inherit credit from the supplied financial DTO. Re-run the same
++    # current-book/transaction/reconciliation/terminal-or-abort verifier used
++    # by admission, after independently binding the physical creation rows.
++    from .reservations import prepare_collateral
++    prepared=prepare_collateral(tx,raw_source_book,load_released_balances=load_released_balances)
++    need(not prepared.rejection_codes,','.join(prepared.rejection_codes))
++    return prepared.holds
++
++
++def current_program_quantity_reservation_ids(tx,raw_source_book,financial_book,*,bundle=None,load_released_balances=None):
++    tx.require_scope(raw_source_book.scope)
++    need(type(raw_source_book) is t.BookSnapshot and type(financial_book) is t.BookSnapshot
++        and financial_book.scope==tx.scope and tx.projections.book(tx.scope)==raw_source_book,
++        'PROGRAM_CURRENT_SOURCE_BOOK_REQUIRED')
++    need(replace(raw_source_book,reservations=())==replace(financial_book,reservations=()),
++        'PROGRAM_FINANCIAL_BOOK_SOURCE_CHANGED')
++    physical,_=_actual_group(tx);own=_own_ids(tx,bundle,physical)
++    expected=tuple(p for p in _prepared_holds(tx,raw_source_book,load_released_balances)
++        if p.reservation.reservation_id not in own)
++    expected_by_id={p.reservation.reservation_id:p for p in expected}
++    supplied={p.reservation.reservation_id:p for p in financial_book.reservations}
++    need(len(supplied)==len(financial_book.reservations) and supplied==expected_by_id,
++        'PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED')
++    local={identifier for identifier,(physical_scope,_) in physical.items() if physical_scope==scope_id(tx.scope)}
++    external=set()
++    for p in raw_source_book.reservations:
++        if p.reservation.reservation_id in physical:continue
++        if _external_scope(tx,p)==scope_id(tx.scope):external.add(p.reservation.reservation_id)
++    return tuple(sorted(identifier for identifier in supplied if identifier in local|external))
++
++
++def validate_current_program_quantity_scope(tx,raw_source_book,financial_book,target_facts,*,bundle=None,load_released_balances=None):
++    need(type(target_facts) is ProgramScopedTargetFactsV2,'PROGRAM_SCOPED_TARGET_FACTS_REQUIRED')
++    target_facts.__post_init__()
++    expected=current_program_quantity_reservation_ids(tx,raw_source_book,financial_book,bundle=bundle,
++        load_released_balances=load_released_balances)
++    need(target_facts.quantity_scope==tx.scope and target_facts.quantity_reservation_ids==expected,
++        'PROGRAM_CURRENT_QUANTITY_RESERVATION_MAP_CHANGED')
++    return expected
++
++
++def current_scoped_program_financial_book(tx,bundle,raw_source_book,*,load_released_balances=None):
++    need(type(bundle.archive.target_facts) is ProgramScopedTargetFactsV2,'PROGRAM_SCOPED_TARGET_FACTS_REQUIRED')
++    tx.require_scope(raw_source_book.scope)
++    need(tx.projections.book(tx.scope)==raw_source_book,'PROGRAM_CURRENT_SOURCE_BOOK_REQUIRED')
++    physical,_=_actual_group(tx);own=_own_ids(tx,bundle,physical)
++    return replace(raw_source_book,reservations=tuple(p for p in _prepared_holds(tx,raw_source_book,load_released_balances)
++        if p.reservation.reservation_id not in own))
+diff --git a/src/trading_system/risk/reservations.py b/src/trading_system/risk/reservations.py
+index 057c204..c1eecd8 100644
+--- a/src/trading_system/risk/reservations.py
++++ b/src/trading_system/risk/reservations.py
+@@ -90,6 +90,111 @@ class PreparedCollateral:
+     rejection_codes: tuple[str, ...] = ()
+ 
+ 
++def prepare_collateral(tx, book, *, load_released_balances=None) -> PreparedCollateral:
++    """One shared read/verification path under the existing group mutex.
++
++    The existing released-balance verifier recognizes legacy command
++    proofs only. A program cannot acquire credit by supplying a new record
++    kind to that verifier; a qualified version-aware proof remains required.
++    This helper performs no release, reservation, command or permit write.
++    """
++    tx.require_scope(book.scope)
++    repo = ReservationRepository(tx)
++    deny = lambda *codes: PreparedCollateral(book=book, holds=(),
++        released_proof=None, rejection_codes=tuple(codes))
++    from trading_system.risk.program_cash_guard import require_current_account_book
++    from trading_system.storage.models import MissingEvidence
++    try:
++        require_current_account_book(tx,book)
++    except (MissingEvidence,ValueError) as error:
++        return deny(str(error))
++    originals = repo.group()
++    group = merge_holds(originals, book)
++    released_proof = None
++    if load_released_balances:
++        from trading_system.risk.target_guard import digest
++        proof = load_released_balances(tx, book, originals)
++        if (type(proof) is not ReleasedBalanceAttestation or proof.transaction_id != tx.transaction_id
++                or proof.book_hash != digest(book) or proof.evidence != book.evidence
++                or len(set(proof.reservation_ids)) != len(proof.reservation_ids)):
++            return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
++        restored = {}
++        for original in originals:
++            r = original.reservation
++            if r.reservation_id not in proof.reservation_ids:
++                continue
++            if (r.state != t.ReservationState.RELEASED or original.held or original.reflected
++                    or original.release_pending or not r.command_refs):
++                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
++            release_raw = tx.execute('SELECT scope_id,payload FROM ledger.audit_events WHERE record_id=%s',
++                ('ip07:proof:' + r.reservation_id + ':' + str(original.sequence),)).fetchone()
++            release = decode(ReconciliationProof, release_raw[1]) if release_raw else None
++            if (release is None or not release.obligations_cleared or not release.evidence.terminal_verified
++                    or release.intent_id != r.intent_id or release.command_refs != r.command_refs
++                    or release.asset != r.asset or release.evidence.reflected_amount != 0
++                    or any(utc_timestamp(e.visible_at) < utc_timestamp(release.evidence.venue_freeze_ref.visible_at)
++                        for e in book.evidence)):
++                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
++            # A persisted release is still insufficient if any command has
++            # become uncertain, or its current order is not terminal.
++            for cid in r.command_refs:
++                source = tx.execute('SELECT scope_id FROM ledger.commands WHERE record_id=%s AND sequence=1', (cid,)).fetchone()
++                if source is None:
++                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
++                raw = tx.execute('SELECT payload FROM ledger.commands WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
++                    (source[0], cid)).fetchone()
++                stored = decode(ExecutionCommand, raw[0])
++                outcome = tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
++                    (source[0], 'ip10:outcome:' + cid)).fetchone()
++                from trading_system.execution.commands import CommandOutcome, command_hash
++                result = decode(CommandOutcome, outcome[0]) if outcome else None
++                order_raw = tx.execute('SELECT payload FROM ledger.order_projections WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
++                    (source[0], stored.logical_client_order_id)).fetchone()
++                order = decode(t.OrderProjection, order_raw[0]) if order_raw else None
++                if result is not None and result.receipt.status == t.CommandState.ABORTED_UNSENT:
++                    # An authoritative abort has no venue order. Require the
++                    # SQL-guarded immutable send-boundary proof, not merely
++                    # an audit receipt claiming that nothing was sent.
++                    abort = tx.execute('SELECT command_payload,outcome FROM ledger.command_aborts '
++                        'WHERE scope_id=%s AND command_id=%s', (source[0], cid)).fetchone()
++                    if (abort is None or abort[0] != raw[0] or abort[1] != outcome[0]
++                            or stored.state != 'DURABLE_READY' or order is not None
++                            or result.provenance != 'LOCAL_UNSENT_ABORT'
++                            or result.command_id != cid or result.receipt.command_id != cid
++                            or stored.intent_id != r.intent_id
++                            or result.request_hash != command_hash(stored)
++                            or result.durable_record_ref != stored.durable_record_ref
++                            or release.evidence.command_certainty != 'NOT_SENT'):
++                        return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
++                    continue
++                if (result is None or result.command_id != cid or result.receipt.command_id != cid
++                        or stored.intent_id != r.intent_id or result.request_hash != command_hash(stored)
++                        or result.durable_record_ref != stored.durable_record_ref
++                        or result.receipt.status not in (t.CommandState.VENUE_CONFIRMED, t.CommandState.VENUE_REJECTED)
++                        or order is None or order.lifecycle_state not in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED')
++                        or order.command_certainty != 'CONFIRMED' or order.pending_operation != 'NONE'
++                        or order.leaves_quantity.value != 0 or scope_id(order.order.identity.scope) != source[0]
++                        or order.order.identity.logical_client_order_id != stored.logical_client_order_id
++                        or order.order.identity.venue_client_order_id != stored.venue_client_order_id
++                        or order.order.ownership_epoch != stored.ownership_epoch
++                        or order.order.owner_strategy_id != r.owner_strategy_id):
++                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
++            restored[r.reservation_id] = original
++        if set(restored) != set(proof.reservation_ids):
++            return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
++        group = tuple(restored.get(p.reservation.reservation_id, p) for p in group)
++        released_proof = proof
++    for p in group:
++        r = p.reservation
++        if (r.environment != tx.scope.environment or r.collateral_group_id != tx.group_id
++                or not r.asset or not r.reservation_id
++                or any(not isinstance(v, Decimal) or not v.is_finite() or v < 0
++                       for v in (r.amount, p.held, p.reflected, p.release_pending))
++                or p.reflected > p.held or p.held > r.amount or p.release_pending > p.held):
++            return deny('INVALID_RESERVATION')
++    book = replace(book, reservations=group)
++    return PreparedCollateral(book=book, holds=group, released_proof=released_proof)
++
+ class ReservationService:
+     def __init__(self, uow, scope: t.ScopeKey, load_inputs, *, clock,
+                  load_proof=None, maximum_attempts=3, load_action_proof=None,
+@@ -183,108 +288,7 @@ class ReservationService:
+         raise AssertionError('unreachable')
+ 
+     def _prepare_collateral(self, tx, book) -> PreparedCollateral:
+-        """One shared read/verification path under the existing group mutex.
+-
+-        The existing released-balance verifier recognizes legacy command
+-        proofs only. A program cannot acquire credit by supplying a new record
+-        kind to that verifier; a qualified version-aware proof remains required.
+-        This helper performs no release, reservation, command or permit write.
+-        """
+-        repo = ReservationRepository(tx)
+-        deny = lambda *codes: PreparedCollateral(book=book, holds=(),
+-            released_proof=None, rejection_codes=tuple(codes))
+-        from trading_system.risk.program_cash_guard import require_current_account_book
+-        from trading_system.storage.models import MissingEvidence
+-        try:
+-            require_current_account_book(tx,book)
+-        except (MissingEvidence,ValueError) as error:
+-            return deny(str(error))
+-        originals = repo.group()
+-        group = merge_holds(originals, book)
+-        released_proof = None
+-        if self.load_released_balances:
+-            from trading_system.risk.target_guard import digest
+-            proof = self.load_released_balances(tx, book, originals)
+-            if (type(proof) is not ReleasedBalanceAttestation or proof.transaction_id != tx.transaction_id
+-                    or proof.book_hash != digest(book) or proof.evidence != book.evidence
+-                    or len(set(proof.reservation_ids)) != len(proof.reservation_ids)):
+-                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+-            restored = {}
+-            for original in originals:
+-                r = original.reservation
+-                if r.reservation_id not in proof.reservation_ids:
+-                    continue
+-                if (r.state != t.ReservationState.RELEASED or original.held or original.reflected
+-                        or original.release_pending or not r.command_refs):
+-                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+-                release_raw = tx.execute('SELECT scope_id,payload FROM ledger.audit_events WHERE record_id=%s',
+-                    ('ip07:proof:' + r.reservation_id + ':' + str(original.sequence),)).fetchone()
+-                release = decode(ReconciliationProof, release_raw[1]) if release_raw else None
+-                if (release is None or not release.obligations_cleared or not release.evidence.terminal_verified
+-                        or release.intent_id != r.intent_id or release.command_refs != r.command_refs
+-                        or release.asset != r.asset or release.evidence.reflected_amount != 0
+-                        or any(utc_timestamp(e.visible_at) < utc_timestamp(release.evidence.venue_freeze_ref.visible_at)
+-                            for e in book.evidence)):
+-                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+-                # A persisted release is still insufficient if any command has
+-                # become uncertain, or its current order is not terminal.
+-                for cid in r.command_refs:
+-                    source = tx.execute('SELECT scope_id FROM ledger.commands WHERE record_id=%s AND sequence=1', (cid,)).fetchone()
+-                    if source is None:
+-                        return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+-                    raw = tx.execute('SELECT payload FROM ledger.commands WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+-                        (source[0], cid)).fetchone()
+-                    stored = decode(ExecutionCommand, raw[0])
+-                    outcome = tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+-                        (source[0], 'ip10:outcome:' + cid)).fetchone()
+-                    from trading_system.execution.commands import CommandOutcome, command_hash
+-                    result = decode(CommandOutcome, outcome[0]) if outcome else None
+-                    order_raw = tx.execute('SELECT payload FROM ledger.order_projections WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+-                        (source[0], stored.logical_client_order_id)).fetchone()
+-                    order = decode(t.OrderProjection, order_raw[0]) if order_raw else None
+-                    if result is not None and result.receipt.status == t.CommandState.ABORTED_UNSENT:
+-                        # An authoritative abort has no venue order. Require the
+-                        # SQL-guarded immutable send-boundary proof, not merely
+-                        # an audit receipt claiming that nothing was sent.
+-                        abort = tx.execute('SELECT command_payload,outcome FROM ledger.command_aborts '
+-                            'WHERE scope_id=%s AND command_id=%s', (source[0], cid)).fetchone()
+-                        if (abort is None or abort[0] != raw[0] or abort[1] != outcome[0]
+-                                or stored.state != 'DURABLE_READY' or order is not None
+-                                or result.provenance != 'LOCAL_UNSENT_ABORT'
+-                                or result.command_id != cid or result.receipt.command_id != cid
+-                                or stored.intent_id != r.intent_id
+-                                or result.request_hash != command_hash(stored)
+-                                or result.durable_record_ref != stored.durable_record_ref
+-                                or release.evidence.command_certainty != 'NOT_SENT'):
+-                            return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+-                        continue
+-                    if (result is None or result.command_id != cid or result.receipt.command_id != cid
+-                            or stored.intent_id != r.intent_id or result.request_hash != command_hash(stored)
+-                            or result.durable_record_ref != stored.durable_record_ref
+-                            or result.receipt.status not in (t.CommandState.VENUE_CONFIRMED, t.CommandState.VENUE_REJECTED)
+-                            or order is None or order.lifecycle_state not in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED')
+-                            or order.command_certainty != 'CONFIRMED' or order.pending_operation != 'NONE'
+-                            or order.leaves_quantity.value != 0 or scope_id(order.order.identity.scope) != source[0]
+-                            or order.order.identity.logical_client_order_id != stored.logical_client_order_id
+-                            or order.order.identity.venue_client_order_id != stored.venue_client_order_id
+-                            or order.order.ownership_epoch != stored.ownership_epoch
+-                            or order.order.owner_strategy_id != r.owner_strategy_id):
+-                        return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+-                restored[r.reservation_id] = original
+-            if set(restored) != set(proof.reservation_ids):
+-                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+-            group = tuple(restored.get(p.reservation.reservation_id, p) for p in group)
+-            released_proof = proof
+-        for p in group:
+-            r = p.reservation
+-            if (r.environment != self.scope.environment or r.collateral_group_id != tx.group_id
+-                    or not r.asset or not r.reservation_id
+-                    or any(not isinstance(v, Decimal) or not v.is_finite() or v < 0
+-                           for v in (r.amount, p.held, p.reflected, p.release_pending))
+-                    or p.reflected > p.held or p.held > r.amount or p.release_pending > p.held):
+-                return deny('INVALID_RESERVATION')
+-        book = replace(book, reservations=group)
+-        return PreparedCollateral(book=book, holds=group, released_proof=released_proof)
++        return prepare_collateral(tx, book, load_released_balances=self.load_released_balances)
+ 
+     def _reserve(self, tx, intent, expected, *, accepted=None):
+         repo = ReservationRepository(tx)
+diff --git a/tests/integration/test_program_financial_admission.py b/tests/integration/test_program_financial_admission.py
+index 84063dd..6eed6bf 100644
+--- a/tests/integration/test_program_financial_admission.py
++++ b/tests/integration/test_program_financial_admission.py
+@@ -39,7 +39,7 @@ def database(isolated_postgres):
+ 
+ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=None,instrument_uid=None,node_fees=None,preserve_quote_limit=False,
+               plan_proposal_transform=None,profile_transform=None,risk_policy_transform=None,financial_capacity=None,financial_buffer=None,
+-              provision_opening=True,initial_assets=None,venue_account_id=None,**risk_options):
++              provision_opening=True,initial_assets=None,venue_account_id=None,scoped_quantities=False,**risk_options):
+     import psycopg
+     from integration.support_program_capital import ensure_current_capital_schema,initialize_declared_assets
+     ensure_current_capital_schema(dsn)
+@@ -148,6 +148,22 @@ def real_case(dsn,*,qualified=True,collateral_group_id=None,proposal_transform=N
+         current=replace(c.facts.inputs,intent_id=intake_record.intent_id,clock=clock)
+         tf=replace(c.facts.target_facts,transaction_id=tx.transaction_id,inputs=replace(
+             c.facts.target_facts.inputs,clock=clock))
++        if scoped_quantities:
++            from dataclasses import fields
++            from trading_system.intents.program_target_allocation import ProgramTargetFacts,ProgramScopedTargetFactsV2
++            from trading_system.risk.program_quantity_scope import current_program_quantity_reservation_ids
++            from trading_system.risk.program_financial_admission import read_program_bundle
++            original_book=tx.projections.book(tx.scope)
++            stored_bundle=read_program_bundle(tx,intake_record.intent_id)
++            ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle,
++                load_released_balances=service.load_released_balances)
++            tf=ProgramScopedTargetFactsV2(**{f.name:getattr(tf,f.name) for f in fields(ProgramTargetFacts)},
++                contract_version='2026-10-30',record_kind='PROGRAM_SCOPED_TARGET_FACTS_V2',
++                quantity_scope=tx.scope,quantity_reservation_ids=ids)
++            tf=replace(tf,book_sequence=book.sequence,book_hash=digest(book))
++            budget=replace(c.facts.budget_facts,reservations=book.reservations)
++            c.facts=replace(c.facts,budget_facts=budget)
++            c.exposure=derive_program_exposure(c.plan,budget,now=clock.utc_now)
+         c.allocation=compile_program_target(c.plan,book,tf)
+         c.book=book;c.terms=replace(c.terms,decision_id=intake_record.intent_id)
+         c.facts=replace(c.facts,inputs=current,target_facts=tf,

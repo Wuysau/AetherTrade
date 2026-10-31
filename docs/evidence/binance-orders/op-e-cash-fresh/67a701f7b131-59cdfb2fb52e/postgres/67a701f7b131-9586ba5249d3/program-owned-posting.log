@@ -1,0 +1,19 @@
+......F                                                                  [100%]
+=================================== FAILURES ===================================
+__ test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow __
+tests/integration/test_program_owned_posting.py:193: in test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow
+    market=replace(event(c,sequence=2,quantity='.2',ask='559.5',kind='DEPTH_DELTA'),
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in event
+    return PaperMarketEvent(contract_version='2026-10-29',event_id=event_id or uuid4().hex,stream_id=c.scope.instrument_uid,
+<string>:14: in __init__
+    ???
+src/trading_system/engine/paper_market.py:83: in __post_init__
+    require(max(number(l.price) for l in self.bids)<min(number(l.price) for l in self.asks),'PAPER_CROSSED_SOURCE_BOOK')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_CROSSED_SOURCE_BOOK
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_low_decimal_precision_preserves_genuine_native_point1119_fee_cashflow
+1 failed, 6 passed in 40.12s

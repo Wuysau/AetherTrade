@@ -1,0 +1,18 @@
+F.F                                                                      [100%]
+=================================== FAILURES ===================================
+_____ test_reverse_initialization_never_leaves_two_capital_proofs[legacy] ______
+tests/integration/test_program_opening_exclusivity.py:67: in test_reverse_initialization_never_leaves_two_capital_proofs
+    with pytest.raises(psycopg.errors.CheckViolation):actions['new' if first=='legacy' else 'legacy']()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE CheckViolation
+_________________ test_concurrent_initializers_cannot_both_win _________________
+tests/integration/test_program_opening_exclusivity.py:85: in test_concurrent_initializers_cannot_both_win
+    assert sorted(results)==['created','rejected']
+E   AssertionError: assert ['created', 'created'] == ['created', 'rejected']
+E     
+E     At index 1 diff: 'created' != 'rejected'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_opening_exclusivity.py::test_reverse_initialization_never_leaves_two_capital_proofs[legacy]
+FAILED tests/integration/test_program_opening_exclusivity.py::test_concurrent_initializers_cannot_both_win
+2 failed, 1 passed in 1.78s

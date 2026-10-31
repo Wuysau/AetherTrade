@@ -1,0 +1,12 @@
+..........F                                                              [100%]
+=================================== FAILURES ===================================
+_ test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes _
+tests/integration/test_program_owned_posting.py:387: in test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes
+    assert order_service.apply(a.write.command_id).status=='ORDER_PROJECTED_FINANCIAL_RECONCILIATION_REQUIRED'
+E   AssertionError: assert 'ORDER_BOOK_P...TIES_RETAINED' == 'ORDER_PROJEC...TION_REQUIRED'
+E     
+E     - ORDER_PROJECTED_FINANCIAL_RECONCILIATION_REQUIRED
+E     + ORDER_BOOK_PROJECTED_DUTIES_RETAINED
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_owned_posting.py::test_two_real_commands_same_account_can_post_own_scope_then_reconcile_without_cross_writes
+1 failed, 10 passed in 85.34s (0:01:25)

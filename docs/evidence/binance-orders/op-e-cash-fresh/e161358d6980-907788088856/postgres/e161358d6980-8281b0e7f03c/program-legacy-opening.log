@@ -1,0 +1,17 @@
+..F.                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_owner_cannot_mint_a_new_initialization_audit_or_direct_protected_opening _
+tests/integration/test_program_legacy_opening.py:83: in test_owner_cannot_mint_a_new_initialization_audit_or_direct_protected_opening
+    tx._append('audit_events','console:seed',seeded,0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_legacy_opening.py::test_owner_cannot_mint_a_new_initialization_audit_or_direct_protected_opening
+1 failed, 3 passed in 1.62s

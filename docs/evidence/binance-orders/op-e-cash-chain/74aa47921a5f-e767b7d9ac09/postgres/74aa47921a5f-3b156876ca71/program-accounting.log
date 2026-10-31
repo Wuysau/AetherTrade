@@ -1,0 +1,48 @@
+.....FFFF                                                                [100%]
+=================================== FAILURES ===================================
+__ test_legacy_refresh_cannot_ignore_source_approved_generic_execution[cash] ___
+tests/integration/test_program_accounting_postgres.py:146: in test_legacy_refresh_cannot_ignore_source_approved_generic_execution
+    tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: CONSOLE_SEED_PROVISIONER_ONLY
+E   CONTEXT:  PL/pgSQL function guard_console_seed_insert() line 4 at RAISE
+__ test_legacy_refresh_cannot_ignore_source_approved_generic_execution[book] ___
+tests/integration/test_program_accounting_postgres.py:146: in test_legacy_refresh_cannot_ignore_source_approved_generic_execution
+    tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: CONSOLE_SEED_PROVISIONER_ONLY
+E   CONTEXT:  PL/pgSQL function guard_console_seed_insert() line 4 at RAISE
+_ test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[cash] _
+tests/integration/test_program_accounting_postgres.py:174: in test_missing_foreign_source_binding_cannot_hide_unreconciled_execution
+    tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: CONSOLE_SEED_PROVISIONER_ONLY
+E   CONTEXT:  PL/pgSQL function guard_console_seed_insert() line 4 at RAISE
+_ test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[book] _
+tests/integration/test_program_accounting_postgres.py:174: in test_missing_foreign_source_binding_cannot_hide_unreconciled_execution
+    tx.execute("INSERT INTO ledger.audit_events(scope_id,record_id,sequence,payload,transaction_id) "
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: CONSOLE_SEED_PROVISIONER_ONLY
+E   CONTEXT:  PL/pgSQL function guard_console_seed_insert() line 4 at RAISE
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_accounting_postgres.py::test_legacy_refresh_cannot_ignore_source_approved_generic_execution[cash]
+FAILED tests/integration/test_program_accounting_postgres.py::test_legacy_refresh_cannot_ignore_source_approved_generic_execution[book]
+FAILED tests/integration/test_program_accounting_postgres.py::test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[cash]
+FAILED tests/integration/test_program_accounting_postgres.py::test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[book]
+4 failed, 5 passed in 48.87s

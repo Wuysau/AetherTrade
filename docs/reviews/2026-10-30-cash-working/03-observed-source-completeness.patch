@@ -1,0 +1,153 @@
+diff --git a/src/trading_system/execution/program_account_cash.py b/src/trading_system/execution/program_account_cash.py
+index f7e610d..b964cf7 100644
+--- a/src/trading_system/execution/program_account_cash.py
++++ b/src/trading_system/execution/program_account_cash.py
+@@ -17,6 +17,7 @@ from .fills import FillLedger
+ from .program_account_opening import ProgramAccountKey,account_key,read_program_account_opening
+ from .program_asset_reader import ProgramAssetPostingReader
+ from .program_asset_postings import ProgramAssetPostingRecord,make_program_asset_posting,economic_signature
++from .program_observed_cash import observed_source_rows,require_observed_cash_coverage
+ 
+ 
+ def need(condition,code):
+@@ -105,6 +106,8 @@ def _read_program_account_cash(tx,*,read_opening,require_projection):
+         "WHERE payload#>>'{scope,environment}'=%s AND payload#>>'{scope,venue_account_id}'=%s "
+         "AND payload#>>'{scope,product}'=%s ORDER BY scope_id,approval_id",
+         (str(account.environment),account.venue_account_id,str(account.product))).fetchall()
++    observations=observed_source_rows(tx,account)
++    observed_native=any(row[8] is not None for row in observations)
+     rows=tx.execute('SELECT f.payload FROM ledger.fills f WHERE f.environment=%s AND f.account_id=%s AND f.product=%s',
+         (str(account.environment),account.venue_account_id,str(account.product))).fetchall()
+     fills=tuple(decode(t.Fill,row[0]) for row in rows)
+@@ -115,14 +118,14 @@ def _read_program_account_cash(tx,*,read_opening,require_projection):
+         origins[_native_key(fill)]=tuple(row[0] for row in legacy)
+     generic_fills=tuple(f for f in fills if not origins[_native_key(f)])
+     if read_opening is None:
+-        need(not sources and not generic_fills,'ACCOUNT_OPENING_REQUIRED')
++        need(not sources and not generic_fills and not observed_native,'ACCOUNT_OPENING_REQUIRED')
+         return None
+     from .program_legacy_opening import read_program_legacy_opening,read_program_local_account_opening
+     need(any(read_opening is reader for reader in (read_program_account_opening,read_program_legacy_opening,read_program_local_account_opening)),
+         'TRUSTED_ACCOUNT_OPENING_READER_REQUIRED')
+     opening=read_opening(tx)
+     if opening is None:
+-        need(not sources and not generic_fills,'ACCOUNT_OPENING_REQUIRED')
++        need(not sources and not generic_fills and not observed_native,'ACCOUNT_OPENING_REQUIRED')
+         return None
+     need(opening.account==account,'ACCOUNT_OPENING_BINDING_CHANGED')
+     # The historical command table and owner-written fill/audit rows are not a
+@@ -131,13 +134,16 @@ def _read_program_account_cash(tx,*,read_opening,require_projection):
+     # protected legacy source contract is available; never infer .001 fees.
+     need(not any(origins[_native_key(f)] for f in fills),'LEGACY_AUTHENTICATED_SOURCE_REQUIRED')
+     readers={};facts={};covered=set();duties=[]
+-    for stored_scope,approval_id,identity,payload in sources:
+-        scope=decode(t.ScopeKey,payload['scope'])
+-        need(stored_scope==scope_id(scope),'ACCOUNT_SOURCE_SCOPE_CHANGED')
++    def read_scope(scope):
++        stored_scope=scope_id(scope)
+         if stored_scope not in readers:
+             view=_AccountScopeRead(tx,scope)
+             readers[stored_scope]=ProgramAssetPostingReader(view,fill_ledger=FillLedger(None,scope,trade_id_scope='INSTRUMENT'))
+-        reader=readers[stored_scope];fact=reader.read(approval_id)
++        return readers[stored_scope]
++    for stored_scope,approval_id,identity,payload in sources:
++        scope=decode(t.ScopeKey,payload['scope'])
++        need(stored_scope==scope_id(scope),'ACCOUNT_SOURCE_SCOPE_CHANGED')
++        reader=read_scope(scope);fact=reader.read(approval_id)
+         need(fact.approval.identity_hash==identity,'ACCOUNT_NATIVE_IDENTITY_CHANGED')
+         signature=economic_signature(fact)
+         if identity in facts:
+@@ -159,6 +165,7 @@ def _read_program_account_cash(tx,*,read_opening,require_projection):
+                 require_owned_program_posting(reader.tx,fact)
+             facts[identity]=fact
+         covered.add(_native_key(fact.fill));duties.extend(fact.approval.retained_duties)
++    duties.extend(require_observed_cash_coverage(observations,facts,read_scope))
+     need({_native_key(f) for f in generic_fills}==covered,'UNAPPROVED_ACCOUNT_FILL_HISTORY')
+     vector={m.currency:m.amount for m in opening.balances};legacy_signatures=[]
+     with localcontext() as arithmetic:
+diff --git a/src/trading_system/execution/program_observed_cash.py b/src/trading_system/execution/program_observed_cash.py
+new file mode 100644
+index 0000000..af6a031
+--- /dev/null
++++ b/src/trading_system/execution/program_observed_cash.py
+@@ -0,0 +1,80 @@
++"""Conservative coverage of private observations; never derives cash credit.
++
++Submission knownness can commit a native fill snapshot before a per-fill
++approval or FillLedger row exists. Compact 0018 indices enumerate every account
++snapshot/leaf; full proof/global status is loaded and hashed once per snapshot
++through the existing transaction-scoped source reader, never once per fill.
++"""
++from itertools import groupby
++
++from trading_system.contracts import types as t
++from trading_system.contracts.canonical import canonical_hash,domain_payload
++from trading_system.storage.models import MissingEvidence,decode,scope_id
++from .program_fill_source import decode_source_normalized
++
++
++def need(value,code):
++    if not value:raise MissingEvidence(code)
++
++
++def observed_source_rows(tx,account):
++    if tx.execute("SELECT to_regclass('ledger.program_fill_source_snapshots')").fetchone()[0] is None:return ()
++    need(tx.execute("SELECT to_regclass('ledger.program_fill_source_headers')").fetchone()[0] is not None,
++        'OBSERVED_PROGRAM_SOURCE_INDEX_REQUIRED')
++    # Normally only the compact context is read. The parent scope is consulted
++    # only if a historical restore lost a header; that row must not disappear.
++    return tx.execute('SELECT s.scope_id,s.command_id,s.snapshot_id,h.context,h.leaf_count,'
++        's.database_transaction::text,s.xmin::text,pg_current_xact_id()::text,l.normalized_hash,l.payload '
++        'FROM ledger.program_fill_source_snapshots s '
++        'LEFT JOIN ledger.program_fill_source_headers h USING(scope_id,snapshot_id) '
++        'LEFT JOIN ledger.program_fill_source_leaves l ON l.scope_id=s.scope_id AND l.snapshot_id=s.snapshot_id '
++        "WHERE COALESCE(h.context#>>'{scope,environment}',s.payload#>>'{scope,environment}')=%s "
++        "AND COALESCE(h.context#>>'{scope,venue_account_id}',s.payload#>>'{scope,venue_account_id}')=%s "
++        "AND COALESCE(h.context#>>'{scope,product}',s.payload#>>'{scope,product}')=%s "
++        'ORDER BY s.scope_id,s.snapshot_id,l.normalized_hash',
++        (str(account.environment),account.venue_account_id,str(account.product))).fetchall()
++
++
++def native_signature(normalized):
++    fill=domain_payload(normalized.fill);ref=fill.pop('evidence')
++    # Archive location/receipt time can change on a genuine new observation.
++    # Immutable native content, units, economic data and raw bytes cannot.
++    return canonical_hash(dict(fill=fill,raw={k:ref[k] for k in ('hash','environment','source')},
++        economics=domain_payload(normalized.economics),side=normalized.side,fees_known=normalized.fees_known))
++
++
++def require_observed_cash_coverage(rows,facts,read_scope):
++    duties=[]
++    for _,members in groupby(rows,key=lambda r:(r[0],r[2])):
++        members=tuple(members);sid,command,snapshot_hash,context,count,xid,xmin,current,_,_=members[0]
++        need(context is not None and xid!=current and int(xid)%(2**32)==int(xmin),
++            'OBSERVED_PROGRAM_SOURCE_INDEX_REQUIRED')
++        scope=decode(t.ScopeKey,context['scope'])
++        need(scope_id(scope)==sid and context['command_id']==command,'OBSERVED_PROGRAM_SOURCE_BINDING_CHANGED')
++        reader=read_scope(scope)
++        source=reader.sources.read_snapshot(command,snapshot_hash)
++        need(canonical_hash(context)==canonical_hash({k:v for k,v in source.items()
++            if k not in ('verification','normalized_fills')}),'OBSERVED_PROGRAM_SOURCE_INDEX_CHANGED')
++        leaves=tuple((r[8],r[9]) for r in members if r[8] is not None)
++        need(len(leaves)==count==len(source['normalized_fills'])
++            and {k for k,_ in leaves}==set(source['normalized_fills']),
++            'OBSERVED_PROGRAM_SOURCE_INDEX_INCOMPLETE')
++        verification=source['verification']
++        need(verification['source_verified'] is True and verification['status']=='VERIFIED'
++            and verification['discrepancies']==[],'OBSERVED_PROGRAM_SOURCE_RECONCILIATION_REQUIRED')
++        duties.extend(verification['retained_duties'])
++        for normalized_hash,payload in leaves:
++            need(canonical_hash(payload)==normalized_hash and canonical_hash(source['normalized_fills'][normalized_hash])==normalized_hash,
++                'OBSERVED_PROGRAM_SOURCE_INDEX_CHANGED')
++            normalized=decode_source_normalized(payload,verification);fill=normalized.fill
++            need(fill.scope==fill.order.scope==scope and fill.native_trade_id is not None,
++                'OBSERVED_PROGRAM_NATIVE_IDENTITY_CHANGED')
++            if hasattr(normalized,'source_v2'):
++                need(normalized.source_v2.consumption_context_hash==context['consumption_hash'],
++                    'OBSERVED_PROGRAM_SOURCE_BINDING_CHANGED')
++            identity=canonical_hash(dict(scope=domain_payload(scope),venue=fill.venue,native_trade_id=fill.native_trade_id))
++            need(identity in facts,'OBSERVED_PROGRAM_EXECUTIONS_UNPOSTED')
++            need(facts[identity].command_id==command
++                and native_signature(normalized)==native_signature(facts[identity].approval.normalized),
++                'OBSERVED_PROGRAM_NATIVE_ECONOMICS_CONFLICT')
++    return tuple(dict.fromkeys(duties))

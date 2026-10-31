@@ -1,0 +1,90 @@
+{
+  "scope": "BOUNDED_REVIEW_PACKET_NOT_FINANCIAL_AUTHORITY",
+  "accounting_baseline": "1632692cd9b8db130b641617e70b55a44fd6e99f",
+  "product_head": "081d76e4446a0ad873a49eaea59440cdd73f2672",
+  "checkpoint_head": "898fc2831e51e1e8fd1018ed12fc96c5f37e994e",
+  "diffs": [
+    {
+      "file": "01-historical-opening.patch",
+      "base": "1632692cd9b8db130b641617e70b55a44fd6e99f",
+      "head": "9f1994c2c5b9ea1a8d83bf48aa342d7e9844b74d",
+      "paths": [
+        "src/trading_system/execution/program_account_opening.py",
+        "src/trading_system/execution/program_legacy_opening.py",
+        "tests/integration/test_program_opening_exclusivity.py"
+      ],
+      "sha256": "7433af497dd551c07d0b03fedba57682a57ddc3ae15527c7851927fdf3f164fc",
+      "bytes": 6619
+    },
+    {
+      "file": "02-scoped-pure-facts.patch",
+      "base": "a9f041a66dc01af63d082dcad3065c16727cc626",
+      "head": "c9b3fe493bdcd0e6e7547f5be76e21e8d5a59ebe",
+      "paths": [
+        "src/trading_system/intents/program_target_allocation.py",
+        "src/trading_system/intents/program_assessment_archive.py",
+        "src/trading_system/risk/program_assessment.py",
+        "tests/unit/test_program_scoped_target.py"
+      ],
+      "sha256": "137c72e825731bc54f6793119091f48e9644901b514a1a74cc03350f388e9d03",
+      "bytes": 13729
+    },
+    {
+      "file": "03-v2-root-owned-integration.patch",
+      "base": "c9b3fe493bdcd0e6e7547f5be76e21e8d5a59ebe",
+      "head": "081d76e4446a0ad873a49eaea59440cdd73f2672",
+      "paths": [
+        "migrations/0014_paper_market_matcher_v2.sql",
+        "migrations/0015_quote_program_dispatch.sql",
+        "migrations/0021_program_submission_observations.sql",
+        "src/trading_system/engine/paper_market.py",
+        "src/trading_system/engine/paper_market_v2.py",
+        "src/trading_system/execution/program_commands.py",
+        "src/trading_system/execution/program_consumed_boundary.py",
+        "src/trading_system/execution/program_submission_observation.py",
+        "src/trading_system/intents/generic_program_admission.py",
+        "src/trading_system/recovery/original_creation.py",
+        "src/trading_system/risk/program_assessment.py",
+        "src/trading_system/risk/program_cash_guard.py",
+        "src/trading_system/risk/program_continuation.py",
+        "src/trading_system/risk/program_financial_admission.py",
+        "src/trading_system/risk/quote_financial_admission.py",
+        "src/trading_system/risk/reservations.py",
+        "src/trading_system/storage/application_writes.py",
+        "tests/integration/test_program_v2_owned_posting.py",
+        "tests/integration/test_program_owned_posting.py",
+        "tests/integration/support_program_capital.py",
+        "tests/integration/test_program_financial_admission.py",
+        "tests/integration/test_program_first_capital.py",
+        "tests/integration/test_program_submission_observation.py",
+        "tests/integration/test_program_account_opening.py",
+        "tests/integration/test_program_account_cash.py",
+        "tests/integration/test_paper_market_matcher.py",
+        "tools/ci_paper_postgres.py"
+      ],
+      "sha256": "7d5b38fc1d575a3abd789796451bbe114a7e17554755b7f8bf683504f17f3945",
+      "bytes": 215868
+    },
+    {
+      "file": "04-real-historical-runtime.patch",
+      "base": "764c2c9ceec20dbe32b2bea0a6e4896cfcdb10e7",
+      "head": "eef3b69b65ec6b5d2205cbbfb13d292e79c62498",
+      "paths": [
+        "tests/integration/test_program_fill_source_approval.py",
+        "tests/integration/support_historical_program_source.py"
+      ],
+      "sha256": "76a2b5349dab308ff02146cf41058e2ba1eb7393c7279dbab073e98bbf8c4385",
+      "bytes": 8377
+    },
+    {
+      "file": "05-exact-legacy-fixture.patch",
+      "base": "081d76e4446a0ad873a49eaea59440cdd73f2672",
+      "head": "5803976e41f96befb326f5eb2ceebe16badb0185",
+      "paths": [
+        "tests/unit/test_locked_actions.py"
+      ],
+      "sha256": "fa213c377dae47a7cadb0978c754031fd415bd9c95bdf2e0dc62ead0debb4864",
+      "bytes": 1685
+    }
+  ]
+}
