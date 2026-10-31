@@ -129,3 +129,13 @@ def test_malformed_archived_rejection_is_renderable_and_retains_raw_value():
         result=classify_rejection(value)
         assert result['stage']=='DATA' and result['code']=='INVALID_RECORDED_REJECTION_CODE'
         assert result['raw_code']==value
+
+
+
+def test_malformed_restriction_collection_does_not_break_detail_projection():
+    from trading_system.server.order_observation import classify_rejections
+    for codes in (None,'CANCEL_UNKNOWN',123,{'code':'x'}):
+        result=classify_rejections(codes)
+        assert result==[{'code':'INVALID_RECORDED_REJECTION_CODE','stage':'DATA','raw_code':codes}]
+    assert classify_rejections([])==[]
+    assert classify_rejections(['CANCEL_UNKNOWN'])==[{'code':'CANCEL_UNKNOWN','stage':'EXECUTION'}]

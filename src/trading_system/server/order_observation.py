@@ -43,6 +43,12 @@ def classify_rejection(code):
     return {'code': code, 'stage': next((stage for stage, codes in STAGES.items() if code in codes), 'UNKNOWN')}
 
 
+def classify_rejections(codes):
+    if type(codes) is not list:
+        return [dict(code='INVALID_RECORDED_REJECTION_CODE',stage='DATA',raw_code=codes)]
+    return [classify_rejection(code) for code in codes]
+
+
 def capability_context(snapshot=None):
     # Archived claims are not a current Registry query, even if PAPER_VERIFIED.
     return dict(archived_snapshot=snapshot, current_qualification='UNKNOWN',
@@ -250,7 +256,7 @@ class OrderObservationService:
             restrictions = (state or {}).get('restriction_codes', [])
             view.update(scope_id=scope, scope=domain_payload(self.scopes[scope]), intakes=intakes,
                 records=records, truncated=truncated, capability=capability_context(snapshot),
-                rejection_reasons=[classify_rejection(code) for code in restrictions],
+                rejection_reasons=classify_rejections(restrictions),
                 observation_notice='COMMITTED_RECEIPT_IS_NOT_EXECUTION; EMPTY_CHILDREN_IS_NOT_FLAT')
             return view
 
