@@ -1,0 +1,24 @@
+{
+  "source": "0c293023ada0cbcfd0f55b2b04dc2ad64b5cf82a",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_local_child_request.py",
+    "tests/intents/test_local_child_compilation.py",
+    "tests/contracts/test_local_child_write.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\local-child-requests\\green.xml"
+  ],
+  "exit_code": 0,
+  "scope": "TASK_LIGHT unsigned local request only",
+  "postgres": "NOT_RUN",
+  "red": [
+    "80dc054 missing local_child_requests module collection error",
+    "Boolean/int parent mutation: 1 failed DID NOT RAISE before typed hash repair"
+  ]
+}

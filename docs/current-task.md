@@ -1,5 +1,18 @@
 # Current task
 
+## LOCAL_CHILD_REQUEST_IDENTITY — 2026-10-31
+
+Added immutable local request wrapper with activation-bound independent client
+IDs, existing VenueCreationRequest/field encoding and exact replay verification.
+Spot/USD-M ordinary routes supported here; equity wallet and conditional
+native-child ancestry remain explicitly pending. No second transport or ledger.
+Also reproduced and repaired bool/int equality in parent revalidation using
+canonical typed hashes. 34 related tests pass; raw/JUnit/commands retained at
+docs/evidence/binance-orders/local-child-requests. No DB, permit, send or full
+qualification. Next: schedule-source and cumulative pool admission; requests
+are untrusted candidates until independently bound inside the owner transaction.
+
+
 ## LOCAL_CHILD_COMPILER_IMPLEMENTED — 2026-10-31
 
 Source f4a3638 adds pure local child order compilation using the existing parent
