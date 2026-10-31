@@ -43,3 +43,12 @@ def test_tampered_content_cannot_be_read_or_silently_repaired(tmp_path):
     (tmp_path/sha256(PAYLOAD).hexdigest()).write_bytes(b'tampered')
     with pytest.raises(ValueError):archive.read_payload(r,receipt)
     with pytest.raises(ValueError):archive.record(r,PAYLOAD,received_at=STAMP)
+
+
+
+def test_untrusted_receipt_cannot_select_a_filesystem_path(tmp_path,monkeypatch):
+    archive=AggregateTradeArchive(LocalSnapshotBackend(tmp_path));r=request()
+    receipt=archive.record(r,PAYLOAD,received_at=STAMP)
+    def forbidden(key):raise AssertionError('invalid receipt reached backend read')
+    monkeypatch.setattr(archive.backend,'read',forbidden)
+    with pytest.raises(ValueError):archive.read_payload(r,replace(receipt,manifest_hash='../private'))
