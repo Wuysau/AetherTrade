@@ -66,6 +66,7 @@ def test_admission_code_is_only_composed_by_explicit_host_modules():
         'src/trading_system/execution/local_child_original.py',
         'src/trading_system/execution/local_child_observation.py',
         'src/trading_system/runtime/local_child_paper_host.py',
+        'src/trading_system/engine/paper_local_child.py',
     }
     hits = set()
     for path in (ROOT / 'src').rglob('*.py'):
