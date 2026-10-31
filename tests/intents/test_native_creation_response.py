@@ -88,3 +88,18 @@ def test_error_ack_is_not_not_sent_or_a_cancelled_order(tmp_path):
     request,_=request_for('equity');body=body_for(request);body['status']='F'
     result=parse(tmp_path,'equity',body,http_status=400)
     assert result.status=='ERROR' and result.lifecycle_status is None and 'QUERY_ORIGINAL_IDS' in result.retained_duties
+
+
+@pytest.mark.parametrize('order',[(0,1,2),(0,2,1),(1,0,2),(1,2,0),(2,0,1),(2,1,0)])
+def test_batch_identity_conflict_is_not_downgraded_by_later_item_error(tmp_path,order):
+    request,_=request_for('batch')
+    valid=body_for(request)[0]
+    foreign={**valid,'clientOrderId':'foreign-original'}
+    rejected={'code':-2010,'msg':'rejected'}
+    rows=[valid,foreign,rejected]
+    result=parse(tmp_path,'batch',[rows[i] for i in order])
+    assert result.status=='CONFLICT'
+    assert result.identities==()
+    assert 'NATIVE_ORDER_CLIENT_CHANGED' in result.discrepancies
+    assert 'NATIVE_BATCH_ITEM_ERROR' in result.discrepancies
+    assert not result.can_resubmit and not result.funds_release_authorized
