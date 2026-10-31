@@ -1,5 +1,20 @@
 # Current task
 
+## ACCEPTANCE_INVENTORY_REPORT — 2026-10-31
+
+Offline audit now reports all 46 capabilities and 56 cases against unchanged
+reference requirements. Historical claims are separate from current-source
+NOT_RUN, with original source/evidence attribution. It rejects missing or
+duplicate cases, changed mappings/requirements, unknown statuses and unattributed
+PASS claims. It does not authenticate historical evidence or qualify execution.
+RED fbd8c25: expected collection error for missing summarize_acceptance.
+GREEN: 15 related audit/report tests passed in 0.48s (exit 0).
+CLI --acceptance-inventory completed (exit 0); output is retained at
+docs/evidence/binance-orders/resume-acceptance-inventory.json. Historical
+counts: 1 PASS, 55 NOT_RUN; current-source cases remain 56 NOT_RUN.
+No source catalog or acceptance record was rewritten, no network/DB/Docker run.
+
+
 ## HOST_COST_ENTRYPOINT_IMPLEMENTED — 2026-10-31
 
 Source 1c43307 adds explicit ProgramPaperHost.reconcile_cost_history, delegating
