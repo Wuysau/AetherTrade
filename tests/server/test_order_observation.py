@@ -102,3 +102,30 @@ def test_local_child_archive_is_scoped_bounded_and_never_a_fill():
     assert records[0]['execution_authorized'] is False
     assert 'fills' not in records[0] and 'venue_order_id' not in records[0]
     assert service._local_children(None,set(),'allowed-scope','parent-program')==([],False)
+
+
+
+def test_local_child_blockers_are_specific_and_do_not_grant_authority():
+    expected={
+        'LOCAL_CHILD_STORAGE_NOT_INSTALLED':'CAPABILITY',
+        'LOCAL_CHILD_ADDITIONAL_ROUTE_BINDING_REQUIRED':'CAPABILITY',
+        'LOCAL_CHILD_TARGET_ORDER_CHANGED':'RULE',
+        'LOCAL_CHILD_QUANTITY_UNIT_CHANGED':'RULE',
+        'LOCAL_CHILD_QUANTITY_POOL_EXCEEDED':'RISK',
+        'LOCAL_CHILD_POOL_QUANTITY_EXCEEDED':'RISK',
+        'LOCAL_CHILD_CURRENT_TARGET_EXCEEDED':'RISK',
+        'ALLOCATION_FUNDING_UNDERBOUND':'RISK',
+        'LOCAL_CHILD_COMPLETE_ALLOCATION_FACTS_REQUIRED':'DATA',
+        'LOCAL_CHILD_STORAGE_HASH_CHANGED':'DATA',
+        'LOCAL_CHILD_COMMAND_REPLAY_CONFLICT':'EXECUTION',
+        'UNKNOWN_ORDER_RECONCILIATION_REQUIRED':'EXECUTION',
+    }
+    for code,stage in expected.items():assert classify_rejection(code)=={'code':code,'stage':stage}
+    assert classify_rejection('LOCAL_CHILD_FUTURE_UNREGISTERED')['stage']=='UNKNOWN'
+
+
+def test_malformed_archived_rejection_is_renderable_and_retains_raw_value():
+    for value in (None,123,{'unexpected':'shape'},['nested']):
+        result=classify_rejection(value)
+        assert result['stage']=='DATA' and result['code']=='INVALID_RECORDED_REJECTION_CODE'
+        assert result['raw_code']==value
