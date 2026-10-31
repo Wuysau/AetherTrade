@@ -85,7 +85,9 @@ def archive_management_response(payload,*,request,bridge,source,received_at,http
                 outcome=data.get(outcome_key,'UNOBSERVED');part=data.get(payload_key)
                 venue=None
                 if outcome not in ('SUCCESS','FAILURE','NOT_ATTEMPTED'):
-                    status='INCOMPLETE';codes.append('NATIVE_MANAGEMENT_RESULT_UNKNOWN')
+                    # Unknown replacement outcome cannot erase a cancel identity conflict.
+                    if status!='CONFLICT':status='INCOMPLETE'
+                    codes.append('NATIVE_MANAGEMENT_RESULT_UNKNOWN')
                 if outcome=='SUCCESS':
                     require(type(part) is dict,'NATIVE_SUCCESS_RESPONSE_REQUIRED')
                     venue=_identifier(part.get('orderId'))
