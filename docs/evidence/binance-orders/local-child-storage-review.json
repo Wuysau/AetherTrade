@@ -1,0 +1,26 @@
+{
+  "reviewer": "/root/resume_scoped_review",
+  "base": "3aa4acb",
+  "head": "dc38b8e",
+  "mode": "READ_ONLY_SOURCE_REVIEW",
+  "findings": [
+    {
+      "severity": "Important",
+      "issue": "PG module missing isolated_postgres fixture import",
+      "fix": "baba55f"
+    },
+    {
+      "severity": "Minor",
+      "issue": "final commitment set could reach 4097 while readers allow 4096",
+      "fix": "baba55f"
+    }
+  ],
+  "verification": {
+    "red": "final-set bound test: 1 failed DID NOT RAISE, 7 deselected",
+    "green": "23 selected quantity/obligation/reader tests passed in 3.84s",
+    "collection": "6 PostgreSQL cases collected in 1.08s; fixtures and SQL NOT_EXECUTED"
+  },
+  "migration": "NOT_APPLIED",
+  "postgres": "NOT_RUN",
+  "rereview": "PENDING"
+}

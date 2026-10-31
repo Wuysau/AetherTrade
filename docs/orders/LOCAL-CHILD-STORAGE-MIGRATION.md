@@ -37,3 +37,10 @@ The unapplied candidate now includes SELECT for ledger_owner and
 ledger_program_dispatch_verifier, solely to retain child duties in the existing
 local-program obligation registry. INSERT/UPDATE/DELETE/TRUNCATE remain revoked.
 This is a change to an unexecuted candidate, not a claim about deployed privileges.
+
+
+The unapplied candidate additionally binds each scope/activation to the exact
+sequence-one local-activation audit record with a generated-key foreign key.
+This prevents orphan commitments from being hidden by parent-first obligation
+scans. Six PostgreSQL cases now collect; all six remain NOT_RUN. Inspection and
+collection do not establish actual FK enforcement or migration compatibility.

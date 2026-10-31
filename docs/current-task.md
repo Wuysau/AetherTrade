@@ -1,5 +1,20 @@
 # Current task
 
+## LOCAL_CHILD_STORAGE_REVIEW_FIXES — 2026-10-31
+
+Candidate0030 now has generated activation record key/sequence1 composite FK
+to existing audit_events, preventing orphan commitments from escaping the
+parent-based obligation scan. Source dc38b8e; added orphan PostgreSQL case is
+NOT_RUN. Independent review found missing fixture import and final-count 4097
+vs4096 inconsistency; both fixed at baba55f. Bound RED: 1 DID NOT RAISE; GREEN:
+23 selected lightweight cases PASS in 3.84s. Six PostgreSQL cases collect in
+1.08s, no fixtures/SQL executed. Review record:
+docs/evidence/binance-orders/local-child-storage-review.json; re-review pending.
+Migration still unapplied, no runtime write/permit installed. Original full
+funding/quantity/owner/command atomic admission and all database qualification
+remain unfinished. No global cleanup, Docker or replacement environment used.
+
+
 ## LOCAL_CHILD_OBLIGATION_BRIDGE — 2026-10-31
 
 Existing local_program_obligations now includes pending child command IDs and
