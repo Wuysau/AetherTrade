@@ -147,7 +147,9 @@ def archive_creation_response(payload,*,request,bridge,received_at,source,http_s
             seen=set()
             for row in rows:
                 if type(row) is dict and 'code' in row:
-                    status='INCOMPLETE';codes.append('NATIVE_BATCH_ITEM_ERROR');continue
+                    # Identity conflict survives later per-item rejection rows.
+                    if status!='CONFLICT':status='INCOMPLETE'
+                    codes.append('NATIVE_BATCH_ITEM_ERROR');continue
                 if not member(row):status='CONFLICT';codes.append('NATIVE_ORDER_CLIENT_CHANGED');continue
                 client=identities[-1].client_id
                 if client in seen:status='CONFLICT';codes.append('NATIVE_MEMBER_ID_CONFLICT')
