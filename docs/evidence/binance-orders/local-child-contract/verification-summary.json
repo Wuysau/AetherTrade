@@ -1,0 +1,19 @@
+{
+  "scope": "TASK_LIGHT_CONTRACT_ONLY",
+  "source": "467c3c3688a4b148fbae27186d60b2bf230e1a5d",
+  "red": {
+    "source": "f8bffa2",
+    "result": "1 collection error: missing trading_system.contracts.local_child_write",
+    "exit_code": 2
+  },
+  "green": {
+    "command": "python -X utf8 -m pytest tests/contracts/test_local_child_write.py tests/unit/test_program_commands.py -q -p no:cacheprovider",
+    "result": "34 passed in 6.91s",
+    "exit_code": 0
+  },
+  "database": "NOT_RUN",
+  "child_admission": "NOT_IMPLEMENTED",
+  "permit": "NOT_IMPLEMENTED",
+  "venue_qualification": "NOT_RUN",
+  "schema_sha256": "d1452de01eb460af0006025a578dfe39bcf8088d49f6dadee6f26ee1b05c51f1"
+}

@@ -48,3 +48,18 @@ ORD-33/44 and related full matrix acceptance follows all task integrations.
 No migration number is reserved here: inspect the authoritative migration
 registry before implementing the additive storage boundary. No existing permit
 or native-child guard is weakened by this checkpoint.
+
+
+## Contract implementation checkpoint
+
+`local-child-write` version 2026-10-31 is now a separate codec kind and schema,
+with explicit activation ID/hash/state revision, parent-authority hash and
+schedule-evidence hash. It retains an independent child command and all original
+financial/request binding hashes. It has no external parent_command_id and is
+not an ApplicationWriteV3 subtype. Ordinary Spot, USD-M and equity namespaces
+must agree with product; native algorithm/list namespaces cannot masquerade as
+local children. No persistence, admission or permit is supplied by constructing
+this record. Existing V3 writer paths still reject it. Old schemas remain intact.
+
+Database migration and recovery integration are pending. Do not insert this
+kind into existing V3 tables or let historical UNKNOWN rows be recoded as it.

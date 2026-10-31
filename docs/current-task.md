@@ -1,5 +1,20 @@
 # Current task
 
+## LOCAL_CHILD_WRITE_CONTRACT_V1 — 2026-10-31
+
+Added separate 2026-10-31 local-child-write codec/schema and strict dataclass.
+Links local activation ID/hash/state revision, parent authority and schedule
+evidence to independent command/request/financial hashes. No fictional mother
+command and no venue-generated child write. Old ApplicationWriteV3 is unchanged.
+34 focused contract and existing command-construction cases passed in 6.91s.
+Summary: docs/evidence/binance-orders/local-child-contract/verification-summary.json.
+This is contract implementation only: source-authenticated child compilation,
+pool allocation, additive SQL persistence, current permit and transport remain
+required. No SQL migration deployed, no child send enabled, no ORD promotion.
+Next implement authenticated activation-to-child materialization and funding
+binding without reusing parent permits or duplicating reserved cash.
+
+
 ## RESUMED_SLICE_SOURCE_REVIEW_COMPLETE — 2026-10-31
 
 Independent /root/resume_scoped_review read 1fffa68..0be0c39 nine changed
