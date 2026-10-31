@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="12" skipped="0" tests="13" time="68.956" timestamp="2026-10-30T08:42:29.595917+00:00" hostname="8fa6e38f5562"><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool[SPOT]" time="6.923"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:12: in test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool
+    receipt=submit(c);report=c.engine.query_creation(c.write.command_id)
+            ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool[USD_M_PERP]" time="4.925"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:12: in test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool
+    receipt=submit(c);report=c.engine.query_creation(c.write.command_id)
+            ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read" time="7.588"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:34: in test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+                                                                           ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_nullable_native_target_does_not_weaken_ordinary_or_incomplete_parent_command_constraints" time="5.898"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:46: in test_nullable_native_target_does_not_weaken_ordinary_or_incomplete_parent_command_constraints
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+                                                                           ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision[ATOMIC]" time="5.338" /><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision[TWAP]" time="6.046"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:74: in test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision
+    submit(c)
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool[SPOT]" time="4.662"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:86: in test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE',product=product);submit(c)
+                                                                                           ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool[USD_M_PERP]" time="4.576"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:86: in test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE',product=product);submit(c)
+                                                                                           ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_native_generation_cannot_execute_after_a_mutable_pool_ceiling_diverges_from_immutable_parent_source" time="4.923"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:122: in test_native_generation_cannot_execute_after_a_mutable_pool_ceiling_diverges_from_immutable_parent_source
+    c=advanced_case(database,venue_v2,tmp_path,template='TWAP',tif='NONE');submit(c)
+                                                                           ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_facts_are_missing" time="3.866"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:137: in test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_facts_are_missing
+    submit(c)
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position" time="4.558"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:158: in test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position
+    actual='1',target='0',side='SELL',reduce_only=True);submit(c);matcher=PaperMatcher(c.engine)
+                                                        ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_stale_position_snapshot_replays_actual_fill_tail_and_conflicting_watermark_retains_unknown_facts" time="3.960"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_native_parent_postgres.py:178: in test_stale_position_snapshot_replays_actual_fill_tail_and_conflicting_watermark_retains_unknown_facts
+    actual='1',target='0',side='SELL',reduce_only=True);submit(c);matcher=PaperMatcher(c.engine)
+                                                        ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:392: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_native_parent_postgres" name="test_actual_reduce_only_position_capacity_is_debited_between_depth_levels" time="4.394"><failure message="ImportError: cannot import name 'PaperPositionEventV2' from 'trading_system.engine.paper_market_v2' (/tmp/source/src/trading_system/engine/paper_market_v2.py)">tests/integration/test_paper_native_parent_postgres.py:199: in test_actual_reduce_only_position_capacity_is_debited_between_depth_levels
+    matcher.apply_market_event(position_source(c,1,'0.15',0))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_native_parent_postgres.py:147: in position_source
+    from trading_system.engine.paper_market_v2 import PaperPositionEventV2
+E   ImportError: cannot import name 'PaperPositionEventV2' from 'trading_system.engine.paper_market_v2' (/tmp/source/src/trading_system/engine/paper_market_v2.py)</failure></testcase></testsuite></testsuites>

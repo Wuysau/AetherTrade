@@ -1,0 +1,18 @@
+.............FF.....                                                     [100%]
+=================================== FAILURES ===================================
+______ test_native_source_authenticates_actual_parent_and_children[False] ______
+tests/integration/test_paper_native_parent_postgres.py:233: in test_native_source_authenticates_actual_parent_and_children
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_NATIVE_PARENT_SOURCE_REQUIRED',)
+E   assert False
+E    +  where False = PaperNativeParentVerification(command_id='isolated-command-990738c4b0ce430caaae32a7e9e1e5a8', status='BLOCKED', source...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+______ test_native_source_authenticates_actual_parent_and_children[True] _______
+tests/integration/test_paper_native_parent_postgres.py:233: in test_native_source_authenticates_actual_parent_and_children
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_NATIVE_PARENT_SOURCE_REQUIRED',)
+E   assert False
+E    +  where False = PaperNativeParentVerification(command_id='isolated-command-575994633182430ea6984328f54dfb9e', status='BLOCKED', source...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_authenticates_actual_parent_and_children[False]
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_authenticates_actual_parent_and_children[True]
+2 failed, 18 passed in 112.21s (0:01:52)

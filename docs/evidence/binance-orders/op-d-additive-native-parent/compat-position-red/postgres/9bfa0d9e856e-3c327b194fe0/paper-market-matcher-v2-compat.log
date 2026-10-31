@@ -1,0 +1,11 @@
+.............F.........                                                  [100%]
+=================================== FAILURES ===================================
+___ test_structured_fill_identity_handles_valid_multi_level_sell_collisions ____
+tests/integration/test_paper_market_matcher.py:293: in test_structured_fill_identity_handles_valid_multi_level_sell_collisions
+    assert report.filled_quantity==D('10.3') and len(report.fills)==2
+E   AssertionError: assert (Decimal('0') == Decimal('10.3'))
+E    +  where Decimal('0') = PaperCreationReport(command_id='isolated-command-058eb51c0e2c4dc69c7bca5f5c47abb4', request=VenueCreationRequest(contr...nimum_price='81490.00', maximum_price='90000', maximum_gross_notional='927000.0', fee_ceilings=())),), dispositions=()).filled_quantity
+E    +  and   Decimal('10.3') = D('10.3')
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2_compat.py::test_structured_fill_identity_handles_valid_multi_level_sell_collisions
+1 failed, 22 passed in 148.25s (0:02:28)

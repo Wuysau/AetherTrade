@@ -1,0 +1,52 @@
+.............FFFFFF                                                      [100%]
+=================================== FAILURES ===================================
+______ test_native_source_authenticates_actual_parent_and_children[False] ______
+tests/integration/test_paper_native_parent_postgres.py:230: in test_native_source_authenticates_actual_parent_and_children
+    service,codec=native_verifier(c,tmp_path/'native-raw')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_native_parent_postgres.py:217: in native_verifier
+    from trading_system.execution.paper_native_parent_reports import PaperNativeParentReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_native_parent_reports'
+______ test_native_source_authenticates_actual_parent_and_children[True] _______
+tests/integration/test_paper_native_parent_postgres.py:230: in test_native_source_authenticates_actual_parent_and_children
+    service,codec=native_verifier(c,tmp_path/'native-raw')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_native_parent_postgres.py:217: in native_verifier
+    from trading_system.execution.paper_native_parent_reports import PaperNativeParentReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_native_parent_reports'
+__ test_native_source_rejects_fabricated_relationship_and_retains_raw[parent] __
+tests/integration/test_paper_native_parent_postgres.py:252: in test_native_source_rejects_fabricated_relationship_and_retains_raw
+    service,codec=native_verifier(c,tmp_path/'native-tampered')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_native_parent_postgres.py:217: in native_verifier
+    from trading_system.execution.paper_native_parent_reports import PaperNativeParentReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_native_parent_reports'
+__ test_native_source_rejects_fabricated_relationship_and_retains_raw[child] ___
+tests/integration/test_paper_native_parent_postgres.py:252: in test_native_source_rejects_fabricated_relationship_and_retains_raw
+    service,codec=native_verifier(c,tmp_path/'native-tampered')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_native_parent_postgres.py:217: in native_verifier
+    from trading_system.execution.paper_native_parent_reports import PaperNativeParentReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_native_parent_reports'
+___ test_native_source_rejects_fabricated_relationship_and_retains_raw[fill] ___
+tests/integration/test_paper_native_parent_postgres.py:252: in test_native_source_rejects_fabricated_relationship_and_retains_raw
+    service,codec=native_verifier(c,tmp_path/'native-tampered')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_native_parent_postgres.py:217: in native_verifier
+    from trading_system.execution.paper_native_parent_reports import PaperNativeParentReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_native_parent_reports'
+__ test_native_source_rejects_fabricated_relationship_and_retains_raw[budget] __
+tests/integration/test_paper_native_parent_postgres.py:252: in test_native_source_rejects_fabricated_relationship_and_retains_raw
+    service,codec=native_verifier(c,tmp_path/'native-tampered')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_native_parent_postgres.py:217: in native_verifier
+    from trading_system.execution.paper_native_parent_reports import PaperNativeParentReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_native_parent_reports'
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_authenticates_actual_parent_and_children[False]
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_authenticates_actual_parent_and_children[True]
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_rejects_fabricated_relationship_and_retains_raw[parent]
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_rejects_fabricated_relationship_and_retains_raw[child]
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_rejects_fabricated_relationship_and_retains_raw[fill]
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_rejects_fabricated_relationship_and_retains_raw[budget]
+6 failed, 13 passed in 88.33s (0:01:28)

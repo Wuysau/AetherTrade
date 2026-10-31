@@ -1,0 +1,28 @@
+...................FFFF.                                                 [100%]
+=================================== FAILURES ===================================
+_ test_native_source_rejects_fabricated_relationship_and_retains_raw[remaining] _
+tests/integration/test_paper_native_parent_postgres.py:260: in test_native_source_rejects_fabricated_relationship_and_retains_raw
+    assert not result.source_verified and result.status=='BLOCKED'
+E   AssertionError: assert (not True)
+E    +  where True = PaperNativeParentVerification(command_id='isolated-command-4169509d50134b1bb6a61980e2881aa0', status='VERIFIED', sourc...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+_ test_native_source_rejects_fabricated_relationship_and_retains_raw[fill_time] _
+tests/integration/test_paper_native_parent_postgres.py:260: in test_native_source_rejects_fabricated_relationship_and_retains_raw
+    assert not result.source_verified and result.status=='BLOCKED'
+E   AssertionError: assert (not True)
+E    +  where True = PaperNativeParentVerification(command_id='isolated-command-68b7c0e8f6d7444f8fb6dd6d50710c8d', status='VERIFIED', sourc...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+_ test_native_source_rejects_fabricated_relationship_and_retains_raw[market_hash] _
+tests/integration/test_paper_native_parent_postgres.py:260: in test_native_source_rejects_fabricated_relationship_and_retains_raw
+    assert not result.source_verified and result.status=='BLOCKED'
+E   AssertionError: assert (not True)
+E    +  where True = PaperNativeParentVerification(command_id='isolated-command-feed05c2ea794c618024699f540fe24d', status='VERIFIED', sourc...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+_ test_native_source_rejects_fabricated_relationship_and_retains_raw[allocation] _
+tests/integration/test_paper_native_parent_postgres.py:260: in test_native_source_rejects_fabricated_relationship_and_retains_raw
+    assert not result.source_verified and result.status=='BLOCKED'
+E   AssertionError: assert (not True)
+E    +  where True = PaperNativeParentVerification(command_id='isolated-command-74012e0a0082463db608cd69148b663c', status='VERIFIED', sourc...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_rejects_fabricated_relationship_and_retains_raw[remaining]
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_rejects_fabricated_relationship_and_retains_raw[fill_time]
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_rejects_fabricated_relationship_and_retains_raw[market_hash]
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_rejects_fabricated_relationship_and_retains_raw[allocation]
+4 failed, 20 passed in 116.53s (0:01:56)

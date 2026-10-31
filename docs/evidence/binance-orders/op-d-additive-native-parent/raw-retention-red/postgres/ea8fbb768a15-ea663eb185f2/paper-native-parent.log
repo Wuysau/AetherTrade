@@ -1,0 +1,18 @@
+..F...........F.........                                                 [100%]
+=================================== FAILURES ===================================
+__ test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read ___
+tests/integration/test_paper_native_parent_postgres.py:43: in test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read
+    assert not result.source_verified and result.raw_refs
+E   AssertionError: assert (not False and ())
+E    +  where False = PaperNativeParentVerification(command_id='isolated-command-6f45e697f262462baee71d1ba44e4025', status='BLOCKED', source...aw_report=None, market_evidence=None, record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+E    +  and   () = PaperNativeParentVerification(command_id='isolated-command-6f45e697f262462baee71d1ba44e4025', status='BLOCKED', source...aw_report=None, market_evidence=None, record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').raw_refs
+______ test_native_source_authenticates_actual_parent_and_children[True] _______
+tests/integration/test_paper_native_parent_postgres.py:238: in test_native_source_authenticates_actual_parent_and_children
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_NATIVE_CHILD_RUNTIME_CHANGED',)
+E   assert False
+E    +  where False = PaperNativeParentVerification(command_id='isolated-command-c40fc6e50ecc4bae95e7137b3630969e', status='BLOCKED', source...ord_kind='PAPER_MARKET_EVIDENCE_V2'), record_kind='PAPER_NATIVE_PARENT_VERIFICATION_V1', contract_version='2026-10-30').source_verified
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read
+FAILED tests/integration/test_paper_native_parent_postgres.py::test_native_source_authenticates_actual_parent_and_children[True]
+2 failed, 22 passed in 113.37s (0:01:53)
