@@ -1,5 +1,21 @@
 # Current task
 
+## OBSERVED_AGGREGATE_VOLUME_WINDOW — 2026-10-31
+
+Bounded raw pages are reparsed and merged by aggregate ID; identical replay
+does not double count, contradictory same-ID fields reject. Explicit TOTAL
+or NON_RPI quantity basis and [start,end) timestamps retain separate units and
+window edges. 17 focused parser/window tests pass in 0.42s. Evidence:
+docs/evidence/binance-orders/local-volume-window.
+Official field semantics prompted correcting an initial unsupported assumption:
+f/l are first/last IDs, not an enumerated contiguous membership set. The code
+does not infer overlap duplication or complete history from those bounds.
+The result remains observed-only, source_verified=False, coverage_complete=False,
+execution_authorized=False. Request/transport binding and authenticated complete
+window pagination remain required before VP admission. No HTTP market/account,
+Docker or PostgreSQL calls performed.
+
+
 ## PUBLIC_VOLUME_SOURCE_CANDIDATE — 2026-10-31
 
 Public Spot/USD-M aggregate trade page parser preserves exact price/quantity

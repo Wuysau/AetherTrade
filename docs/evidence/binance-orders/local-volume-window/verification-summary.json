@@ -1,0 +1,20 @@
+{
+  "committed_tested_content": "404d33ce93629cede98859cc7733d475a9bc2969",
+  "execution_timing": "identical working-tree code tested before commit",
+  "red": {
+    "source": "b4948d5",
+    "result": "missing merge_aggregate_trade_pages; collection error"
+  },
+  "green": {
+    "command": "python -X utf8 -m pytest tests/intents/test_local_volume_window.py tests/intents/test_local_volume_source.py -q -p no:cacheprovider",
+    "passed": 17,
+    "seconds": 0.42,
+    "exit_code": 0
+  },
+  "scope": "TASK_LIGHT aggregate row identity and observed window arithmetic",
+  "design_correction": "Initial test assumption that f/l describe a complete contiguous membership range was unsupported. Before implementation, replaced that case with same-ID timestamp conflict and added explicit no-membership-inference coverage. No safety test was skipped to hide a failure.",
+  "official_source": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+  "source_authentication": "NOT_IMPLEMENTED",
+  "complete_window_pagination": "NOT_IMPLEMENTED",
+  "postgres": "NOT_RUN"
+}
