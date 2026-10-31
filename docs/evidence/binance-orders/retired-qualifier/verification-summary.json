@@ -1,0 +1,36 @@
+{
+  "source": "9e895eea54b0057b75bd42385a06f1d512a99056",
+  "red": {
+    "source": "4b834f6",
+    "result": "5 failed: patched process guard intercepted old git subprocess before Docker or file creation"
+  },
+  "green": {
+    "command": "python -X utf8 -m pytest tests/ops/test_retired_paper_launcher.py tests/ops/test_paper_offline_runner.py -q -p no:cacheprovider",
+    "passed": 7,
+    "seconds": 0.09,
+    "exit_code": 0
+  },
+  "actual_entrypoint": {
+    "command": [
+      "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+      "-X",
+      "utf8",
+      "tools/qualify_paper_docker.py",
+      "--commit",
+      "HEAD",
+      "--suite",
+      "local-child-storage"
+    ],
+    "exit_code": 78,
+    "result": {
+      "status": "BLOCKED",
+      "tests": "NOT_RUN",
+      "reason": "SHARED_DEV_SCHEDULER_REQUIRED",
+      "required_environment": "DEV",
+      "environment_created": false,
+      "execution_authority": false
+    }
+  },
+  "shared_scheduler": "NOT_IMPLEMENTED",
+  "postgres": "NOT_RUN"
+}

@@ -1,5 +1,19 @@
 # Current task
 
+## RETIRED_PER_TASK_QUALIFIER — 2026-10-31
+
+Source 9e895ee removes per-run Docker/PostgreSQL/Runner provisioning from the
+legacy qualifier entry. Old CLI arguments return BLOCKED/NOT_RUN, exit78; no
+source bundle, credentials or run directory is created. Dependency-description
+helper retained for historical offline tests; all qualification suites remain.
+Five guarded RED cases fail before any subprocess can execute. Seven focused
+ops tests PASS in 0.09s. Actual inert CLI invocation returns expected exit78;
+evidence: docs/evidence/binance-orders/retired-qualifier.
+This enforces latest Harness for this entry only, not OS/Docker permission
+isolation or a working scheduler. Shared DEV recovery/isolation/scheduler still
+absent; no heavy test, database operation or full acceptance ran.
+
+
 ## LOCAL_CHILD_STORAGE_REVIEW_FIXES — 2026-10-31
 
 Candidate0030 now has generated activation record key/sequence1 composite FK
