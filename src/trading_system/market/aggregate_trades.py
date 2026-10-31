@@ -74,3 +74,59 @@ def parse_aggregate_trade_page(payload,*,product,instrument_uid,native_unit):
         seen.add(row['a'])
     return AggregateTradePage(product=product,instrument_uid=instrument_uid,native_unit=native_unit,
         raw_hash=sha256(payload).hexdigest(),rows=tuple(rows))
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class AggregateVolumeWindow:
+    product:t.Product
+    instrument_uid:str
+    native_unit:str
+    start_ms:int
+    end_ms:int
+    quantity_basis:Literal['TOTAL','NON_RPI']
+    observed_quantity:str
+    trade_count:int
+    raw_hashes:tuple[str,...]
+
+    @property
+    def source_verified(self)->Literal[False]:return False
+    @property
+    def coverage_complete(self)->Literal[False]:return False
+    @property
+    def execution_authorized(self)->Literal[False]:return False
+
+
+def merge_aggregate_trade_pages(payloads,*,product,instrument_uid,native_unit,start_ms,end_ms,quantity_basis):
+    """Merge observed aggregates in [start,end), without a completeness claim.
+
+    Native aggregate IDs identify rows; f/l are not enumerated member sets.
+    HTTP request/source authenticity, pagination and edge coverage remain host
+    obligations. Missing or short pages never establish a complete volume scan.
+    """
+    from decimal import Decimal,localcontext,Inexact,Rounded
+    from fractions import Fraction
+    need(type(payloads) is tuple and 0<len(payloads)<=4096
+        and all(type(p) is bytes for p in payloads) and sum(map(len,payloads))<=16_777_216)
+    need(type(start_ms) is int and type(end_ms) is int and 0<=start_ms<end_ms<2**63)
+    need(quantity_basis in ('TOTAL','NON_RPI') and (quantity_basis!='NON_RPI' or product==t.Product.USD_M_PERP))
+    records={};hashes=[];count=0
+    for payload in payloads:
+        page=parse_aggregate_trade_page(payload,product=product,instrument_uid=instrument_uid,native_unit=native_unit)
+        if page.raw_hash in hashes:continue
+        hashes.append(page.raw_hash);count+=len(page.rows);need(count<=100000)
+        for row in page.rows:
+            old=records.get(row.aggregate_id)
+            need(old is None or old==row)
+            records[row.aggregate_id]=row
+    selected=[row for row in records.values() if start_ms<=row.timestamp_ms<end_ms]
+    total=Fraction(0)
+    for row in selected:
+        value=row.quantity if quantity_basis=='TOTAL' else row.non_rpi_quantity
+        need(value is not None)
+        total+=Fraction(amount(value,zero=True))
+    with localcontext() as arithmetic:
+        arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
+        quantity=format(Decimal(total.numerator)/Decimal(total.denominator),'f')
+    return AggregateVolumeWindow(product=product,instrument_uid=instrument_uid,native_unit=native_unit,
+        start_ms=start_ms,end_ms=end_ms,quantity_basis=quantity_basis,observed_quantity=quantity,
+        trade_count=len(selected),raw_hashes=tuple(hashes))

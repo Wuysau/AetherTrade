@@ -29,11 +29,11 @@ def test_half_open_window_keeps_adjacent_windows_disjoint():
     result=merge([[row(time=999),row(2,11,11,time=1000),row(3,12,12,time=2000)]])
     assert result.trade_count==1 and D(result.observed_quantity)==D('1.25')
 
-@pytest.mark.parametrize('fault',['changed_id','overlapping_trade_range','missing_nq','unknown_basis'])
+@pytest.mark.parametrize('fault',['changed_id','changed_timestamp','missing_nq','unknown_basis'])
 def test_conflicting_or_undefined_volume_is_rejected(fault):
     a=row();b=row(2,11,11)
     if fault=='changed_id':b={**a,'q':'2'}
-    if fault=='overlapping_trade_range':b=row(2,10,11)
+    if fault=='changed_timestamp':b={**a,'T':1001}
     if fault=='missing_nq':b.pop('nq')
     with pytest.raises(ValueError):merge([[a],[b]],quantity_basis='bad' if fault=='unknown_basis' else 'NON_RPI')
 
@@ -42,3 +42,10 @@ def test_empty_page_is_observed_zero_without_proving_complete_scan():
     result=merge([[]])
     assert D(result.observed_quantity)==0 and not result.coverage_complete
     with pytest.raises(ValueError):merge([])
+
+
+
+def test_first_last_ids_are_not_treated_as_a_complete_member_inventory():
+    result=merge([[row(first=10,last=12),row(2,11,11)]])
+    assert result.trade_count==2 and D(result.observed_quantity)==D('2.50')
+    assert not result.coverage_complete
