@@ -1,0 +1,57 @@
+{
+  "target": "public-snapshot",
+  "source_branch": "codex/binance-orders-resume",
+  "source_commit": "ae73c161bcee67ade04e931cb30f5f9e829b73af",
+  "code_commit": "606a86cf7b7f5eeb086813b550c851d5f2942cd8",
+  "previous_target": "33e4a0eb1e894a4cbd96815a843e39a3e88828df",
+  "method": "FAST_FORWARD",
+  "authorization": "User requested code tasks be completed and integrated, with uniform verification deferred",
+  "candidate_checks": [
+    {
+      "command": "python -X utf8 -m pytest tests/intents/test_local_child_admission.py tests/intents/test_local_child_current.py tests/intents/test_local_child_original_observation.py tests/intents/test_local_child_paper_host.py tests/intents/test_local_child_schedule.py tests/intents/test_local_volume_admission.py tests/intents/test_local_child_quantity.py tests/intents/test_local_child_request.py tests/intents/test_local_child_compilation.py tests/intents/test_local_child_funding.py tests/intents/test_local_child_obligations.py tests/intents/test_local_child_target.py tests/intents/test_local_child_commitment_reader.py tests/contracts/test_local_child_write.py tests/unit/test_op_d_code_gaps.py tests/unit/test_op_e_code_gaps.py tests/server/test_op_f_code_gaps.py tests/server/test_order_observation.py tests/server/test_program_model_context.py tests/ops -q",
+      "exit_code": 0,
+      "passed": 357,
+      "skipped": 4,
+      "seconds": 7.01
+    },
+    {
+      "command": "npm --prefix web test",
+      "exit_code": 0,
+      "files": 12,
+      "passed": 121
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "exit_code": 0
+    }
+  ],
+  "post_integration_quick_checks": [
+    {
+      "command": "python -X utf8 -m pytest tests/ops/test_local_child_migration_candidate.py tests/unit/test_op_d_code_gaps.py tests/unit/test_op_e_code_gaps.py tests/server/test_op_f_code_gaps.py tests/intents/test_local_child_admission.py tests/intents/test_local_child_paper_host.py -q",
+      "exit_code": 0,
+      "passed": 54,
+      "seconds": 1.26
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "exit_code": 0
+    }
+  ],
+  "full_integration": "NOT_RUN",
+  "database": "NOT_RUN",
+  "docker": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "test_environment": "UNCHANGED",
+  "remote_push": "NOT_RUN",
+  "goal_status": "BLOCKED",
+  "acceptance": "46 capabilities / 56 cases remain NOT_RUN; ORD-47 historical component PASS only",
+  "remaining_code": [
+    "Real PaperEngine local-child submit/query adapter",
+    "AI/RULE/HYBRID automation wiring through one program admission path",
+    "SQL admission/reducer for MODIFY_LIMIT and CANCEL_REPLACE plus effective price/queue overlay",
+    "Native VP child generation and native V3 parent/child proof storage",
+    "Aggregate source authentication and browser E2E"
+  ],
+  "cleanup": "NOT_ELIGIBLE: task remains incomplete; worktree and branch retained",
+  "dev_branch": "UNCHANGED"
+}
