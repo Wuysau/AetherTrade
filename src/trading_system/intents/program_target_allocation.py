@@ -231,10 +231,8 @@ def _validate_program_scope(plan,book,facts):
     return scope,now,proposal,program,codec,digest,bridge,spec,ratio,rules
 
 
-def _compile_program_target(plan,book,facts):
-    scope,now,proposal,program,codec,digest,bridge,spec,ratio,rules=_validate_program_scope(plan,book,facts)
-    incoming={link.target for link in program.links}
-    initial=tuple(n for n in plan.nodes if n.original.node_id not in incoming)
+def _program_target_basis(plan,book,facts,validated,initial):
+    scope,now,proposal,program,codec,digest,bridge,spec,ratio,rules=validated
     valid_until=[proposal.valid_until,facts.valid_until,bridge.valid_until,rules.valid_until]
     value=D(proposal.target_value)
     if proposal.target_sizing=='BASE_QUANTITY':
@@ -268,6 +266,15 @@ def _compile_program_target(plan,book,facts):
         target=t.Quantity(value=target,unit=bridge.ledger_unit),valid_until=min(valid_until,key=time_key),
         submission_deadline=program.submit_valid_until)
     delta=TargetCompiler(facts.inputs).compile_terms(terms,program_target_quantity_book(book,facts))
+    return terms,delta
+
+
+def _compile_program_target(plan,book,facts):
+    validated=_validate_program_scope(plan,book,facts)
+    scope,now,proposal,program,codec,digest,bridge,spec,ratio,rules=validated
+    incoming={link.target for link in program.links}
+    initial=tuple(n for n in plan.nodes if n.original.node_id not in incoming)
+    terms,delta=_program_target_basis(plan,book,facts,validated,initial)
     blockers=[]
     if delta.cancel_first:blockers.append('TARGET_CANCEL_AND_RECONCILE_REQUIRED')
     # Preserve the existing exposure core's exact target equation. Explicit
@@ -364,3 +371,60 @@ def _compile_program_target(plan,book,facts):
         proposal_hash=plan.proposal_hash,program_hash=plan.program_hash,rules_hash=plan.rules_hash,
         facts_hash=_digest(facts),context_hash=_digest(facts.context),book_hash=_digest(book),terms=terms,delta=delta,
         nodes=tuple(nodes),requests=tuple(requests),obligations=obligations,blockers=tuple(dict.fromkeys(blockers)))
+
+
+@dataclass(frozen=True,slots=True,kw_only=True)
+class LocalChildTargetAllocation:
+    transaction_id:str
+    compilation_hash:str
+    book_hash:str
+    facts_hash:str
+    terms:TargetTerms
+    delta:t.DeltaPlan
+    child_quantity:t.Quantity
+    unallocated_target_quantity:t.Quantity
+
+    @property
+    def execution_authorized(self)->Literal[False]:return False
+
+
+def compile_local_child_target(child,book,facts):
+    """A slice of the same current target, never a new scalar target or permit.
+
+    The host must authenticate complete pending/working/unknown facts and the
+    parent activation separately. Parent-pool quantity and financial checks also
+    remain necessary; a partial target allocation cannot discharge them.
+    """
+    from .local_child_compilation import LocalChildCompilation
+    from trading_system.contracts.order_program import amount
+    require(type(child) is LocalChildCompilation and type(facts) in (ProgramTargetFacts,ProgramScopedTargetFactsV2),
+        'LOCAL_CHILD_TARGET_INPUTS_REQUIRED')
+    parent=child.parent;program=parent.original_program
+    require(program.template in ('TWAP','VP') and program.execution_mode in ('LOCAL_SYNTHETIC','PAPER_MODEL')
+        and len(parent.nodes)==1,'LOCAL_CHILD_PARENT_REQUIRED')
+    root=parent.nodes[0];node=child.node
+    expected=replace(root.original,role='ENTRY',child_origin='APPLICATION_GENERATED_CHILD',
+        order=replace(root.original.order,quantity=node.quantity))
+    require(_digest(node.original)==_digest(expected) and node.quantity.kind=='BASE_QUANTITY'
+        and (node.quantity_unit,node.quantity_multiplier)==(root.quantity_unit,root.quantity_multiplier),
+        'LOCAL_CHILD_TARGET_ORDER_CHANGED')
+    try:
+        with localcontext() as arithmetic:
+            arithmetic.prec=256;arithmetic.traps[Inexact]=arithmetic.traps[Rounded]=True
+            validated=_validate_program_scope(parent,book,facts)
+            terms,delta=_program_target_basis(parent,book,facts,validated,parent.nodes)
+            require(not delta.cancel_first,'TARGET_CANCEL_AND_RECONCILE_REQUIRED')
+            require(not facts.unknown_command_ids and not any(o.command_certainty=='UNKNOWN' for o in book.active_orders
+                if o.order.identity.scope==parent.scope),'UNKNOWN_ORDER_RECONCILIATION_REQUIRED')
+            require(_target_residual(delta).value==0,'TARGET_PRECISION_RESIDUAL_UNRESOLVED')
+            quantity=amount(node.quantity.value)*facts.unit_binding.ledger_units_per_native_unit
+            quantity_on_grid(quantity,facts.inputs.instrument.quantity_step.value,False)
+            require(delta.remaining.value!=0 and node.original.order.side==('BUY' if delta.remaining.value>0 else 'SELL'),
+                'LOCAL_CHILD_TARGET_DIRECTION_CHANGED')
+            require(quantity<=delta.remaining.value.copy_abs(),'LOCAL_CHILD_CURRENT_TARGET_EXCEEDED')
+            leftover=delta.remaining.value.copy_abs()-quantity
+    except DecimalException as error:raise ProposalRejected('TARGET_UNIT_ARITHMETIC_NOT_EXACT') from error
+    return LocalChildTargetAllocation(transaction_id=facts.transaction_id,compilation_hash=_digest(child),
+        book_hash=_digest(book),facts_hash=_digest(facts),terms=terms,delta=delta,
+        child_quantity=t.Quantity(value=quantity,unit=delta.remaining.unit),
+        unallocated_target_quantity=t.Quantity(value=leftover,unit=delta.remaining.unit))

@@ -35,3 +35,16 @@ def test_child_allocation_rejects_current_target_ambiguity(fault):
     if fault=='direction':child=replace(child,node=replace(child.node,original=replace(child.node.original,
         order=replace(child.node.original.order,side='SELL'))))
     with pytest.raises(ValueError):compile_local_child_target(child,book,facts)
+
+
+
+def test_partial_reduction_child_accounts_for_existing_sell_leaves():
+    parent,rules=plan_for(template='TWAP',mode='LOCAL_SYNTHETIC',target='0.4',quantity='0.6',side='SELL')
+    _,_,caps,k=inputs(t.Product.SPOT)
+    child=compile_local_child(parent,'0.2',rules,caps,**k)
+    book,facts=scenario(parent,rules,actual='1',working='0.2',working_side='SELL')
+    result=compile_local_child_target(child,book,facts)
+    assert result.delta.remaining.value==D('-0.4')
+    assert result.child_quantity.value==D('0.2')
+    assert result.unallocated_target_quantity.value==D('0.2')
+    assert result.delta.classification=='REDUCE'
