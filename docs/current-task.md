@@ -1,5 +1,16 @@
 # Current task
 
+## LOCAL_CHILD_STORAGE_CANDIDATE — 2026-10-31
+
+Source d32da5e adds dormant migration0030 and five actual PostgreSQL test cases.
+Nothing applied/executed: shared DEV recovery/isolation/scheduler still absent.
+Only test Python syntax and git diff whitespace checked. No DB RED/GREEN claim.
+No runtime writer, permit or source-authentication authority installed. Migration
+notes: docs/orders/LOCAL-CHILD-STORAGE-MIGRATION.md. Full parent-source, funding,
+quantity, namespace and transactional writer checks remain required before this
+storage can participate in admission; 46/56 qualification remains incomplete.
+
+
 ## SCOPE_AND_INFRASTRUCTURE_RECONFIRMED — 2026-10-31
 
 User explicitly confirms no shared DEV recovery/isolation/scheduler readiness
