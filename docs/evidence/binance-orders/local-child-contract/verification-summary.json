@@ -4,7 +4,8 @@
   "red": {
     "source": "f8bffa2",
     "result": "1 collection error: missing trading_system.contracts.local_child_write",
-    "exit_code": 2
+    "exit_code": 1,
+    "exit_code_scope": "exec_command reported shell exit; inner pytest code not separately captured"
   },
   "green": {
     "command": "python -X utf8 -m pytest tests/contracts/test_local_child_write.py tests/unit/test_program_commands.py -q -p no:cacheprovider",
