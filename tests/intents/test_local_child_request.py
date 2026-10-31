@@ -31,3 +31,21 @@ def test_original_child_request_tampering_is_rejected(fault):
     if fault=='activation':a=replace(a,activation_id='other')
     if fault=='client':a=replace(a,request=replace(a.request,assigned_ids=replace(a.request.assigned_ids,members=())))
     with pytest.raises(ValueError):verify_local_child_request(a,child,r,c,**k)
+
+
+def test_historical_child_restore_needs_no_current_rules_or_clock():
+    from trading_system.execution.local_child_requests import restore_local_child_request
+    child,r,c,k=setup();a=materialize_local_child_request(child,'activation-1','child-1',r,c,**k)
+    expired={**k,'now':'2027-01-01T00:00:00Z'}
+    with pytest.raises(ValueError):verify_local_child_request(a,child,r,c,**expired)
+    restored=restore_local_child_request(a,child,activation_id='activation-1',command_id='child-1')
+    assert restored is a and not restored.execution_authorized
+
+@pytest.mark.parametrize('fault',['activation','command','quantity'])
+def test_historical_restore_is_bound_to_original_source_identity(fault):
+    from trading_system.execution.local_child_requests import restore_local_child_request
+    child,r,c,k=setup();a=materialize_local_child_request(child,'activation-1','child-1',r,c,**k)
+    if fault=='quantity':a=replace(a,request=replace(a.request,fields=tuple(replace(f,value='2') if f.name=='quantity' else f for f in a.request.fields)))
+    with pytest.raises(ValueError):restore_local_child_request(a,child,
+        activation_id='other' if fault=='activation' else 'activation-1',
+        command_id='other' if fault=='command' else 'child-1')
