@@ -49,3 +49,29 @@ def test_historical_restore_is_bound_to_original_source_identity(fault):
     with pytest.raises(ValueError):restore_local_child_request(a,child,
         activation_id='other' if fault=='activation' else 'activation-1',
         command_id='other' if fault=='command' else 'child-1')
+
+
+
+def test_local_conditional_submission_has_own_algo_identity_and_preserves_trigger():
+    from test_program_compilation import trigger
+    from trading_system.intents.program_compilation import compile_order_program,Namespace
+    from trading_system.engine.nautilus.native_creation import creation_call
+    parent=make_plan('TWAP','LOCAL_SYNTHETIC',t.Product.USD_M_PERP)
+    _,rules,caps,k=inputs(t.Product.USD_M_PERP)
+    root=parent.original_program.nodes[0]
+    node=replace(root,order=replace(root.order,trigger=trigger(source='MARK_PRICE')))
+    proposal=replace(parent.original_proposal,program=replace(parent.original_program,nodes=(node,)))
+    parent=compile_order_program(proposal,rules,caps,**k)
+    child=compile_local_child(parent,'0.1',rules,caps,**k)
+    record=materialize_local_child_request(child,'activation-1','conditional-child-1',rules,caps,**k)
+    request=record.request
+    assert request.namespace==Namespace.USD_M_CONDITIONAL
+    assert request.assigned_ids.parent_client_id and request.assigned_ids.members==()
+    fields=dict(request.form_parameters())
+    assert fields['clientAlgoId']==request.assigned_ids.parent_client_id
+    assert fields['triggerPrice']=='81330.00' and fields['workingType']=='MARK_PRICE'
+    assert fields['type']=='STOP_MARKET' and fields['quantity']=='0.1'
+    call=creation_call(request,clock=t.ClockReading(utc_now=k['now'],monotonic_ns=1,clock_health='HEALTHY'))
+    assert call.endpoint.value=='/fapi/v1/algoOrder'
+    assert not call.execution_authorized
+    assert verify_local_child_request(record,child,rules,caps,**k)

@@ -39,3 +39,14 @@ def test_child_recovery_retains_original_ids(state):
     restored=codec.decode('local-child-write',codec.encode('local-child-write',w))
     assert restored.command_id==w.command_id and restored.activation_id==w.activation_id
     assert restored.state==state and not restored.execution_authorized
+
+
+
+def test_application_conditional_child_is_distinct_from_venue_generated_order():
+    w=child()
+    conditional=replace(w,scope=replace(w.scope,product=t.Product.USD_M_PERP),
+        service_namespace='BINANCE_USD_M_CONDITIONAL_ALGO')
+    codec=VersionedOrderCodec()
+    assert codec.decode('local-child-write',codec.encode('local-child-write',conditional))==conditional
+    assert conditional.origin=='APPLICATION_GENERATED_CHILD' and not conditional.execution_authorized
+    with pytest.raises(ValueError):replace(conditional,origin='VENUE_GENERATED_CHILD')
