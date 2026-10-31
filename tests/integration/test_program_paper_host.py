@@ -227,3 +227,30 @@ def test_host_commits_source_barrier_before_any_venue_query(database,host_venue,
         with pytest.raises(RuntimeError,match='SOURCE_BARRIER_COMMIT_FAILED'):runtime.observe(c.write.command_id)
         assert not calls and host_state(c)==before
     finally:codec.close()
+
+
+@pytest.mark.parametrize('version',[1,2])
+def test_host_cost_reconciliation_replays_and_rejects_later_unknown(database,host_venue,tmp_path,version):
+    c=case(database,host_venue,tmp_path,scoped_quantities=True,quote_fee_rate='0')
+    if version==2:
+        from trading_system.engine.paper_market_v2 import PaperMatchingModelV2
+        c.engine._matching_model=PaperMatchingModelV2(model_id='HOST_COST_V2',quote_fee_rate='0')
+    empty_owner(c);runtime,codec=host(c,database,tmp_path/'host-cost',version=version)
+    try:
+        runtime.dispatch(c.write.command_id,c.lease)
+        PaperMatcher(c.engine).apply_market_event(event(c,quantity='.4'))
+        runtime.observe(c.write.command_id)
+        before=dict(host_state(c))
+        proof=runtime.reconcile_cost_history()
+        assert D(proof.remaining_cost_numerator)/D(proof.remaining_cost_denominator)==D('32596')
+        after=dict(host_state(c))
+        for table in ('reservations','cashflows','order_writes_v2','program_dispatch_marks','program_permit_consumptions'):
+            assert after[table]==before[table]
+        assert runtime.reconcile_cost_history()==proof
+        assert dict(host_state(c))==after
+        c.engine.query_creation=lambda _:None
+        assert runtime.observe(c.write.command_id).accounting.status=='SOURCE_BLOCKED'
+        with pytest.raises(MissingEvidence,match='COST_CURRENT_QUERY_REQUIRED'):
+            runtime.reconcile_cost_history()
+        assert dict(host_state(c))==after
+    finally:codec.close()

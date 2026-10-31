@@ -108,6 +108,16 @@ class ProgramPaperHost:
         with self.uow.transaction(self.scope) as tx:
             return reconcile_program_book_cash(tx,read_opening=read_program_local_account_opening)
 
+    def reconcile_cost_history(self):
+        """Explicit source-rederived owner operation; creates no execution authority.
+
+        Missing genesis, unknown queries, unsupported fees and incomplete history
+        retain the domain service's rejection and rollback behavior.
+        """
+        from trading_system.execution.program_cost_history import reconcile_program_cost_history
+        with self.uow.transaction(self.scope) as tx:
+            return reconcile_program_cost_history(tx,read_opening=read_program_local_account_opening)
+
     def working_inputs(self):
         with self.uow.transaction(self.scope) as tx:
             return read_program_working_inputs(tx,tx.projections.book(self.scope))
