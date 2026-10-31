@@ -1,0 +1,27 @@
+{
+  "source": "23ac152e3ce6f8cf6407b6c4542a88590321853d",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/server/test_aggregate_market.py",
+    "tests/intents/test_aggregate_trade_archive.py",
+    "tests/intents/test_aggregate_trade_request.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\aggregate-market-reader\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "87ce29d",
+    "result": "missing server.aggregate_market; collection error"
+  },
+  "scope": "TASK_LIGHT existing transport with mocked DNS/HTTP and real temporary archive",
+  "external_network": "NOT_RUN",
+  "runtime_registration": "NOT_IMPLEMENTED",
+  "complete_scan_or_trading_authority": "NOT_ESTABLISHED",
+  "postgres": "NOT_RUN"
+}

@@ -1,5 +1,21 @@
 # Current task
 
+## EXPLICIT_AGGREGATE_MARKET_READER — 2026-10-31
+
+Source 23ac152 composes fixed AggregateTradeRequest, existing MarketTransport
+get_bytes and AggregateTradeArchive. Request scalar snapshot precedes await;
+credential-free fixed configs preserve origin/TLS checks and do not inherit
+client headers/cookies/auth. Each call performs one page read, no automatic
+retry. Both archive barriers precede parsing; invalid JSON returns INVALID_PAGE
+with raw receipt and page=None, never empty proven volume. Archive errors
+propagate. Clock regression rejects. No automatic endpoint/host registration.
+25 mocked-DNS/HTTP and temporary-archive tests pass in 1.58s, including request
+mutation during transport and invalid input before I/O. Evidence:
+docs/evidence/binance-orders/aggregate-market-reader. Real public data/account
+requests, PostgreSQL, complete scan source authentication and VP admission are
+NOT_RUN/unimplemented; no execution authority is returned.
+
+
 ## REQUEST_BOUND_AGGREGATE_ARCHIVE — 2026-10-31
 
 Source 47b3f45 reuses LocalSnapshotBackend stage/fsync/rename for raw bytes and
