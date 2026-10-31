@@ -1,0 +1,25 @@
+{
+  "source": "ec1db15f73d05c4b9b339af9cca83cb97b209a42",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/server/test_market_transport.py",
+    "tests/server/test_market_fake_dns.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\raw-market-transport\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "54a0f5b",
+    "result": "5 missing get_bytes failures"
+  },
+  "scope": "TASK_LIGHT mocked DNS HTTP WebSocket transport boundaries",
+  "external_requests": "NOT_RUN",
+  "postgres": "NOT_RUN",
+  "complete_volume_source": "NOT_IMPLEMENTED"
+}

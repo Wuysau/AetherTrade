@@ -1,5 +1,20 @@
 # Current task
 
+## RAW_MARKET_RESPONSE_TRANSPORT — 2026-10-31
+
+Source ec1db15 adds MarketTransport.get_bytes using the existing pinned-address
+GET path, timeout/body bounds, redirect/compression rejection and isolated
+headers/auth. get_json delegates to that path and retains strict JSON failure
+behavior. No second client, endpoint auto-registration or account request added.
+Raw bytes allow later durable archival before aggregate-trade parsing; malformed
+JSON may be archived as bytes but is never accepted by get_json.
+RED 54a0f5b: five missing-method failures. GREEN: 69 selected DNS/HTTP/WebSocket
+mock transport tests pass in 15.46s. Evidence:
+docs/evidence/binance-orders/raw-market-transport. No external network or
+PostgreSQL exercised. Fixed aggregate request identity, durable source archive,
+complete page coverage and current VP admission still pending.
+
+
 ## OBSERVED_AGGREGATE_VOLUME_WINDOW — 2026-10-31
 
 Bounded raw pages are reparsed and merged by aggregate ID; identical replay
