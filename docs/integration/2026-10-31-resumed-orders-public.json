@@ -1,0 +1,29 @@
+{
+  "target": "public-snapshot",
+  "source_branch": "codex/binance-orders-resume",
+  "source_commit": "27afee1ab2225e86e96cdacd1b1d367146564657",
+  "previous_target": "1fffa681197b1139bbb53da7ed828495c4b1d692",
+  "method": "FAST_FORWARD",
+  "authorization": "User explicitly selected public-snapshot because dev has unrelated history",
+  "candidate_check": "48 passed in 1.00s",
+  "post_integration_checks": [
+    {
+      "command": "python -X utf8 -m pytest tests/ops/test_retired_paper_launcher.py tests/contracts/test_local_child_write.py tests/intents/test_local_child_target.py tests/intents/test_aggregate_trade_archive.py tests/server/test_order_observation.py -q -p no:cacheprovider",
+      "exit_code": 0,
+      "passed": 48,
+      "seconds": 1.01
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "exit_code": 0
+    }
+  ],
+  "full_integration": "NOT_RUN",
+  "database": "NOT_RUN",
+  "docker": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "remote_push": "NOT_RUN",
+  "goal_status": "BLOCKED",
+  "cleanup": "NOT_ELIGIBLE: task incomplete; worktree and branch retained",
+  "dev_branch": "UNCHANGED"
+}

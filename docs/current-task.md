@@ -1,5 +1,16 @@
 # Current task
 
+## PUBLIC_CHECKPOINT_INTEGRATED — 2026-10-31
+
+User explicitly selected public-snapshot for checkpoint integration; dev has
+unrelated history and is unchanged. Fast-forward 1fffa68 to task tip27afee1.
+Post-integration quick checks:48 selected tests PASS(1.01s), TypeScript noEmit
+PASS. Evidence: docs/integration/2026-10-31-resumed-orders-public.json.
+Goal remains BLOCKED and incomplete; no DB/full qualification, migration,
+deployment or push occurred. Worktree/task branch retained because remaining
+implementation and environment dependencies prevent lifecycle completion.
+
+
 ## BLOCKED_SHARED_DEV_EXECUTION_VALIDATION — 2026-10-31
 
 Current inspection confirms no isolated database opt-in/DSN and pending shared

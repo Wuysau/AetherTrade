@@ -42,7 +42,13 @@
     "postgres": "NOT_RUN",
     "full_acceptance": "NOT_RUN"
   },
-  "integration": "NOT_RUN",
+  "integration": {
+    "target": "public-snapshot",
+    "source_commit": "27afee1ab2225e86e96cdacd1b1d367146564657",
+    "status": "MERGED_QUICK_VERIFIED",
+    "evidence": "docs/integration/2026-10-31-resumed-orders-public.json",
+    "scope": "checkpoint integration only; goal remains BLOCKED"
+  },
   "cleanup": "NOT_ELIGIBLE",
   "dependency_links": [
     {
