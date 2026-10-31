@@ -1,5 +1,20 @@
 # Current task
 
+## PUBLIC_VOLUME_SOURCE_CANDIDATE — 2026-10-31
+
+Public Spot/USD-M aggregate trade page parser preserves exact price/quantity
+strings, IDs and raw byte hash. USD-M q and nq remain separate; missing nq is
+not silently replaced. Duplicate keys/IDs, invalid trade range, boolean IDs,
+negative/nonfinite quantities and oversized pages reject. Explicit product,
+instrument and native unit still require trusted caller binding. No network,
+source authentication, pagination completeness, fills or execution grant.
+Official Binance field docs checked today; retained URLs/limits in
+docs/evidence/binance-orders/local-volume-source/verification-summary.json.
+24 parser/schedule tests pass in 1.31s. Existing depth-only PAPER inputs and
+rolling ticker volume do not supply complete cumulative VP volume. A protected
+window reader and actual runtime qualification remain outstanding.
+
+
 ## LOCAL_SCHEDULE_QUANTITY_MODEL — 2026-10-31
 
 Source d046019 implements declared local schedule quantity previews. TWAP uses

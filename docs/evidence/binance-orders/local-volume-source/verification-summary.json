@@ -1,0 +1,31 @@
+{
+  "committed_tested_content": "ceeca9b4bddac6f9fd43c7bcec85f485eb300f52",
+  "execution_timing": "identical working-tree source tested before commit",
+  "red": {
+    "source": "bbab3be",
+    "result": "missing market.aggregate_trades; collection error"
+  },
+  "green": {
+    "command": "python -X utf8 -m pytest tests/intents/test_local_volume_source.py tests/intents/test_local_child_schedule.py -q -p no:cacheprovider",
+    "passed": 24,
+    "seconds": 1.31,
+    "exit_code": 0
+  },
+  "scope": "TASK_LIGHT parser and declared schedule only",
+  "official_document_check": {
+    "date": "2026-10-31",
+    "sources": [
+      "https://developers.binance.com/en/docs/catalog/core-trading-spot-trading/api/rest-api/market",
+      "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    ],
+    "facts": [
+      "Spot aggregate trade q is quantity; a/f/l/T are trade identifiers and time",
+      "USD-M aggregate response additionally documents nq excluding trades involving RPI orders"
+    ],
+    "limits": "Field documentation only, not installed SDK or venue qualification"
+  },
+  "market_api_calls": "NOT_RUN",
+  "source_authentication": "NOT_IMPLEMENTED",
+  "complete_window_pagination": "NOT_IMPLEMENTED",
+  "postgres": "NOT_RUN"
+}
