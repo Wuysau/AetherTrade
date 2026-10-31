@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="22.307" timestamp="2026-10-30T10:31:46.699525+00:00" hostname="b214fe9ae9d6"><testcase classname="tests.integration.test_effective_orders_postgres" name="test_keep_priority_actual_funded_quantity_reduction" time="6.748"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_management_authorizations_v4">tests/integration/test_effective_orders_postgres.py:11: in test_keep_priority_actual_funded_quantity_reduction
+    c=advanced_case(management_database,venue_v2,tmp_path);submit(c)
+                                                           ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:516: in submit_creation
+    report=query_creation(engine,write.command_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:614: in query_creation
+    return _read_creation_members(engine,db,command_id,request,[m.client_id for m in request.assigned_ids.members])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:594: in _read_creation_members
+    return decorate_managed_report(engine,db,decorate_report_v2(engine,db,report))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_effective_orders.py:35: in decorate_managed_report
+    rows=db.execute('SELECT e.*,a.payload AS actual_receipt FROM public.paper_effective_orders_v1 e '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_management_authorizations_v4</failure></testcase><testcase classname="tests.integration.test_effective_orders_postgres" name="test_keep_priority_partial_source_fifo_and_repeated_reduction" time="6.819"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_management_authorizations_v4">tests/integration/test_effective_orders_postgres.py:30: in test_keep_priority_partial_source_fifo_and_repeated_reduction
+    first=advanced_case(management_database,venue_v2,tmp_path,market=market);submit(first)
+                                                                             ^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:516: in submit_creation
+    report=query_creation(engine,write.command_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:614: in query_creation
+    return _read_creation_members(engine,db,command_id,request,[m.client_id for m in request.assigned_ids.members])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:594: in _read_creation_members
+    return decorate_managed_report(engine,db,decorate_report_v2(engine,db,report))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_effective_orders.py:35: in decorate_managed_report
+    rows=db.execute('SELECT e.*,a.payload AS actual_receipt FROM public.paper_effective_orders_v1 e '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_management_authorizations_v4</failure></testcase><testcase classname="tests.integration.test_effective_orders_postgres" name="test_effective_source_tables_are_not_runtime_writable" time="7.695"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_management_authorizations_v4">tests/integration/test_effective_orders_postgres.py:62: in test_effective_source_tables_are_not_runtime_writable
+    c=advanced_case(management_database,venue_v2,tmp_path);submit(c)
+                                                           ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:77: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:516: in submit_creation
+    report=query_creation(engine,write.command_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:614: in query_creation
+    return _read_creation_members(engine,db,command_id,request,[m.client_id for m in request.assigned_ids.members])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:594: in _read_creation_members
+    return decorate_managed_report(engine,db,decorate_report_v2(engine,db,report))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_effective_orders.py:35: in decorate_managed_report
+    rows=db.execute('SELECT e.*,a.payload AS actual_receipt FROM public.paper_effective_orders_v1 e '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_management_authorizations_v4</failure></testcase></testsuite></testsuites>

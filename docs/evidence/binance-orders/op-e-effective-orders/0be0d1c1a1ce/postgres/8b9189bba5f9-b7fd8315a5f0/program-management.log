@@ -1,0 +1,15 @@
+...................................................F                     [100%]
+=================================== FAILURES ===================================
+_____________ test_keep_priority_actual_funded_quantity_reduction ______________
+tests/integration/test_program_management_postgres.py:667: in test_keep_priority_actual_funded_quantity_reduction
+    w=s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.KEEP_PRIORITY,new_quantity='0.5'),c.lease)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:175: in admit
+    require(instruction.kind==ManagementKind.CANCEL,'MANAGEMENT_MODIFICATION_FINANCIAL_ADMISSION_REQUIRED')
+src/trading_system/execution/program_management_commands.py:25: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: MANAGEMENT_MODIFICATION_FINANCIAL_ADMISSION_REQUIRED
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_management_postgres.py::test_keep_priority_actual_funded_quantity_reduction
+1 failed, 51 passed in 261.49s (0:04:21)
