@@ -1,5 +1,21 @@
 # Current task
 
+## LOCAL_CHILD_PURE_SLICE_REVIEW_COMPLETE — 2026-10-31
+
+Independent review of e353888..3aa4acb found no concrete Critical/Important/Minor
+issues in the local child contracts, compiler, request/recovery and funding
+preview. Public/packaged schema hashes match; old codec versions unchanged.
+Parent ran 67 selected lifecycle/child compatibility tests, all PASS in 2.27s.
+Review and command attribution: docs/evidence/binance-orders/local-child-review.json.
+No database/native runtime validation; equity/conditional materialization,
+protected source, cumulative quantity allocation, SQL persistence and permit
+remain unfinished. Existing migrations end at 0029; no local child migration
+exists. No migration number or authority is implied by this inspection.
+Next code step is pre-ACK quantity commitments with exact original child binding,
+followed by protected same-ledger allocation and command persistence under the
+existing collateral mutex. Never substitute venue observation IDs before ACK.
+
+
 ## LOCAL_CHILD_FUNDING_PREVIEW — 2026-10-31
 
 Source 48fdec1 adds an explicit candidate-child envelope preview to the existing

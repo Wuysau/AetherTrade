@@ -1,0 +1,41 @@
+{
+  "base": "e353888",
+  "head": "3aa4acb",
+  "reviewer": "/root/resume_scoped_review",
+  "mode": "READ_ONLY_SOURCE_REVIEW",
+  "findings": {
+    "critical": [],
+    "important": [],
+    "minor": []
+  },
+  "reviewed_scope": [
+    "local child contract and schemas/codec",
+    "compiler",
+    "request materialization and historical restoration",
+    "existing envelope funding preview",
+    "related tests and evidence"
+  ],
+  "checks": [
+    "Public/packaged schema SHA256 identical",
+    "Existing codec versions unchanged",
+    "No fictional external parent IDs",
+    "Exact typed parent hash revalidation",
+    "Pure previews grant no execution authority"
+  ],
+  "unfinished": [
+    "equity and conditional request materialization",
+    "protected source authentication",
+    "cumulative quantity allocation",
+    "SQL persistence",
+    "independent permits"
+  ],
+  "runtime_qualification": "NOT_RUN",
+  "parent_light_check": {
+    "source": "3aa4acb1db813c7028a39ed19c05a761a7146592",
+    "command": "python -X utf8 -m pytest tests/contracts/test_order_lifecycle_v3.py tests/contracts/test_local_child_write.py -q -p no:cacheprovider",
+    "exit_code": 0,
+    "passed": 67,
+    "seconds": 2.27,
+    "scope": "TASK_LIGHT historical lifecycle and new child contract compatibility"
+  }
+}
