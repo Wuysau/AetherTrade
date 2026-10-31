@@ -362,3 +362,28 @@ def test_connect_and_http_response_waits_have_absolute_timeout(monkeypatch, kind
             assert error.value.code == 'MARKET_REQUEST_FAILED'
             assert finished == [True]
     asyncio.run(run())
+
+
+@pytest.mark.parametrize('payload',[b'[ {"q":"0.1000","a":7} ]\n',b'not-json'])
+def test_raw_market_read_preserves_original_bytes_before_parsing(monkeypatch,payload):
+    async def run():
+        dns(monkeypatch,['93.184.216.34'])
+        def handle(request):
+            assert request.method=='GET' and request.url.path=='/api/v3/aggTrades'
+            assert 'cookie' not in request.headers and 'x-inherited' not in request.headers
+            assert 'authorization' not in request.headers
+            return httpx.Response(200,content=payload)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle),headers={'x-inherited':'secret'}) as client:
+            actual=await MarketTransport(client=client).get_bytes(dict(DEFAULT,api_key=None),'/api/v3/aggTrades',{'symbol':'BTCUSDT'})
+            assert type(actual) is bytes and actual==payload
+    asyncio.run(run())
+
+@pytest.mark.parametrize('status,headers',[(302,{}),(200,{'Content-Encoding':'gzip'}),
+    (200,{'Content-Length':str(MAX_HTTP_BODY+1)})])
+def test_raw_market_read_retains_transport_rejection_boundaries(monkeypatch,status,headers):
+    async def run():
+        dns(monkeypatch,['93.184.216.34'])
+        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _:httpx.Response(status,headers=headers,content=b'{}'))) as client:
+            with pytest.raises(ApiError):
+                await MarketTransport(client=client).get_bytes(dict(DEFAULT,api_key=None),'/api/v3/aggTrades')
+    asyncio.run(run())
