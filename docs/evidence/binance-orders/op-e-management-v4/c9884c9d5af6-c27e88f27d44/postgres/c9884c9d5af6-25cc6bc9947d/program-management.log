@@ -1,0 +1,18 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+___________ test_actual_management_commits_full_plan_and_real_outbox ___________
+tests/integration/test_program_management_postgres.py:43: in test_actual_management_commits_full_plan_and_real_outbox
+    write=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:130: in admit
+    bundle,inputs,clock,expires,risk,funding,fence=self._facts(tx,original,target,lease,valid_until=deadline)
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:112: in _facts
+    risk={'original_basis_hash':w.basis_hash,'target':domain_payload(target),'locks':domain_payload(locks),
+                                                                                     ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_management_postgres.py::test_actual_management_commits_full_plan_and_real_outbox
+1 failed, 1 passed in 10.15s

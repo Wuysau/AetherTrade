@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="2" failures="0" skipped="0" tests="2" time="0.910" timestamp="2026-10-30T06:25:19.608761+00:00" hostname="84d7b5156869"><testcase classname="tests.integration.test_program_management_postgres" name="test_actual_management_commits_full_plan_and_real_outbox" time="0.291"><error message="failed on setup with &quot;FileNotFoundError: [Errno 2] No such file or directory: '/tmp/source/migrations/0022_program_management_boundary.sql'&quot;">tests/integration/test_program_management_postgres.py:14: in management_database
+    db.execute((ROOT/'migrations/0022_program_management_boundary.sql').read_text(encoding='utf-8'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/tmp/source/migrations/0022_program_management_boundary.sql'</error></testcase><testcase classname="tests.integration.test_program_management_postgres" name="test_queries_never_create_management_commands" time="0.001"><error message="failed on setup with &quot;FileNotFoundError: [Errno 2] No such file or directory: '/tmp/source/migrations/0022_program_management_boundary.sql'&quot;">tests/integration/test_program_management_postgres.py:14: in management_database
+    db.execute((ROOT/'migrations/0022_program_management_boundary.sql').read_text(encoding='utf-8'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/tmp/source/migrations/0022_program_management_boundary.sql'</error></testcase></testsuite></testsuites>

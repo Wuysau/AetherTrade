@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="19" time="67.031" timestamp="2026-10-30T06:36:24.930973+00:00" hostname="964ea9455b2c"><testcase classname="tests.integration.test_program_management_postgres" name="test_actual_management_commits_full_plan_and_real_outbox" time="5.495" /><testcase classname="tests.integration.test_program_management_postgres" name="test_queries_never_create_management_commands" time="4.246" /><testcase classname="tests.integration.test_program_management_postgres" name="test_actual_cancel_partial_keeps_market_fills_and_entire_business_hold" time="4.962"><failure message="psycopg.errors.AmbiguousFunction: operator is not unique: unknown - unknown&#10;LINE 4:   OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'&#10;                                                          ^&#10;HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.&#10;QUERY:  m.command_id IS NULL OR m.database_transaction=pg_current_xact_id() OR m.expires_at&lt;=clock_timestamp()&#10;  OR m.token_hash IS DISTINCT FROM token OR w-&gt;&gt;'state' IS DISTINCT FROM 'MAY_HAVE_SENT'&#10;  OR c-&gt;'lease' IS DISTINCT FROM m.context-&gt;'lease' OR NOT ledger.management_context_current(s,c,w)&#10;  OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'&#10;CONTEXT:  PL/pgSQL function consume_management_permit(text,text,text,jsonb,text) line 5 at IF">tests/integration/test_program_management_postgres.py:81: in test_actual_cancel_partial_keeps_market_fills_and_entire_business_hold
+    result=submit_management(c.engine,w,permit,boundary=s.boundary,lease=c.lease,owner=c.owner,bridge=management_venue)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_paper.py:52: in submit_management
+    binding=boundary.consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:113: in consume
+    tx.execute('SELECT ledger.consume_management_permit(%s,%s,%s,%s::jsonb,%s)',
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.AmbiguousFunction: operator is not unique: unknown - unknown
+E   LINE 4:   OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'
+E                                                             ^
+E   HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+E   QUERY:  m.command_id IS NULL OR m.database_transaction=pg_current_xact_id() OR m.expires_at&lt;=clock_timestamp()
+E     OR m.token_hash IS DISTINCT FROM token OR w-&gt;&gt;'state' IS DISTINCT FROM 'MAY_HAVE_SENT'
+E     OR c-&gt;'lease' IS DISTINCT FROM m.context-&gt;'lease' OR NOT ledger.management_context_current(s,c,w)
+E     OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'
+E   CONTEXT:  PL/pgSQL function consume_management_permit(text,text,text,jsonb,text) line 5 at IF</failure></testcase><testcase classname="tests.integration.test_program_management_postgres" name="test_creation_permit_cannot_authorize_any_management" time="4.537" /><testcase classname="tests.integration.test_program_management_postgres" name="test_concurrent_consumption_has_one_winner" time="5.398"><failure message="assert [False, False] == [False, True]&#10;  &#10;  At index 1 diff: False != True&#10;  Use -v to get more diff">tests/integration/test_program_management_postgres.py:101: in test_concurrent_consumption_has_one_winner
+    with ThreadPoolExecutor(max_workers=2) as pool:assert sorted(pool.map(consume,range(2)))==[False,True]
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert [False, False] == [False, True]
+E     
+E     At index 1 diff: False != True
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.integration.test_program_management_postgres" name="test_current_authorization_revocation_denies_every_write_phase[admit]" time="4.774" /><testcase classname="tests.integration.test_program_management_postgres" name="test_current_authorization_revocation_denies_every_write_phase[mark]" time="5.174" /><testcase classname="tests.integration.test_program_management_postgres" name="test_current_authorization_revocation_denies_every_write_phase[consume]" time="4.872" /><testcase classname="tests.integration.test_program_management_postgres" name="test_current_authorization_revocation_denies_every_write_phase[after_wait]" time="5.034"><failure message="psycopg.errors.AmbiguousFunction: operator is not unique: unknown - unknown&#10;LINE 4:   OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'&#10;                                                          ^&#10;HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.&#10;QUERY:  m.command_id IS NULL OR m.database_transaction=pg_current_xact_id() OR m.expires_at&lt;=clock_timestamp()&#10;  OR m.token_hash IS DISTINCT FROM token OR w-&gt;&gt;'state' IS DISTINCT FROM 'MAY_HAVE_SENT'&#10;  OR c-&gt;'lease' IS DISTINCT FROM m.context-&gt;'lease' OR NOT ledger.management_context_current(s,c,w)&#10;  OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'&#10;CONTEXT:  PL/pgSQL function consume_management_permit(text,text,text,jsonb,text) line 5 at IF">tests/integration/test_program_management_postgres.py:109: in test_current_authorization_revocation_denies_every_write_phase
+    if phase=='after_wait':s.boundary.consume(permit,c.lease)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:113: in consume
+    tx.execute('SELECT ledger.consume_management_permit(%s,%s,%s,%s::jsonb,%s)',
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.AmbiguousFunction: operator is not unique: unknown - unknown
+E   LINE 4:   OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'
+E                                                             ^
+E   HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+E   QUERY:  m.command_id IS NULL OR m.database_transaction=pg_current_xact_id() OR m.expires_at&lt;=clock_timestamp()
+E     OR m.token_hash IS DISTINCT FROM token OR w-&gt;&gt;'state' IS DISTINCT FROM 'MAY_HAVE_SENT'
+E     OR c-&gt;'lease' IS DISTINCT FROM m.context-&gt;'lease' OR NOT ledger.management_context_current(s,c,w)
+E     OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'
+E   CONTEXT:  PL/pgSQL function consume_management_permit(text,text,text,jsonb,text) line 5 at IF</failure></testcase><testcase classname="tests.integration.test_program_management_postgres" name="test_actual_target_fill_race_stops_stale_cancel[mark]" time="4.234" /><testcase classname="tests.integration.test_program_management_postgres" name="test_actual_target_fill_race_stops_stale_cancel[consume]" time="4.484" /><testcase classname="tests.integration.test_program_management_postgres" name="test_actual_target_fill_race_stops_stale_cancel[after_wait]" time="4.211"><failure message="psycopg.errors.AmbiguousFunction: operator is not unique: unknown - unknown&#10;LINE 4:   OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'&#10;                                                          ^&#10;HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.&#10;QUERY:  m.command_id IS NULL OR m.database_transaction=pg_current_xact_id() OR m.expires_at&lt;=clock_timestamp()&#10;  OR m.token_hash IS DISTINCT FROM token OR w-&gt;&gt;'state' IS DISTINCT FROM 'MAY_HAVE_SENT'&#10;  OR c-&gt;'lease' IS DISTINCT FROM m.context-&gt;'lease' OR NOT ledger.management_context_current(s,c,w)&#10;  OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'&#10;CONTEXT:  PL/pgSQL function consume_management_permit(text,text,text,jsonb,text) line 5 at IF">tests/integration/test_program_management_postgres.py:127: in test_actual_target_fill_race_stops_stale_cancel
+    if phase=='after_wait':s.boundary.consume(permit,c.lease)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:113: in consume
+    tx.execute('SELECT ledger.consume_management_permit(%s,%s,%s,%s::jsonb,%s)',
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.AmbiguousFunction: operator is not unique: unknown - unknown
+E   LINE 4:   OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'
+E                                                             ^
+E   HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+E   QUERY:  m.command_id IS NULL OR m.database_transaction=pg_current_xact_id() OR m.expires_at&lt;=clock_timestamp()
+E     OR m.token_hash IS DISTINCT FROM token OR w-&gt;&gt;'state' IS DISTINCT FROM 'MAY_HAVE_SENT'
+E     OR c-&gt;'lease' IS DISTINCT FROM m.context-&gt;'lease' OR NOT ledger.management_context_current(s,c,w)
+E     OR w-'state' IS DISTINCT FROM m.context-&gt;'write'-'state'
+E   CONTEXT:  PL/pgSQL function consume_management_permit(text,text,text,jsonb,text) line 5 at IF</failure></testcase><testcase classname="tests.integration.test_program_management_postgres" name="test_missing_local_inputs_and_target_reader_deny" time="4.125" /><testcase classname="tests.integration.test_program_management_postgres" name="test_ordinary_owner_cannot_forge_private_management_records[management_bindings]" time="0.113" /><testcase classname="tests.integration.test_program_management_postgres" name="test_ordinary_owner_cannot_forge_private_management_records[management_writes]" time="0.104" /><testcase classname="tests.integration.test_program_management_postgres" name="test_ordinary_owner_cannot_forge_private_management_records[management_dispatch_marks]" time="0.103" /><testcase classname="tests.integration.test_program_management_postgres" name="test_ordinary_owner_cannot_forge_private_management_records[management_permit_consumptions]" time="0.099" /><testcase classname="tests.integration.test_program_management_postgres" name="test_ordinary_owner_cannot_forge_private_management_records[management_outcomes]" time="0.111" /><testcase classname="tests.integration.test_program_management_postgres" name="test_raw_paper_runtime_cannot_forge_consumed_bridge_authorization" time="4.140" /></testsuite></testsuites>

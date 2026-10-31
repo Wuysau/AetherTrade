@@ -1,0 +1,212 @@
+F.FFF.FFFFFF......F                                                      [100%]
+=================================== FAILURES ===================================
+___________ test_actual_management_commits_full_plan_and_real_outbox ___________
+tests/integration/test_program_management_postgres.py:50: in test_actual_management_commits_full_plan_and_real_outbox
+    write=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+____ test_actual_cancel_partial_keeps_market_fills_and_entire_business_hold ____
+tests/integration/test_program_management_postgres.py:78: in test_actual_cancel_partial_keeps_market_fills_and_entire_business_hold
+    c,s,w=admitted(management_database,venue_v2,tmp_path,partial=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_management_postgres.py:71: in admitted
+    w=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+_____________ test_creation_permit_cannot_authorize_any_management _____________
+tests/integration/test_program_management_postgres.py:92: in test_creation_permit_cannot_authorize_any_management
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_management_postgres.py:71: in admitted
+    w=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+__________________ test_concurrent_consumption_has_one_winner __________________
+tests/integration/test_program_management_postgres.py:97: in test_concurrent_consumption_has_one_winner
+    c,s,w=admitted(management_database,venue_v2,tmp_path);permit=s.boundary.mark_may_have_sent(w.command_id,c.lease)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_management_postgres.py:71: in admitted
+    w=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+_____ test_current_authorization_revocation_denies_every_write_phase[mark] _____
+tests/integration/test_program_management_postgres.py:107: in test_current_authorization_revocation_denies_every_write_phase
+    w=None if phase=='admit' else s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+___ test_current_authorization_revocation_denies_every_write_phase[consume] ____
+tests/integration/test_program_management_postgres.py:107: in test_current_authorization_revocation_denies_every_write_phase
+    w=None if phase=='admit' else s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+__ test_current_authorization_revocation_denies_every_write_phase[after_wait] __
+tests/integration/test_program_management_postgres.py:107: in test_current_authorization_revocation_denies_every_write_phase
+    w=None if phase=='admit' else s.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+____________ test_actual_target_fill_race_stops_stale_cancel[mark] _____________
+tests/integration/test_program_management_postgres.py:125: in test_actual_target_fill_race_stops_stale_cancel
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_management_postgres.py:71: in admitted
+    w=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+___________ test_actual_target_fill_race_stops_stale_cancel[consume] ___________
+tests/integration/test_program_management_postgres.py:125: in test_actual_target_fill_race_stops_stale_cancel
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_management_postgres.py:71: in admitted
+    w=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+_________ test_actual_target_fill_race_stops_stale_cancel[after_wait] __________
+tests/integration/test_program_management_postgres.py:125: in test_actual_target_fill_race_stops_stale_cancel
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_management_postgres.py:71: in admitted
+    w=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+______ test_raw_paper_runtime_cannot_forge_consumed_bridge_authorization _______
+tests/integration/test_program_management_postgres.py:155: in test_raw_paper_runtime_cannot_forge_consumed_bridge_authorization
+    c,s,w=admitted(management_database,venue_v2,tmp_path)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_management_postgres.py:71: in admitted
+    w=service.admit(c.write.command_id,ManagementInstruction(kind=ManagementKind.CANCEL),c.lease)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_admission.py:153: in admit
+    original_write_hash=digest(original.initial),book_hash=funding['book_hash'],reservation_hash=digest(funding['holds']),
+                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_management_commands.py:19: in digest
+    def digest(value):return canonical_hash(payload(value))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:52: in canonical_hash
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:46: in canonical_json
+    raise ValueError("expected JSON object")
+E   ValueError: expected JSON object
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_management_postgres.py::test_actual_management_commits_full_plan_and_real_outbox
+FAILED tests/integration/test_program_management_postgres.py::test_actual_cancel_partial_keeps_market_fills_and_entire_business_hold
+FAILED tests/integration/test_program_management_postgres.py::test_creation_permit_cannot_authorize_any_management
+FAILED tests/integration/test_program_management_postgres.py::test_concurrent_consumption_has_one_winner
+FAILED tests/integration/test_program_management_postgres.py::test_current_authorization_revocation_denies_every_write_phase[mark]
+FAILED tests/integration/test_program_management_postgres.py::test_current_authorization_revocation_denies_every_write_phase[consume]
+FAILED tests/integration/test_program_management_postgres.py::test_current_authorization_revocation_denies_every_write_phase[after_wait]
+FAILED tests/integration/test_program_management_postgres.py::test_actual_target_fill_race_stops_stale_cancel[mark]
+FAILED tests/integration/test_program_management_postgres.py::test_actual_target_fill_race_stops_stale_cancel[consume]
+FAILED tests/integration/test_program_management_postgres.py::test_actual_target_fill_race_stops_stale_cancel[after_wait]
+FAILED tests/integration/test_program_management_postgres.py::test_raw_paper_runtime_cannot_forge_consumed_bridge_authorization
+11 failed, 8 passed in 63.75s (0:01:03)

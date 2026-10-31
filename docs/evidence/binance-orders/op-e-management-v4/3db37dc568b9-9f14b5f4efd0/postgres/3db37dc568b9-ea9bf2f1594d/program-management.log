@@ -1,0 +1,16 @@
+................................FF                                       [100%]
+=================================== FAILURES ===================================
+__ test_stale_unsent_plan_can_abort_then_fresh_cancel_without_releasing_hold ___
+tests/integration/test_program_management_postgres.py:363: in test_stale_unsent_plan_can_abort_then_fresh_cancel_without_releasing_hold
+    receipt=s.abort_unsent(w.command_id,c.lease)
+            ^^^^^^^^^^^^^^
+E   AttributeError: 'ProgramManagementService' object has no attribute 'abort_unsent'
+________________ test_committed_may_can_never_be_unsent_aborted ________________
+tests/integration/test_program_management_postgres.py:376: in test_committed_may_can_never_be_unsent_aborted
+    with pytest.raises((ValueError,psycopg.Error)):s.abort_unsent(w.command_id,c.lease)
+                                                   ^^^^^^^^^^^^^^
+E   AttributeError: 'ProgramManagementService' object has no attribute 'abort_unsent'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_management_postgres.py::test_stale_unsent_plan_can_abort_then_fresh_cancel_without_releasing_hold
+FAILED tests/integration/test_program_management_postgres.py::test_committed_may_can_never_be_unsent_aborted
+2 failed, 32 passed in 146.95s (0:02:26)

@@ -1,0 +1,22 @@
+....................................FFF                                  [100%]
+=================================== FAILURES ===================================
+_ test_reader_wait_advancing_current_clock_cannot_authorize_expired_write[admit] _
+tests/integration/test_program_management_postgres.py:411: in test_reader_wait_advancing_current_clock_cannot_authorize_expired_write
+    with pytest.raises(ValueError,match='WRITE_EXPIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_reader_wait_advancing_current_clock_cannot_authorize_expired_write[mark] _
+tests/integration/test_program_management_postgres.py:411: in test_reader_wait_advancing_current_clock_cannot_authorize_expired_write
+    with pytest.raises(ValueError,match='WRITE_EXPIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_reader_wait_advancing_current_clock_cannot_authorize_expired_write[consume] _
+tests/integration/test_program_management_postgres.py:411: in test_reader_wait_advancing_current_clock_cannot_authorize_expired_write
+    with pytest.raises(ValueError,match='WRITE_EXPIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_management_postgres.py::test_reader_wait_advancing_current_clock_cannot_authorize_expired_write[admit]
+FAILED tests/integration/test_program_management_postgres.py::test_reader_wait_advancing_current_clock_cannot_authorize_expired_write[mark]
+FAILED tests/integration/test_program_management_postgres.py::test_reader_wait_advancing_current_clock_cannot_authorize_expired_write[consume]
+3 failed, 36 passed in 160.73s (0:02:40)
