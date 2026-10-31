@@ -38,3 +38,19 @@ Intermediate bc7ef48, run e7f0ef63672c: 9 passed / 2 failed, 0 errors/skips, 83.
 GREEN e1e4a8e, run 39cb6ea8e603: 11 passed / 0 failures/errors/skips, 95.440s. Covers actual quote-fee BUY, genuine native OTO BUY .4+.6 then SELL .4+.6 to exact flat, both later and equal timestamps with protected stream order, replay, rollback, forked process restart, same-account peer payload/xmin nonmutation, forged COMPLETE/PnL/cost records, later pretrade book revision and earlier nonzero history rejection, and the existing core's .4 owned + .6 authentic working -> NONE with duties retained.
 
 Pending: affected ownership/working/source/cash cohorts. Authentic base/third-asset fee producer is unavailable (existing native model exposes quote_fee_rate only); these variants have exact arithmetic checks but no native-source PG qualification. No LIVE, TESTNET, derivative, historical migration, external-FX, unknown mixed-order or protection qualification is claimed.
+
+
+## Explicit host entrypoint (2026-10-31)
+
+`ProgramPaperHost.reconcile_cost_history()` reuses the existing cost-history
+service in the owner's UnitOfWork with the local account-opening reader. It is
+an explicit maintenance operation and is not automatically called by dispatch
+or observe. It creates no permit, command, source truth, fee cashflow or release
+approval; domain rederivation and transaction failures propagate unchanged.
+No migration or historical rewrite is introduced. Recovery uses the same
+idempotent reconciliation after source knownness has been re-established.
+
+Light verification at 1c43307: 7 routing/arithmetic cases PASS. The added two
+V1/V2 PostgreSQL host scenarios are NOT_RUN; real host qualification remains
+blocked on shared DEV recovery/isolation/scheduling. Existing historical PG
+results above do not qualify this newly composed entrypoint.

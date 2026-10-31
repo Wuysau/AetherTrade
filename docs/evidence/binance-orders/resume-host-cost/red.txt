@@ -1,0 +1,69 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_ test_explicit_host_cost_reconciliation_uses_owner_transaction_and_propagates_failure[False] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000016A290A88A0>
+failure = False
+
+    @pytest.mark.parametrize('failure',[False,True])
+    def test_explicit_host_cost_reconciliation_uses_owner_transaction_and_propagates_failure(monkeypatch,failure):
+        scope=object();tx=object();proof=object();events=[]
+        @contextmanager
+        def transaction(actual):
+            assert actual is scope
+            events.append('begin')
+            try:yield tx
+            except ValueError:
+                events.append('rollback');raise
+            else:events.append('commit')
+        def reconcile(actual,*,read_opening):
+            assert actual is tx and read_opening is read_program_local_account_opening
+            events.append('domain')
+            if failure:raise ValueError('COST_CURRENT_QUERY_REQUIRED')
+            return proof
+        monkeypatch.setattr(program_cost_history,'reconcile_program_cost_history',reconcile)
+        host=object.__new__(ProgramPaperHost)
+        host.uow=SimpleNamespace(transaction=transaction);host.scope=scope
+        if failure:
+            with pytest.raises(ValueError,match='COST_CURRENT_QUERY_REQUIRED'):host.reconcile_cost_history()
+            assert events==['begin','domain','rollback']
+        else:
+>           assert host.reconcile_cost_history() is proof
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'ProgramPaperHost' object has no attribute 'reconcile_cost_history'
+
+tests\unit\test_program_host_cost.py:33: AttributeError
+_ test_explicit_host_cost_reconciliation_uses_owner_transaction_and_propagates_failure[True] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000016A290A8C30>
+failure = True
+
+    @pytest.mark.parametrize('failure',[False,True])
+    def test_explicit_host_cost_reconciliation_uses_owner_transaction_and_propagates_failure(monkeypatch,failure):
+        scope=object();tx=object();proof=object();events=[]
+        @contextmanager
+        def transaction(actual):
+            assert actual is scope
+            events.append('begin')
+            try:yield tx
+            except ValueError:
+                events.append('rollback');raise
+            else:events.append('commit')
+        def reconcile(actual,*,read_opening):
+            assert actual is tx and read_opening is read_program_local_account_opening
+            events.append('domain')
+            if failure:raise ValueError('COST_CURRENT_QUERY_REQUIRED')
+            return proof
+        monkeypatch.setattr(program_cost_history,'reconcile_program_cost_history',reconcile)
+        host=object.__new__(ProgramPaperHost)
+        host.uow=SimpleNamespace(transaction=transaction);host.scope=scope
+        if failure:
+>           with pytest.raises(ValueError,match='COST_CURRENT_QUERY_REQUIRED'):host.reconcile_cost_history()
+                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'ProgramPaperHost' object has no attribute 'reconcile_cost_history'
+
+tests\unit\test_program_host_cost.py:30: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_program_host_cost.py::test_explicit_host_cost_reconciliation_uses_owner_transaction_and_propagates_failure[False]
+FAILED tests/unit/test_program_host_cost.py::test_explicit_host_cost_reconciliation_uses_owner_transaction_and_propagates_failure[True]
+2 failed in 1.36s

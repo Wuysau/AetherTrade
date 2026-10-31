@@ -1,0 +1,42 @@
+{
+  "red": {
+    "source": "78590b3ba61b219b1ecb88049b7c99ec09c2581c",
+    "command": [
+      "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+      "-X",
+      "utf8",
+      "-m",
+      "pytest",
+      "tests/unit/test_program_host_cost.py",
+      "-q",
+      "-p",
+      "no:cacheprovider"
+    ],
+    "exit_code": 1
+  },
+  "green": {
+    "source": "1c4330795a4c843375660f2662400af7ef12d288",
+    "command": [
+      "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+      "-X",
+      "utf8",
+      "-m",
+      "pytest",
+      "tests/unit/test_program_host_cost.py",
+      "tests/test_program_cost_math.py",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "--junitxml=docs\\evidence\\binance-orders\\resume-host-cost\\green.xml"
+    ],
+    "exit_code": 0,
+    "scope": "host routing and cost arithmetic only",
+    "postgres": "NOT_RUN; shared DEV unavailable",
+    "native": "NOT_RUN"
+  },
+  "sha256": {
+    "green.txt": "06f35518647719e7616781a8b950c0d584879f8d251103deb4e40c0784f2fd9c",
+    "green.xml": "ac9be7decd3abd1c3618d345c5c55aa6d9c5f21dc0aad3f342d02c72ea630016",
+    "red.txt": "5acd344d67b612c0a28201ede37c6a3b4a873694d6043a4a7ccde6974c7cd43c"
+  }
+}

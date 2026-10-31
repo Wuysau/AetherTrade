@@ -1,5 +1,18 @@
 # Current task
 
+## HOST_COST_ENTRYPOINT_IMPLEMENTED — 2026-10-31
+
+Source 1c43307 adds explicit ProgramPaperHost.reconcile_cost_history, delegating
+to the existing cost service within the existing owner UoW and local-opening
+reader. No automatic dispatch or observation activation. Unknown query, missing
+genesis/history and fee FX restrictions remain domain requirements.
+RED 78590b3: 2 missing-method failures. GREEN: 7 routing/arithmetic tests pass in
+0.85s. Evidence: docs/evidence/binance-orders/resume-host-cost. Two new V1/V2
+PostgreSQL host cases cover partial fill cost, replay, unchanged funds/permits
+and later UNKNOWN rejection; authored but NOT_RUN pending shared DEV readiness.
+Integration/review still pending; this does not qualify full host execution.
+
+
 ## MANAGEMENT_RESPONSE_CONFLICT_FIXED — 2026-10-31
 
 Source ae13d94 retains cancel identity CONFLICT when the replacement outcome is
