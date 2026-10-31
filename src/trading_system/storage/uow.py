@@ -313,7 +313,7 @@ class RiskLockRepository:
                               (scope_id(scope),)).fetchall()
         return tuple(lock for row in rows if (lock := decode(t.RiskLock, row[0])).state == 'ACTIVE')
 
-    def applicable(self, scope):
+    def applicable(self, scope, *, include_resolved=False):
         """Original local locks plus DAILY_LOSS in the bound collateral domain.
 
         The UoW already holds the group's mutex. Reacquire it and verify both
@@ -383,7 +383,7 @@ class RiskLockRepository:
                 if lock.lock_id in identities and identities[lock.lock_id] != stored_scope:
                     raise ValueError('risk lock identity is ambiguous')
                 identities[lock.lock_id] = stored_scope
-                if lock.state == 'ACTIVE':
+                if lock.state == 'ACTIVE' or include_resolved:
                     result.append(lock)
             except (ValueError, TypeError, AttributeError, KeyError, IndexError) as exc:
                 raise MissingEvidence('risk lock applicability is unverified: ' + str(exc)) from exc

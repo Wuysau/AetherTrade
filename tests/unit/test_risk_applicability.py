@@ -119,3 +119,22 @@ def test_relevant_group_inconsistent_history_remains_fail_closed():
         (2, replace(case.lock, state='RESOLVED')))
     with pytest.raises(MissingEvidence):
         case.repo.applicable(case.target)
+
+
+def test_monitor_can_read_validated_resolved_original_without_changing_active_view():
+    case = ApplicabilityCase()
+    resolved = replace(case.lock, state='RESOLVED')
+    case.rows = [(scope_id(case.source), case.lock.lock_id, 2, resolved)]
+    case.histories[(scope_id(case.source), case.lock.lock_id)].append((2, resolved))
+    assert case.repo.applicable(case.target) == ()
+    assert case.repo.applicable(case.target, include_resolved=True) == (resolved,)
+    assert resolved.scope == case.source
+
+
+def test_resolved_monitor_view_still_rejects_changed_identity():
+    case = ApplicabilityCase()
+    changed = replace(case.lock, state='RESOLVED', raised_at='2026-10-22T11:59:58Z')
+    case.rows = [(scope_id(case.source), case.lock.lock_id, 2, changed)]
+    case.histories[(scope_id(case.source), case.lock.lock_id)].append((2, changed))
+    with pytest.raises(MissingEvidence):
+        case.repo.applicable(case.target, include_resolved=True)
