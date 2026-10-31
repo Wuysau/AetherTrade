@@ -1,0 +1,28 @@
+{
+  "source": "47b3f45e6a54cc8b1d38ee0c68c13d9477909054",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_aggregate_trade_archive.py",
+    "tests/intents/test_aggregate_trade_request.py",
+    "tests/intents/test_local_volume_source.py",
+    "tests/intents/test_local_volume_window.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\aggregate-trade-archive\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "a332273",
+    "result": "missing aggregate_archive module; collection error"
+  },
+  "scope": "TASK_LIGHT actual temporary filesystem and injected commit failure tests",
+  "process_crash_qualification": "NOT_RUN",
+  "source_authentication": "NOT_IMPLEMENTED",
+  "postgres": "NOT_RUN",
+  "external_requests": "NOT_RUN"
+}

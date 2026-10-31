@@ -1,5 +1,22 @@
 # Current task
 
+## REQUEST_BOUND_AGGREGATE_ARCHIVE — 2026-10-31
+
+Source 47b3f45 reuses LocalSnapshotBackend stage/fsync/rename for raw bytes and
+then a content-addressed request/receipt manifest. Only after both commits does
+record return a non-authorizing receipt. Bad JSON still retains raw evidence;
+read_page rejects it. Replay checks receipt digest syntax before backend reads,
+exact request/manifest bytes, raw hash and size. Corrupted existing content is
+rejected rather than silently overwritten on retry. Failed manifest publication
+may leave an unreferenced raw object; no usable receipt is returned.
+36 archive/request/parser/window tests pass in 0.76s, including actual temporary
+files and injected raw/manifest commit failures. Evidence:
+docs/evidence/binance-orders/aggregate-trade-archive. Platform crash durability
+is not qualified (existing backend directory-sync limits remain); no transport
+source authenticity, page coverage, PostgreSQL or venue qualification claimed.
+No network/account calls, migration or runtime activation.
+
+
 ## AGGREGATE_PUBLIC_REQUEST_IDENTITY — 2026-10-31
 
 Source eea64da binds product/instrument/native unit/symbol, fixed public origin
