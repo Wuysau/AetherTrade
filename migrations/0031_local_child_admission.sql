@@ -159,5 +159,7 @@ REVOKE ALL ON FUNCTION ledger.check_local_child_write(),ledger.check_local_child
  ledger.check_local_child_consumption() FROM PUBLIC;
 GRANT INSERT ON ledger.local_child_writes,ledger.local_child_dispatch_marks,
  ledger.local_child_permit_consumptions,ledger.local_child_unsent_aborts TO ledger_owner;
+GRANT SELECT ON ledger.local_child_writes,ledger.local_child_dispatch_marks,
+ ledger.local_child_permit_consumptions,ledger.local_child_unsent_aborts TO ledger_owner;
 GRANT INSERT ON ledger.local_child_commitments_v1 TO ledger_owner;
 COMMIT;

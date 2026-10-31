@@ -21,8 +21,7 @@ from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, canonical_json, domain_payload, utc_timestamp
 from trading_system.contracts.order_program import identifier
 from trading_system.intents.local_child_compilation import LocalChildCompilation
-from trading_system.intents.program_compilation import ProgramCompilation
-from trading_system.storage.models import MissingEvidence, account_key, decode, scope_id
+from trading_system.storage.models import account_key, decode, scope_id
 
 from .creation_requests import digest, require
 from .local_child_quantity import LocalChildCommitment, preview_local_child_quantity
