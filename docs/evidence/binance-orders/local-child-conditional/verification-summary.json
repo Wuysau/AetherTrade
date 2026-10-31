@@ -1,0 +1,18 @@
+{
+  "committed_tested_content": "18cd4d22850f9150c1852a119590eb867b286322",
+  "execution_timing": "tests ran against identical working-tree source before commit",
+  "red": {
+    "source": "b419300",
+    "result": "2 failed: request route and local write namespace rejected conditional child"
+  },
+  "green": {
+    "command": "python -X utf8 -m pytest tests/intents/test_local_child_request.py tests/intents/test_local_child_compilation.py tests/contracts/test_local_child_write.py tests/intents/test_native_creation_call.py -q -p no:cacheprovider",
+    "passed": 76,
+    "seconds": 3.01,
+    "exit_code": 0
+  },
+  "scope": "TASK_LIGHT typed request through existing unsigned native call shape; no client/network",
+  "postgres": "NOT_RUN",
+  "venue": "NOT_RUN",
+  "permit_and_send": "NOT_IMPLEMENTED"
+}

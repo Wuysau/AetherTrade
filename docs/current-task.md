@@ -1,5 +1,22 @@
 # Current task
 
+## LOCAL_CONDITIONAL_CHILD_REQUEST — 2026-10-31
+
+USD-M conditional local child requests now preserve triggerPrice, workingType,
+order type and quantity through existing unsigned native call materialization.
+The application-created conditional submission has its independent command and
+clientAlgoId; downstream actual venue children remain VENUE_GENERATED_CHILD
+observations. No invented external ancestor or downstream resubmission.
+Local child candidate contract accepts the conditional service for USD-M only;
+old V3 schemas/commands and existing local IDs are unchanged.
+RED b419300: 2 route/contract failures. GREEN: 76 selected local/native call
+shape tests passed in 3.01s. Evidence:
+docs/evidence/binance-orders/local-child-conditional.
+No current admission/permit/transport enabled; DB and venue qualification still
+NOT_RUN. Source-authoritative conditional observations and actual child outcome
+reconciliation remain required before execution qualification.
+
+
 ## LOCAL_CHILD_READ_ONLY_OBSERVATION — 2026-10-31
 
 Authenticated detail now reads local child commitment archives by exact scope
