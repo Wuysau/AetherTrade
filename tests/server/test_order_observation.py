@@ -80,3 +80,25 @@ def test_reservation_current_projection_does_not_reuse_initial_held_or_malformed
     invalid=project_reservation(initial,latest)
     assert invalid['current_status']=='UNKNOWN' and invalid['projection'] is None
     assert invalid['raw_projection']==latest
+
+
+
+def test_local_child_archive_is_scoped_bounded_and_never_a_fill():
+    from types import SimpleNamespace
+    from trading_system.server.order_observation import OrderObservationService
+    from trading_system.contracts import types as t
+    scope=t.ScopeKey(environment=t.Environment.PAPER,venue_account_id='fixture',product=t.Product.SPOT,instrument_uid='BTCUSDT',venue_leg='BOTH')
+    service=OrderObservationService(None,(scope,))
+    payload={'opaque':'original-child-source'}
+    def execute(sql,args):
+        assert 'JOIN ledger.audit_events' in sql and 'LIMIT 501' in sql
+        assert args==('allowed-scope','parent-program')
+        return SimpleNamespace(fetchall=lambda:[('child-'+str(i),payload,'tx') for i in range(501)])
+    conn=SimpleNamespace(execute=execute)
+    records,truncated=service._local_children(conn,{'local_child_commitments_v1'},'allowed-scope','parent-program')
+    assert len(records)==500 and truncated
+    assert records[0]['payload']==payload
+    assert records[0]['observation_status']=='UNVERIFIED_COMMITMENT_ARCHIVE'
+    assert records[0]['execution_authorized'] is False
+    assert 'fills' not in records[0] and 'venue_order_id' not in records[0]
+    assert service._local_children(None,set(),'allowed-scope','parent-program')==([],False)

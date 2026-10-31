@@ -33,3 +33,10 @@ it('keeps original intake evidence visible without manufacturing an execution re
  expect(screen.getByText('intake-original-hash')).toBeTruthy();
  expect(screen.getByText('原始提案与决策上下文 · 1')).toBeTruthy();
 });
+
+it('labels local child commitments separately from venue fills',()=>{
+ render(<OrderProgramDetail detail={{...plan,records:{...plan.records,local_children:[{record_id:'pending-child',payload:{activation_id:'local-parent'}}]}}}/>);
+ expect(screen.getByText('本地子单承诺（非成交） · 1')).toBeTruthy();
+ expect(screen.getByText('承诺记录不代表已发送、已成交或可释放资金。')).toBeTruthy();
+ expect(screen.queryByRole('button',{name:/执行|下单/})).toBeNull();
+});
