@@ -1,0 +1,33 @@
+{
+  "target": "public-snapshot",
+  "source_branch": "codex/binance-orders-resume",
+  "source_commit": "a360bf220d2be475a340b9629897ec2a8008fa5a",
+  "code_commit": "9bb303981258140fa876ebc958d4ced2a5a580e1",
+  "previous_target": "870b75ea29e9bcaff3d39cb7df657bcc22dceecf",
+  "method": "FAST_FORWARD",
+  "candidate_checks": [
+    {"command": "python -X utf8 -m pytest <selected 367-case suite> -q", "exit_code": 0, "passed": 367, "skipped": 4, "seconds": 8.16},
+    {"command": "npm --prefix web test", "exit_code": 0, "files": 12, "passed": 121},
+    {"command": "npm --prefix web run typecheck", "exit_code": 0}
+  ],
+  "post_integration_quick_checks": [
+    {"command": "python -X utf8 -m pytest tests/ops/test_local_child_migration_candidate.py tests/unit/test_native_vp_source_auth_decisions.py tests/intents/test_paper_local_child_adapter.py tests/intents/test_local_child_paper_host.py -q", "exit_code": 0, "passed": 20, "seconds": 1.03}
+  ],
+  "full_integration": "NOT_RUN",
+  "database": "NOT_RUN",
+  "docker": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "test_environment": "UNCHANGED",
+  "remote_push": "NOT_RUN",
+  "goal_status": "BLOCKED",
+  "acceptance": "46 capabilities / 56 cases remain NOT_RUN; ORD-47 historical component PASS only",
+  "remaining_code": [
+    "Management SQL admission/reducer for MODIFY_LIMIT/CANCEL_REPLACE and effective price/queue overlay",
+    "Live AutomationService/API registration of ProgramDecision and local-child host",
+    "Real TLS aggregate verifier and complete-window VP admission against data",
+    "PostgreSQL application/qualification of 0030/0031 and adapter SQL",
+    "Browser E2E and full 46/56 acceptance"
+  ],
+  "cleanup": "NOT_ELIGIBLE: task remains incomplete; worktree and branch retained",
+  "dev_branch": "UNCHANGED"
+}
