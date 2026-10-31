@@ -22,6 +22,10 @@ trading safe enough to reason about, so review quality matters more than velocit
   recovery, open an issue first so the safety impact can be discussed.
 - Keep pull requests focused. Large mixed changes are hard to review and easy to break.
 
+## Harness policy
+
+Read [the Harness requirements](docs/harness/HARNESS_OVERVIEW.md). Task Agents run only relevant light checks; Integration Manager serializes merges, and the unified scheduler runs heavy acceptance after all tasks integrate. DEV and TEST stay isolated.
+
 ## Development setup
 
 ```bash
@@ -29,10 +33,10 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 python -m pip install -e ".[test]"
 
-python -m pytest -q
+# Run only the task-selected unit/contract test paths; full suites require the scheduler.
 npm --prefix web ci
 npm --prefix web run typecheck
-npm --prefix web test
+npm --prefix web test -- <task-related-test-file>
 ```
 
 The suite is still being stabilized; if you fix a failure, mention the exact command in
