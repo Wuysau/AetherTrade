@@ -1,5 +1,20 @@
 # Current task
 
+## AGGREGATE_PUBLIC_REQUEST_IDENTITY — 2026-10-31
+
+Source eea64da binds product/instrument/native unit/symbol, fixed public origin
+and path, GET method, query mode and parameters into one immutable request
+hash. Spot uses official market-data-only host; USD-M uses its public market
+endpoint. No account/API key/arbitrary URL fields or automatic I/O.
+Time requests use [start,end), translating endTime=end-1; cursor mode excludes
+time filters. Each page has bounded limit and at most one-hour local window
+policy (longer scans require explicit requests). Existing old requests untouched.
+30 request/parser/window tests pass in 0.61s after missing-module RED. Evidence:
+docs/evidence/binance-orders/aggregate-trade-request. Official Spot market-only
+endpoint documentation rechecked; no actual market request made. Durable archive,
+request-bound replay and authenticated complete scan remain required for VP.
+
+
 ## RAW_MARKET_RESPONSE_TRANSPORT — 2026-10-31
 
 Source ec1db15 adds MarketTransport.get_bytes using the existing pinned-address

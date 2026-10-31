@@ -1,0 +1,26 @@
+{
+  "source": "eea64da8ade0d2ce893c568e1bb30e8281439536",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_aggregate_trade_request.py",
+    "tests/intents/test_local_volume_source.py",
+    "tests/intents/test_local_volume_window.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\aggregate-trade-request\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "7a672c5",
+    "result": "missing market.aggregate_requests module; collection error"
+  },
+  "scope": "TASK_LIGHT public request/parser/window contracts",
+  "official_source": "https://developers.binance.com/en/docs/products/spot/faqs/market_data_only",
+  "public_http_requests": "NOT_RUN",
+  "complete_source_scan": "NOT_IMPLEMENTED"
+}
