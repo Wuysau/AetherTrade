@@ -1,5 +1,18 @@
 # Current task
 
+## RESUMED_SLICE_SOURCE_REVIEW_COMPLETE — 2026-10-31
+
+Independent /root/resume_scoped_review read 1fffa68..0be0c39 nine changed
+product/test/tool files and relevant evidence: no Critical/Important/Minor
+findings. Read-only source review, no repeated tests or database/native claim.
+Review record: docs/evidence/binance-orders/resume-scoped-review.json.
+Local child activation-to-command contract gap recorded in
+docs/orders/OP-C-LOCAL-CHILD-NEXT.md (3414596). Local activation has no external
+mother command; existing V3 child requires parent_command_id. Use additive
+versioned activation ancestry, never fabricate parent IDs or bypass pool guards.
+Integration remains pending; no manager service or shared DEV readiness claimed.
+
+
 ## ACCEPTANCE_INVENTORY_REPORT — 2026-10-31
 
 Offline audit now reports all 46 capabilities and 56 cases against unchanged
