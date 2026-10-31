@@ -1,0 +1,46 @@
+{
+  "red": {
+    "commit": "74ebe82575b4b301f0d0fb8a2ddeaa7bfed92918",
+    "command": [
+      "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+      "-X",
+      "utf8",
+      "-m",
+      "pytest",
+      "tests/intents/test_native_creation_response.py",
+      "-k",
+      "batch_identity_conflict",
+      "-q",
+      "-p",
+      "no:cacheprovider"
+    ],
+    "exit_code": 1
+  },
+  "green": {
+    "commit": "f715d64d5ec5652c9bd057d56d896d4cb08a4df3",
+    "command": [
+      "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+      "-X",
+      "utf8",
+      "-m",
+      "pytest",
+      "tests/intents/test_native_creation_response.py",
+      "tests/intents/test_native_management_response.py",
+      "tests/intents/test_native_query_candidates.py",
+      "tests/intents/test_guarded_sdk_build.py",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "--junitxml=docs\\evidence\\binance-orders\\resume-batch-conflict\\green.xml"
+    ],
+    "exit_code": 0,
+    "scope": "TASK_LIGHT parser and guard contracts only",
+    "postgres": "NOT_RUN",
+    "venue_qualification": "NOT_RUN"
+  },
+  "sha256": {
+    "green.txt": "7ef92eecee5ddea31e4be89950325375674d46df6c2b233fd0886020acfb3dd8",
+    "green.xml": "cc16ba9cb8c9a8f71fb2b5deca79f077a51400f3c12ad293ef34b263ee5407b8",
+    "red.txt": "b335bb9eaebfbbd76f345fa3136ad3eddd0ef01fb350306b9ebe6b9523645c15"
+  }
+}

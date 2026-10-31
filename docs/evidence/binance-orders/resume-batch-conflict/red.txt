@@ -1,0 +1,67 @@
+F.FF..                                                                   [100%]
+================================== FAILURES ===================================
+_ test_batch_identity_conflict_is_not_downgraded_by_later_item_error[order0] __
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-415/test_batch_identity_conflict_i0')
+order = (0, 1, 2)
+
+    @pytest.mark.parametrize('order',[(0,1,2),(0,2,1),(1,0,2),(1,2,0),(2,0,1),(2,1,0)])
+    def test_batch_identity_conflict_is_not_downgraded_by_later_item_error(tmp_path,order):
+        request,_=request_for('batch')
+        valid=body_for(request)[0]
+        foreign={**valid,'clientOrderId':'foreign-original'}
+        rejected={'code':-2010,'msg':'rejected'}
+        rows=[valid,foreign,rejected]
+        result=parse(tmp_path,'batch',[rows[i] for i in order])
+>       assert result.status=='CONFLICT'
+E       AssertionError: assert 'INCOMPLETE' == 'CONFLICT'
+E         
+E         - CONFLICT
+E         + INCOMPLETE
+
+tests\intents\test_native_creation_response.py:101: AssertionError
+_ test_batch_identity_conflict_is_not_downgraded_by_later_item_error[order2] __
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-415/test_batch_identity_conflict_i2')
+order = (1, 0, 2)
+
+    @pytest.mark.parametrize('order',[(0,1,2),(0,2,1),(1,0,2),(1,2,0),(2,0,1),(2,1,0)])
+    def test_batch_identity_conflict_is_not_downgraded_by_later_item_error(tmp_path,order):
+        request,_=request_for('batch')
+        valid=body_for(request)[0]
+        foreign={**valid,'clientOrderId':'foreign-original'}
+        rejected={'code':-2010,'msg':'rejected'}
+        rows=[valid,foreign,rejected]
+        result=parse(tmp_path,'batch',[rows[i] for i in order])
+>       assert result.status=='CONFLICT'
+E       AssertionError: assert 'INCOMPLETE' == 'CONFLICT'
+E         
+E         - CONFLICT
+E         + INCOMPLETE
+
+tests\intents\test_native_creation_response.py:101: AssertionError
+_ test_batch_identity_conflict_is_not_downgraded_by_later_item_error[order3] __
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-415/test_batch_identity_conflict_i3')
+order = (1, 2, 0)
+
+    @pytest.mark.parametrize('order',[(0,1,2),(0,2,1),(1,0,2),(1,2,0),(2,0,1),(2,1,0)])
+    def test_batch_identity_conflict_is_not_downgraded_by_later_item_error(tmp_path,order):
+        request,_=request_for('batch')
+        valid=body_for(request)[0]
+        foreign={**valid,'clientOrderId':'foreign-original'}
+        rejected={'code':-2010,'msg':'rejected'}
+        rows=[valid,foreign,rejected]
+        result=parse(tmp_path,'batch',[rows[i] for i in order])
+>       assert result.status=='CONFLICT'
+E       AssertionError: assert 'INCOMPLETE' == 'CONFLICT'
+E         
+E         - CONFLICT
+E         + INCOMPLETE
+
+tests\intents\test_native_creation_response.py:101: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/intents/test_native_creation_response.py::test_batch_identity_conflict_is_not_downgraded_by_later_item_error[order0]
+FAILED tests/intents/test_native_creation_response.py::test_batch_identity_conflict_is_not_downgraded_by_later_item_error[order2]
+FAILED tests/intents/test_native_creation_response.py::test_batch_identity_conflict_is_not_downgraded_by_later_item_error[order3]
+3 failed, 3 passed, 27 deselected in 0.72s
