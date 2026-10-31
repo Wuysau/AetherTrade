@@ -396,3 +396,38 @@ def _existing(plan,facts,valuation):
     for key,value in holds.items():
         if key not in used_holds:total=_sum(total,value)
     return total,gross,covered,covered_gross
+
+
+
+def preview_local_child_funding(plan,facts,allocation_id,candidate,*,now,valuation=None):
+    """Reuse existing envelope arithmetic; no source authentication or grant.
+
+    The later owner transaction must supply complete current protected facts,
+    derive the candidate's requirements and quantity separately, persist its
+    allocation atomically, and run all ordinary risk/owner/permit checks.
+    Existing unknown consumers are never excluded to make a child fit.
+    """
+    from dataclasses import replace
+    _require(type(plan) is ProgramCompilation and type(facts) is ProgramBudgetFacts,
+        'LOCAL_CHILD_FUNDING_INPUTS_REQUIRED')
+    _require(plan.original_program.template in ('TWAP','VP')
+        and plan.original_program.execution_mode in ('LOCAL_SYNTHETIC','PAPER_MODEL'),
+        'LOCAL_CHILD_PARENT_REQUIRED')
+    _require(type(candidate) is ExistingConsumer and candidate.kind=='LOCAL_CHILD'
+        and candidate.scope==plan.scope==facts.scope
+        and candidate.collateral_group_id==facts.collateral_group_id,
+        'LOCAL_CHILD_CONSUMER_BINDING_REQUIRED')
+    _require(type(facts.consumers) is tuple and type(facts.allocations) is tuple,
+        'LOCAL_CHILD_COMPLETE_ALLOCATION_FACTS_REQUIRED')
+    _require(candidate.consumer_id not in {c.consumer_id for c in facts.consumers},
+        'LOCAL_CHILD_CONSUMER_ALREADY_EXISTS')
+    pools=[a for a in facts.allocations if a.allocation_id==allocation_id]
+    _require(len(pools)==1 and pools[0].program_hash==plan.program_hash,
+        'LOCAL_CHILD_PARENT_ALLOCATION_REQUIRED')
+    pool=pools[0]
+    parents=[c for c in facts.consumers if c.consumer_id in pool.consumer_ids and c.kind=='LOCAL_PARENT']
+    _require(len(parents)==1 and parents[0].scope==plan.scope,'LOCAL_CHILD_PARENT_ALLOCATION_REQUIRED')
+    updated=replace(pool,consumer_ids=(*pool.consumer_ids,candidate.consumer_id))
+    preview=replace(facts,consumers=(*facts.consumers,candidate),
+        allocations=tuple(updated if a is pool else a for a in facts.allocations))
+    return derive_program_exposure(plan,preview,now=now,valuation=valuation)
