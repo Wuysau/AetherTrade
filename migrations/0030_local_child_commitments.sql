@@ -5,12 +5,16 @@ CREATE TABLE ledger.local_child_commitments_v1 (
  scope_id text NOT NULL,
  command_id text NOT NULL UNIQUE,
  activation_id text NOT NULL,
+ activation_record_id text GENERATED ALWAYS AS ('local-program-activation:'||activation_id) STORED,
+ activation_sequence bigint GENERATED ALWAYS AS (1::bigint) STORED,
  commitment_hash text NOT NULL,
  payload jsonb NOT NULL,
  transaction_id text NOT NULL CHECK(length(transaction_id)>0),
  database_transaction xid8 NOT NULL DEFAULT pg_current_xact_id(),
  processed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
  PRIMARY KEY(scope_id,command_id),
+ FOREIGN KEY(scope_id,activation_record_id,activation_sequence)
+   REFERENCES ledger.audit_events(scope_id,record_id,sequence),
  CHECK(COALESCE(
    jsonb_typeof(payload)='object'
    AND payload#>>'{request,contract_version}'='2026-10-31'
