@@ -58,3 +58,28 @@ def test_archive_failure_propagates_without_retry(tmp_path,monkeypatch):
             with pytest.raises(OSError):await reader.observe(request())
         assert len(calls)==1
     asyncio.run(run())
+
+
+
+def test_original_request_is_snapshotted_before_transport_wait(tmp_path,monkeypatch):
+    async def run():
+        dns(monkeypatch,['93.184.216.34']);r=request()
+        def handler(outgoing):
+            assert outgoing.url.params['symbol']=='BTCUSDT'
+            object.__setattr__(r,'venue_symbol','ETHUSDT')
+            return httpx.Response(200,content=BODY)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result=await AggregateMarketReader(MarketTransport(client=client),
+                AggregateTradeArchive(LocalSnapshotBackend(tmp_path)),clock=lambda:STAMP).observe(r)
+            assert result.request.venue_symbol=='BTCUSDT'
+            assert result.receipt.request_hash==result.request.identity_hash!=r.identity_hash
+    asyncio.run(run())
+
+
+def test_invalid_request_is_rejected_before_any_transport(tmp_path):
+    async def run():
+        def forbidden(*args):raise AssertionError('invalid request reached transport')
+        async with httpx.AsyncClient(transport=httpx.MockTransport(forbidden)) as client:
+            reader=AggregateMarketReader(MarketTransport(client=client),AggregateTradeArchive(LocalSnapshotBackend(tmp_path)),clock=lambda:STAMP)
+            with pytest.raises(ValueError):await reader.observe({})
+    asyncio.run(run())
