@@ -1,5 +1,21 @@
 # Current task
 
+## LOCAL_CHILD_FUNDING_PREVIEW — 2026-10-31
+
+Source 48fdec1 adds an explicit candidate-child envelope preview to the existing
+ProgramExposure implementation. It appends the proposed LOCAL_CHILD consumer
+to the exact local parent pool, retaining all existing WORKING/UNKNOWN and
+reservation inputs. Existing per-asset/gross underbound checks apply; the parent
+and children count once at the dominating bound. No parallel cash arithmetic.
+RED 959c20f: missing function. GREEN: 73 related exposure/funding tests pass
+in 0.97s. Raw/JUnit/hash evidence: docs/evidence/binance-orders/local-child-funding.
+The preview does not authenticate completeness or candidate risk amounts and
+does not allocate quantity, mutate a hold, create a command or grant a permit.
+The protected full-set reader, pre-ACK quantity commitments, atomic allocation
+writer, independent command and current permit remain pending. All real
+database/venue qualification stays NOT_RUN.
+
+
 ## LOCAL_CHILD_HISTORICAL_REQUEST_RECOVERY — 2026-10-31
 
 Source 0d953a8 separates current rule/clock send validation from read-only

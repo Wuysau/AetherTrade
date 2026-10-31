@@ -1,0 +1,28 @@
+{
+  "source": "48fdec1baccbca5d67ec6d7c20a5dffc0264f0c2",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_local_child_funding.py",
+    "tests/intents/test_program_exposure.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\local-child-funding\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "959c20f",
+    "result": "Missing preview_local_child_funding; collection error"
+  },
+  "scope": "TASK_LIGHT existing exposure arithmetic only",
+  "postgres": "NOT_RUN",
+  "quantity_allocation_and_durable_writer": "PENDING",
+  "sha256": {
+    "green.txt": "c1751fa83bab06a5bed1751081d0f883ba20292cf25287f4e341c09f493129ab",
+    "green.xml": "b21c2cf98d9d402bd50266be5d6dcc2593598c220659bee37a7d7785b7ae5b3f"
+  }
+}
