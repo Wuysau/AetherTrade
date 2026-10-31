@@ -39,3 +39,14 @@ def test_corrupt_commitment_set_never_becomes_headroom(fault):
     if fault=='field_quantity':b=replace(b,request=replace(b.request,request=replace(b.request.request,
         fields=tuple(replace(f,value='0.01') if f.name=='quantity' else f for f in b.request.request.fields))))
     with pytest.raises(ValueError):preview_local_child_quantity(parent,'activation',history,b)
+
+
+
+def test_final_commitment_bound_preserves_exact_replay_at_capacity(monkeypatch):
+    from trading_system.execution import local_child_quantity as module
+    # Small limit exercises final-set behavior without 4096 large source archives.
+    monkeypatch.setattr(module,'MAX_LOCAL_CHILD_COMMITMENTS',1,raising=False)
+    a=commitment('0.4');b=commitment('0.4','two');parent=a.compilation.parent
+    assert preview_local_child_quantity(parent,'activation',(a,),a).duplicate
+    with pytest.raises(ValueError,match='LOCAL_CHILD_COMMITMENT_BOUND'):
+        preview_local_child_quantity(parent,'activation',(a,),b)

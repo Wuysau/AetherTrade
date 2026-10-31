@@ -1,7 +1,7 @@
 """Real PostgreSQL dormant-storage checks; NOT_RUN until shared DEV is ready."""
 import pytest
 from integration.test_program_commands_postgres import database
-from integration.support_ip_03 import ROOT
+from integration.support_ip_03 import ROOT,isolated_postgres
 
 @pytest.fixture(scope='module')
 def child_storage(database):

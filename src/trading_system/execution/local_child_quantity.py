@@ -17,6 +17,8 @@ from .creation_requests import require,digest
 from .local_child_requests import LocalChildRequest,restore_local_child_request
 
 
+MAX_LOCAL_CHILD_COMMITMENTS=4096
+
 @dataclass(frozen=True,slots=True,kw_only=True)
 class LocalChildCommitment:
     compilation:LocalChildCompilation
@@ -43,7 +45,7 @@ def preview_local_child_quantity(parent,activation_id,committed,proposed):
         and parent.original_program.template in ('TWAP','VP')
         and parent.original_program.execution_mode in ('LOCAL_SYNTHETIC','PAPER_MODEL'),
         'LOCAL_CHILD_PARENT_REQUIRED')
-    require(type(committed) is tuple and len(committed)<=4096,'LOCAL_CHILD_COMMITMENT_BOUND')
+    require(type(committed) is tuple and len(committed)<=MAX_LOCAL_CHILD_COMMITMENTS,'LOCAL_CHILD_COMMITMENT_BOUND')
     root=parent.nodes[0];parent_hash=digest(parent)
     require(root.quantity.kind=='BASE_QUANTITY','LOCAL_CHILD_BASE_QUANTITY_REQUIRED')
     def validate(item):
@@ -68,6 +70,7 @@ def preview_local_child_quantity(parent,activation_id,committed,proposed):
     key,quantity=validate(proposed);duplicate=key in records
     if duplicate:require(digest(records[key])==digest(proposed),'LOCAL_CHILD_COMMAND_REPLAY_CONFLICT')
     else:records[key]=proposed;quantities[key]=quantity
+    require(len(records)<=MAX_LOCAL_CHILD_COMMITMENTS,'LOCAL_CHILD_COMMITMENT_BOUND')
     try:
         with exact_risk_arithmetic():
             used=sum(quantities.values(),Decimal(0));remaining=amount(root.quantity.value)-used
