@@ -1,0 +1,16 @@
+............................FF                                           [100%]
+=================================== FAILURES ===================================
+____ test_independent_quote_verifier_binds_actual_sql_row_identity[client] _____
+tests/integration/test_paper_quote_budget_postgres.py:253: in test_independent_quote_verifier_binds_actual_sql_row_identity
+    with pytest.raises(ValueError,match='SOURCE_BINDING_CHANGED'):c.engine.query_creation(c.cid)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+____ test_independent_quote_verifier_binds_actual_sql_row_identity[market] _____
+tests/integration/test_paper_quote_budget_postgres.py:253: in test_independent_quote_verifier_binds_actual_sql_row_identity
+    with pytest.raises(ValueError,match='SOURCE_BINDING_CHANGED'):c.engine.query_creation(c.cid)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_quote_budget_postgres.py::test_independent_quote_verifier_binds_actual_sql_row_identity[client]
+FAILED tests/integration/test_paper_quote_budget_postgres.py::test_independent_quote_verifier_binds_actual_sql_row_identity[market]
+2 failed, 28 passed in 196.96s (0:03:16)

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="32.236" timestamp="2026-10-30T09:08:31.640500+00:00" hostname="afc50039304e"><testcase classname="tests.integration.test_quote_review_mixed" name="test_real_quote_then_v2_shared_event_authenticates[False]" time="12.591"><failure message="AssertionError: ('PAPER_V2_ALL_RIVAL_ALLOCATION_SET_CHANGED',)&#10;assert False&#10; +  where False = PaperProgramVerificationV2(command_id='isolated-command-b34710fb8ea64977bfefd2831fa7fe23', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_quote_review_mixed.py:41: in test_real_quote_then_v2_shared_event_authenticates
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_ALL_RIVAL_ALLOCATION_SET_CHANGED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-b34710fb8ea64977bfefd2831fa7fe23', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase><testcase classname="tests.integration.test_quote_review_mixed" name="test_real_quote_then_v2_shared_event_authenticates[True]" time="11.890"><failure message="AssertionError: ('PAPER_V2_ALL_RIVAL_ALLOCATION_SET_CHANGED',)&#10;assert False&#10; +  where False = PaperProgramVerificationV2(command_id='isolated-command-e75bfd5a65f04ac69860415999be40e6', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified">tests/integration/test_quote_review_mixed.py:41: in test_real_quote_then_v2_shared_event_authenticates
+    assert result.source_verified,result.discrepancies
+E   AssertionError: ('PAPER_V2_ALL_RIVAL_ALLOCATION_SET_CHANGED',)
+E   assert False
+E    +  where False = PaperProgramVerificationV2(command_id='isolated-command-e75bfd5a65f04ac69860415999be40e6', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified</failure></testcase><testcase classname="tests.integration.test_quote_review_mixed" name="test_real_quote_after_reference_preserves_depth_source" time="6.847"><failure message="KeyError: 'asks'">tests/integration/test_quote_review_mixed.py:51: in test_real_quote_after_reference_preserves_depth_source
+    assert verify_quote_report(q.engine,report,boundary=q.gate).discrepancies==()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_quote_reports.py:66: in verify_quote_report
+    levels=event['asks' if opposite=='ASK' else 'bids']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'asks'</failure></testcase></testsuite></testsuites>
