@@ -46,6 +46,7 @@ def compile_local_child(parent,quantity,rules,capabilities,**context):
         Operation.SOR if child.order.routing=='SOR' else Operation.ORDER)
     request=RequestPlan(namespace=node.namespace,operation=operation,node_ids=(child.node_id,),
         parameters=(Parameter(name=FieldName.SYMBOL,value=context['profile'].venue_symbol),*node.parameters),
-        timing=Timing.ALGORITHM_CHILD,native_mother=False,
-        generated_child_origin='APPLICATION_GENERATED_CHILD',requires_independent_command=True)
+        timing=Timing.ALGORITHM_CHILD,native_mother=node.namespace==Namespace.USD_M_CONDITIONAL,
+        generated_child_origin='VENUE_GENERATED_CHILD' if node.namespace==Namespace.USD_M_CONDITIONAL
+            else 'APPLICATION_GENERATED_CHILD',requires_independent_command=True)
     return LocalChildCompilation(parent=parent,node=node,request=request)

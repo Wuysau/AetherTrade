@@ -59,9 +59,10 @@ class LocalChildWriteV1:
         identifier(self.activation_id);identifier(self.venue_client_id)
         if type(self.activation_state_sequence) is not int or self.activation_state_sequence<1:
             raise ValueError('LOCAL_CHILD_ACTIVATION_REVISION_REQUIRED')
-        routes={t.Product.SPOT:'BINANCE_SPOT_ORDINARY',t.Product.USD_M_PERP:'BINANCE_USD_M_ORDINARY',
-                t.Product.US_EQUITY:'BINANCE_REAL_EQUITY'}
-        if self.service_namespace!=routes.get(self.scope.product):
+        routes={t.Product.SPOT:('BINANCE_SPOT_ORDINARY',),
+                t.Product.USD_M_PERP:('BINANCE_USD_M_ORDINARY','BINANCE_USD_M_CONDITIONAL_ALGO'),
+                t.Product.US_EQUITY:('BINANCE_REAL_EQUITY',)}
+        if self.service_namespace not in routes.get(self.scope.product,()):
             raise ValueError('LOCAL_CHILD_PRODUCT_NAMESPACE_MISMATCH')
         for name in ('ownership_epoch','execution_epoch','policy_revision'):
             if type(getattr(self,name)) is not int or getattr(self,name)<1:raise ValueError('PROGRAM_WRITE_OWNER_REVISIONS_REQUIRED')

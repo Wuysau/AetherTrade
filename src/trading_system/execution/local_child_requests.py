@@ -37,15 +37,17 @@ def _encode_child_request(child,activation_id,command_id):
     require(type(child) is LocalChildCompilation,'LOCAL_CHILD_COMPILATION_REQUIRED')
     identifier(activation_id);identifier(command_id)
     route=child.request
-    require(route.namespace in (Namespace.SPOT_ORDINARY,Namespace.USD_M_ORDINARY),
+    require(route.namespace in (Namespace.SPOT_ORDINARY,Namespace.USD_M_ORDINARY,Namespace.USD_M_CONDITIONAL),
         'LOCAL_CHILD_ADDITIONAL_ROUTE_BINDING_REQUIRED')
     compilation=digest(child)
     client=canonical_hash(dict(version='LOCAL_CHILD_ID_V1',activation_id=activation_id,
         command_id=command_id,scope=domain_payload(child.parent.scope),
         node_id=child.node.original.node_id))[:32]
+    conditional=route.namespace==Namespace.USD_M_CONDITIONAL
     ids=AssignedClientIds(command_id=command_id,compilation_hash=compilation,request_index=0,
-        parent_client_id=None,members=(NodeClientId(node_id=child.node.original.node_id,client_id=client),))
-    fields=_append(_fields(route.parameters),'newClientOrderId',client)
+        parent_client_id=client if conditional else None,
+        members=() if conditional else (NodeClientId(node_id=child.node.original.node_id,client_id=client),))
+    fields=_append(_fields(route.parameters),'clientAlgoId' if conditional else 'newClientOrderId',client)
     request=VenueCreationRequest(contract_version='2026-10-29',record_kind='VENUE_CREATION_REQUEST',
         command_id=command_id,scope=child.parent.scope,compilation_hash=compilation,
         profile_hash=child.parent.profile_hash,request_index=0,namespace=route.namespace,

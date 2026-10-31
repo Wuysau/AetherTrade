@@ -65,6 +65,8 @@ def test_local_conditional_submission_has_own_algo_identity_and_preserves_trigge
     child=compile_local_child(parent,'0.1',rules,caps,**k)
     record=materialize_local_child_request(child,'activation-1','conditional-child-1',rules,caps,**k)
     request=record.request
+    assert child.node.trusted_origin=='APPLICATION_GENERATED_CHILD'
+    assert child.request.native_mother and child.request.generated_child_origin=='VENUE_GENERATED_CHILD'
     assert request.namespace==Namespace.USD_M_CONDITIONAL
     assert request.assigned_ids.parent_client_id and request.assigned_ids.members==()
     fields=dict(request.form_parameters())
