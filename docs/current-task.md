@@ -1,5 +1,20 @@
 # Current task
 
+## LOCAL_CHILD_HISTORICAL_REQUEST_RECOVERY — 2026-10-31
+
+Source 0d953a8 separates current rule/clock send validation from read-only
+original request restoration. Expired proposals remain structurally recoverable
+with original activation/command/client IDs and field bytes, without new permits.
+The restoration inputs must eventually come from protected admission storage;
+the function alone is not source authentication or an UNKNOWN outcome resolver.
+RED 75cc79c: four missing-function failures. GREEN: 38 local child cases passed
+in 0.85s. Evidence: docs/evidence/binance-orders/local-child-recovery.
+Cumulative pool allocation must account for pre-ACK durable children as well as
+observed child lifecycle state: do not fabricate venue IDs just to enter the V3
+observation reducer. Protected allocation storage and concurrent database tests
+remain pending under shared DEV restrictions. No qualification promotion.
+
+
 ## LOCAL_CHILD_REQUEST_IDENTITY — 2026-10-31
 
 Added immutable local request wrapper with activation-bound independent client

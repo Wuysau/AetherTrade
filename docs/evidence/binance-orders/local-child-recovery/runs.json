@@ -1,0 +1,29 @@
+{
+  "source": "0d953a820f9896888f0727751258ccb6c6b13c6d",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_local_child_request.py",
+    "tests/intents/test_local_child_compilation.py",
+    "tests/contracts/test_local_child_write.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\local-child-recovery\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "75cc79c",
+    "result": "4 failed missing restore function; 5 deselected"
+  },
+  "scope": "TASK_LIGHT historical request structure only",
+  "postgres": "NOT_RUN",
+  "protected_source_reader": "NOT_IMPLEMENTED",
+  "sha256": {
+    "green.txt": "7749cc970967ae8d7f23eb89e7a6fd45a3f84bd75a359cfd9fdd15cf2806843e",
+    "green.xml": "e8d1d46aec02c8b7e3d81038cd9693613acb6af5cc0a0887a29dd64fc7a3a3fe"
+  }
+}
