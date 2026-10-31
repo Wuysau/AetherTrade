@@ -1,5 +1,26 @@
 # Current task
 
+## FINAL_OFFLINE_CODE_SLICE — 2026-10-31
+
+Source `9bb3039`. Added the remaining offline code slices: a PAPER local-child
+adapter that consumes the child's own permit and writes through the existing
+paper order/terms/command storage and public matcher (not V3, no parent permit);
+a unified `ProgramDecision` router for AI/RULE/HYBRID with one admission
+handoff; explicit native VP parent-only refusal; and a transport-provenance
+source-authentication port that stays candidate without an injected verifier.
+
+Verification: 367 Python cases passed + 4 infrastructure skips (exit 0, 8.16s);
+web 121/121 passed; typecheck exit 0. Evidence under
+`docs/evidence/binance-orders/final-code-slice/`. One unrelated model-settings
+timing flake passed on isolated and full rerun; the recorded final run is green.
+
+Still NOT_RUN/remaining code: real PostgreSQL application of 0030/0031 and the
+adapter SQL, management SQL reducer/admission for MODIFY_LIMIT/CANCEL_REPLACE
+with effective price/queue, live AutomationService registration of the decision
+router/local-child host, real TLS verifier, browser E2E, full 46/56 acceptance.
+No capability or acceptance case is promoted.
+
+
 ## LOCAL_CHILD_RUNTIME_AND_ORDER_SEMANTICS — 2026-10-31
 
 Source `606a86c`. This round closed the offline local-child runtime chain and

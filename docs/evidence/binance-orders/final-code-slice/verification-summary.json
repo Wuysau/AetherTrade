@@ -1,0 +1,53 @@
+{
+  "status": "OFFLINE_CODE_VERIFIED / POSTGRESQL_AND_ADAPTER_EXECUTION_NOT_RUN",
+  "source_commit": "9bb303981258140fa876ebc958d4ced2a5a580e1",
+  "source_branch": "codex/binance-orders-resume",
+  "environment": {
+    "platform": "win32",
+    "python": "3.14 (project .venv)",
+    "node": "v24.13.0",
+    "docker": "NOT_RUN",
+    "postgresql": "NOT_RUN",
+    "network": "NOT_RUN",
+    "test_environment": "NOT_ACCESSED",
+    "trading_mode": "PAPER"
+  },
+  "python_tests": {
+    "exit_code": 0,
+    "passed": 367,
+    "skipped": 4,
+    "seconds": 8.16,
+    "raw": "regression-pytest.txt",
+    "junit": "regression-junit.xml"
+  },
+  "web_tests": {
+    "exit_code": 0,
+    "files": 12,
+    "passed": 121,
+    "raw": "web-tests.txt",
+    "note": "One unrelated model-settings timing flake occurred once and passed on isolated and full rerun; final recorded run is exit 0."
+  },
+  "typecheck": {"exit_code": 0, "raw": "typecheck.txt"},
+  "new_code": [
+    "engine/paper_local_child.py: PAPER local-child adapter using the child's own command/permit, existing paper order/terms/command storage and public matcher; not V3 and no parent permit reuse.",
+    "server/program_decision.py: one typed AI/RULE/HYBRID ProgramDecision binding and admission handoff.",
+    "execution/native_vp_policy.py: native VP child generation explicitly denied (parent-only).",
+    "market/source_auth.py: transport provenance and explicit verifier port; absent verifier stays candidate.",
+    "Tests: adapter sequencing/refusal, three-mode decision convergence, native VP refusal, source verifier refusal, plus all prior 357-case slice."
+  ],
+  "not_run": [
+    "Applying 0030/0031 and adapter SQL against real PostgreSQL.",
+    "Paper matcher acceptance of PAPER_LOCAL_CHILD_TERMS_V1; adapter SQL semantics are NOT_RUN.",
+    "AutomationService wiring to the new ProgramDecision router; router exists but is not registered in the live automation loop.",
+    "SQL admission/reducer for MODIFY_LIMIT/CANCEL_REPLACE and effective price/queue overlay.",
+    "Native VP child generation (intentionally denied, not simulated).",
+    "Aggregate TLS verifier implementation against real Binance data and VP admission.",
+    "Full 46/56 acceptance, browser E2E, TEST deployment, TESTNET/LIVE, real accounts and paid models."
+  ],
+  "residual_code": [
+    "A reviewed SQL reducer/admission migration for management modify/cancel-replace and effective price/queue state.",
+    "AutomationService/API registration of ProgramDecision and the local-child host.",
+    "Real aggregate TLS verifier/attestation implementation and complete-window coverage."
+  ],
+  "scope_note": "All evidence is offline component verification. No capability or acceptance case is promoted."
+}
