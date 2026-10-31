@@ -5,6 +5,7 @@ consumption before materializing/persisting an independently permitted write.
 """
 from dataclasses import dataclass,replace
 from typing import Literal
+from trading_system.contracts.canonical import canonical_hash,domain_payload
 from trading_system.contracts.order_program import QuantitySpec,amount
 from .program_compilation import (ProgramCompilation,CompiledNode,RequestPlan,
     compile_order_program,_compile_node,require,Parameter,FieldName,Namespace,Operation,Timing)
@@ -29,7 +30,8 @@ def compile_local_child(parent,quantity,rules,capabilities,**context):
         'LOCAL_CHILD_PARENT_REQUIRED')
     # Revalidate the exact parent using the existing product/capability compiler.
     # Changes require explicit parent re-admission, not a silent child rewrite.
-    require(compile_order_program(parent.original_proposal,rules,capabilities,**context)==parent,
+    rebuilt=compile_order_program(parent.original_proposal,rules,capabilities,**context)
+    require(canonical_hash(domain_payload(rebuilt))==canonical_hash(domain_payload(parent)),
         'LOCAL_CHILD_PARENT_CHANGED')
     original=parent.nodes[0].original
     require(original.order.quantity.kind=='BASE_QUANTITY','LOCAL_CHILD_BASE_QUANTITY_REQUIRED')

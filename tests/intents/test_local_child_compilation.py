@@ -39,3 +39,10 @@ def test_local_limit_child_preserves_explicit_limit_and_tif():
     fields={p.name:p.value for p in result.request.parameters}
     assert fields[FieldName.PRICE]==node.order.price.value
     assert fields[FieldName.TIME_IN_FORCE]=='GTC' and fields[FieldName.TYPE]=='LIMIT'
+
+
+def test_parent_boolean_metadata_cannot_be_replaced_by_equal_integer():
+    parent=make_plan('TWAP','LOCAL_SYNTHETIC');_,rules,caps,k=inputs(t.Product.SPOT)
+    forged=replace(parent,requests=(replace(parent.requests[0],requires_independent_command=1),))
+    with pytest.raises(ValueError,match='LOCAL_CHILD_PARENT_CHANGED'):
+        compile_local_child(forged,'0.1',rules,caps,**k)
