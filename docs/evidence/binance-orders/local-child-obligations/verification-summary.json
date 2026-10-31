@@ -1,0 +1,22 @@
+{
+  "committed_tested_content": "0b7e9266a74896fadb80625dd42983d765fa1e19",
+  "execution_timing": "Tests ran against the identical working-tree content immediately before implementation commit",
+  "red": {
+    "source": "963c616",
+    "result": "missing local_child_obligation_ids; collection error"
+  },
+  "green": {
+    "command": "python -X utf8 -m pytest tests/intents/test_local_child_obligations.py tests/unit/test_application_write_reader.py tests/unit/test_target_history_owner.py -q -p no:cacheprovider",
+    "exit_code": 0,
+    "passed": 43,
+    "seconds": 3.17
+  },
+  "scope": "TASK_LIGHT obligation views and existing command/target readers",
+  "postgres": "NOT_RUN",
+  "migration": "NOT_APPLIED",
+  "sha256": {
+    "src/trading_system/storage/local_programs.py": "d48290516585a12d036da7d8ab15ec2640944b1a7799714bccfe1fe2ed79429b",
+    "tests/intents/test_local_child_obligations.py": "8a1938c7d1a026ac77e4c1b3870afed00ae275015e79c8e4e9010fad334b8452",
+    "migrations/0030_local_child_commitments.sql": "f3169a88a6acbbaae4f919247ffc3c4a10809755f005e2120da361ee6a504628"
+  }
+}

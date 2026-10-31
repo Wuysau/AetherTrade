@@ -31,3 +31,9 @@ records and corresponding command/funding duties. Preserve table, IDs, payloads
 and original codec during downgrade; no destructive down migration is provided.
 An older worker cannot take over these records or manufacture a V3 parent ID.
 No migration rollback may release funds or retry an uncertain child.
+
+
+The unapplied candidate now includes SELECT for ledger_owner and
+ledger_program_dispatch_verifier, solely to retain child duties in the existing
+local-program obligation registry. INSERT/UPDATE/DELETE/TRUNCATE remain revoked.
+This is a change to an unexecuted candidate, not a claim about deployed privileges.

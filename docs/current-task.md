@@ -1,5 +1,20 @@
 # Current task
 
+## LOCAL_CHILD_OBLIGATION_BRIDGE — 2026-10-31
+
+Existing local_program_obligations now includes pending child command IDs and
+marks their parent unresolved even when its lifecycle state is unchanged.
+Existing command/target/risk callers consume that same view. No raw child
+status discharges the duty. Hash/identity/source mismatch fails closed.
+Old schemas without0030 retain old behavior; explicit child recovery still
+requires the schema. Candidate0030 now grants SELECT only to owner/dispatch
+verifier so these existing guards can read; no write or send grant is added.
+43 selected lightweight obligation/command/target tests passed in 3.17s.
+Summary/source hashes: docs/evidence/binance-orders/local-child-obligations.
+Actual same-group PostgreSQL concurrency and role checks are still NOT_RUN.
+Migration remains unapplied; source-authenticated writer/permit still pending.
+
+
 ## LOCAL_CHILD_COMMITMENT_READER — 2026-10-31
 
 Read-only recovery reader reuses read_local_activation for parent provenance,
