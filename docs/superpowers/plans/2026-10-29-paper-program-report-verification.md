@@ -33,8 +33,15 @@ competing allocations. Peer is correcting proven timestamp and concatenated
 fill-ID failures, preserving actual native quantities for4000 quote LIMIT, and
 adding the protected current-consumption execution envelope. Required additions
 requested before DTO freeze: actual persisted venue_order_id; accepted clock;
-full canonical internal fill raw_payload_json with its real SHA. No guessed old
+full original SQL `payload::text` fill/disposition raw_payload_json and the
+original stored SQL SHA. Market input bytes retain their separate app-canonical
+hash domain; historical rows/hashes are never rewritten. No guessed old
 payload location may be used. Wait for that concrete committed API before code.
+
+The independent FinancialUnit→raw fill economics bridge can be implemented first:
+it consumes only existing frozen FinancialUnit/Quantity/Price/Money, not a guessed
+producer DTO. This arithmetic is observation normalization and grants no source
+or financial authority. Report/source verification still waits for frozen APIs.
 
 ### Task 1: Trusted source binding and exact normalization
 

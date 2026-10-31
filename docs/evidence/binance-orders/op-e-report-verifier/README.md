@@ -44,6 +44,11 @@ retained as history; their filenames alone are not source qualification claims.
 The latest component manifest records exact source/command/results and confirms
 no tracked Python changes before or after execution. The process-restart test
 compares exact normalized fills/orders/raw refs and confirms no fill was posted.
+This is process reconstruction under a frozen fixture clock; it does not qualify
+native/deployment kill recovery. Root independently reviewed the read patch,
+report/liquidity code, final restart test and integration contract with no new
+blocking findings. Evidence7a485dd and proof1f5e5ef verify all173 original/copied/
+committed raw file bytes. Actual root accounting/full C–G remains separate work.
 
 Network failure did not weaken TLS or safety checks. Offline mode is explicit
 and requires an immutable image ID. `dependency-image/image-manifest.json`
