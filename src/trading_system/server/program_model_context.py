@@ -210,7 +210,12 @@ def admit_program_assessment(assessment,frame,*,admission_service=None):
         if (codec.hash('order-capability-snapshot',facts.capabilities)!=codec.hash('order-capability-snapshot',frame.capabilities)
             or codec.hash('order-rule-snapshot',facts.rules)!=codec.hash('order-rule-snapshot',frame.rules)
             or facts.expected_build_digest!=frame.expected_build_digest):
-            raise ApiError('REPLAN_REQUIRED','能力、规则或构建已变化；请重新生成计划。',409)
+            changed=[]
+            if codec.hash('order-capability-snapshot',facts.capabilities)!=codec.hash('order-capability-snapshot',frame.capabilities):changed.append('capability')
+            if codec.hash('order-rule-snapshot',facts.rules)!=codec.hash('order-rule-snapshot',frame.rules):changed.append('rule')
+            if facts.expected_build_digest!=frame.expected_build_digest:changed.append('build')
+            raise ApiError('REPLAN_REQUIRED','能力、规则或构建已变化；请重新生成计划。',409,
+                           details={'changed_fields':changed})
         compilation=compile_order_program(proposal,facts.rules,facts.capabilities,profile=facts.profile,
             scope=service.scope,now=facts.clock.utc_now,expected_build_digest=facts.expected_build_digest,
             expected_rule_revision=frame.rules.revision,
@@ -222,13 +227,15 @@ def admit_program_assessment(assessment,frame,*,admission_service=None):
     def guarded_inputs(tx,source,record,book,clock):
         from trading_system.risk.program_financial_admission import ProgramFinancialInputs
         if canonical_hash(domain_payload(book))!=canonical_hash(domain_payload(frame.financial_book)):
-            raise ApiError('REPLAN_REQUIRED','模型所见持仓、在途或资金状态已变化。',409)
+            raise ApiError('REPLAN_REQUIRED','模型所见持仓、在途或资金状态已变化。',409,
+                           details={'changed_fields':['book']})
         actual=original_load(tx,source,record,book,clock)
         require(type(actual) is ProgramFinancialInputs,'PROGRAM_FINANCIAL_INPUTS_REQUIRED')
         if (canonical_hash(domain_payload(book))!=canonical_hash(domain_payload(frame.financial_book))
             or canonical_hash(domain_payload(actual.archive.risk_facts.market))
                !=canonical_hash(domain_payload(frame.financial_market_snapshot))):
-            raise ApiError('REPLAN_REQUIRED','模型所见行情或持仓、在途、资金状态已变化。',409)
+            raise ApiError('REPLAN_REQUIRED','模型所见行情或持仓、在途、资金状态已变化。',409,
+                           details={'changed_fields':['market','book']})
         return actual
     # Same service class/kernel/UoW and all independent qualification/wallet/
     # dispatch readers. This adds a stricter frame check INSIDE its actual

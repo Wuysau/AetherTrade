@@ -24,22 +24,37 @@ STAGES = {
     'CAPABILITY': ('FEATURE_NOT_IMPLEMENTED', 'ADAPTER_NOT_QUALIFIED', 'VENUE_NOT_SUPPORTED',
                    'SYMBOL_NOT_ALLOWED', 'ACCOUNT_NOT_ELIGIBLE', 'CURRENT_QUALIFICATION_NOT_REGISTERED',
                    'HOST_ADMISSION_NOT_REGISTERED', 'LOCAL_CHILD_STORAGE_NOT_INSTALLED',
-                   'LOCAL_CHILD_ADDITIONAL_ROUTE_BINDING_REQUIRED'),
+                   'LOCAL_CHILD_ADDITIONAL_ROUTE_BINDING_REQUIRED', 'FEATURE_NOT_AVAILABLE',
+                   'CAPABILITY_SNAPSHOT_CHANGED', 'ADAPTER_BUILD_CHANGED',
+                   'PROGRAM_QUALIFICATION_REQUIRED', 'PAPER_QUALIFICATION_REQUIRED'),
     'RULE': ('INVALID_PARAMETER_COMBINATION', 'RULE_REVISION_CHANGED',
-             'LOCAL_CHILD_TARGET_ORDER_CHANGED', 'LOCAL_CHILD_QUANTITY_UNIT_CHANGED'),
+             'LOCAL_CHILD_TARGET_ORDER_CHANGED', 'LOCAL_CHILD_QUANTITY_UNIT_CHANGED',
+             'INVALID_MODEL_RESPONSE', 'RULE_PROPOSAL_INVALID'),
     'RISK': ('RISK_REJECTED', 'SAFETY_POLICY_CONFLICT', 'LOCAL_CHILD_QUANTITY_POOL_EXCEEDED',
              'LOCAL_CHILD_POOL_QUANTITY_EXCEEDED', 'LOCAL_CHILD_CURRENT_TARGET_EXCEEDED',
-             'ALLOCATION_FUNDING_UNDERBOUND'),
+             'ALLOCATION_FUNDING_UNDERBOUND', 'STALE_OWNER', 'DEPLOYMENT_FENCE_REQUIRED',
+             'PROGRAM_CURRENT_CAPACITY_DENIED', 'PROGRAM_ACTIVE_RISK_LOCK'),
     'DATA': ('SIMULATION_DATA_INSUFFICIENT', 'LOCAL_CHILD_COMPLETE_ALLOCATION_FACTS_REQUIRED',
-             'LOCAL_CHILD_STORAGE_HASH_CHANGED'),
+             'LOCAL_CHILD_STORAGE_HASH_CHANGED', 'PROGRAM_CURRENT_BOOK_CHANGED',
+             'PROGRAM_CURRENT_COMPILATION_CHANGED', 'PROGRAM_CURRENT_GROUP_HOLDS_CHANGED',
+             'MARKET_REPLAN_REQUIRED'),
     'EXECUTION': ('SUBMIT_UNKNOWN', 'CANCEL_UNKNOWN', 'MAY_HAVE_SENT', 'RECONCILIATION_REQUIRED',
-                  'LOCAL_CHILD_COMMAND_REPLAY_CONFLICT', 'UNKNOWN_ORDER_RECONCILIATION_REQUIRED'),
+                  'LOCAL_CHILD_COMMAND_REPLAY_CONFLICT', 'UNKNOWN_ORDER_RECONCILIATION_REQUIRED',
+                  'PROGRAM_HOST_ORIGINAL_REQUIRED', 'PROGRAM_HOST_QUERY_ORIGINAL_NO_RETRY',
+                  'LOCAL_CHILD_QUERY_ORIGINAL_IDS', 'LOCAL_CHILD_PERMIT_EXPIRED'),
 }
 
 
 def classify_rejection(code):
     if type(code) is not str:
         return {'code':'INVALID_RECORDED_REJECTION_CODE','stage':'DATA','raw_code':code}
+    if code.startswith('INSUFFICIENT_CAPACITY:'):
+        return {'code': code, 'stage': 'RISK',
+                'fields': [{'field': 'capacity', 'asset': code.split(':', 1)[1]}]}
+    if code.startswith('PROGRAM_INTAKE_'):
+        return {'code': code, 'stage': 'DATA', 'fields': [{'field': 'intake'}]}
+    if code.startswith('LOCAL_CHILD_QUERY'):
+        return {'code': code, 'stage': 'EXECUTION', 'fields': [{'field': 'command'}]}
     return {'code': code, 'stage': next((stage for stage, codes in STAGES.items() if code in codes), 'UNKNOWN')}
 
 
@@ -102,13 +117,54 @@ def project_program(payload, *, source):
 # Names are fixed implementation constants, never request parameters.
 TABLES = ('order_programs', 'order_program_intakes', 'order_program_states', 'order_program_bindings',
           'order_writes_v2', 'order_funding_links', 'audit_events', 'program_request_bindings', 'reservations',
-          'local_child_commitments_v1')
+          'local_child_commitments_v1', 'local_child_writes', 'fills', 'program_submission_observations')
+
+
+def project_admission(record):
+    payload = record.get('payload') if isinstance(record, dict) else None
+    return dict(record_id=record.get('record_id'), transaction_id=record.get('transaction_id'),
+                canonical_payload_hash=record.get('canonical_payload_hash'),
+                intent_id=payload.get('intent_id') if isinstance(payload, dict) else None,
+                bundle_hash=(payload or {}).get('bundle_hash'),
+                mode=(payload or {}).get('mode'),
+                command_ids=list((payload or {}).get('command_ids') or ()),
+                activation_id=(payload or {}).get('activation_id'),
+                execution_authorized=False)
+
+
+def project_fill(record):
+    payload = record.get('payload') if isinstance(record, dict) else None
+    payload = payload if isinstance(payload, dict) else {}
+    return dict(record_id=record.get('record_id'), transaction_id=record.get('transaction_id'),
+                canonical_payload_hash=record.get('canonical_payload_hash'),
+                fill_id=payload.get('fill_id'), native_trade_id=payload.get('native_trade_id'),
+                quantity=payload.get('quantity'), price=payload.get('price'),
+                fees=payload.get('fees'), occurred_at=payload.get('occurred_at'),
+                provenance=payload.get('provenance', 'UNVERIFIED_RECORDED_FILL'),
+                execution_authorized=False)
+
+
+def project_command(record):
+    payload = record.get('payload') if isinstance(record, dict) else None
+    payload = payload if isinstance(payload, dict) else {}
+    return dict(record_id=record.get('record_id'), sequence=record.get('sequence'),
+                state=payload.get('state'), request_hash=payload.get('request_hash'),
+                commitment_hash=payload.get('commitment_hash'),
+                activation_id=payload.get('activation_id'),
+                execution_authorized=False)
+
+
+def project_duty(duty):
+    return dict(kind='UNRESOLVED_DUTY', identity=getattr(duty, 'identity', None),
+                unresolved=bool(getattr(duty, 'unresolved', True)),
+                execution_authorized=False, funds_release_authorized=False)
 
 
 class OrderObservationService:
-    def __init__(self, connection_factory, scopes):
+    def __init__(self, connection_factory, scopes, *, duties_reader=None):
         self.connect = connection_factory
         self.scopes = {scope_id(s): s for s in scopes}
+        self.duties_reader = duties_reader
         if not self.scopes:
             raise ValueError('Explicit observation scopes required')
 
@@ -200,6 +256,32 @@ class OrderObservationService:
             observation_status='UNVERIFIED_COMMITMENT_ARCHIVE',execution_authorized=False)
             for r in rows[:500]],len(rows)>500
 
+    def _local_child_writes(self, conn, available, scope, commands):
+        if 'local_child_writes' not in available or not commands:
+            return [], False
+        rows = conn.execute('SELECT command_id,sequence,payload,transaction_id FROM ledger.local_child_writes '
+                            'WHERE scope_id=%s AND command_id=ANY(%s) ORDER BY command_id,sequence LIMIT 501',
+                            (scope, list(commands))).fetchall()
+        return [project_command(dict(record_id=r[0], sequence=r[1], payload=r[2],
+                                     transaction_id=r[3])) for r in rows[:500]], len(rows) > 500
+
+    def _venue_reports(self, conn, available, scope, commands):
+        if 'program_submission_observations' not in available or not commands:
+            return [], False
+        rows = conn.execute('SELECT command_id,payload,transaction_id '
+                            'FROM ledger.program_submission_observations '
+                            'WHERE scope_id=%s AND command_id=ANY(%s) ORDER BY command_id LIMIT 501',
+                            (scope, list(commands))).fetchall()
+        result = []
+        for command_id, payload, transaction_id in rows[:500]:
+            value = payload if isinstance(payload, dict) else {}
+            result.append(dict(command_id=command_id, transaction_id=transaction_id,
+                               state=value.get('state'), phase=value.get('phase'),
+                               members=value.get('members'), reasons=value.get('reasons'),
+                               canonical_payload_hash=canonical_hash(payload),
+                               execution_authorized=False))
+        return result, len(rows) > 500
+
     def detail(self, program_id, *, scope):
         self._scope(scope)
         with self._read() as (conn, available):
@@ -236,6 +318,23 @@ class OrderObservationService:
             records['local_states'], truncated['local_states'] = self._records(conn, available, 'audit_events', scope,
                 'record_id=ANY(%s)', (['local-program-state:'+r['payload']['activation_id'] for r in activations],))
             records['local_children'],truncated['local_children']=self._local_children(conn,available,scope,program_id)
+            command_ids = [r['record_id'] for r in records['local_children']]
+            records['local_child_writes'], truncated['local_child_writes'] = self._local_child_writes(
+                conn, available, scope, command_ids)
+            records['venue_reports'], truncated['venue_reports'] = self._venue_reports(
+                conn, available, scope, command_ids)
+            records['fills'], truncated['fills'] = self._records(
+                conn, available, 'fills', scope, "payload->>'intent_id'=ANY(%s)", (intents,))
+            admission = [project_admission(r) for r in records['financial']
+                         if str(r.get('record_id', '')).startswith('generic-program-admission:')]
+            if self.duties_reader is None:
+                duties = dict(status='NOT_OBSERVED', reason='DUTIES_READER_NOT_REGISTERED', items=[])
+            else:
+                try:
+                    duties = dict(status='OBSERVED', reason='',
+                                  items=[project_duty(d) for d in self.duties_reader(scope, program_id)])
+                except Exception:
+                    duties = dict(status='NOT_OBSERVED', reason='DUTIES_READER_FAILED', items=[])
             state = records['states'][0]['payload'] if records['states'] else None
             state_origin = 'VENUE_LIFECYCLE_ARCHIVE' if state else 'NOT_OBSERVED'
             if not state and len(records['local_states'])==1:
@@ -256,6 +355,11 @@ class OrderObservationService:
             restrictions = (state or {}).get('restriction_codes', [])
             view.update(scope_id=scope, scope=domain_payload(self.scopes[scope]), intakes=intakes,
                 records=records, truncated=truncated, capability=capability_context(snapshot),
+                admission_receipts=admission,
+                fills=[project_fill(r) for r in records['fills']],
+                venue_reports=records['venue_reports'],
+                local_child_writes=records['local_child_writes'],
+                duties=duties,
                 rejection_reasons=classify_rejections(restrictions),
                 observation_notice='COMMITTED_RECEIPT_IS_NOT_EXECUTION; EMPTY_CHILDREN_IS_NOT_FLAT')
             return view
@@ -270,6 +374,9 @@ def capability_catalog():
         reference_hash=canonical_hash(original),
         features=[dict(id=f['id'], product=f['product'], feature=f['feature'],
                        target_required=f['target_required'], official_documented=f['official_documented'],
+                       observed_current_support=f.get('observed_current_support'),
+                       paper_semantic_tests=f.get('paper_semantic_tests','NOT_RUN'),
+                       venue_tests=f.get('venue_tests','NOT_RUN'),
                        compilation_status='UNKNOWN', engineering_test_status='NOT_EVALUATED',
                        venue_qualification='NOT_RUN') for f in original['features']],
         expression_versions={v: sorted(k) for v,k in KINDS_BY_VERSION.items()}, read_only=True)

@@ -28,7 +28,9 @@ export interface Decision {
   missing_required?: string[]; data_quality?: {sections?:Record<string,{status:string;reason:string|null}>;quote_check?:{as_of:string|null;cutoff:string;age_seconds:string|null;maximum_age_seconds:string;waited_seconds:string}};
   assessment_status?: string; reason_code?: string; decision_policy?: string; snapshot_id?:string; strategy_revision?:number;
   watch_conditions?: unknown[]; review_report?: unknown;
-  proposal?: {action:string; target:{side:string;sizing:string;value:string}; exit_plan:{stop_price:string|null;review_due_at:string}; valid_until:string} | null;
+  proposal?: {action:string; target?:{side:string;sizing:string;value:string}; target_side?:string; target_sizing?:string; target_value?:string; exit_plan:{stop_price:string|null;review_due_at:string}; valid_until:string} | null;
+  context_hash?:string; capabilities_hash?:string; rule_snapshot_ref?:string; rule_revision?:number; expected_build_digest?:string; capability_snapshot_ref?:string;
+  replan_reasons?:string[]; execution_error_code?:string; execution_stage?:string; unmet_fields?:{field:string;asset?:string}[];
   id: string; symbol: string; action: string | null; source: string; summary: string;
   counter_evidence: string[]; invalidation: string; risk_status: string;
   created_at: string; next_review_at: string | null;

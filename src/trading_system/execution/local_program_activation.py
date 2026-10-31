@@ -201,6 +201,15 @@ def activate_local_program(tx,bundle,*,load_clock=None):
 
 
 def read_local_activation(tx,activation_id):
+    return _read_local_activation_source(tx,activation_id)[0]
+
+
+def read_local_activation_source(tx,activation_id):
+    """Return the activation and the exact replayed financial bundle."""
+    return _read_local_activation_source(tx,activation_id)
+
+
+def _read_local_activation_source(tx,activation_id):
     row=tx.execute('SELECT payload,transaction_id,xmin::text FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s AND sequence=1',
         (scope_id(tx.scope),ACTIVATION_PREFIX+activation_id)).fetchone()
     if row is None:return None
@@ -233,4 +242,4 @@ def read_local_activation(tx,activation_id):
         (scope_id(tx.scope),STATE_PREFIX+activation_id)).fetchall()
     require(len(stored)>=3 and all(canonical_hash(r[0])==digest(s) and r[1:]==(row[2],row[1]) for r,s in zip(stored,states)),
         'LOCAL_LIFECYCLE_ARCHIVE_MISMATCH')
-    return record
+    return record,bundle

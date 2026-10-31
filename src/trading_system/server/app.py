@@ -134,7 +134,10 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
 
     @app.exception_handler(ApiError)
     async def expected_error(request, exc):
-        return JSONResponse({"error": {"code": exc.code, "message": exc.message}}, status_code=exc.status)
+        body = {"code": exc.code, "message": exc.message}
+        if exc.details:
+            body["details"] = exc.details
+        return JSONResponse({"error": body}, status_code=exc.status)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):

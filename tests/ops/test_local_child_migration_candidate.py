@@ -59,11 +59,22 @@ def test_admission_candidate_is_additive_append_only_and_single_use():
     assert grants and all('ledger_owner' in grant for grant in grants)
 
 
-def test_admission_code_is_not_wired_into_runtime_composition_yet():
-    hits = []
+def test_admission_code_is_only_composed_by_explicit_host_modules():
+    allowed = {
+        'src/trading_system/execution/local_child_admission.py',
+        'src/trading_system/execution/local_child_current.py',
+        'src/trading_system/execution/local_child_original.py',
+        'src/trading_system/execution/local_child_observation.py',
+        'src/trading_system/runtime/local_child_paper_host.py',
+    }
+    hits = set()
     for path in (ROOT / 'src').rglob('*.py'):
-        if path.name == 'local_child_admission.py':
-            continue
         if 'local_child_admission' in path.read_text(encoding='utf-8'):
-            hits.append(path.relative_to(ROOT).as_posix())
-    assert hits == []
+            hits.add(path.relative_to(ROOT).as_posix())
+    assert hits <= allowed
+    # No server route, startup module or package initializer activates it.
+    for relative in ('src/trading_system/server/app.py',
+                     'src/trading_system/server/paper_runtime.py'):
+        text = (ROOT / relative).read_text(encoding='utf-8')
+        assert 'local_child_admission' not in text
+        assert 'local_child_paper_host' not in text

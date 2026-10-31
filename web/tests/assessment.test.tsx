@@ -35,3 +35,11 @@ it('shows brief data rejection without presenting a risk verdict or invented dia
  expect(screen.getByText(/未进入交易风控/)).toBeTruthy();
  expect(screen.queryByText('PAPER 风控拦截')).toBeNull();
 });
+
+it('renders V3 target plus capability, context and replan binding', () => {
+  render(<AssessmentDetails decision={{assessment_status:'REPLAN_REQUIRED', context_hash:'ctx-1', capabilities_hash:'cap-1', rule_revision:3, replan_reasons:['capability'], proposal:{action:'SET_TARGET', target_side:'LONG', target_sizing:'QUOTE_NOTIONAL', target_value:'500', exit_plan:{stop_price:'90',review_due_at:'2026-10-28T12:00:00Z'}, valid_until:'2026-10-28T11:00:00Z'}} as unknown as Decision}/>);
+  expect(screen.getByText(/500/)).toBeTruthy();
+  expect(screen.getByText(/ctx-1/)).toBeTruthy();
+  expect(screen.getByText(/cap-1/)).toBeTruthy();
+  expect(screen.getByText(/capability/)).toBeTruthy();
+});

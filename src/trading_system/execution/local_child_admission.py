@@ -19,7 +19,7 @@ from typing import Literal
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, canonical_json, domain_payload, utc_timestamp
-from trading_system.contracts.order_program import identifier
+from trading_system.contracts.order_program import amount, identifier
 from trading_system.intents.local_child_compilation import LocalChildCompilation
 from trading_system.storage.models import account_key, decode, scope_id
 
@@ -79,6 +79,10 @@ class LocalChildCurrentFacts:
     risk_clear: bool
     risk_hash: str
     valid_until: str
+    volume: object | None = None
+    interval_seconds: int | None = None
+    quantity_step: str | None = None
+    participation_bps: str | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -179,6 +183,23 @@ def _validate_current(current, activation, child, command_id):
             and getattr(funding, 'execution_authorized', None) is False
             and isinstance(current.funding_hash, str) and bool(current.funding_hash),
             'LOCAL_CHILD_CURRENT_FUNDING_REQUIRED')
+    template = child.parent.original_program.template
+    if template == 'VP':
+        volume = current.volume
+        require(volume is not None
+                and getattr(volume, 'source_verified', None) is True
+                and getattr(volume, 'coverage_complete', None) is True
+                and getattr(volume, 'scan_status', None) == 'PAGE_BOUNDARY_OBSERVED'
+                and getattr(volume, 'quantity_unit', None) == child.parent.nodes[0].quantity_unit,
+                'LOCAL_VP_VERIFIED_VOLUME_REQUIRED')
+        require(type(current.interval_seconds) is int and current.interval_seconds > 0
+                and isinstance(current.quantity_step, str) and bool(current.quantity_step)
+                and isinstance(current.participation_bps, str) and bool(current.participation_bps),
+                'LOCAL_VP_SCHEDULE_POLICY_REQUIRED')
+    elif current.interval_seconds is not None:
+        require(type(current.interval_seconds) is int and current.interval_seconds > 0
+                and isinstance(current.quantity_step, str) and bool(current.quantity_step),
+                'LOCAL_TWAP_SCHEDULE_POLICY_REQUIRED')
     return min(utc_timestamp(authority.submission_valid_until),
                utc_timestamp(current.valid_until), utc_timestamp(lease.expires_at))
 
@@ -257,10 +278,24 @@ def admit_local_child(tx, *, activation_id, child, command_id, rules, capabiliti
 
     clock = load_clock(tx) if load_clock else None
     lease = load_lease(tx) if load_lease else None
-    initial = load_current(tx, activation, child, committed)
+    initial = load_current(tx, activation, child, committed, command_id)
     require(type(initial) is LocalChildCurrentFacts and initial.clock is clock
             and initial.lease is lease, 'LOCAL_CHILD_CURRENT_FACTS_REQUIRED')
     expires = _validate_current(initial, activation, child, command_id)
+    if initial.interval_seconds is not None:
+        from .local_child_schedule import preview_local_schedule
+        vp = child.parent.original_program.template == 'VP'
+        volume = initial.volume if vp else None
+        schedule = preview_local_schedule(
+            child.parent, activated_at=activation.activated_at,
+            now=initial.clock.utc_now, interval_seconds=initial.interval_seconds,
+            committed_quantity=preview.committed_quantity,
+            quantity_step=initial.quantity_step,
+            observed_volume=volume.observed_quantity if vp else None,
+            volume_unit=volume.quantity_unit if vp else None,
+            participation_bps=initial.participation_bps)
+        require(amount(child.node.quantity.value) <= amount(schedule.available_quantity),
+                'LOCAL_CHILD_SCHEDULE_EXCEEDED')
     policy_revision = _owner_current(tx, activation)
     command = _build_command(activation, child, request, initial, command_id, expires,
                              policy_revision)
@@ -290,7 +325,7 @@ def admit_local_child(tx, *, activation_id, child, command_id, rules, capabiliti
                'VALUES(%s,%s,%s,1,%s,%s)',
                ('local-child-ready:' + command_id, physical, command_id,
                 'LOCAL_CHILD_COMMAND_READY', tx.transaction_id))
-    final = load_current(tx, activation, child, committed)
+    final = load_current(tx, activation, child, committed, command_id)
     require(type(final) is LocalChildCurrentFacts
             and final.clock.monotonic_ns >= initial.clock.monotonic_ns
             and utc_timestamp(final.clock.utc_now) >= utc_timestamp(initial.clock.utc_now)
@@ -310,7 +345,7 @@ def admit_local_child(tx, *, activation_id, child, command_id, rules, capabiliti
 
 
 def _current_for_command(tx, command, activation, child, committed, load_current):
-    current = load_current(tx, activation, child, committed)
+    current = load_current(tx, activation, child, committed, command.command_id)
     expires = _validate_current(current, activation, child, command.command_id)
     require(digest(current.lease) == command.lease_hash, 'LOCAL_CHILD_LEASE_CHANGED')
     require(current.target_hash == command.target_hash,

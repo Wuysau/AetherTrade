@@ -160,7 +160,7 @@ def admit(tx, child, rules, capabilities, context, clock, lease, activation, *,
         tx, activation_id='activation', child=child, command_id=command,
         rules=rules, capabilities=capabilities,
         load_clock=lambda _tx: clock, load_lease=lambda _tx: lease,
-        load_current=loader or (lambda _tx, _a, _c, _h: current_for(child, clock, lease)),
+        load_current=loader or (lambda _tx, _a, _c, _h, _cmd: current_for(child, clock, lease)),
         **context)
 
 
@@ -220,20 +220,20 @@ def test_untrusted_or_expired_current_facts_never_write(monkeypatch, fault):
     if fault == 'owner':
         tx.owner = ('other-owner', 1, 7)
     if fault == 'risk':
-        loader = lambda _tx, _a, _c, _h: current_for(child, clock, lease, risk_clear=False)
+        loader = lambda _tx, _a, _c, _h, _cmd: current_for(child, clock, lease, risk_clear=False)
     if fault == 'target':
-        loader = lambda _tx, _a, _c, _h: current_for(
+        loader = lambda _tx, _a, _c, _h, _cmd: current_for(
             child, clock, lease,
             target=SimpleNamespace(compilation_hash='f' * 64, facts_hash=TARGET_HASH,
                                    unallocated_target_quantity=t.Quantity(value=D('0'),
                                                                           unit='BTC')))
     if fault == 'funding':
-        loader = lambda _tx, _a, _c, _h: current_for(
+        loader = lambda _tx, _a, _c, _h, _cmd: current_for(
             child, clock, lease,
             funding=SimpleNamespace(blockers=('ALLOCATION_FUNDING_UNDERBOUND',),
                                     execution_authorized=False))
     if fault == 'authorization':
-        loader = lambda _tx, _a, _c, _h: current_for(child, clock, lease,
+        loader = lambda _tx, _a, _c, _h, _cmd: current_for(child, clock, lease,
                                                      authorization_id='other-auth')
     monkeypatch.setattr(module, 'read_local_activation',
                         lambda _tx, key: activation if key == 'activation' else None)
@@ -246,7 +246,7 @@ def test_untrusted_or_expired_current_facts_never_write(monkeypatch, fault):
 def test_permit_is_single_use_and_bound_to_original_command(monkeypatch):
     child, rules, capabilities, context, tx, clock, lease, activation = fixture(monkeypatch)
     result = admit(tx, child, rules, capabilities, context, clock, lease, activation)
-    loader = lambda _tx, _a, _c, _h: current_for(child, clock, lease)
+    loader = lambda _tx, _a, _c, _h, _cmd: current_for(child, clock, lease)
     command, current_clock, ttl = mark_local_child_may(
         tx, 'child-1', lease, token_hash=module._token_hash('token-1'),
         load_clock=lambda _tx: clock, load_lease=lambda _tx: lease,
@@ -274,7 +274,7 @@ def test_permit_is_single_use_and_bound_to_original_command(monkeypatch):
 def test_unknown_retains_original_identity_and_blocks_resend(monkeypatch):
     child, rules, capabilities, context, tx, clock, lease, activation = fixture(monkeypatch)
     admit(tx, child, rules, capabilities, context, clock, lease, activation)
-    loader = lambda _tx, _a, _c, _h: current_for(child, clock, lease)
+    loader = lambda _tx, _a, _c, _h, _cmd: current_for(child, clock, lease)
     mark_local_child_may(tx, 'child-1', lease, token_hash=module._token_hash('token-1'),
                          load_clock=lambda _tx: clock, load_lease=lambda _tx: lease,
                          load_current=loader, permit_ttl_ms=1000)
@@ -292,7 +292,7 @@ def test_final_clock_regression_aborts_before_return(monkeypatch):
     child, rules, capabilities, context, tx, clock, lease, activation = fixture(monkeypatch)
     calls = []
 
-    def loader(_tx, _a, _c, _h):
+    def loader(_tx, _a, _c, _h, _cmd):
         calls.append(1)
         if len(calls) == 1:
             return current_for(child, clock, lease)

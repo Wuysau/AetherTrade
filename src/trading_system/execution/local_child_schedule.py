@@ -41,7 +41,7 @@ def _text(value):
 
 
 def preview_local_schedule(plan,*,activated_at,now,interval_seconds,committed_quantity,
-                           quantity_step,observed_volume=None,volume_unit=None):
+                           quantity_step,observed_volume=None,volume_unit=None,participation_bps=None):
     require(type(plan) is ProgramCompilation and len(plan.nodes)==1
         and plan.original_program.template in ('TWAP','VP')
         and plan.original_program.execution_mode in ('LOCAL_SYNTHETIC','PAPER_MODEL'),
@@ -65,7 +65,8 @@ def preview_local_schedule(plan,*,activated_at,now,interval_seconds,committed_qu
     else:
         require(algorithm.kind=='VP' and observed_volume is not None and volume_unit==node.quantity_unit,
             'LOCAL_SCHEDULE_VOLUME_REQUIRED')
-        participation=Fraction(amount(algorithm.participation_bps))
+        participation=Fraction(amount(participation_bps if participation_bps is not None
+                                     else algorithm.participation_bps))
         require(participation<=10000,'LOCAL_SCHEDULE_PARTICIPATION_INVALID')
         upper=min(total,Fraction(amount(observed_volume,zero=True))*participation/10000)
     scheduled=(upper//step)*step

@@ -2,7 +2,7 @@ import type { CandleHistory, CandleInterval, MarketConfig, MarketInput, Analysis
 import type {ProgramPage,ProgramView,CapabilityView} from './orderobservationtypes';
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, public readonly code: string, message: string) { super(message); this.name = 'ApiError'; }
+  constructor(public readonly status: number, public readonly code: string, message: string, public readonly details?: Record<string, unknown>) { super(message); this.name = 'ApiError'; }
 }
 export class RuntimeApi {
   private csrf = '';
@@ -24,7 +24,7 @@ export class RuntimeApi {
     const body = await response.json().catch(() => null);
     if (!response.ok) {
       if (response.status === 401) this.onUnauthorized?.();
-      throw new ApiError(response.status, body?.error?.code ?? 'HTTP_ERROR', body?.error?.message ?? `服务请求失败（${response.status}），请重试。`);
+      throw new ApiError(response.status, body?.error?.code ?? 'HTTP_ERROR', body?.error?.message ?? `服务请求失败（${response.status}），请重试。`, body?.error?.details);
     }
     if (body === null) throw new ApiError(response.status, 'INVALID_RESPONSE', '服务响应格式异常，请刷新重试。');
     return body as T;
