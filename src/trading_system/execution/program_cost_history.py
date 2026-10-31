@@ -133,6 +133,30 @@ def _derive(tx):
         source_order[key]=_source_order(reader,f,payload)
         facts[key]=f;transitions.setdefault(posted.owner_after.sequence,[]).append((f,posted))
     need(facts and transitions,'COST_NATIVE_HISTORY_REQUIRED')
+    # Every consumed creation in this epoch needs a committed query, including
+    # commands whose real query returned zero fills. Absence is not empty history.
+    from trading_system.recovery.original_creation import read_original_creation
+    from .program_submission_observation import read_program_submission_observation
+    consumed=tx.execute('SELECT command_id FROM ledger.program_permit_consumptions WHERE scope_id=%s',
+        (scope_id(tx.scope),)).fetchall()
+    covered_commands={f.command_id for f in facts.values()}
+    for (command_id,) in consumed:
+        original=read_original_creation(tx,command_id)
+        need(original is not None and (original.initial.owner_strategy_id,original.initial.ownership_epoch)==
+            (initial.position.owner_strategy_id,initial.position.ownership_epoch),'COST_EPOCH_HISTORY_REQUIRED')
+        observation=read_program_submission_observation(tx,original.initial)
+        need(observation is None or observation.submission_known,'COST_CURRENT_QUERY_REQUIRED')
+        if command_id in covered_commands:
+            need(observation is None or observation.state=='ACCEPTED','COST_CURRENT_QUERY_REQUIRED')
+            continue
+        snapshots=tx.execute('SELECT snapshot_id FROM ledger.program_fill_source_snapshots WHERE scope_id=%s AND command_id=%s',
+            (scope_id(tx.scope),command_id)).fetchall()
+        need(snapshots,'COST_COMMAND_HISTORY_INCOMPLETE')
+        for (snapshot_id,) in snapshots:
+            source=reader.sources.read_snapshot(command_id,snapshot_id);verification=source['verification']
+            need(verification['source_verified'] is True and verification['status']=='VERIFIED'
+                and verification['discrepancies']==[] and not source['normalized_fills'],
+                'COST_COMMAND_HISTORY_INCOMPLETE')
     ledger=tx.execute('SELECT payload FROM ledger.fills WHERE scope_id=%s',(scope_id(tx.scope),)).fetchall()
     need({decode(t.Fill,r[0]).fill_id for r in ledger}=={f.fill.fill_id for f in facts.values()},'COST_FILL_HISTORY_INCOMPLETE')
     first=min(transitions)
