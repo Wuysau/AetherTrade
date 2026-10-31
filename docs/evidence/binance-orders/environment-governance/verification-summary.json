@@ -1,6 +1,6 @@
 {
   "status": "OFFLINE_IMPLEMENTED_VERIFIED / RUNTIME_BLOCKED",
-  "source_commit": "0ab47c1dde3aaab491df7e9de306f95512ca322a",
+  "source_commit": "64b3a50c20dfa665827ffec1af2e6a17eab93389",
   "source_branch": "codex/binance-orders-resume",
   "source_files": "source-files.sha256",
   "environment": {
@@ -19,7 +19,7 @@
       "exit_code": 0,
       "passed": 171,
       "skipped": 4,
-      "seconds": 1.29,
+      "seconds": 1.09,
       "scope": "environment identity/isolation, Docker allowlist, budgets, scheduler, temp DB leases, resource monitor, CLI, migration candidates",
       "note": "The four skips are existing deployment/container probes requiring explicit infrastructure; they are NOT_RUN, not PASS."
     },
@@ -28,7 +28,7 @@
       "exit_code": 0,
       "passed": 104,
       "skipped": 0,
-      "seconds": 1.22,
+      "seconds": 0.88,
       "evidence": "docs/evidence/binance-orders/local-child-admission/focused-pytest.txt",
       "junit": "docs/evidence/binance-orders/local-child-admission/focused-junit.xml"
     },
@@ -44,7 +44,7 @@
       "meaning": "Declarations are internally consistent; DEV service and OS permission isolation are explicitly NOT_PROBED/NOT_VERIFIED."
     },
     {
-      "command": "python -X utf8 tools/qualify_paper_docker.py --commit 0ab47c1",
+      "command": "python -X utf8 tools/qualify_paper_docker.py --commit 64b3a50",
       "exit_code": 78,
       "log": "docs/evidence/binance-orders/environment-governance/retired-qualifier.txt",
       "meaning": "Retired per-task launcher remains BLOCKED/NOT_RUN and creates no container, database, volume or credential."

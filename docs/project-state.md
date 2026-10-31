@@ -1,6 +1,6 @@
 # Project state
 
-Latest engineering 2026-10-31 (`0ab47c1`, codex/binance-orders-resume): ACTIVE
+Latest engineering 2026-10-31 (`64b3a50`, codex/binance-orders-resume): ACTIVE
 full Binance 46-target/56-case OP-C->D/E/F->G continuation. This round added
 offline environment governance (identity/isolation, Docker allowlist, budgets,
 bounded scheduler, temp-DB leases, resource monitor) and the protected local

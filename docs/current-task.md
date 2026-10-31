@@ -2,7 +2,7 @@
 
 ## ENVIRONMENT_GOVERNANCE_AND_LOCAL_CHILD_ADMISSION — 2026-10-31
 
-Source `0ab47c1` on codex/binance-orders-resume. This round implemented the
+Source `64b3a50` on codex/binance-orders-resume. This round implemented the
 missing offline environment governance and the protected local-child admission
 writer; it did not run Docker, PostgreSQL, a migration, TEST or any venue call.
 
@@ -29,8 +29,8 @@ dormant candidate `migrations/0031_local_child_admission.sql` supplies the
 append-only command/mark/consumption storage, deferred completeness, quantity/
 unit pool guard and owner-only INSERT. It is NOT_APPLIED and not runtime-wired.
 
-Evidence: focused 104 passed (exit 0, 1.22s) and broader local-child/ops 291
-passed + 10 dormant PostgreSQL skips (exit 0, 6.02s); compile exit 0; retired
+Evidence: focused 104 passed (exit 0, 0.88s) and broader local-child/ops 291
+passed + 10 dormant PostgreSQL skips (exit 0, 5.21s); compile exit 0; retired
 launcher exit 78. Raw logs/JUnit/hashes are under
 `docs/evidence/binance-orders/environment-governance/` and
 `docs/evidence/binance-orders/local-child-admission/`. Current acceptance is

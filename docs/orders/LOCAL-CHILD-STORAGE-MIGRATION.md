@@ -48,7 +48,7 @@ collection do not establish actual FK enforcement or migration compatibility.
 ## Additive admission candidate (0031)
 
 Status: CODE_IMPLEMENTED / MIGRATION_NOT_APPLIED / PostgreSQL NOT_RUN. Source
-`0ab47c1`. 0031 is a separate additive candidate; 0030 remains byte-unchanged
+`64b3a50`. 0031 is a separate additive candidate; 0030 remains byte-unchanged
 except for no edits in this round. It adds:
 
 - `local_child_writes` state history (DURABLE_READY -> MAY_HAVE_SENT -> UNKNOWN)
@@ -70,6 +70,6 @@ loader remains a real risk; the SQL candidate must pass actual role, concurrency
 rollback, crash and recovery cases before any grant is deployed.
 
 Unit/contract evidence: 104 focused cases and 291 broader local-child/ops cases
-passed (10 dormant PostgreSQL skips) at source `0ab47c1`; evidence is under
+passed (10 dormant PostgreSQL skips) at source `64b3a50`; evidence is under
 `docs/evidence/binance-orders/local-child-admission/`. No database, Docker,
 venue, TESTNET/LIVE or TEST action occurred.

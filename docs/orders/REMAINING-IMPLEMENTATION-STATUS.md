@@ -1,6 +1,6 @@
 # Remaining implementation status (2026-10-31)
 
-Source `0ab47c1dde3aaab491df7e9de306f95512ca322a`, branch
+Source `64b3a50c20dfa665827ffec1af2e6a17eab93389`, branch
 `codex/binance-orders-resume`. This is a code-evidence inventory, not a
 completion claim. Full objective remains 46 capabilities / 56 acceptance cases.
 

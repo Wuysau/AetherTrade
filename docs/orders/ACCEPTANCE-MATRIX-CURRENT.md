@@ -1,6 +1,6 @@
 # Current Binance order acceptance matrix
 
-Source: `0ab47c1dde3aaab491df7e9de306f95512ca322a` (codex/binance-orders-resume). Reference: `b168966d350ed60fe8a92792f9519f4227054bc5`.
+Source: `64b3a50c20dfa665827ffec1af2e6a17eab93389` (codex/binance-orders-resume). Reference: `b168966d350ed60fe8a92792f9519f4227054bc5`.
 
 Current-source status: **56 NOT_RUN / 46 capabilities NOT_RUN**. One historical PASS (`ORD-47`) remains a local PAPER migration component result, not current integration.
 

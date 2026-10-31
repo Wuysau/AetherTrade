@@ -1,15 +1,15 @@
-Source: 0ab47c1dde3aaab491df7e9de306f95512ca322a
+Source: 64b3a50c20dfa665827ffec1af2e6a17eab93389
 Worktree: D:\Projects\Python\AetherTrade\TradingHandoff\AutoDispatchWorktrees\binance-orders-resume
 No Docker, PostgreSQL, network, TEST, account, venue or model access.
 
 Focused:
 python -X utf8 -m pytest tests/ops/test_environment_governance.py tests/ops/test_test_scheduler.py tests/ops/test_environment_status_cli.py tests/ops/test_local_child_migration_candidate.py tests/intents/test_local_child_admission.py -q -p no:cacheprovider
-exit 0; 104 passed; 1.22s
+exit 0; 104 passed; 0.88s
 raw: focused-pytest.txt; junit: focused-junit.xml
 
 Regression:
 python -X utf8 -m pytest tests/intents/test_local_child_admission.py tests/intents/test_local_child_commitment_reader.py tests/intents/test_local_child_compilation.py tests/intents/test_local_child_funding.py tests/intents/test_local_child_obligations.py tests/intents/test_local_child_quantity.py tests/intents/test_local_child_request.py tests/intents/test_local_child_schedule.py tests/intents/test_local_child_target.py tests/contracts/test_local_child_write.py tests/integration/test_local_child_storage.py tests/ops tests/server/test_order_observation.py -q -p no:cacheprovider
-exit 0; 291 passed, 10 skipped; 6.02s
+exit 0; 291 passed, 10 skipped; 5.21s
 raw: regression-pytest.txt; junit: regression-junit.xml
 
 All 10 skips are PostgreSQL cases requiring an explicitly approved isolated

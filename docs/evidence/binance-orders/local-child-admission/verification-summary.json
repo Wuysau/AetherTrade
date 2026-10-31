@@ -1,13 +1,13 @@
 {
   "status": "CODE_IMPLEMENTED / POSTGRESQL_NOT_RUN",
-  "source_commit": "0ab47c1dde3aaab491df7e9de306f95512ca322a",
+  "source_commit": "64b3a50c20dfa665827ffec1af2e6a17eab93389",
   "source_branch": "codex/binance-orders-resume",
   "source_files": "source-files.sha256",
   "focused_tests": {
     "command": "python -X utf8 -m pytest tests/ops/test_environment_governance.py tests/ops/test_test_scheduler.py tests/ops/test_environment_status_cli.py tests/ops/test_local_child_migration_candidate.py tests/intents/test_local_child_admission.py -q",
     "exit_code": 0,
     "passed": 104,
-    "seconds": 1.22,
+    "seconds": 0.88,
     "raw": "focused-pytest.txt",
     "junit": "focused-junit.xml"
   },
@@ -16,7 +16,7 @@
     "exit_code": 0,
     "passed": 291,
     "skipped": 10,
-    "seconds": 6.02,
+    "seconds": 5.21,
     "raw": "regression-pytest.txt",
     "junit": "regression-junit.xml",
     "skip_meaning": "All ten skips are dormant PostgreSQL cases without the approved isolated DEV database; they are NOT_RUN."
