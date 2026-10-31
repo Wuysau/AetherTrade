@@ -1,5 +1,15 @@
 # Current task
 
+## MANAGEMENT_RESPONSE_CONFLICT_FIXED — 2026-10-31
+
+Source ae13d94 retains cancel identity CONFLICT when the replacement outcome is
+missing, null or unrecognized. RED c3f3085: six actual failures. GREEN: 78 related
+response/query candidate cases pass in 2.38s; no skipped safety cases. Original
+cancel/replacement payloads and reconciliation duties remain separate. Evidence:
+docs/evidence/binance-orders/resume-management-conflict. No Docker, PostgreSQL
+or venue qualification performed. Integration/review remains pending.
+
+
 ## BATCH_RESPONSE_CONFLICT_FIXED — 2026-10-31
 
 Source f715d64 preserves CONFLICT when a later batch item carries an error.

@@ -1,0 +1,130 @@
+FFFFFF                                                                   [100%]
+================================== FAILURES ===================================
+____ test_cancel_conflict_survives_unknown_replacement_result[None-venue] _____
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-417/test_cancel_conflict_survives_0')
+fault = 'venue', outcome = None
+
+    @pytest.mark.parametrize('fault',['venue','client'])
+    @pytest.mark.parametrize('outcome',[None,'MAYBE','MISSING'])
+    def test_cancel_conflict_survives_unknown_replacement_result(tmp_path,fault,outcome):
+        cancel=dict(orderId=777 if fault=='venue' else 123,
+            origClientOrderId='foreign' if fault=='client' else 'original-client')
+        body=dict(cancelResult='SUCCESS',cancelResponse=cancel,newOrderResponse={'msg':'unknown'})
+        if outcome!='MISSING':body['newOrderResult']=outcome
+        result=observe(tmp_path,Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE,body)
+>       assert result.status=='CONFLICT'
+E       AssertionError: assert 'INCOMPLETE' == 'CONFLICT'
+E         
+E         - CONFLICT
+E         + INCOMPLETE
+
+tests\intents\test_native_management_response.py:84: AssertionError
+____ test_cancel_conflict_survives_unknown_replacement_result[None-client] ____
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-417/test_cancel_conflict_survives_1')
+fault = 'client', outcome = None
+
+    @pytest.mark.parametrize('fault',['venue','client'])
+    @pytest.mark.parametrize('outcome',[None,'MAYBE','MISSING'])
+    def test_cancel_conflict_survives_unknown_replacement_result(tmp_path,fault,outcome):
+        cancel=dict(orderId=777 if fault=='venue' else 123,
+            origClientOrderId='foreign' if fault=='client' else 'original-client')
+        body=dict(cancelResult='SUCCESS',cancelResponse=cancel,newOrderResponse={'msg':'unknown'})
+        if outcome!='MISSING':body['newOrderResult']=outcome
+        result=observe(tmp_path,Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE,body)
+>       assert result.status=='CONFLICT'
+E       AssertionError: assert 'INCOMPLETE' == 'CONFLICT'
+E         
+E         - CONFLICT
+E         + INCOMPLETE
+
+tests\intents\test_native_management_response.py:84: AssertionError
+____ test_cancel_conflict_survives_unknown_replacement_result[MAYBE-venue] ____
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-417/test_cancel_conflict_survives_2')
+fault = 'venue', outcome = 'MAYBE'
+
+    @pytest.mark.parametrize('fault',['venue','client'])
+    @pytest.mark.parametrize('outcome',[None,'MAYBE','MISSING'])
+    def test_cancel_conflict_survives_unknown_replacement_result(tmp_path,fault,outcome):
+        cancel=dict(orderId=777 if fault=='venue' else 123,
+            origClientOrderId='foreign' if fault=='client' else 'original-client')
+        body=dict(cancelResult='SUCCESS',cancelResponse=cancel,newOrderResponse={'msg':'unknown'})
+        if outcome!='MISSING':body['newOrderResult']=outcome
+        result=observe(tmp_path,Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE,body)
+>       assert result.status=='CONFLICT'
+E       AssertionError: assert 'INCOMPLETE' == 'CONFLICT'
+E         
+E         - CONFLICT
+E         + INCOMPLETE
+
+tests\intents\test_native_management_response.py:84: AssertionError
+___ test_cancel_conflict_survives_unknown_replacement_result[MAYBE-client] ____
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-417/test_cancel_conflict_survives_3')
+fault = 'client', outcome = 'MAYBE'
+
+    @pytest.mark.parametrize('fault',['venue','client'])
+    @pytest.mark.parametrize('outcome',[None,'MAYBE','MISSING'])
+    def test_cancel_conflict_survives_unknown_replacement_result(tmp_path,fault,outcome):
+        cancel=dict(orderId=777 if fault=='venue' else 123,
+            origClientOrderId='foreign' if fault=='client' else 'original-client')
+        body=dict(cancelResult='SUCCESS',cancelResponse=cancel,newOrderResponse={'msg':'unknown'})
+        if outcome!='MISSING':body['newOrderResult']=outcome
+        result=observe(tmp_path,Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE,body)
+>       assert result.status=='CONFLICT'
+E       AssertionError: assert 'INCOMPLETE' == 'CONFLICT'
+E         
+E         - CONFLICT
+E         + INCOMPLETE
+
+tests\intents\test_native_management_response.py:84: AssertionError
+___ test_cancel_conflict_survives_unknown_replacement_result[MISSING-venue] ___
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-417/test_cancel_conflict_survives_4')
+fault = 'venue', outcome = 'MISSING'
+
+    @pytest.mark.parametrize('fault',['venue','client'])
+    @pytest.mark.parametrize('outcome',[None,'MAYBE','MISSING'])
+    def test_cancel_conflict_survives_unknown_replacement_result(tmp_path,fault,outcome):
+        cancel=dict(orderId=777 if fault=='venue' else 123,
+            origClientOrderId='foreign' if fault=='client' else 'original-client')
+        body=dict(cancelResult='SUCCESS',cancelResponse=cancel,newOrderResponse={'msg':'unknown'})
+        if outcome!='MISSING':body['newOrderResult']=outcome
+        result=observe(tmp_path,Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE,body)
+>       assert result.status=='CONFLICT'
+E       AssertionError: assert 'INCOMPLETE' == 'CONFLICT'
+E         
+E         - CONFLICT
+E         + INCOMPLETE
+
+tests\intents\test_native_management_response.py:84: AssertionError
+__ test_cancel_conflict_survives_unknown_replacement_result[MISSING-client] ___
+
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-417/test_cancel_conflict_survives_5')
+fault = 'client', outcome = 'MISSING'
+
+    @pytest.mark.parametrize('fault',['venue','client'])
+    @pytest.mark.parametrize('outcome',[None,'MAYBE','MISSING'])
+    def test_cancel_conflict_survives_unknown_replacement_result(tmp_path,fault,outcome):
+        cancel=dict(orderId=777 if fault=='venue' else 123,
+            origClientOrderId='foreign' if fault=='client' else 'original-client')
+        body=dict(cancelResult='SUCCESS',cancelResponse=cancel,newOrderResponse={'msg':'unknown'})
+        if outcome!='MISSING':body['newOrderResult']=outcome
+        result=observe(tmp_path,Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE,body)
+>       assert result.status=='CONFLICT'
+E       AssertionError: assert 'INCOMPLETE' == 'CONFLICT'
+E         
+E         - CONFLICT
+E         + INCOMPLETE
+
+tests\intents\test_native_management_response.py:84: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/intents/test_native_management_response.py::test_cancel_conflict_survives_unknown_replacement_result[None-venue]
+FAILED tests/intents/test_native_management_response.py::test_cancel_conflict_survives_unknown_replacement_result[None-client]
+FAILED tests/intents/test_native_management_response.py::test_cancel_conflict_survives_unknown_replacement_result[MAYBE-venue]
+FAILED tests/intents/test_native_management_response.py::test_cancel_conflict_survives_unknown_replacement_result[MAYBE-client]
+FAILED tests/intents/test_native_management_response.py::test_cancel_conflict_survives_unknown_replacement_result[MISSING-venue]
+FAILED tests/intents/test_native_management_response.py::test_cancel_conflict_survives_unknown_replacement_result[MISSING-client]
+6 failed, 19 deselected in 0.77s
