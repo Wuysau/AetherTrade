@@ -1,0 +1,16 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_ test_identical_payload_cannot_hide_changed_pagination_request_on_replay[BINANCE_SPOT_EXECUTION_ALGO] _
+tests\intents\test_native_query_candidates.py:67: in test_identical_payload_cannot_hide_changed_pagination_request_on_replay
+    with pytest.raises(ValueError):resolve(reader,(current,history,changed))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_identical_payload_cannot_hide_changed_pagination_request_on_replay[BINANCE_USD_M_EXECUTION_ALGO] _
+tests\intents\test_native_query_candidates.py:67: in test_identical_payload_cannot_hide_changed_pagination_request_on_replay
+    with pytest.raises(ValueError):resolve(reader,(current,history,changed))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ===========================
+FAILED tests/intents/test_native_query_candidates.py::test_identical_payload_cannot_hide_changed_pagination_request_on_replay[BINANCE_SPOT_EXECUTION_ALGO]
+FAILED tests/intents/test_native_query_candidates.py::test_identical_payload_cannot_hide_changed_pagination_request_on_replay[BINANCE_USD_M_EXECUTION_ALGO]
+2 failed, 18 deselected in 0.55s

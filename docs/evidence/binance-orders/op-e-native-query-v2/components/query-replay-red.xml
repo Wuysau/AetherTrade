@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.366" timestamp="2026-10-30T11:29:47.530936+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.intents.test_native_query_candidates" name="test_identical_payload_cannot_hide_changed_pagination_request_on_replay[BINANCE_SPOT_EXECUTION_ALGO]" time="0.032"><failure message="Failed: DID NOT RAISE ValueError">tests\intents\test_native_query_candidates.py:67: in test_identical_payload_cannot_hide_changed_pagination_request_on_replay
+    with pytest.raises(ValueError):resolve(reader,(current,history,changed))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.intents.test_native_query_candidates" name="test_identical_payload_cannot_hide_changed_pagination_request_on_replay[BINANCE_USD_M_EXECUTION_ALGO]" time="0.012"><failure message="Failed: DID NOT RAISE ValueError">tests\intents\test_native_query_candidates.py:67: in test_identical_payload_cannot_hide_changed_pagination_request_on_replay
+    with pytest.raises(ValueError):resolve(reader,(current,history,changed))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase></testsuite></testsuites>

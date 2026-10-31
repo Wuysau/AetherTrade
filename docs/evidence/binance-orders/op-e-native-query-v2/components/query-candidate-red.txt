@@ -1,0 +1,148 @@
+FFFFFFFFFFFFFFFFFF                                                       [100%]
+================================== FAILURES ===================================
+_ test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged[BINANCE_SPOT_EXECUTION_ALGO] _
+tests\intents\test_native_query_candidates.py:33: in test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged
+    current=page(reader,payload=payload);history=page(reader,1,rows=[],size=100)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged[BINANCE_USD_M_EXECUTION_ALGO] _
+tests\intents\test_native_query_candidates.py:33: in test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged
+    current=page(reader,payload=payload);history=page(reader,1,rows=[],size=100)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-missing_history] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-gap] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-duplicate_identity] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-huge_remote_total] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-typed_body_forgery] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-wrong_scope] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-raw_tamper] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-missing_history] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-gap] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-duplicate_identity] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-huge_remote_total] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-typed_body_forgery] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-wrong_scope] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-raw_tamper] _
+tests\intents\test_native_query_candidates.py:43: in test_received_page_bounds_and_original_source_still_control_query_candidates
+    first=page(reader);last=page(reader,1,rows=[],size=100);pages=(first,last)
+          ^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent[BINANCE_SPOT_EXECUTION_ALGO] _
+tests\intents\test_native_query_candidates.py:59: in test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent
+    result=resolve(reader,(page(reader,rows=[]),page(reader,1,rows=[],size=100)))
+                           ^^^^^^^^^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+_ test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent[BINANCE_USD_M_EXECUTION_ALGO] _
+tests\intents\test_native_query_candidates.py:59: in test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent
+    result=resolve(reader,(page(reader,rows=[]),page(reader,1,rows=[],size=100)))
+                           ^^^^^^^^^^^^^^^^^^^^
+tests\intents\test_native_query_candidates.py:13: in page
+    from trading_system.engine.nautilus.native_query_candidates import archive_native_query_candidate
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_candidates'
+=========================== short test summary info ===========================
+FAILED tests/intents/test_native_query_candidates.py::test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged[BINANCE_SPOT_EXECUTION_ALGO]
+FAILED tests/intents/test_native_query_candidates.py::test_versioned_query_keeps_exact_fractional_numbers_and_v1_raw_hashes_unchanged[BINANCE_USD_M_EXECUTION_ALGO]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-missing_history]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-gap]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-duplicate_identity]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-huge_remote_total]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-typed_body_forgery]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-wrong_scope]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_SPOT_EXECUTION_ALGO-raw_tamper]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-missing_history]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-gap]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-duplicate_identity]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-huge_remote_total]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-typed_body_forgery]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-wrong_scope]
+FAILED tests/intents/test_native_query_candidates.py::test_received_page_bounds_and_original_source_still_control_query_candidates[BINANCE_USD_M_EXECUTION_ALGO-raw_tamper]
+FAILED tests/intents/test_native_query_candidates.py::test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent[BINANCE_SPOT_EXECUTION_ALGO]
+FAILED tests/intents/test_native_query_candidates.py::test_complete_empty_scan_keeps_original_reconciliation_and_never_becomes_not_sent[BINANCE_USD_M_EXECUTION_ALGO]
+18 failed in 0.62s

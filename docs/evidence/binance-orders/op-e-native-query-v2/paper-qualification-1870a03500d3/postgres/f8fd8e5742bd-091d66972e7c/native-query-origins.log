@@ -1,0 +1,19 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_actual_original_identity_reads_do_not_require_or_create_new_send_authority _
+tests/integration/test_native_query_origins_postgres.py:12: in test_actual_original_identity_reads_do_not_require_or_create_new_send_authority
+    from trading_system.engine.nautilus.native_query_origins import load_native_query_origins
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_origins'
+_ test_marked_but_unconsumed_original_still_yields_original_query_ids_without_resend _
+tests/integration/test_native_query_origins_postgres.py:21: in test_marked_but_unconsumed_original_still_yields_original_query_ids_without_resend
+    from trading_system.engine.nautilus.native_query_origins import load_native_query_origins
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_origins'
+__ test_unknown_original_remains_queryable_and_cannot_cross_instrument_scope ___
+tests/integration/test_native_query_origins_postgres.py:29: in test_unknown_original_remains_queryable_and_cannot_cross_instrument_scope
+    from trading_system.engine.nautilus.native_query_origins import load_native_query_origins
+E   ModuleNotFoundError: No module named 'trading_system.engine.nautilus.native_query_origins'
+=========================== short test summary info ============================
+FAILED tests/integration/test_native_query_origins_postgres.py::test_actual_original_identity_reads_do_not_require_or_create_new_send_authority
+FAILED tests/integration/test_native_query_origins_postgres.py::test_marked_but_unconsumed_original_still_yields_original_query_ids_without_resend
+FAILED tests/integration/test_native_query_origins_postgres.py::test_unknown_original_remains_queryable_and_cannot_cross_instrument_scope
+3 failed in 11.04s

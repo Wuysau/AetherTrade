@@ -1,0 +1,20 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_ test_boolean_code_is_not_an_integer_success_code[BINANCE_SPOT_EXECUTION_ALGO] _
+tests\intents\test_native_management_response.py:73: in test_boolean_code_is_not_an_integer_success_code
+    assert result.status=='ERROR'
+E   AssertionError: assert 'ACK_ONLY' == 'ERROR'
+E     
+E     - ERROR
+E     + ACK_ONLY
+_ test_boolean_code_is_not_an_integer_success_code[BINANCE_USD_M_CONDITIONAL_ALGO] _
+tests\intents\test_native_management_response.py:73: in test_boolean_code_is_not_an_integer_success_code
+    assert result.status=='ERROR'
+E   AssertionError: assert 'ACK_ONLY' == 'ERROR'
+E     
+E     - ERROR
+E     + ACK_ONLY
+=========================== short test summary info ===========================
+FAILED tests/intents/test_native_management_response.py::test_boolean_code_is_not_an_integer_success_code[BINANCE_SPOT_EXECUTION_ALGO]
+FAILED tests/intents/test_native_management_response.py::test_boolean_code_is_not_an_integer_success_code[BINANCE_USD_M_CONDITIONAL_ALGO]
+2 failed, 17 deselected in 0.45s

@@ -1,0 +1,34 @@
+...F                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_actual_native_list_preserves_full_original_parent_and_member_ids_for_queries _
+tests/integration/test_native_query_origins_postgres.py:41: in test_actual_native_list_preserves_full_original_parent_and_member_ids_for_queries
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservations.py:175: in _transaction
+    result = operation(tx)
+             ^^^^^^^^^^^^^
+tests/integration/test_native_query_origins_postgres.py:41: in <lambda>
+    write,request,bundle=c.service._transaction(lambda tx:attach(c,tx))
+                                                          ^^^^^^^^^^^^
+tests/integration/test_program_commands_postgres.py:37: in attach
+    b=c.service._reserve_program(tx,c.key,(cid,),load_inputs=c.load,load_qualification=c.qualify,
+src/trading_system/risk/reservations.py:166: in _reserve_program
+    return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+src/trading_system/risk/program_financial_admission.py:333: in reserve_program
+    return _ProgramBundleWriter(service,tx).reserve(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:329: in reserve
+    def reserve(self,*args,**kwargs):return _reserve_program(self.service,self.tx,*args,**kwargs)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/program_financial_admission.py:275: in _reserve_program
+    require(capacity.sufficient,','.join(capacity.rejection_codes))
+src/trading_system/contracts/program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: INSUFFICIENT_CAPACITY:BTC
+=========================== short test summary info ============================
+FAILED tests/integration/test_native_query_origins_postgres.py::test_actual_native_list_preserves_full_original_parent_and_member_ids_for_queries
+1 failed, 3 passed in 12.71s
