@@ -47,3 +47,21 @@ def test_scan_budget_is_validated_before_io(tmp_path):
             for pages in (0,True,17):
                 with pytest.raises(ValueError):await reader.scan(request(),max_pages=pages,timeout_seconds=5,quantity_basis='TOTAL')
     asyncio.run(run())
+
+
+
+def test_scan_deadline_cancels_wait_without_retry_or_false_boundary(tmp_path,monkeypatch):
+    from time import monotonic
+    async def run():
+        dns(monkeypatch,['93.184.216.34']);calls=[]
+        async def handler(outgoing):
+            calls.append(outgoing)
+            await asyncio.Future()
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            reader=AggregateMarketReader(MarketTransport(client=client),AggregateTradeArchive(LocalSnapshotBackend(tmp_path)),clock=lambda:STAMP)
+            start=monotonic()
+            with pytest.raises(TimeoutError):
+                await asyncio.wait_for(reader.scan(request(),max_pages=2,timeout_seconds=1,quantity_basis='TOTAL'),timeout=3)
+            assert monotonic()-start<2 and len(calls)==1
+            assert list(tmp_path.iterdir())==[]
+    asyncio.run(run())
