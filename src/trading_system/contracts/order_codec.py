@@ -14,6 +14,7 @@ from .order_snapshots import OrderCapabilitySnapshot,OrderRuleSnapshot
 from .program_financial import ProgramFinancialIntent,ProgramFinancialRiskBasis
 from .application_write_v3 import ApplicationWriteV3
 from .quote_position_v1 import QuotePositionProposalV1
+from .local_child_write import LocalChildWriteV1
 
 KINDS={'order-proposal':OrderProposal,'order-program':OrderProgram,'atomic-order':AtomicOrderSpec,'parent-authority':ParentAuthority,'parent-observation':ParentObservation,
        'child-observation':ChildObservation,'program-state':ProgramState,'application-write':ApplicationWrite,
@@ -27,6 +28,7 @@ KINDS_BY_VERSION={'2026-10-28':KINDS,'2026-10-29':{
     'child-observation':ChildObservationV3,'parent-observation':ParentObservationV3,
     'receipt-allocation':ReceiptAllocationV3,'lifecycle-proof':LifecycleProofV3,'program-state':ProgramStateV3}}
 KINDS_BY_VERSION['2026-10-30']={'order-proposal':QuotePositionProposalV1}
+KINDS_BY_VERSION['2026-10-31']={'local-child-write':LocalChildWriteV1}
 
 LEGACY={'decision-proposal','trade-intent','execution-command','risk-policy'}
 
