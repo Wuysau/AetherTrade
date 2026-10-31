@@ -87,7 +87,8 @@ def project_program(payload, *, source):
 
 # Names are fixed implementation constants, never request parameters.
 TABLES = ('order_programs', 'order_program_intakes', 'order_program_states', 'order_program_bindings',
-          'order_writes_v2', 'order_funding_links', 'audit_events', 'program_request_bindings', 'reservations')
+          'order_writes_v2', 'order_funding_links', 'audit_events', 'program_request_bindings', 'reservations',
+          'local_child_commitments_v1')
 
 
 class OrderObservationService:
@@ -171,6 +172,20 @@ class OrderObservationService:
         return [dict(record_id=r[0], sequence=r[1], payload=r[2], transaction_id=r[3],
                      canonical_payload_hash=canonical_hash(r[2])) for r in rows[:500]], len(rows)>500
 
+    def _local_children(self, conn, available, scope, program_id):
+        if 'local_child_commitments_v1' not in available:return [],False
+        # Parent FK ancestry selects even malformed child payloads for inspection.
+        rows=conn.execute('SELECT c.command_id,c.payload,c.transaction_id '
+            'FROM ledger.local_child_commitments_v1 c JOIN ledger.audit_events a '
+            'ON a.scope_id=c.scope_id AND a.record_id=c.activation_record_id '
+            'AND a.sequence=c.activation_sequence WHERE c.scope_id=%s '
+            "AND a.payload#>>'{authority,program_id}'=%s ORDER BY c.command_id LIMIT 501",
+            (scope,program_id)).fetchall()
+        return [dict(record_id=r[0],payload=r[1],transaction_id=r[2],
+            canonical_payload_hash=canonical_hash(r[1]),
+            observation_status='UNVERIFIED_COMMITMENT_ARCHIVE',execution_authorized=False)
+            for r in rows[:500]],len(rows)>500
+
     def detail(self, program_id, *, scope):
         self._scope(scope)
         with self._read() as (conn, available):
@@ -206,6 +221,7 @@ class OrderObservationService:
             activations = [r for r in records['financial'] if r['payload'].get('record_kind')=='LOCAL_PROGRAM_ACTIVATION']
             records['local_states'], truncated['local_states'] = self._records(conn, available, 'audit_events', scope,
                 'record_id=ANY(%s)', (['local-program-state:'+r['payload']['activation_id'] for r in activations],))
+            records['local_children'],truncated['local_children']=self._local_children(conn,available,scope,program_id)
             state = records['states'][0]['payload'] if records['states'] else None
             state_origin = 'VENUE_LIFECYCLE_ARCHIVE' if state else 'NOT_OBSERVED'
             if not state and len(records['local_states'])==1:

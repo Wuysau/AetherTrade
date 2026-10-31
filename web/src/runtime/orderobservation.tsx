@@ -24,6 +24,7 @@ export function OrderProgramDetail({detail}:{detail:ProgramView}) {
     </section>
     <section><h4>持久化接入回执</h4><p>{receipts.length?'已记录接入回执':'未观察到接入回执'}</p><p className="field-help">回执仅证明账本接入已提交；每次发送仍需当前授权与单次许可。</p>{receipts.map(record=><p className="program-id" key={record.record_id}>{record.record_id}</p>)}</section>
     <section><h4>应用命令与原身份</h4>{(records.commands??[]).length?(records.commands??[]).map(record=><div className="program-node" key={record.record_id}><strong>{value(record.payload.state)}</strong><Fields fields={{command_id:record.record_id,venue_client_id:record.payload.venue_client_id,service_namespace:record.payload.service_namespace,parent_command_id:record.payload.parent_command_id}}/></div>):<p>未观察到应用命令；本地算法激活不代表已向场所发送。</p>}</section>
+    {(records.local_children??[]).length>0&&<section><h4>本地子单承诺</h4><p className="field-help">承诺记录不代表已发送、已成交或可释放资金。</p><Archive records={records.local_children??[]} title="本地子单承诺（非成交）"/></section>}
     <section><h4>场所母单、子单与保护</h4><Fields fields={{execution_state:detail.execution_state,state_origin:detail.state_origin,parent_observation:state?.parent_observation,protection_status:detail.protection_status,children_complete:detail.children_complete}}/>
       {detail.children_complete!=='COMPLETE'&&<Alert>尚未取得完整子单清单；空列表不能证明空仓或责任结束。</Alert>}
       {children.map((child,index)=><div className="program-node" key={index}><Fields fields={child as Record<string,unknown>}/></div>)}
