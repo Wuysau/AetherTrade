@@ -28,7 +28,8 @@ CREATE TRIGGER immutable_history BEFORE UPDATE OR DELETE OR TRUNCATE
  ON ledger.local_child_commitments_v1 FOR EACH STATEMENT EXECUTE FUNCTION ledger.reject_mutation();
 REVOKE ALL ON ledger.local_child_commitments_v1 FROM PUBLIC,ledger_owner,ledger_control,
  ledger_decision,ledger_program_dispatch_verifier;
--- No writer function, grants or default privileges are installed here. A future
+GRANT SELECT ON ledger.local_child_commitments_v1 TO ledger_owner,ledger_program_dispatch_verifier;
+-- Read access retains obligations; no writer grant or default privilege is installed. A future
 -- reviewed admission migration must bind actual parent source, full-set quantity,
 -- shared funding, owner/risk and independent command in the same transaction.
 COMMIT;
