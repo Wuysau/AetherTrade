@@ -1,0 +1,26 @@
+{
+  "source": "d0460194a4bf77b30481c87ffe7ef06887725d91",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_local_child_schedule.py",
+    "tests/intents/test_local_child_quantity.py",
+    "tests/intents/test_local_child_target.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\local-child-schedule\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "f78272f",
+    "result": "missing local_child_schedule module; collection error"
+  },
+  "scope": "TASK_LIGHT declared local schedule math/quantity/target only",
+  "source_authentication": "NOT_IMPLEMENTED",
+  "postgres": "NOT_RUN",
+  "venue": "NOT_RUN"
+}

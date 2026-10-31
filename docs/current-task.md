@@ -1,5 +1,22 @@
 # Current task
 
+## LOCAL_SCHEDULE_QUANTITY_MODEL — 2026-10-31
+
+Source d046019 implements declared local schedule quantity previews. TWAP uses
+explicit cadence with ceil(duration/cadence) equal quantity slots, first slot at
+activation, final window may be shorter; quantity floors to the supplied grid.
+VP caps by explicit cumulative native volume since activation and source proposal
+participation_bps. All existing committed quantity is subtracted. Exact rational
+clock/quantity arithmetic avoids float and ambient Decimal rounding. Window
+closure returns no new quantity while retaining unallocated duties, never a
+terminal execution or funds release claim. No native algo emulation claim.
+29 schedule/quantity/target tests pass in 2.72s, including nanosecond boundary.
+Evidence: docs/evidence/binance-orders/local-child-schedule.
+Activation/cadence/volume/commitment provenance, placement urgency, actual timer,
+current risk, durable writer and permit remain required. Pure output is not
+source authentication or execution authority. Database/native NOT_RUN.
+
+
 ## LOCAL_CHILD_DIAGNOSTICS_AND_REVIEW — 2026-10-31
 
 Classifies specific local child capability/rule/risk/data/execution blockers
