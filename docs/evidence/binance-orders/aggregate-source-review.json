@@ -1,0 +1,19 @@
+{
+  "reviewer": "/root/resume_scoped_review",
+  "base": "acaaa1a",
+  "head": "fb1a024",
+  "mode": "READ_ONLY_SOURCE_REVIEW",
+  "findings": [
+    {
+      "severity": "Important",
+      "issue": "Unbounded backend reads before archive size checks"
+    },
+    {
+      "severity": "Minor",
+      "issue": "Oversized timestamp could produce unreadable committed manifest"
+    }
+  ],
+  "fix_source": "fd4bffa",
+  "rereview": "Both resolved; no concrete residual findings",
+  "runtime_or_platform_qualification": "NOT_RUN"
+}

@@ -1,0 +1,27 @@
+{
+  "source": "fb1a0243b3853e173112cbdea8da2cd13e47f6d7",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/server/test_aggregate_scan.py",
+    "tests/server/test_aggregate_market.py",
+    "tests/intents/test_local_volume_window.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\aggregate-market-scan\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "275619b",
+    "result": "6 missing scan method failures"
+  },
+  "scope": "TASK_LIGHT mocked HTTP/DNS bounded scan and archive/window behavior",
+  "external_network": "NOT_RUN",
+  "coverage_complete": false,
+  "source_verified": false,
+  "postgres": "NOT_RUN"
+}

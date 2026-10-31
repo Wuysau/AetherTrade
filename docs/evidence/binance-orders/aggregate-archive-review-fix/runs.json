@@ -1,0 +1,28 @@
+{
+  "source": "fd4bffa20ed6c503d79c22e3eb709bfcb34f00d1",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_aggregate_trade_archive.py",
+    "tests/unit/test_snapshot_provenance.py",
+    "tests/server/test_aggregate_scan.py",
+    "tests/server/test_aggregate_market.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\aggregate-archive-review-fix\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "4883993",
+    "result": "3 failed: unbounded read and unreadable oversized receipt"
+  },
+  "reviewer": "/root/resume_scoped_review",
+  "scope": "TASK_LIGHT snapshot/archive/scan contracts",
+  "external_network": "NOT_RUN",
+  "postgres": "NOT_RUN",
+  "platform_crash_qualification": "NOT_RUN"
+}

@@ -1,5 +1,22 @@
 # Current task
 
+## AGGREGATE_SCAN_AND_ARCHIVE_REVIEW_FIX — 2026-10-31
+
+Source fb1a024 implements explicit 1..16 page, 1..120s scan budgets; immutable
+window-to-ID cursor requests, response ordering/range/non-progress rejection,
+archived invalid pages and deadline cancellation. Short page means only
+PAGE_BOUNDARY_OBSERVED; coverage_complete/source_verified remain false.
+Independent aggregate-source review found unbounded object reads and oversized
+manifest publication. RED4883993 reproduced3 failures. Fixfd4bffa adds bounded
+LocalSnapshotBackend reads (limit+1) for existing-object checks and replay, and
+validates timestamp/manifest size before either commit.29 selected tests pass
+in2.42s; original reviewer confirms both fixes with no residual findings.
+Evidence: aggregate-market-scan, aggregate-archive-review-fix and
+aggregate-source-review.json under docs/evidence/binance-orders.
+No external network, database, order or model call; complete source and platform
+crash qualification still absent. Financial admission/permit remains unfinished.
+
+
 ## EXPLICIT_AGGREGATE_MARKET_READER — 2026-10-31
 
 Source 23ac152 composes fixed AggregateTradeRequest, existing MarketTransport
