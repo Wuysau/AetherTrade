@@ -13,7 +13,7 @@
     "DEV environment recovery and resource isolation before heavy tests",
     "Unified heavy-test scheduler before PostgreSQL qualification"
   ],
-  "state": "ACTIVE",
+  "state": "BLOCKED",
   "scope": [
     "src/trading_system",
     "tests",
@@ -52,5 +52,6 @@
       "ownership": "Link only; shared target is not task-owned",
       "cleanup": "Verify reparse point and target, remove link only after lifecycle checks; never recursively delete shared target"
     }
-  ]
+  ],
+  "blocker_record": "docs/orders/BLOCKED-RESUME-2026-10-31.json"
 }

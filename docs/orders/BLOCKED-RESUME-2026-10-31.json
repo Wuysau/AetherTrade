@@ -1,0 +1,47 @@
+{
+  "status": "BLOCKED",
+  "reason": "SHARED_DEV_RECOVERY_ISOLATION_AND_SCHEDULER_NOT_READY",
+  "source_commit": "d25c8869cf0287ad32dc98eec01e4d158a81892f",
+  "user_confirmation": "User explicitly answered no readiness/configuration evidence exists on 2026-10-31",
+  "current_evidence": {
+    "isolated_database_opt_in": false,
+    "database_dsn_present": false,
+    "harness_enforcement": "IMPLEMENTATION_PENDING",
+    "retired_launcher": "BLOCKED/NOT_RUN; no per-run provisioning",
+    "migration_0030": "NOT_APPLIED; no application writer/permit installed"
+  },
+  "repeated_checkpoints": [
+    "8bb23bf",
+    "aca1fb3",
+    "9159fca",
+    "d25c886"
+  ],
+  "scope_preserved": {
+    "feature_targets": 46,
+    "acceptance_cases": 56,
+    "historical_status": {
+      "PASS": 1,
+      "NOT_RUN": 55
+    },
+    "current_source_full_acceptance": "NOT_RUN"
+  },
+  "unfinished": [
+    "Protected atomic local child source/quantity/funding/command admission and independent permit",
+    "Real PostgreSQL permissions, concurrency, commit/crash and UNKNOWN recovery validation",
+    "Remaining OP-C/D/E/F execution integration and full OP-G matrix",
+    "Serialized dev integration and lifecycle cleanup after required checks"
+  ],
+  "resume_requirements": [
+    "Restore the single shared DEV runtime without VHDX operations or cross-drive migration in this task",
+    "Verify DEV/TEST identities, credentials, ports, networks and persistent volumes are isolated",
+    "Implement and verify unified bounded test scheduling and resource ownership controls",
+    "Provide approved shared DEV test-service configuration and permit only narrowly selected critical database cohorts first"
+  ],
+  "preservation": [
+    "Keep current worktree and task branch; do not cleanup while blocked/unintegrated",
+    "Keep main checkout archives untouched",
+    "Preserve shared dependency junction target; remove only link when later cleanup is eligible",
+    "No LIVE/TESTNET/accounts/paid models/forced fills/risk weakening"
+  ],
+  "next_execution_step": "Use restored shared service for six dormant-storage cases, then source/quantity/funding concurrency and guarded writer TDD; never invoke the retired per-task Docker launcher"
+}

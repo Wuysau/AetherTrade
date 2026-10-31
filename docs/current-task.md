@@ -1,5 +1,21 @@
 # Current task
 
+## BLOCKED_SHARED_DEV_EXECUTION_VALIDATION — 2026-10-31
+
+Current inspection confirms no isolated database opt-in/DSN and pending shared
+DEV recovery/isolation/scheduler, consistent with user confirmation and repeated
+8bb23bf/aca1fb3/9159fca/d25c886 checkpoints. Next mandatory atomic admission,
+permissions, concurrency and UNKNOWN recovery work requires actual protected
+PostgreSQL TDD; the authorized environment is unavailable and alternatives are
+forbidden. Pure previews cannot substitute for that execution-chain evidence.
+Full objective remains 46 capabilities / 56 cases; no completion claim.
+Resume criteria, unfinished work and preserved artifacts:
+docs/orders/BLOCKED-RESUME-2026-10-31.json. Keep worktree/branch, main archives and
+shared dependency target intact. No force cleanup, migration, deployment or
+external account access. Restore approved shared DEV and scheduling before
+resuming critical database validation and the remaining execution implementation.
+
+
 ## AGGREGATE_SCAN_AND_ARCHIVE_REVIEW_FIX — 2026-10-31
 
 Source fb1a024 implements explicit 1..16 page, 1..120s scan budgets; immutable
