@@ -1,5 +1,20 @@
 # Current task
 
+## LOCAL_CHILD_CURRENT_TARGET — 2026-10-31
+
+Source f377d1d extracts the existing target normalization/TargetCompiler call
+for reuse by local child slices. Current actual, working, pending, residual,
+unknown-command and owner/context/unit checks remain the common implementation.
+A child may allocate only a positive subset of the current signed remaining
+target, retaining the unallocated remainder without resizing the parent plan.
+Existing whole-program quantity equality remains unchanged. Covers partial
+BUY after fills/working leaves and partial SELL reduction with existing leaves.
+RED 4d64b7f missing function; 129 selected target/risk cases PASS in 15.27s.
+Evidence: docs/evidence/binance-orders/local-child-target. No database, permit
+or financial writer tested. Complete protected input provenance, schedule
+authority, parent pool binding and atomic command/permit still required.
+
+
 ## LOCAL_CONDITIONAL_CHILD_REQUEST — 2026-10-31
 
 USD-M conditional local child requests now preserve triggerPrice, workingType,

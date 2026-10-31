@@ -1,0 +1,25 @@
+{
+  "source": "f377d1de7c315ac52cd7d6154cdb060d13cd143c",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_local_child_target.py",
+    "tests/intents/test_program_target_allocation.py",
+    "tests/intents/test_program_risk_assessment.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\local-child-target\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "4d64b7f",
+    "result": "missing compile_local_child_target; collection error"
+  },
+  "scope": "TASK_LIGHT shared target and program risk math only",
+  "postgres": "NOT_RUN",
+  "atomic_child_admission": "NOT_IMPLEMENTED"
+}
