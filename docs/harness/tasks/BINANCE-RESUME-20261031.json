@@ -34,17 +34,19 @@
   },
   "validation": {
     "level": "TASK_LIGHT",
-    "source_commit": "64b3a50c20dfa665827ffec1af2e6a17eab93389",
+    "source_commit": "606a86cf7b7f5eeb086813b550c851d5f2942cd8",
     "command": "python -X utf8 -m pytest tests/intents/test_local_child_admission.py tests/intents/test_local_child_commitment_reader.py tests/intents/test_local_child_compilation.py tests/intents/test_local_child_funding.py tests/intents/test_local_child_obligations.py tests/intents/test_local_child_quantity.py tests/intents/test_local_child_request.py tests/intents/test_local_child_schedule.py tests/intents/test_local_child_target.py tests/contracts/test_local_child_write.py tests/integration/test_local_child_storage.py tests/ops tests/server/test_order_observation.py -q -p no:cacheprovider",
     "exit_code": 0,
-    "passed": 291,
-    "skipped": 10,
-    "seconds": 5.21,
+    "passed": 357,
+    "skipped": 4,
+    "seconds": 7.01,
     "scope": "local child admission, quantity, request, schedule, target, funding, obligations, read-only archive, environment governance, scheduler, CLI",
     "focused_command": "python -X utf8 -m pytest tests/ops/test_environment_governance.py tests/ops/test_test_scheduler.py tests/ops/test_environment_status_cli.py tests/ops/test_local_child_migration_candidate.py tests/intents/test_local_child_admission.py -q",
     "focused_exit_code": 0,
     "focused_passed": 104,
     "focused_seconds": 0.88,
+    "web_passed": 121,
+    "typecheck_exit_code": 0,
     "compile_exit_code": 0,
     "postgres": "NOT_RUN",
     "docker": "NOT_RUN",
@@ -52,7 +54,8 @@
     "evidence": [
       "docs/evidence/binance-orders/environment-governance/verification-summary.json",
       "docs/evidence/binance-orders/local-child-admission/verification-summary.json",
-      "docs/evidence/binance-orders/current-acceptance-matrix.json"
+      "docs/evidence/binance-orders/current-acceptance-matrix.json",
+      "docs/evidence/binance-orders/order-semantics/verification-summary.json"
     ]
   },
   "integration": {

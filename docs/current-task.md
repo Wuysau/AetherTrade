@@ -1,5 +1,41 @@
 # Current task
 
+## LOCAL_CHILD_RUNTIME_AND_ORDER_SEMANTICS — 2026-10-31
+
+Source `606a86c`. This round closed the offline local-child runtime chain and
+added the pure OP-D/E/F semantics that were still missing. No Docker,
+PostgreSQL, migration, TEST, venue, network or model call occurred.
+
+OP-C runtime: `local_child_current` composes activation+bundle, current book,
+target slice, parent funding envelope, qualification and locked-action risk,
+and exposes stable target/funding/risk identities plus a trusted schedule/
+volume port. `local_child_original` recovers the original command/request/
+commitment without resubmit authority. `local_child_observation` appends
+MAY/UNKNOWN reports (never fills/releases). `LocalChildPaperHost` sequences
+owner session/guard -> admission -> one permit mark -> explicit adapter send;
+an exception records UNKNOWN and never retries. `local_volume` binds verified,
+complete, contiguous activation windows; VP participation requires an explicit
+host policy and admission enforces schedule availability.
+
+OP-D: explicit no-bar-path inference model, published execution price range with
+`EXECUTION_RULE_PRICE_RANGE_EXCEEDED`, native-list terminal resolution (working
+leg cancel/expiry releases pending only as duties), and software-OCO double
+execution classification. OP-E: exact MODIFY_LIMIT incremental funding,
+CANCEL_REPLACE full replacement hold, and independent cancel/replacement
+outcomes with retained duties. OP-F: structured `ApiError.details`/REPLAN
+changed fields, expanded stage/field classifier, real catalog execution facts,
+admission/command/fill/venue/duty projections, V3 target rendering and frontend
+capability/replan bindings.
+
+Evidence: 357 Python cases passed + 4 existing infrastructure skips (exit 0,
+7.01s); web 121/121 passed; typecheck exit 0. Raw/JUnit under
+`docs/evidence/binance-orders/order-semantics/`. Still NOT_RUN: 0030/0031
+application and DB triggers/roles/concurrency/rollback, a real PaperEngine
+local-child adapter, AI/RULE/HYBRID automation wiring, management SQL reducers
+for MODIFY_LIMIT/CANCEL_REPLACE, native VP child generation, browser E2E and the
+full 46/56 batch. Current acceptance remains NOT_RUN; no capability promoted.
+
+
 ## ENVIRONMENT_GOVERNANCE_AND_LOCAL_CHILD_ADMISSION — 2026-10-31
 
 Source `64b3a50` on codex/binance-orders-resume. This round implemented the

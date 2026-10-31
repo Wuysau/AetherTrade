@@ -1,0 +1,65 @@
+{
+  "status": "OFFLINE_CODE_SLICE_VERIFIED / DATABASE_AND_ADAPTER_NOT_RUN",
+  "source_commit": "606a86cf7b7f5eeb086813b550c851d5f2942cd8",
+  "source_branch": "codex/binance-orders-resume",
+  "environment": {
+    "platform": "win32",
+    "python": "3.14 (project .venv)",
+    "node": "v24.13.0",
+    "pytest_plugin_autoload": "disabled",
+    "docker": "NOT_RUN",
+    "postgresql": "NOT_RUN",
+    "network": "NOT_RUN",
+    "test_environment": "NOT_ACCESSED",
+    "trading_mode": "PAPER"
+  },
+  "python_tests": {
+    "command": "python -X utf8 -m pytest tests/intents/test_local_child_admission.py tests/intents/test_local_child_current.py tests/intents/test_local_child_original_observation.py tests/intents/test_local_child_paper_host.py tests/intents/test_local_child_schedule.py tests/intents/test_local_volume_admission.py tests/intents/test_local_child_quantity.py tests/intents/test_local_child_request.py tests/intents/test_local_child_compilation.py tests/intents/test_local_child_funding.py tests/intents/test_local_child_obligations.py tests/intents/test_local_child_target.py tests/intents/test_local_child_commitment_reader.py tests/contracts/test_local_child_write.py tests/unit/test_op_d_code_gaps.py tests/unit/test_op_e_code_gaps.py tests/server/test_op_f_code_gaps.py tests/server/test_order_observation.py tests/server/test_program_model_context.py tests/ops -q -p no:cacheprovider",
+    "exit_code": 0,
+    "passed": 357,
+    "skipped": 4,
+    "seconds": 7.01,
+    "junit": "regression-junit.xml",
+    "raw": "regression-pytest.txt",
+    "skip_meaning": "Four existing infrastructure probes remain NOT_RUN; no PostgreSQL or Docker case ran."
+  },
+  "web_tests": {
+    "command": "npm --prefix web test",
+    "exit_code": 0,
+    "files": 12,
+    "passed": 121,
+    "raw": "web-tests.txt"
+  },
+  "typecheck": {
+    "command": "npm --prefix web run typecheck",
+    "exit_code": 0,
+    "raw": "typecheck.txt"
+  },
+  "implemented": [
+    "LocalChildCurrentReader: activation+bundle replay, current book/financial book, target slice, parent funding envelope, qualification, risk duty, stable target/funding/risk hashes and a trusted schedule/volume port.",
+    "LocalChildOriginal: original command/activation/request/commitment recovery with no resubmit authority.",
+    "LocalChildObservationV1: append-only reports for MAY/UNKNOWN commands; reports never become fills or releases.",
+    "LocalChildPaperHost: owner session/guard admission, one permit mark, send through an explicit adapter port, exception -> UNKNOWN, observation by original ID.",
+    "Activation-bound LocalVolumeWindowFacts and verified coverage gates; VP participation can come from an explicit trusted host policy; admission enforces schedule availability.",
+    "OP-D pure decisions: NO_BAR_PATH_INFERENCE bar ambiguity, published execution price range, native-list terminal resolution, software-OCO double-execution classification.",
+    "OP-E pure decisions: exact MODIFY_LIMIT incremental funding, CANCEL_REPLACE full replacement hold, independent cancel/replacement outcome record with retained duties.",
+    "OP-F backend: structured ApiError details, REPLAN changed_fields, complete stage/field classifier, catalog execution-support facts, admission/command/fill/venue/duty projections.",
+    "OP-F frontend: V3 target rendering, capability/replan binding fields, CAPABILITY_BLOCKED/REPLAN labels, ApiError details parsing."
+  ],
+  "not_run": [
+    "Applying 0030/0031 and executing triggers, role grants, FK/deferred completeness, quantity pool, concurrency and rollback.",
+    "A real PaperEngine local-child submit/query adapter (the host currently requires an explicit adapter port).",
+    "Automation wiring of AI/RULE/HYBRID through one program admission path.",
+    "SQL reducers for USD-M MODIFY_LIMIT, CANCEL_REPLACE and management effective price/queue overlay.",
+    "Native VP child generation and native parent/child V3 proof storage.",
+    "Browser E2E, real model calls, venue/TESTNET/LIVE and full 46/56 acceptance."
+  ],
+  "residual_risks": [
+    "LocalChildCurrentReader still depends on trusted host ports for current facts; a weak loader can supply false facts.",
+    "The local-child host adapter is a port, not a qualified PAPER engine submission path.",
+    "0031 remains an unapplied SQL candidate; its role and trigger semantics are statically reviewed only.",
+    "Stable hashes intentionally exclude per-poll clock/transaction digests; correctness depends on the final recheck and durable command bindings.",
+    "No management SQL reducer means MODIFY_LIMIT/CANCEL_REPLACE are decision/record code only, not executable PAPER commands.",
+    "No capability or acceptance case is promoted; current 46/56 remain NOT_RUN."
+  ]
+}
