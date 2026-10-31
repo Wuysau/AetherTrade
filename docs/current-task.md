@@ -1,5 +1,20 @@
 # Current task
 
+## SCOPE_AND_INFRASTRUCTURE_RECONFIRMED — 2026-10-31
+
+User explicitly confirms no shared DEV recovery/isolation/scheduler readiness
+evidence exists. Docker builds and PostgreSQL qualification remain BLOCKED;
+actual database cases NOT_RUN, no per-task environment fallback permitted.
+Catalog inspection corrects earlier notes: execution algorithms target Spot
+and USD-M only, not equity. Equity ordinary MARKET/LIMIT/session/cancel/query
+remain required. Do not extend local child work into equity algorithms.
+Added four explicit product-scope regressions; 48 selected compiler/native-call
+shape tests pass in 2.06s. No behavior or approved catalog changed. Evidence:
+docs/evidence/binance-orders/local-child-scope-review.json.
+Protected allocation SQL and real concurrency/recovery qualification remain
+unfinished dependencies, not waived by pure candidate previews.
+
+
 ## LOCAL_CHILD_PRE_ACK_QUANTITY — 2026-10-31
 
 Source f6e187d validates immutable original request/compilation pairs against

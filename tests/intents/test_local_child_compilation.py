@@ -46,3 +46,10 @@ def test_parent_boolean_metadata_cannot_be_replaced_by_equal_integer():
     forged=replace(parent,requests=(replace(parent.requests[0],requires_independent_command=1),))
     with pytest.raises(ValueError,match='LOCAL_CHILD_PARENT_CHANGED'):
         compile_local_child(forged,'0.1',rules,caps,**k)
+
+
+@pytest.mark.parametrize('template',['TWAP','VP'])
+@pytest.mark.parametrize('mode',['LOCAL_SYNTHETIC','VENUE_NATIVE'])
+def test_equity_algorithm_is_not_added_to_approved_product_scope(template,mode):
+    with pytest.raises(ValueError,match='EXECUTION_ALGORITHM_PRODUCT_UNSUPPORTED'):
+        make_plan(template,mode,t.Product.US_EQUITY)

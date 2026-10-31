@@ -1,0 +1,28 @@
+{
+  "scope": "APPROVED_CATALOG_ALIGNMENT",
+  "catalog": "qualification/binance_orders/reference/binance-order-capability-catalog.json",
+  "execution_algorithm_products": [
+    "SPOT",
+    "USD_M_PERP"
+  ],
+  "equity_targets": [
+    "EQUITY-MARKET",
+    "EQUITY-LIMIT",
+    "EQUITY-SESSIONS",
+    "EQUITY-CANCEL_QUERY"
+  ],
+  "correction": "Earlier resume notes listing equity local algorithm materialization as pending were broader than the approved catalog. Equity ordinary wallet binding remains a separate existing requirement. No catalog or runtime gate was changed.",
+  "validation": {
+    "command": "python -X utf8 -m pytest tests/intents/test_local_child_compilation.py tests/intents/test_native_creation_call.py -q -p no:cacheprovider",
+    "passed": 48,
+    "seconds": 2.06,
+    "exit_code": 0,
+    "scope": "TASK_LIGHT only"
+  },
+  "infrastructure": {
+    "user_confirmation": "2026-10-31: no shared DEV recovery, isolation or scheduler readiness evidence exists",
+    "heavy_tests": "BLOCKED",
+    "actual_database_cases": "NOT_RUN",
+    "temporary_environment_fallback": "FORBIDDEN"
+  }
+}
