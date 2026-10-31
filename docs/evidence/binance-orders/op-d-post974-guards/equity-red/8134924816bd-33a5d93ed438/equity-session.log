@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_equity_session_is_explicitly_unqualified_until_real_v2_calendar _____
+tests/integration/test_paper_market_matcher.py:373: in test_equity_session_is_explicitly_unqualified_until_real_v2_calendar
+    with pytest.raises(ValueError,match='PAPER_EQUITY_SESSION_MODEL_REQUIRED'):submit(c)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher.py::test_equity_session_is_explicitly_unqualified_until_real_v2_calendar
+1 failed in 9.90s

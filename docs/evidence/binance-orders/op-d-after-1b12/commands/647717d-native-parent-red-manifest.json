@@ -1,0 +1,79 @@
+{
+  "commit": "647717d8ef9b55d5e71fd219943caa2c63c3939f",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "native-parent-red",
+  "finished_utc": "2026-10-30T03:24:43.553556+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-647717d.bundle",
+        "HEAD",
+        "647717d8ef9b55d5e71fd219943caa2c63c3939f"
+      ],
+      "log": "647717d-native-parent-red-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "647717d-native-parent-red-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-647717d.bundle",
+        "647717d8ef9b55d5e71fd219943caa2c63c3939f"
+      ],
+      "log": "647717d-native-parent-red-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "647717d8ef9b55d5e71fd219943caa2c63c3939f"
+      ],
+      "log": "647717d-native-parent-red-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=647717d8ef9b55d5e71fd219943caa2c63c3939f",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/native-parent-red"
+      ],
+      "log": "647717d-native-parent-red.txt",
+      "exit_code": 1
+    }
+  ]
+}

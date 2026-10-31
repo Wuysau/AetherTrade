@@ -174,24 +174,6 @@ Unknown holds are never released here; every operation is conservatively blocked
             raise ValueError('PROGRAM_UNRESOLVED_EXCLUSION_INVALID')
         unresolved.extend(write.identity for write in actual if write.unresolved and
             (write.current.state=='UNKNOWN' or canonical_hash(domain_payload(write.original)) not in excluded))
-        return tuple(unresolved)
-
-    def unresolved_in_group(self, excluding: str, *, program_exclusion=()) -> tuple[str, ...]:
-        unresolved=list(self._legacy_unresolved_in_group(excluding))
-        from trading_system.storage.application_writes import application_write_obligations
-        # excluding is a legacy command ID. The distinct program namespace must
-        # still block, including when its original ID has the same text.
-        from trading_system.contracts.application_write_v3 import ApplicationWriteV3
-        from trading_system.contracts.canonical import domain_payload
-        if program_exclusion and not (type(program_exclusion) is tuple and all(type(w) is ApplicationWriteV3
-                and w.scope==self.tx.scope and w.state=='DURABLE_READY' for w in program_exclusion)):
-            raise ValueError('PROGRAM_UNRESOLVED_EXCLUSION_INVALID')
-        excluded={canonical_hash(domain_payload(w)) for w in program_exclusion}
-        actual=application_write_obligations(self.tx)
-        if not excluded<={canonical_hash(domain_payload(w.original)) for w in actual}:
-            raise ValueError('PROGRAM_UNRESOLVED_EXCLUSION_INVALID')
-        unresolved.extend(write.identity for write in actual if write.unresolved and
-            (write.current.state=='UNKNOWN' or canonical_hash(domain_payload(write.original)) not in excluded))
         from trading_system.storage.local_programs import local_program_obligations
         unresolved.extend(p.identity for p in local_program_obligations(self.tx) if p.unresolved)
         return tuple(unresolved)

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="9.484" timestamp="2026-10-30T03:39:20.828236+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision[ATOMIC]" time="4.826"><failure message="AssertionError: assert '0.112' == '0.1119'&#10;  &#10;  - 0.1119&#10;  + 0.112">tests/integration/test_paper_market_matcher_v2.py:474: in test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision
+    assert report.accepted_contexts[0].execution_envelope.fee_ceilings[0].amount=='0.1119'
+E   AssertionError: assert '0.112' == '0.1119'
+E     
+E     - 0.1119
+E     + 0.112</failure></testcase><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision[TWAP]" time="4.213"><failure message="AssertionError: assert '0.112' == '0.1119'&#10;  &#10;  - 0.1119&#10;  + 0.112">tests/integration/test_paper_market_matcher_v2.py:474: in test_actual_send_copies_protected_asset_fee_ceilings_exactly_under_low_caller_precision
+    assert report.accepted_contexts[0].execution_envelope.fee_ceilings[0].amount=='0.1119'
+E   AssertionError: assert '0.112' == '0.1119'
+E     
+E     - 0.1119
+E     + 0.112</failure></testcase></testsuite></testsuites>

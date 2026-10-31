@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.776" timestamp="2026-10-30T04:55:18.306324+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position" time="4.399"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_market_consumptions&#10;CONTEXT:  SQL statement &quot;SELECT coalesce(sum(CASE WHEN t.terms-&gt;&gt;'side'='BUY' THEN c.quantity ELSE -c.quantity END),0),&#10;   coalesce(bool_or(o.quantity_unit IS DISTINCT FROM unit OR (t.terms-&gt;&gt;'multiplier')::numeric IS DISTINCT FROM multiplier),false)&#10;                      FROM public.paper_market_consumptions c JOIN public.paper_market_inputs i USING(market_key,event_id)&#10;    JOIN public.paper_order_terms t ON t.scope_key=c.scope_key AND t.client_id=c.client_id&#10;    JOIN public.paper_engine_orders o ON o.scope_key=c.scope_key AND o.client_id=c.client_id&#10;    WHERE c.market_key=NEW.market_key AND i.sequence&gt;watermark&#10;     AND t.terms-&gt;'scope'-&gt;&gt;'venue_account_id'=NEW.payload-&gt;&gt;'venue_account_id'&#10;     AND t.terms-&gt;'scope'-&gt;&gt;'product'=NEW.payload-&gt;&gt;'product' AND t.terms-&gt;'scope'-&gt;&gt;'instrument_uid'=NEW.payload-&gt;&gt;'instrument_uid'&#10;     AND t.terms-&gt;'scope'-&gt;&gt;'venue_leg'=NEW.payload-&gt;&gt;'venue_leg'&quot;&#10;PL/pgSQL function public.paper_record_market_input_v2() line 48 at SQL statement">tests/integration/test_paper_market_matcher_v2.py:557: in test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position
+    matcher.apply_market_event(position_source(c,1,'1',0))
+src/trading_system/engine/paper_market.py:39: in call
+    return function(*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:692: in apply_market_event
+    if type(event) in (PaperReferenceEventV2,PaperClockEventV2,PaperCalendarEventV2,PaperLiquidityOwnershipEventV2,PaperPositionEventV2):return apply_reference_event(self.engine,event)
+                                                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market_v2.py:460: in apply_reference_event
+    db.execute('INSERT INTO public.paper_market_inputs VALUES(%s,%s,%s,%s,%s,%s,%s)',
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_market_consumptions
+E   CONTEXT:  SQL statement "SELECT coalesce(sum(CASE WHEN t.terms-&gt;&gt;'side'='BUY' THEN c.quantity ELSE -c.quantity END),0),
+E      coalesce(bool_or(o.quantity_unit IS DISTINCT FROM unit OR (t.terms-&gt;&gt;'multiplier')::numeric IS DISTINCT FROM multiplier),false)
+E                         FROM public.paper_market_consumptions c JOIN public.paper_market_inputs i USING(market_key,event_id)
+E       JOIN public.paper_order_terms t ON t.scope_key=c.scope_key AND t.client_id=c.client_id
+E       JOIN public.paper_engine_orders o ON o.scope_key=c.scope_key AND o.client_id=c.client_id
+E       WHERE c.market_key=NEW.market_key AND i.sequence&gt;watermark
+E        AND t.terms-&gt;'scope'-&gt;&gt;'venue_account_id'=NEW.payload-&gt;&gt;'venue_account_id'
+E        AND t.terms-&gt;'scope'-&gt;&gt;'product'=NEW.payload-&gt;&gt;'product' AND t.terms-&gt;'scope'-&gt;&gt;'instrument_uid'=NEW.payload-&gt;&gt;'instrument_uid'
+E        AND t.terms-&gt;'scope'-&gt;&gt;'venue_leg'=NEW.payload-&gt;&gt;'venue_leg'"
+E   PL/pgSQL function public.paper_record_market_input_v2() line 48 at SQL statement</failure></testcase></testsuite></testsuites>

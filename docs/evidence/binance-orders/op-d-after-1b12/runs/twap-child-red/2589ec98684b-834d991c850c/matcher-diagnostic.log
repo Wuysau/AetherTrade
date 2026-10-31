@@ -1,0 +1,11 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool _
+tests/integration/test_paper_market_matcher_v2.py:485: in test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool
+    assert len(first.orders)==1 and first.fills[0].quantity==D('0.2')
+E   AssertionError: assert (0 == 1)
+E    +  where 0 = len(())
+E    +    where () = PaperNativeProgramReportV2(command_id='isolated-command-8cd1b8bba9304c01b85f982639b6578d', request=VenueCreationReques...ETIC', visible_at='2026-10-28T10:00:00Z'), contract_version='2026-10-30', record_kind='PAPER_NATIVE_PROGRAM_REPORT_V2').orders
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_native_twap_generates_observed_children_once_from_persisted_clock_and_shared_depth_pool
+1 failed in 5.10s

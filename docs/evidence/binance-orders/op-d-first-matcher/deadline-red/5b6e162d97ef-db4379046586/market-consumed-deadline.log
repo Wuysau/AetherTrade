@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_consumed_permit_cannot_start_a_side_effect_after_actual_sim_lock_wait __
+tests/integration/test_paper_market_matcher.py:323: in test_consumed_permit_cannot_start_a_side_effect_after_actual_sim_lock_wait
+    with pytest.raises(ValueError,match='PAPER_CONSUMED_PERMIT_EXPIRED'):pending.result(timeout=30)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher.py::test_consumed_permit_cannot_start_a_side_effect_after_actual_sim_lock_wait
+1 failed in 6.06s

@@ -1,0 +1,163 @@
+{
+  "commit": "9748f46f916c1d630de5e75456554632166dc0ef",
+  "scope": "FIXED_COMMIT_DIAGNOSTIC_COHORTS_FRESH_DATABASE_EACH_NO_VENUE_QUALIFICATION",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-97fc01bf8fd6\\source-9748f46.bundle",
+        "HEAD",
+        "9748f46f916c1d630de5e75456554632166dc0ef"
+      ],
+      "exit_code": 0,
+      "log": "9748f46-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-9748f46.bundle",
+        "9748f46f916c1d630de5e75456554632166dc0ef"
+      ],
+      "exit_code": 0,
+      "log": "9748f46-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "9748f46f916c1d630de5e75456554632166dc0ef"
+      ],
+      "exit_code": 0,
+      "log": "9748f46-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=9748f46f916c1d630de5e75456554632166dc0ef",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "paper-market-matcher",
+        "--evidence-dir",
+        "/handoff/evidence/role-freeze"
+      ],
+      "exit_code": 0,
+      "log": "9748f46-paper-market-matcher.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=9748f46f916c1d630de5e75456554632166dc0ef",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "paper-engine",
+        "--evidence-dir",
+        "/handoff/evidence/role-freeze"
+      ],
+      "exit_code": 0,
+      "log": "9748f46-paper-engine.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=9748f46f916c1d630de5e75456554632166dc0ef",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "program-commands",
+        "--evidence-dir",
+        "/handoff/evidence/role-freeze"
+      ],
+      "exit_code": 0,
+      "log": "9748f46-program-commands.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=9748f46f916c1d630de5e75456554632166dc0ef",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "program-financial-admission",
+        "--evidence-dir",
+        "/handoff/evidence/role-freeze"
+      ],
+      "exit_code": 0,
+      "log": "9748f46-program-financial-admission.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=9748f46f916c1d630de5e75456554632166dc0ef",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "local-program-activation",
+        "--evidence-dir",
+        "/handoff/evidence/role-freeze"
+      ],
+      "exit_code": 0,
+      "log": "9748f46-local-program-activation.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "-m",
+        "pytest",
+        "tests/unit",
+        "tests/contracts",
+        "tests/intents",
+        "-q",
+        "--tb=short",
+        "--junitxml=/handoff/evidence/python-role-freeze.xml"
+      ],
+      "exit_code": 0,
+      "log": "9748f46-python-role-freeze.txt"
+    }
+  ]
+}

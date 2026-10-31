@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_existing_book_fill_cannot_precede_actual_order_acceptance ________
+tests/integration/test_paper_market_matcher.py:261: in test_existing_book_fill_cannot_precede_actual_order_acceptance
+    assert utc_timestamp(report.fills[0].occurred_at)>=utc_timestamp(accepted)
+E   AssertionError: assert datetime.datetime(2026, 10, 28, 10, 0, tzinfo=datetime.timezone.utc) >= datetime.datetime(2026, 10, 28, 10, 0, 1, tzinfo=datetime.timezone.utc)
+E    +  where datetime.datetime(2026, 10, 28, 10, 0, tzinfo=datetime.timezone.utc) = <function utc_timestamp at 0x7ea9d21e1120>('2026-10-28T10:00:00+00:00')
+E    +    where '2026-10-28T10:00:00+00:00' = PaperMarketFill(fill_id='paper-market-fill:3c2dce2d5d01512e6bdb6f4f190be511cf4d5af0c4c25e6a9db9a5ba33ca58a1', client_i...ironment=<Environment.PAPER: 'PAPER'>, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00+00:00')).occurred_at
+E    +  and   datetime.datetime(2026, 10, 28, 10, 0, 1, tzinfo=datetime.timezone.utc) = <function utc_timestamp at 0x7ea9d21e1120>('2026-10-28T10:00:01+00:00')
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher.py::test_existing_book_fill_cannot_precede_actual_order_acceptance
+1 failed in 12.30s

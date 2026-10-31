@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="8.970" timestamp="2026-10-30T03:24:34.278910+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool[SPOT]" time="4.418"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_market_matcher_v2.py:410: in test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool
+    receipt=submit(c);report=c.engine.query_creation(c.write.command_id)
+            ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:399: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool[USD_M_PERP]" time="4.147"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_market_matcher_v2.py:410: in test_native_twap_accepts_real_parent_without_a_fictitious_initial_ordinary_order_and_recovers_pool
+    receipt=submit(c);report=c.engine.query_creation(c.write.command_id)
+            ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:399: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_list)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase></testsuite></testsuites>

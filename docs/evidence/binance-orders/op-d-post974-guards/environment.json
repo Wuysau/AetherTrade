@@ -1,0 +1,55 @@
+{
+  "scope": "ACTUAL_PG_EQUITY_INTERIM_GUARD_AND_MARKET_WRITE_ARITHMETIC_NOT_FULL_OPD",
+  "guard_source": "2074f04",
+  "write_arithmetic_source": "7178e83",
+  "read_dependency": "6e8d32f mirrored1c1b90d; independent reports_fresh proof",
+  "runner_image": "sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7",
+  "isolation": "Explicit pinned sanitized dependency image, fresh dedicated local PostgreSQL cluster; new database each focused suite. No TLS/TTL relaxation or operational accounts.",
+  "counts": {
+    "precision-red/180984164748-532bf8f53217/depth-precision.xml": {
+      "tests": 1,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "precision-green/7178e83185f1-b8ccbe7850fd/depth-precision.xml": {
+      "tests": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "equity-red/8134924816bd-33a5d93ed438/equity-session.xml": {
+      "tests": 1,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "equity-green/2074f04db881-6d2a2e10175b/equity-session.xml": {
+      "tests": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "write_commit_source_sha256": "3c81b3d0d2bb8d273e9dab478d04751075ae027d041483b5bd6ee4c070be6c82",
+  "files_sha256": {
+    "1809841-manifest.json": "4e121d711770c7e187bf60c2c38af7a7b2aa83c0fb1ac5fa4d8aff2bcb3061f1",
+    "2074f04-manifest.json": "ea69e044ae5d05a64bea1d75c2ad0051490b46ff570df1b7522f89dc843cb663",
+    "7178e83-manifest.json": "dfd73346790cedcc08dd55aae663808704a970bd5ba2a6bee6f6fdba27748129",
+    "8134924-manifest.json": "c92fc833d946efaeec4b50830b1c85d9f1bd75a6d9f1f7ea0936ef4d105f9488",
+    "container-images.txt": "dcdbf9e5024cdbd163a2f39f7ba9bd5e30b4d04812d40ddfa0d1c4908ee0ca0a",
+    "launcher-manifest.json": "e58c9d7b79e8a14d2a7cb2ac8e22174454a63514aa5bf84eb28fb01f535d0b4b",
+    "precision-red/180984164748-532bf8f53217/depth-precision.log": "cb52b02b0c39ca1fffd68afd16147722350aa28435b728f38b0680a948a75ad5",
+    "precision-red/180984164748-532bf8f53217/depth-precision.xml": "b6c36d80385b353dca794b94ac550b110c056f925b8f67211c3e57d3e61b36a0",
+    "precision-red/180984164748-532bf8f53217/summary.json": "f589cb382dc7d2e793d39b86ab183383d63164e9346ae739f4ab54be39da45c7",
+    "precision-green/7178e83185f1-b8ccbe7850fd/depth-precision.log": "07a63e52982d8b9c121de77eefaa6e8056505099ad5a339c1a3feff188c10168",
+    "precision-green/7178e83185f1-b8ccbe7850fd/depth-precision.xml": "4559d3c82f0faf216b1b88d7df67fa2ccef4a7fdb487a56da1746c9bc03a6928",
+    "precision-green/7178e83185f1-b8ccbe7850fd/summary.json": "6d4677fa5f89869090b8c3b21a8d6ae85ca54c0758dc26f09d7a629814025378",
+    "equity-red/8134924816bd-33a5d93ed438/equity-session.log": "54b3cd81cb9632de3d1d628f3c7f77354215e4348d6a19e0d9d025b72de887c5",
+    "equity-red/8134924816bd-33a5d93ed438/equity-session.xml": "f37b348bcc7bcad5fb574e2dd21cfdba4b63b257e471cff35974244eb4bb6bb7",
+    "equity-red/8134924816bd-33a5d93ed438/summary.json": "18a873c8d01c20d4d26c66db76989ac362202afb82ecb9d9fb9d05599438763a",
+    "equity-green/2074f04db881-6d2a2e10175b/equity-session.log": "3e05e2f5cda3a63b60b1062a946629b8cd6b4ac81a031b21490d390b5332faa2",
+    "equity-green/2074f04db881-6d2a2e10175b/equity-session.xml": "4f034f830a2bb079f3369d5031f5f932dd43427b7e75f1264f6d9df3e5daff2b",
+    "equity-green/2074f04db881-6d2a2e10175b/summary.json": "6870862d20d9d8d1dd808f5ad44ea72a38ce4c59a5922e1537a8eac7ed3c7bde"
+  }
+}

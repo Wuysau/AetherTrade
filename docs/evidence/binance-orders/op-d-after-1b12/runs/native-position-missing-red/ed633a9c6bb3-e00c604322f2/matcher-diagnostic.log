@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_facts_are_missing _
+tests/integration/test_paper_market_matcher_v2.py:539: in test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_facts_are_missing
+    assert report.status=='WAITING_POSITION_SOURCE' and not report.orders and not report.fills
+E   AssertionError: assert ('EXECUTING' == 'WAITING_POSITION_SOURCE'
+E     
+E     - WAITING_POSITION_SOURCE
+E     + EXECUTING)
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_facts_are_missing
+1 failed in 4.58s

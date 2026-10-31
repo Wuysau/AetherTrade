@@ -1,0 +1,79 @@
+{
+  "commit": "96ecab47019c0b67e29ad30d2143cf0361230431",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "native-position-missing-green",
+  "finished_utc": "2026-10-30T04:25:57.016638+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-96ecab4.bundle",
+        "HEAD",
+        "96ecab47019c0b67e29ad30d2143cf0361230431"
+      ],
+      "log": "96ecab4-native-position-missing-green-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "96ecab4-native-position-missing-green-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-96ecab4.bundle",
+        "96ecab47019c0b67e29ad30d2143cf0361230431"
+      ],
+      "log": "96ecab4-native-position-missing-green-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "96ecab47019c0b67e29ad30d2143cf0361230431"
+      ],
+      "log": "96ecab4-native-position-missing-green-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=96ecab47019c0b67e29ad30d2143cf0361230431",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_reduce_only_parent_holds_real_pool_when_current_venue_position_facts_are_missing'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/native-position-missing-green"
+      ],
+      "log": "96ecab4-native-position-missing-green.txt",
+      "exit_code": 0
+    }
+  ]
+}

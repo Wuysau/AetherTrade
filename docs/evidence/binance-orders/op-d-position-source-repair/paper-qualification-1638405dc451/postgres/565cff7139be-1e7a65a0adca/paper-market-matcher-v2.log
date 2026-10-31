@@ -1,0 +1,10 @@
+.................................F                                       [100%]
+=================================== FAILURES ===================================
+__ test_actual_reduce_only_position_capacity_is_debited_between_depth_levels ___
+tests/integration/test_paper_market_matcher_v2.py:611: in test_actual_reduce_only_position_capacity_is_debited_between_depth_levels
+    assert ReservationRepository(tx).get(c.bundle.reservations[0].reservation.reservation_id).held==c.bundle.reservations[0].held
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^
+E   IndexError: tuple index out of range
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_actual_reduce_only_position_capacity_is_debited_between_depth_levels
+1 failed, 33 passed in 162.29s (0:02:42)

@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read ___
+tests/integration/test_paper_market_matcher_v2.py:437: in test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read
+    with pytest.raises(ValueError,match='PAPER_NATIVE_POOL_SOURCE_CHANGED'):c.engine.query_creation(c.write.command_id)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_native_parent_pool_cannot_change_its_protected_gross_ceiling_on_read
+1 failed in 4.98s

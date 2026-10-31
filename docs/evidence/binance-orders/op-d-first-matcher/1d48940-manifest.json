@@ -1,0 +1,67 @@
+{
+  "commit": "1d48940fbd1373c8774ff010f206b50eaf11aeb0",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-97fc01bf8fd6\\source-1d48940.bundle",
+        "HEAD",
+        "1d48940fbd1373c8774ff010f206b50eaf11aeb0"
+      ],
+      "exit_code": 0,
+      "log": "1d48940-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-1d48940.bundle",
+        "1d48940fbd1373c8774ff010f206b50eaf11aeb0"
+      ],
+      "exit_code": 0,
+      "log": "1d48940-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "1d48940fbd1373c8774ff010f206b50eaf11aeb0"
+      ],
+      "exit_code": 0,
+      "log": "1d48940-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=1d48940fbd1373c8774ff010f206b50eaf11aeb0",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-97fc01bf8fd6",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c; c.SUITES=(('market-fence-wait','03','tests/integration/test_paper_market_matcher.py::test_disabled_actual_source_fence_after_consume_blocks_sim_side_effect'),); raise SystemExit(c.main())",
+        "--suite",
+        "market-fence-wait",
+        "--evidence-dir",
+        "/handoff/evidence/fence-red"
+      ],
+      "exit_code": 1,
+      "log": "1d48940-market-fence-wait.txt"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "commit": "96de1535a7e1a6a4b4cb99acdc719bcd19c3cb38",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "position-source-green",
+  "finished_utc": "2026-10-30T04:55:23.435575+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-96de153.bundle",
+        "HEAD",
+        "96de1535a7e1a6a4b4cb99acdc719bcd19c3cb38"
+      ],
+      "log": "96de153-position-source-green-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "96de153-position-source-green-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-96de153.bundle",
+        "96de1535a7e1a6a4b4cb99acdc719bcd19c3cb38"
+      ],
+      "log": "96de153-position-source-green-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "96de1535a7e1a6a4b4cb99acdc719bcd19c3cb38"
+      ],
+      "log": "96de153-position-source-green-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=96de1535a7e1a6a4b4cb99acdc719bcd19c3cb38",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_actual_position_snapshot_and_fill_projection_constrain_native_reduce_only_without_lending_another_position'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/position-source-green"
+      ],
+      "log": "96de153-position-source-green.txt",
+      "exit_code": 1
+    }
+  ]
+}

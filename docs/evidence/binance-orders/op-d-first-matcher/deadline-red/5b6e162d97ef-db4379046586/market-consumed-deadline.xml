@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="6.057" timestamp="2026-10-29T10:31:07.836455+00:00" hostname="2a1fe728e4c5"><testcase classname="tests.integration.test_paper_market_matcher" name="test_consumed_permit_cannot_start_a_side_effect_after_actual_sim_lock_wait" time="5.534"><failure message="Failed: DID NOT RAISE ValueError">tests/integration/test_paper_market_matcher.py:323: in test_consumed_permit_cannot_start_a_side_effect_after_actual_sim_lock_wait
+    with pytest.raises(ValueError,match='PAPER_CONSUMED_PERMIT_EXPIRED'):pending.result(timeout=30)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase></testsuite></testsuites>

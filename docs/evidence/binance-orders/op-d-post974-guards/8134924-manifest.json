@@ -1,0 +1,77 @@
+{
+  "commit": "8134924816bd1039e02a65b8f18ae2d48128b31e",
+  "scope": "FIXED_SOURCE_FRESH_TEST_DATABASE_EXISTING_OWN_ISOLATED_CLUSTER",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-2a1fe1d2f68b\\source-8134924.bundle",
+        "HEAD",
+        "8134924816bd1039e02a65b8f18ae2d48128b31e"
+      ],
+      "exit_code": 0,
+      "log": "8134924-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-2a1fe1d2f68b"
+      ],
+      "exit_code": 0,
+      "log": "8134924-resume-own-runner.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-8134924.bundle",
+        "8134924816bd1039e02a65b8f18ae2d48128b31e"
+      ],
+      "exit_code": 0,
+      "log": "8134924-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "8134924816bd1039e02a65b8f18ae2d48128b31e"
+      ],
+      "exit_code": 0,
+      "log": "8134924-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=8134924816bd1039e02a65b8f18ae2d48128b31e",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c; c.SUITES=(('equity-session','03','tests/integration/test_paper_market_matcher.py::test_equity_session_is_explicitly_unqualified_until_real_v2_calendar'),); raise SystemExit(c.main())",
+        "--suite",
+        "equity-session",
+        "--evidence-dir",
+        "/handoff/evidence/equity-red"
+      ],
+      "exit_code": 1,
+      "log": "8134924-equity-session.txt"
+    }
+  ]
+}

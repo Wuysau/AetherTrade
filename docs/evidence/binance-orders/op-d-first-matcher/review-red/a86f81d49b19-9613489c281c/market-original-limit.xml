@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="12.294" timestamp="2026-10-29T10:11:58.113259+00:00" hostname="2a1fe728e4c5"><testcase classname="tests.integration.test_paper_market_matcher" name="test_original_4000_quote_limit_uses_compiled_native_quantity_without_rewriting_source" time="11.967"><failure message="ValueError: PAPER_NATIVE_QUANTITY_REQUIRED">tests/integration/test_paper_market_matcher.py:283: in test_original_4000_quote_limit_uses_compiled_native_quantity_without_rewriting_source
+    submit(c);matcher=PaperMatcher(c.engine)
+    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:67: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:300: in submit_creation
+    require(order.quantity.kind=='BASE_QUANTITY','PAPER_NATIVE_QUANTITY_REQUIRED')
+src/trading_system/engine/paper_market.py:28: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_NATIVE_QUANTITY_REQUIRED</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,12 @@
+.................................F                                       [100%]
+=================================== FAILURES ===================================
+__ test_actual_reduce_only_position_capacity_is_debited_between_depth_levels ___
+tests/integration/test_paper_market_matcher_v2.py:601: in test_actual_reduce_only_position_capacity_is_debited_between_depth_levels
+    assert tuple(f.quantity for f in report.fills)==(D('0.1'),D('0.05'))
+E   AssertionError: assert (Decimal('0.0...l('0.100000')) == (Decimal('0.1...cimal('0.05'))
+E     
+E     At index 0 diff: Decimal('0.050000') != Decimal('0.1')
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_actual_reduce_only_position_capacity_is_debited_between_depth_levels
+1 failed, 33 passed in 185.49s (0:03:05)
