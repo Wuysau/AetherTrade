@@ -168,6 +168,19 @@ class MarketTransport:
         self.ws_connect = ws_connect or _NoRedirectConnect
 
     async def get_json(self, config, path, params=None):
+        body=await self.get_bytes(config,path,params)
+        try:
+            return strict_json(body.decode('utf-8'))
+        except (ValueError,UnicodeError,RecursionError):
+            raise _bad_response() from None
+
+    async def get_bytes(self, config, path, params=None):
+        """Same guarded GET transport; bytes confer no source or execution authority.
+
+        A caller needing evidence must durably archive these original bytes
+        before decoding. Invalid JSON can therefore still be retained as raw
+        evidence; the existing get_json interface continues to reject it.
+        """
         try:
             base = validate_url(config['rest_url'], config['local_mode'])
             # Only caller-owned paths are appended; a path can never replace origin.
@@ -200,10 +213,7 @@ class MarketTransport:
                         if len(body) + len(chunk) > MAX_HTTP_BODY:
                             raise _bad_response()
                         body.extend(chunk)
-                    try:
-                        return strict_json(bytes(body).decode('utf-8'))
-                    except (ValueError, UnicodeError, RecursionError):
-                        raise _bad_response() from None
+                    return bytes(body)
                 finally:
                     await response.aclose()
         except ApiError:
