@@ -342,6 +342,16 @@ class LocalSnapshotBackend:
     def read(self, key: str) -> bytes:
         return (self.root / key).read_bytes()
 
+    def read_bounded(self, key: str, maximum_bytes: int) -> bytes:
+        """Read at most limit+1 bytes, rejecting oversize before full allocation."""
+        if not is_digest(key) or type(maximum_bytes) is not int or not 0<=maximum_bytes<=16_777_216:
+            raise SnapshotIntegrityError('invalid bounded snapshot read')
+        with (self.root / key).open('rb') as handle:
+            data=handle.read(maximum_bytes+1)
+        if len(data)>maximum_bytes:
+            raise SnapshotIntegrityError('snapshot object exceeds read bound')
+        return data
+
     def _sync_directory(self) -> None:
         # Directory fsync is unavailable on some platforms; the rename still
         # provides atomic publication. Callers must not treat this as a

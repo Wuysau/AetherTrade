@@ -43,7 +43,7 @@ class AggregateTradeArchive:
         self.backend=backend
 
     def _commit(self,key,data):
-        try:previous=self.backend.read(key)
+        try:previous=self.backend.read_bounded(key,len(data))
         except FileNotFoundError:pass
         else:need(previous==data)
         staged=self.backend.stage(key,data)
@@ -54,11 +54,14 @@ class AggregateTradeArchive:
 
     def record(self,request,payload,*,received_at):
         need(type(request) is AggregateTradeRequest)
-        request.__post_init__();utc_timestamp(received_at)
+        request.__post_init__()
+        need(type(received_at) is str and len(received_at)<=64)
+        utc_timestamp(received_at)
         need(type(payload) is bytes and len(payload)<=1_048_576)
         raw_hash=sha256(payload).hexdigest()
-        self._commit(raw_hash,payload)
         manifest=_manifest(request,raw_hash,received_at)
+        need(len(manifest)<=65536)
+        self._commit(raw_hash,payload)
         manifest_hash=sha256(manifest).hexdigest()
         self._commit(manifest_hash,manifest)
         return AggregateArchiveReceipt(request_hash=request.identity_hash,payload_hash=raw_hash,
@@ -66,13 +69,15 @@ class AggregateTradeArchive:
 
     def read_payload(self,request,receipt):
         need(type(request) is AggregateTradeRequest and type(receipt) is AggregateArchiveReceipt)
-        request.__post_init__();utc_timestamp(receipt.received_at)
+        request.__post_init__()
+        need(type(receipt.received_at) is str and len(receipt.received_at)<=64)
+        utc_timestamp(receipt.received_at)
         need(all(is_digest(v) for v in (receipt.request_hash,receipt.payload_hash,receipt.manifest_hash)))
         need(receipt.request_hash==request.identity_hash)
-        manifest=self.backend.read(receipt.manifest_hash)
+        manifest=self.backend.read_bounded(receipt.manifest_hash,65536)
         need(len(manifest)<=65536 and sha256(manifest).hexdigest()==receipt.manifest_hash
             and manifest==_manifest(request,receipt.payload_hash,receipt.received_at))
-        raw=self.backend.read(receipt.payload_hash)
+        raw=self.backend.read_bounded(receipt.payload_hash,1_048_576)
         need(len(raw)<=1_048_576 and sha256(raw).hexdigest()==receipt.payload_hash)
         return raw
 
