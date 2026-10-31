@@ -38,6 +38,37 @@ def assess_catalog(catalog, acceptance):
         acceptance=[dict(id=c['id'],work_package=c['work_package'],feature_ids=c['feature_ids'],
             status='NOT_RUN',evidence=[],reason='Scenario not executed by metadata audit') for c in cases])
 
+def summarize_acceptance(catalog, acceptance, recorded, *, head):
+    """Report recorded claims, never authenticate evidence or qualify HEAD."""
+    result=assess_catalog(catalog,acceptance)
+    expected={c['id']:c for c in acceptance['cases']}
+    rows=recorded.get('cases',[])
+    if (recorded.get('case_count')!=56 or len(rows)!=56
+            or len({r['id'] for r in rows})!=56 or {r['id'] for r in rows}!=set(expected)):
+        raise ValueError('Acceptance case coverage changed')
+    counts=dict.fromkeys(('PASS','FAIL','BLOCKED','NOT_RUN'),0)
+    report=[]
+    for row in rows:
+        reference=expected[row['id']]
+        if any(row.get(k)!=reference.get(k) for k in
+               ('title','input_or_fault','expected','feature_ids','source_refs','work_package')):
+            raise ValueError('Acceptance requirement changed')
+        status=row.get('status');evidence=row.get('evidence');source=row.get('source_commit')
+        if status not in counts:raise ValueError('Unknown acceptance status')
+        if status=='PASS' and (not isinstance(evidence,list) or not evidence
+                or not all(type(e) is str and e for e in evidence)
+                or type(source) is not str or not source):
+            raise ValueError('Recorded PASS lacks source/evidence attribution')
+        counts[status]+=1
+        report.append(dict(id=row['id'],feature_ids=row['feature_ids'],
+            recorded_status=status,recorded_source_commit=source,recorded_evidence=evidence,
+            recorded_qualification=row.get('qualification'),current_status='NOT_RUN',
+            reason='Historical claims are not current-source execution evidence'))
+    result.update(scope='OFFLINE_ACCEPTANCE_INVENTORY_NOT_QUALIFICATION',head=head,
+        recorded_counts=counts,acceptance=report,evidence_authenticated=False)
+    return result
+
+
 def audit_checkout(root):
     root=Path(root).resolve()
     def git(*args): return subprocess.check_output(['git',*args],cwd=root,text=True).strip()
@@ -68,10 +99,17 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--acceptance-inventory',action='store_true',help='Report historical case claims without qualifying current source')
     args=parser.parse_args();result=audit_checkout(args.root)
+    if args.acceptance_inventory:
+        reference=args.root/'qualification/binance_orders/reference'
+        read=lambda p:json.loads(p.read_text(encoding='utf-8'))
+        result=summarize_acceptance(read(reference/'binance-order-capability-catalog.json'),
+            read(reference/'acceptance-cases.json'),read(args.root/'qualification/binance_orders/acceptance-status.json'),
+            head=result['head'])
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(dict(capabilities=len(result['capabilities']),cases=len(result['acceptance']),
-        native=result['native']['status'],scope=result['scope'],execution_authority=False)))
+        native=result.get('native',{}).get('status','NOT_RUN'),scope=result['scope'],execution_authority=False)))
     return 0  # Audit succeeded; explicitly NOT a native qualification exit status.
 if __name__=='__main__':raise SystemExit(main())
