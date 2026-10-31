@@ -28,6 +28,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = (
+    ('program-cost-history', '03', 'tests/integration/test_program_cost_history_postgres.py'),
     ('effective-orders', '03', 'tests/integration/test_effective_orders_postgres.py'),
     ('effective-source-boundary', '03', 'tests/integration/test_effective_source_boundary.py'),
     ('program-paper-host', '03', 'tests/integration/test_program_paper_host.py'),

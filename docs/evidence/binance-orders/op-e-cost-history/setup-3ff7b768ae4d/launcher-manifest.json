@@ -1,0 +1,52 @@
+{
+  "source_commit": "a2dd0a1da513fda896e2acda32326ef91a7d6f2d",
+  "historical_source_commits": [],
+  "started_utc": "2026-10-30T12:27:30.495237+00:00",
+  "postgres_container": "aethertrade-qualification-pg-3ff7b768ae4d",
+  "runner_container": "aethertrade-qualification-runner-3ff7b768ae4d",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "-c",
+        "core.longpaths=true",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-cost-history\\.runtime\\paper-qualification-3ff7b768ae4d\\source.bundle",
+        "HEAD",
+        "a2dd0a1da513fda896e2acda32326ef91a7d6f2d"
+      ],
+      "log": "bundle.txt",
+      "timeout_seconds": 600,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        "aethertrade-qualification-pg-3ff7b768ae4d",
+        "--env-file",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-cost-history\\.runtime\\paper-qualification-3ff7b768ae4d\\container.env",
+        "postgres:17-alpine"
+      ],
+      "log": "postgres-start.txt",
+      "timeout_seconds": 600,
+      "exit_code": 1
+    }
+  ],
+  "launcher_sha256": "25ea8463903389d47a7aec51eebcb8d985d1d2562252d96898a9c440c2a943d2",
+  "scope": "LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION",
+  "diagnostic_suite": "program-cost-history",
+  "deadline_seconds": 1200,
+  "runner_image": "sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7",
+  "offline_dependencies": true,
+  "failure_type": "RuntimeError",
+  "exit_code": 1,
+  "finished_utc": "2026-10-30T12:28:03.695867+00:00",
+  "files_sha256": {
+    "bundle.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "postgres-start.txt": "31f9367b5314dcb770eaf6ee5a46b1489f50d2f891ee16b3007c8f5c9988d634"
+  }
+}

@@ -68,6 +68,14 @@ def require_current_program_book_cash(tx,book,*,read_opening=None):
     need(binding.economic_revision==frame.economic_revision and binding.balances==frame.balances,
         'STALE_BOOK_ACCOUNT_CASH')
     _vector(book,frame)
+    # A complete public Coverage flag is not authority after native ownership.
+    for position in book.positions:
+        if position.cost_evidence.query_succeeded and position.cost_evidence.pagination_complete:
+            has_native=tx.execute('SELECT 1 FROM ledger.program_fill_source_approvals WHERE scope_id=%s LIMIT 1',
+                (scope_id(tx.scope),)).fetchone()
+            if has_native is not None:
+                from .program_cost_history import require_program_cost_history
+                require_program_cost_history(tx,read_opening=read_opening)
     return frame
 
 
