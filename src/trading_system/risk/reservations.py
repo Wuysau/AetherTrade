@@ -22,6 +22,8 @@ from .evaluator import RiskEvaluator, RiskInputs
 from .reservation_repository import ReservationRepository, merge_holds, balance_watermark
 from .locked_actions import LockedActionVerifier
 from .target_guard import TargetBasis, target_obligations
+from .asset_capacity import amounts, CapacityInputs, check_capacity
+from .admission_clock import AdmissionWindow
 from trading_system.intents.semantic_validation import ProposalRejected
 from trading_system.intents.target_compiler import TargetInputs, compile_locked
 
@@ -74,21 +76,124 @@ class ReleasedBalanceAttestation:
     evidence: tuple[t.EvidenceRef, ...]
 
 
-def amounts(values):
-    result = {}
-    for value in values:
-        if (not value.currency or value.currency in result or not isinstance(value.amount, Decimal)
-                or not value.amount.is_finite()
-                or value.amount < 0):
-            raise ValueError('invalid or ambiguous asset amounts')
-        result[value.currency] = value.amount
-    return result
-
-
 def complete(coverage, scope):
     return (coverage.scope == scope and coverage.query_succeeded and coverage.supported
             and coverage.pagination_complete and not coverage.missing)
 
+
+@dataclass(frozen=True, kw_only=True)
+class PreparedCollateral:
+    """Current reconciled collateral facts, never financial approval."""
+    book: t.BookSnapshot
+    holds: tuple[t.ReservationProjection, ...]
+    released_proof: ReleasedBalanceAttestation | None
+    rejection_codes: tuple[str, ...] = ()
+
+
+def prepare_collateral(tx, book, *, load_released_balances=None) -> PreparedCollateral:
+    """One shared read/verification path under the existing group mutex.
+
+    The existing released-balance verifier recognizes legacy command
+    proofs only. A program cannot acquire credit by supplying a new record
+    kind to that verifier; a qualified version-aware proof remains required.
+    This helper performs no release, reservation, command or permit write.
+    """
+    tx.require_scope(book.scope)
+    repo = ReservationRepository(tx)
+    deny = lambda *codes: PreparedCollateral(book=book, holds=(),
+        released_proof=None, rejection_codes=tuple(codes))
+    from trading_system.risk.program_cash_guard import require_current_account_book
+    from trading_system.storage.models import MissingEvidence
+    try:
+        require_current_account_book(tx,book)
+    except (MissingEvidence,ValueError) as error:
+        return deny(str(error))
+    originals = repo.group()
+    group = merge_holds(originals, book)
+    released_proof = None
+    if load_released_balances:
+        from trading_system.risk.target_guard import digest
+        proof = load_released_balances(tx, book, originals)
+        if (type(proof) is not ReleasedBalanceAttestation or proof.transaction_id != tx.transaction_id
+                or proof.book_hash != digest(book) or proof.evidence != book.evidence
+                or len(set(proof.reservation_ids)) != len(proof.reservation_ids)):
+            return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+        restored = {}
+        for original in originals:
+            r = original.reservation
+            if r.reservation_id not in proof.reservation_ids:
+                continue
+            if (r.state != t.ReservationState.RELEASED or original.held or original.reflected
+                    or original.release_pending or not r.command_refs):
+                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+            release_raw = tx.execute('SELECT scope_id,payload FROM ledger.audit_events WHERE record_id=%s',
+                ('ip07:proof:' + r.reservation_id + ':' + str(original.sequence),)).fetchone()
+            release = decode(ReconciliationProof, release_raw[1]) if release_raw else None
+            if (release is None or not release.obligations_cleared or not release.evidence.terminal_verified
+                    or release.intent_id != r.intent_id or release.command_refs != r.command_refs
+                    or release.asset != r.asset or release.evidence.reflected_amount != 0
+                    or any(utc_timestamp(e.visible_at) < utc_timestamp(release.evidence.venue_freeze_ref.visible_at)
+                        for e in book.evidence)):
+                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+            # A persisted release is still insufficient if any command has
+            # become uncertain, or its current order is not terminal.
+            for cid in r.command_refs:
+                source = tx.execute('SELECT scope_id FROM ledger.commands WHERE record_id=%s AND sequence=1', (cid,)).fetchone()
+                if source is None:
+                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+                raw = tx.execute('SELECT payload FROM ledger.commands WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+                    (source[0], cid)).fetchone()
+                stored = decode(ExecutionCommand, raw[0])
+                outcome = tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+                    (source[0], 'ip10:outcome:' + cid)).fetchone()
+                from trading_system.execution.commands import CommandOutcome, command_hash
+                result = decode(CommandOutcome, outcome[0]) if outcome else None
+                order_raw = tx.execute('SELECT payload FROM ledger.order_projections WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
+                    (source[0], stored.logical_client_order_id)).fetchone()
+                order = decode(t.OrderProjection, order_raw[0]) if order_raw else None
+                if result is not None and result.receipt.status == t.CommandState.ABORTED_UNSENT:
+                    # An authoritative abort has no venue order. Require the
+                    # SQL-guarded immutable send-boundary proof, not merely
+                    # an audit receipt claiming that nothing was sent.
+                    abort = tx.execute('SELECT command_payload,outcome FROM ledger.command_aborts '
+                        'WHERE scope_id=%s AND command_id=%s', (source[0], cid)).fetchone()
+                    if (abort is None or abort[0] != raw[0] or abort[1] != outcome[0]
+                            or stored.state != 'DURABLE_READY' or order is not None
+                            or result.provenance != 'LOCAL_UNSENT_ABORT'
+                            or result.command_id != cid or result.receipt.command_id != cid
+                            or stored.intent_id != r.intent_id
+                            or result.request_hash != command_hash(stored)
+                            or result.durable_record_ref != stored.durable_record_ref
+                            or release.evidence.command_certainty != 'NOT_SENT'):
+                        return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+                    continue
+                if (result is None or result.command_id != cid or result.receipt.command_id != cid
+                        or stored.intent_id != r.intent_id or result.request_hash != command_hash(stored)
+                        or result.durable_record_ref != stored.durable_record_ref
+                        or result.receipt.status not in (t.CommandState.VENUE_CONFIRMED, t.CommandState.VENUE_REJECTED)
+                        or order is None or order.lifecycle_state not in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED')
+                        or order.command_certainty != 'CONFIRMED' or order.pending_operation != 'NONE'
+                        or order.leaves_quantity.value != 0 or scope_id(order.order.identity.scope) != source[0]
+                        or order.order.identity.logical_client_order_id != stored.logical_client_order_id
+                        or order.order.identity.venue_client_order_id != stored.venue_client_order_id
+                        or order.order.ownership_epoch != stored.ownership_epoch
+                        or order.order.owner_strategy_id != r.owner_strategy_id):
+                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+            restored[r.reservation_id] = original
+        if set(restored) != set(proof.reservation_ids):
+            return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
+        group = tuple(restored.get(p.reservation.reservation_id, p) for p in group)
+        released_proof = proof
+    for p in group:
+        r = p.reservation
+        if (r.environment != tx.scope.environment or r.collateral_group_id != tx.group_id
+                or not r.asset or not r.reservation_id
+                or any(not isinstance(v, Decimal) or not v.is_finite() or v < 0
+                       for v in (r.amount, p.held, p.reflected, p.release_pending))
+                or p.reflected > p.held or p.held > r.amount or p.release_pending > p.held):
+            return deny('INVALID_RESERVATION')
+    book = replace(book, reservations=group)
+    return PreparedCollateral(book=book, holds=group, released_proof=released_proof)
 
 class ReservationService:
     def __init__(self, uow, scope: t.ScopeKey, load_inputs, *, clock,
@@ -112,7 +217,7 @@ class ReservationService:
                 or intent.product != self.scope.product or intent.instrument_uid != self.scope.instrument_uid
                 or intent.venue_leg != self.scope.venue_leg):
             raise ScopeMismatch('intent scope mismatch')
-        return self._transaction(lambda tx: self._reserve(tx, intent, expected_book_sequence))
+        return self._transaction(lambda tx: self._reserve_legacy(tx, intent, expected_book_sequence))
 
     def reserve_proposal(self, intent_id: str) -> t.ReservationOutcome:
         """Revalidate one immutable durable intake; a receipt ID is no permit.
@@ -136,9 +241,35 @@ class ReservationService:
             intent = accepted_intent(record)
             if intent.intent_id != intent_id or record.receipt.status != t.IntentState.VALIDATING:
                 raise MissingEvidence('proposal intent binding mismatch')
-            return self._reserve(tx, intent, record.book_sequence, accepted=record)
+            return self._reserve_legacy(tx, intent, record.book_sequence, accepted=record)
 
         return self._transaction(operation)
+
+    def _reserve_legacy(self, tx, intent, expected, *, accepted=None):
+        """Public legacy entry points cannot bypass v2 program validation.
+
+        OrderProgramIngress alone composes validated v2 inputs with _reserve in
+        the same real transaction. No request flag can exempt this boundary.
+        Its immutable ProgramIntake is saved before reservation input loading.
+        """
+        from trading_system.intents.order_program_ingress import ProgramIntake, trusted_program_intake
+        if (tx._latest('audit_events', 'order-program-intake:' + intent.intent_id, ProgramIntake) is not None
+                or trusted_program_intake(tx,intent.intent_id) is not None):
+            return t.ReservationOutcome(accepted=False, reservations=(),
+                book_sequence=tx.projections.book(self.scope).sequence,
+                rejection_codes=('PROGRAM_ADMISSION_REQUIRED',))
+        return self._reserve(tx, intent, expected, accepted=accepted)
+
+    def _reserve_program(self,tx,intake_record_id,command_ids,*,load_inputs,
+                         load_qualification=None,load_action_proof=None,load_clock=None,load_execution_bounds=None):
+        """Private program branch; caller attaches writes in this SAME tx.
+
+        The original public reserve/reserve_proposal legacy routes are unchanged.
+        No standalone program success receipt or permit is issued here.
+        """
+        from .program_financial_admission import reserve_program
+        return reserve_program(self,tx,intake_record_id,command_ids,load_inputs,
+            load_qualification,load_action_proof,load_clock,load_execution_bounds)
 
     def _transaction(self, operation):
         for attempt in range(self.maximum_attempts):
@@ -155,6 +286,9 @@ class ReservationService:
                     raise
                 # New transaction, book, holds, authority and risk calculation.
         raise AssertionError('unreachable')
+
+    def _prepare_collateral(self, tx, book) -> PreparedCollateral:
+        return prepare_collateral(tx, book, load_released_balances=self.load_released_balances)
 
     def _reserve(self, tx, intent, expected, *, accepted=None):
         repo = ReservationRepository(tx)
@@ -198,91 +332,10 @@ class ReservationService:
             return deny('REPLAN_REQUIRED:STALE_BOOK')
         if not complete(book.coverage, self.scope) or not book.evidence:
             return deny('BOOK_INCOMPLETE')
-        originals = repo.group()
-        group = merge_holds(originals, book)
-        released_proof = None
-        if self.load_released_balances:
-            from trading_system.risk.target_guard import digest
-            proof = self.load_released_balances(tx, book, originals)
-            if (type(proof) is not ReleasedBalanceAttestation or proof.transaction_id != tx.transaction_id
-                    or proof.book_hash != digest(book) or proof.evidence != book.evidence
-                    or len(set(proof.reservation_ids)) != len(proof.reservation_ids)):
-                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
-            restored = {}
-            for original in originals:
-                r = original.reservation
-                if r.reservation_id not in proof.reservation_ids:
-                    continue
-                if (r.state != t.ReservationState.RELEASED or original.held or original.reflected
-                        or original.release_pending or not r.command_refs):
-                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
-                release_raw = tx.execute('SELECT scope_id,payload FROM ledger.audit_events WHERE record_id=%s',
-                    ('ip07:proof:' + r.reservation_id + ':' + str(original.sequence),)).fetchone()
-                release = decode(ReconciliationProof, release_raw[1]) if release_raw else None
-                if (release is None or not release.obligations_cleared or not release.evidence.terminal_verified
-                        or release.intent_id != r.intent_id or release.command_refs != r.command_refs
-                        or release.asset != r.asset or release.evidence.reflected_amount != 0
-                        or any(utc_timestamp(e.visible_at) < utc_timestamp(release.evidence.venue_freeze_ref.visible_at)
-                            for e in book.evidence)):
-                    return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
-                # A persisted release is still insufficient if any command has
-                # become uncertain, or its current order is not terminal.
-                for cid in r.command_refs:
-                    source = tx.execute('SELECT scope_id FROM ledger.commands WHERE record_id=%s AND sequence=1', (cid,)).fetchone()
-                    if source is None:
-                        return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
-                    raw = tx.execute('SELECT payload FROM ledger.commands WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
-                        (source[0], cid)).fetchone()
-                    stored = decode(ExecutionCommand, raw[0])
-                    outcome = tx.execute('SELECT payload FROM ledger.audit_events WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
-                        (source[0], 'ip10:outcome:' + cid)).fetchone()
-                    from trading_system.execution.commands import CommandOutcome, command_hash
-                    result = decode(CommandOutcome, outcome[0]) if outcome else None
-                    order_raw = tx.execute('SELECT payload FROM ledger.order_projections WHERE scope_id=%s AND record_id=%s ORDER BY sequence DESC LIMIT 1',
-                        (source[0], stored.logical_client_order_id)).fetchone()
-                    order = decode(t.OrderProjection, order_raw[0]) if order_raw else None
-                    if result is not None and result.receipt.status == t.CommandState.ABORTED_UNSENT:
-                        # An authoritative abort has no venue order. Require the
-                        # SQL-guarded immutable send-boundary proof, not merely
-                        # an audit receipt claiming that nothing was sent.
-                        abort = tx.execute('SELECT command_payload,outcome FROM ledger.command_aborts '
-                            'WHERE scope_id=%s AND command_id=%s', (source[0], cid)).fetchone()
-                        if (abort is None or abort[0] != raw[0] or abort[1] != outcome[0]
-                                or stored.state != 'DURABLE_READY' or order is not None
-                                or result.provenance != 'LOCAL_UNSENT_ABORT'
-                                or result.command_id != cid or result.receipt.command_id != cid
-                                or stored.intent_id != r.intent_id
-                                or result.request_hash != command_hash(stored)
-                                or result.durable_record_ref != stored.durable_record_ref
-                                or release.evidence.command_certainty != 'NOT_SENT'):
-                            return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
-                        continue
-                    if (result is None or result.command_id != cid or result.receipt.command_id != cid
-                            or stored.intent_id != r.intent_id or result.request_hash != command_hash(stored)
-                            or result.durable_record_ref != stored.durable_record_ref
-                            or result.receipt.status not in (t.CommandState.VENUE_CONFIRMED, t.CommandState.VENUE_REJECTED)
-                            or order is None or order.lifecycle_state not in ('FILLED', 'CANCELED', 'EXPIRED', 'REJECTED')
-                            or order.command_certainty != 'CONFIRMED' or order.pending_operation != 'NONE'
-                            or order.leaves_quantity.value != 0 or scope_id(order.order.identity.scope) != source[0]
-                            or order.order.identity.logical_client_order_id != stored.logical_client_order_id
-                            or order.order.identity.venue_client_order_id != stored.venue_client_order_id
-                            or order.order.ownership_epoch != stored.ownership_epoch
-                            or order.order.owner_strategy_id != r.owner_strategy_id):
-                        return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
-                restored[r.reservation_id] = original
-            if set(restored) != set(proof.reservation_ids):
-                return deny('RELEASE_BALANCE_ATTESTATION_INVALID')
-            group = tuple(restored.get(p.reservation.reservation_id, p) for p in group)
-            released_proof = proof
-        for p in group:
-            r = p.reservation
-            if (r.environment != self.scope.environment or r.collateral_group_id != tx.group_id
-                    or not r.asset or not r.reservation_id
-                    or any(not isinstance(v, Decimal) or not v.is_finite() or v < 0
-                           for v in (r.amount, p.held, p.reflected, p.release_pending))
-                    or p.reflected > p.held or p.held > r.amount or p.release_pending > p.held):
-                return deny('INVALID_RESERVATION')
-        book = replace(book, reservations=group)
+        collateral = self._prepare_collateral(tx, book)
+        if collateral.rejection_codes:
+            return deny(*collateral.rejection_codes)
+        book, group, released_proof = collateral.book, collateral.holds, collateral.released_proof
         inputs = self.load_inputs(tx, intent, book)
         if type(started_ns) is not int or started_ns < 0:
             return deny('EXPIRED_OR_UNBOUND_CLOCK')
@@ -304,22 +357,11 @@ class ReservationService:
             return deny('ACTIVE_RISK_LOCK')
         expires = min(map(utc_timestamp, (action_until, intent.valid_until,
             intent.execution.entry_deadline, inputs.risk.expires_at)))
-        last_at, last_ns = started_at, started_ns
+        admission_window = AdmissionWindow(started_at=started_at, started_ns=started_ns,
+            wall_clock=self.clock, monotonic_clock=self.monotonic_clock)
 
         def current_time():
-            nonlocal last_at, last_ns
-            # Both clocks are trusted service readers, never intent fields.
-            # A backwards wall-clock step cannot extend the monotonic window.
-            duration = expires - started_at
-            deadline_ns = started_ns + ((duration.days * 86400 + duration.seconds) * 1_000_000_000
-                                       + duration.microseconds * 1000)
-            current_reading = self.clock()
-            current_at, current_ns = utc_timestamp(current_reading), self.monotonic_clock()
-            if (type(current_ns) is not int or not last_ns <= current_ns < deadline_ns
-                    or not last_at <= current_at < expires):
-                return None
-            last_at, last_ns = current_at, current_ns
-            return current_reading, current_at, current_ns
+            return admission_window.poll(expires)
 
         # Proof readers may be slow, including local database/archive reads.
         current = current_time()
@@ -382,17 +424,12 @@ class ReservationService:
             return deny('TARGET_CANCEL_AND_RECONCILE_REQUIRED')
         if plan.remaining.value == 0:
             return deny('TARGET_ALREADY_SATISFIED')
-        balances, limits, strategy, buffers = map(amounts,
-            (book.balances, inputs.group_capacity, inputs.strategy_capacity, inputs.buffer))
-        for asset, required in amounts(decision.reserved_assets).items():
-            same = [p for p in group if p.reservation.asset == asset]
-            held = sum((p.held for p in same), D(0))
-            owned = sum((p.held for p in same if p.reservation.owner_strategy_id == intent.owner_strategy_id), D(0))
-            unreflected = sum((max(p.held - p.reflected, p.release_pending) for p in same), D(0))
-            if any(asset not in values for values in (balances, limits, strategy, buffers)) or required > min(
-                    balances.get(asset, D(0)) - unreflected - buffers.get(asset, D(0)),
-                    limits.get(asset, D(0)) - held, strategy.get(asset, D(0)) - owned):
-                return deny('INSUFFICIENT_CAPACITY:' + asset)
+        capacity = check_capacity(CapacityInputs(incremental_requirements=decision.reserved_assets,
+            venue_free_balances=book.balances, remaining_group_capacity=inputs.group_capacity,
+            remaining_strategy_capacity=inputs.strategy_capacity, buffers=inputs.buffer,
+            reconciled_group_holds=group, owner_strategy_id=intent.owner_strategy_id))
+        if not capacity.sufficient:
+            return deny(*capacity.rejection_codes)
         command = inputs.command
         if (command.intent_id != intent.intent_id or command.environment != intent.environment
                 or command.venue_account_id != intent.venue_account_id or command.product != intent.product

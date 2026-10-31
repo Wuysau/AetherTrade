@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.937" timestamp="2026-10-30T03:07:39.049772+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_stp_decrement_retains_original_quantity_and_exact_prevented_leaves_then_fills_only_external_remainder" time="4.602"><failure message="ValueError: PAPER_V2_EXECUTION_STAGE_REQUIRED">tests/integration/test_paper_market_matcher_v2.py:387: in test_stp_decrement_retains_original_quantity_and_exact_prevented_leaves_then_fills_only_external_remainder
+    submit(c);matcher=PaperMatcher(c.engine);depth=event(c,quantity='0.4');matcher.apply_market_event(depth)
+    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:408: in submit_creation
+    if v2:validate_atomic_v2(engine.scope,node)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market_v2.py:270: in validate_atomic_v2
+    require(o.price.kind in ('FIXED_LIMIT','MARKET','PEG','PRICE_MATCH') and o.trigger.kind in ('NONE','STATIC','TRAILING')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_V2_EXECUTION_STAGE_REQUIRED</failure></testcase></testsuite></testsuites>

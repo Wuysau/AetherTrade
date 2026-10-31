@@ -1,0 +1,79 @@
+{
+  "commit": "840f9ee6559ffd21fde53295550354303189e74b",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "native-policy-red",
+  "finished_utc": "2026-10-30T02:59:00.487101+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-840f9ee.bundle",
+        "HEAD",
+        "840f9ee6559ffd21fde53295550354303189e74b"
+      ],
+      "log": "840f9ee-native-policy-red-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "840f9ee-native-policy-red-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-840f9ee.bundle",
+        "840f9ee6559ffd21fde53295550354303189e74b"
+      ],
+      "log": "840f9ee-native-policy-red-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "840f9ee6559ffd21fde53295550354303189e74b"
+      ],
+      "log": "840f9ee-native-policy-red-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=840f9ee6559ffd21fde53295550354303189e74b",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_pending_node_cannot_borrow_program_gross_to_exceed_its_individual_policy_limit'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/native-policy-red"
+      ],
+      "log": "840f9ee-native-policy-red.txt",
+      "exit_code": 1
+    }
+  ]
+}

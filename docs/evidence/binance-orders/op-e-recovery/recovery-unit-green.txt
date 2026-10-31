@@ -1,0 +1,15 @@
+.......F.                                                                [100%]
+================================== FAILURES ===================================
+_ test_query_targets_and_scheduler_keep_existing_ids_after_submission_expires _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B6E7866B10>
+
+    def test_query_targets_and_scheduler_keep_existing_ids_after_submission_expires(monkeypatch):
+>       data=case();result=restore(data)
+             ^^^^
+E       UnboundLocalError: cannot access local variable 'case' where it is not associated with a value
+
+tests\unit\test_original_creation_recovery.py:46: UnboundLocalError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_original_creation_recovery.py::test_query_targets_and_scheduler_keep_existing_ids_after_submission_expires
+1 failed, 8 passed in 7.13s

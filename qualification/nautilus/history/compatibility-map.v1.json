@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "review_ref": "96ec148a8249eda918c9ee3219c7030755cabcf0",
+  "deployment_ref": null,
+  "status": "BLOCKED_QUALIFICATION",
+  "live_enabled": false,
+  "official_source_query_utc": null,
+  "source_status": "LOCAL_APPROVED_SPEC_ONLY_NO_NETWORK_QUERY",
+  "mappings": [
+    {
+      "product_port": "SUBMIT",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "CLOSE",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "CANCEL",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "AMEND",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "SET_PROTECTION",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "REPLACE_PROTECTION",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "ALGORITHM_CHILD",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "ALGORITHM_CANCEL",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "ALGORITHM_AMEND",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "BATCH_SUBMIT",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "CANCEL_ALL",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "EMERGENCY_CLOSE",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "RETRY_RESEND",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "RECONCILIATION_WRITE",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "ADAPTER_DIRECT",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "STOCKS_WRITE",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "src/trading_system/contracts/ports.py",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Exact-build API binding requires native verification"
+    }
+  ],
+  "required_native_checks": [
+    "exact_build_imports",
+    "single_live_node_host",
+    "default_overrides",
+    "all_side_effect_paths_interceptable",
+    "upgrade_id_protection_recovery",
+    "old_state_migration"
+  ],
+  "settings_sources": {
+    "submission_recovery_semantics": "src/trading_system/recovery/reconciler.py",
+    "native_risk_bypass": "src/trading_system/risk/evaluator.py",
+    "flush_on_start": "src/trading_system/runtime/execution_owner.py"
+  }
+}

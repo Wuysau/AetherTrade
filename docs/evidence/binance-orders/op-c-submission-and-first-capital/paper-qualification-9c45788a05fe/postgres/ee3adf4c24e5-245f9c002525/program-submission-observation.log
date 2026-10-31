@@ -1,0 +1,48 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[1] _
+tests/integration/test_program_submission_observation.py:49: in test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release
+    service,codec=observer(c,tmp_path/str(version),version)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_submission_observation.py:26: in observer
+    from trading_system.execution.program_submission_observation import ProgramSubmissionObservationService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_submission_observation'
+_ test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[2] _
+tests/integration/test_program_submission_observation.py:49: in test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release
+    service,codec=observer(c,tmp_path/str(version),version)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_submission_observation.py:26: in observer
+    from trading_system.execution.program_submission_observation import ProgramSubmissionObservationService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_submission_observation'
+_ test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold __
+tests/integration/test_program_submission_observation.py:69: in test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold
+    PaperMatcher(c.engine).apply_market_event(event(c,ask='81480',quantity='1'));submit(c)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:82: in event
+    return PaperMarketEvent(contract_version='2026-10-29',event_id=event_id or uuid4().hex,stream_id=c.scope.instrument_uid,
+<string>:14: in __init__
+    ???
+src/trading_system/engine/paper_market.py:83: in __post_init__
+    require(max(number(l.price) for l in self.bids)<min(number(l.price) for l in self.asks),'PAPER_CROSSED_SOURCE_BOOK')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_CROSSED_SOURCE_BOOK
+_ test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty _
+tests/integration/test_program_submission_observation.py:81: in test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty
+    c=case(database,venue,tmp_path);submit(c);service,codec=observer(c,tmp_path/'unknown')
+                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_submission_observation.py:26: in observer
+    from trading_system.execution.program_submission_observation import ProgramSubmissionObservationService
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_submission_observation'
+_ test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness _
+tests/integration/test_program_submission_observation.py:99: in test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness
+    from trading_system.execution.program_submission_observation import read_program_submission_observation
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_submission_observation'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_submission_observation.py::test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[1]
+FAILED tests/integration/test_program_submission_observation.py::test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[2]
+FAILED tests/integration/test_program_submission_observation.py::test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold
+FAILED tests/integration/test_program_submission_observation.py::test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty
+FAILED tests/integration/test_program_submission_observation.py::test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness
+5 failed in 21.11s

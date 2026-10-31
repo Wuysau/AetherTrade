@@ -1,0 +1,61 @@
+{
+  "source_commit": "ef80b58a3a003d5a5c0b8916fd5b95ad600e33e8",
+  "prerequisite_manifest": "ROOT-CASH-DEPENDENCY-b7f6d85.json",
+  "required_paths": [
+    {
+      "path": "src/trading_system/intents/program_target_allocation.py",
+      "sha256": "5813ae63658c3ae6f911dffe46ff3912462cbc74f57fe199501faa2448dc81e6"
+    },
+    {
+      "path": "src/trading_system/intents/program_assessment_archive.py",
+      "sha256": "71db9400ba38662ae96dba5ae83687f705aa5eaabf5172e2002b22b951ff3c99"
+    },
+    {
+      "path": "src/trading_system/risk/program_assessment.py",
+      "sha256": "b887d97a0c613d743d60b75c6d2bd919f141c7fd987ab90ff28120f32b0cd4dd"
+    },
+    {
+      "path": "src/trading_system/risk/program_quantity_scope.py",
+      "sha256": "cd4218a1a3567b00ce63c85fbe75348820a00e3d54814d4d83e35b6e1c18c69d"
+    },
+    {
+      "path": "src/trading_system/risk/program_financial_admission.py",
+      "sha256": "069d25d7581b7829d5d12ea3346fa86151f0171d9149a8cd8ab26d561c11a4be"
+    },
+    {
+      "path": "src/trading_system/execution/program_commands.py",
+      "sha256": "f8c07f89391035607d3e0529137a97a41378695f8854dc54394fd8b337386222"
+    },
+    {
+      "path": "src/trading_system/execution/program_consumed_boundary.py",
+      "sha256": "6b43046fb66ba34f722abab1832b79f6b924a92f204e1b0ca2a1acb307f0bc48"
+    },
+    {
+      "path": "tests/integration/test_program_financial_admission.py",
+      "sha256": "679ef80a10296ea7a71af05ce2ce913b9f6c375a5af48d7d5378c9e37d2de531"
+    }
+  ],
+  "optional_validation_paths": [
+    "tests/integration/test_program_scoped_financial.py",
+    "tests/unit/test_program_scoped_target.py"
+  ],
+  "registry_hunk": "Add program-scoped-financial diagnostic/mandatory suite without replacing existing CASH inventory.",
+  "keep": "Preserve every CASH source513/asset/book/owned/readiness/initialproof/fills module and later9f historical-origin fix; no older Root CASH module overwrite.",
+  "api": {
+    "current_program_quantity_reservation_ids": "(tx,raw_source_book,financial_book,*,bundle=None)",
+    "validate_current_program_quantity_scope": "(tx,raw_source_book,financial_book,target_facts,*,bundle=None)",
+    "current_scoped_program_financial_book": "(tx,bundle,raw_source_book)",
+    "real_case": "scoped_quantities=True; explicit declared opening/binding before first intent; same-account/group supported"
+  },
+  "evidence": {
+    "suite": "program-scoped-financial",
+    "passed": 11,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 24.81,
+    "original_handle": 52785,
+    "run": "56c2a02dfbcb"
+  },
+  "scope": "PAPER_PHYSICAL_QUANTITY_COMPONENT_NOT_CASH_OWNED_OR_FULL46_56_QUALIFICATION"
+}

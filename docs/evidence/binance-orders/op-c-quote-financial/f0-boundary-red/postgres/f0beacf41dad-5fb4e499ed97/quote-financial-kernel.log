@@ -1,0 +1,16 @@
+......FF                                                                 [100%]
+=================================== FAILURES ===================================
+_ test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier[final_enforcement_expired] _
+tests/integration/test_quote_financial_kernel_postgres.py:154: in test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier
+    with pytest.raises(ValueError):c.service._transaction(lambda tx:reserve(c,tx))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier[final_enforcement_changed_book] _
+tests/integration/test_quote_financial_kernel_postgres.py:154: in test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier
+    with pytest.raises(ValueError):c.service._transaction(lambda tx:reserve(c,tx))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_quote_financial_kernel_postgres.py::test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier[final_enforcement_expired]
+FAILED tests/integration/test_quote_financial_kernel_postgres.py::test_last_enforcement_read_cannot_outlive_clock_or_current_book_barrier[final_enforcement_changed_book]
+2 failed, 6 passed in 6.71s

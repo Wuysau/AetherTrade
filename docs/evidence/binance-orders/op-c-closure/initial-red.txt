@@ -1,0 +1,66 @@
+.FF..............                                                        [100%]
+=================================== FAILURES ===================================
+________ test_reviewed_full_release_preserves_creation_and_funding_link ________
+tests/integration/test_order_program_closure.py:78: in test_reviewed_full_release_preserves_creation_and_funding_link
+    result=s.service.close(s.scope,s.program.program_id,s.targets)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/order_program_closure.py:192: in close
+    ReservationRepository(tx).save(projection)
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservation_repository.py:82: in save
+    self.tx._append('audit_events', 'ip07:reservation:' + projection.reservation.reservation_id,
+src/trading_system/storage/uow.py:71: in _append
+    self.execute(f'INSERT INTO ledger.{table} '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.AmbiguousFunction: operator is not unique: unknown - unknown
+E   LINE 2:   OR (NEW.payload->'reservation'-'state'-'reflected_amount'-...
+E                                           ^
+E   HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+E   QUERY:  prior IS NULL OR original IS NULL OR NEW.payload#>>'{reservation,reservation_id}' IS DISTINCT FROM reservation_id
+E     OR (NEW.payload->'reservation'-'state'-'reflected_amount'-'evidence_watermark') IS DISTINCT FROM (original-'state'-'reflected_amount'-'evidence_watermark')
+E     OR COALESCE(NEW.payload->>'held','') !~ '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+E     OR COALESCE(prior->>'held','') !~ '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+E     OR (NEW.payload->>'held')::numeric>(original->>'amount')::numeric
+E     OR (NEW.payload->>'sequence')::bigint IS DISTINCT FROM NEW.sequence
+E     OR NEW.sequence IS DISTINCT FROM (prior->>'sequence')::bigint+1
+E   CONTEXT:  PL/pgSQL function guard_program_reservation_reduction() line 9 at IF
+_____________ test_reviewed_partial_reduction_keeps_residual_hold ______________
+tests/integration/test_order_program_closure.py:87: in test_reviewed_partial_reduction_keeps_residual_hold
+    result=s.service.close(s.scope,s.program.program_id,s.targets)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/order_program_closure.py:192: in close
+    ReservationRepository(tx).save(projection)
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/risk/reservation_repository.py:82: in save
+    self.tx._append('audit_events', 'ip07:reservation:' + projection.reservation.reservation_id,
+src/trading_system/storage/uow.py:71: in _append
+    self.execute(f'INSERT INTO ledger.{table} '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.AmbiguousFunction: operator is not unique: unknown - unknown
+E   LINE 2:   OR (NEW.payload->'reservation'-'state'-'reflected_amount'-...
+E                                           ^
+E   HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+E   QUERY:  prior IS NULL OR original IS NULL OR NEW.payload#>>'{reservation,reservation_id}' IS DISTINCT FROM reservation_id
+E     OR (NEW.payload->'reservation'-'state'-'reflected_amount'-'evidence_watermark') IS DISTINCT FROM (original-'state'-'reflected_amount'-'evidence_watermark')
+E     OR COALESCE(NEW.payload->>'held','') !~ '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+E     OR COALESCE(prior->>'held','') !~ '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+E     OR (NEW.payload->>'held')::numeric>(original->>'amount')::numeric
+E     OR (NEW.payload->>'sequence')::bigint IS DISTINCT FROM NEW.sequence
+E     OR NEW.sequence IS DISTINCT FROM (prior->>'sequence')::bigint+1
+E   CONTEXT:  PL/pgSQL function guard_program_reservation_reduction() line 9 at IF
+=========================== short test summary info ============================
+FAILED tests/integration/test_order_program_closure.py::test_reviewed_full_release_preserves_creation_and_funding_link
+FAILED tests/integration/test_order_program_closure.py::test_reviewed_partial_reduction_keeps_residual_hold
+2 failed, 15 passed in 12.09s

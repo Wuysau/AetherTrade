@@ -1,0 +1,52 @@
+FFFFFFFF..                                                               [100%]
+=================================== FAILURES ===================================
+_ test_ready_reversion_retains_original_uncertain_identity[pending-MAY_HAVE_SENT] _
+tests/integration/test_application_write_obligations.py:156: in test_ready_reversion_retains_original_uncertain_identity
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+__ test_ready_reversion_retains_original_uncertain_identity[pending-UNKNOWN] ___
+tests/integration/test_application_write_obligations.py:156: in test_ready_reversion_retains_original_uncertain_identity
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_ready_reversion_retains_original_uncertain_identity[original-boundary-MAY_HAVE_SENT] _
+tests/integration/test_application_write_obligations.py:156: in test_ready_reversion_retains_original_uncertain_identity
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_ready_reversion_retains_original_uncertain_identity[original-boundary-UNKNOWN] _
+tests/integration/test_application_write_obligations.py:156: in test_ready_reversion_retains_original_uncertain_identity
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+__ test_ready_reversion_cannot_erase_uncertain_history[pending-MAY_HAVE_SENT] __
+tests/unit/test_application_write_reader.py:163: in test_ready_reversion_cannot_erase_uncertain_history
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_____ test_ready_reversion_cannot_erase_uncertain_history[pending-UNKNOWN] _____
+tests/unit/test_application_write_reader.py:163: in test_ready_reversion_cannot_erase_uncertain_history
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_ready_reversion_cannot_erase_uncertain_history[original-send-boundary-MAY_HAVE_SENT] _
+tests/unit/test_application_write_reader.py:163: in test_ready_reversion_cannot_erase_uncertain_history
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+_ test_ready_reversion_cannot_erase_uncertain_history[original-send-boundary-UNKNOWN] _
+tests/unit/test_application_write_reader.py:163: in test_ready_reversion_cannot_erase_uncertain_history
+    with pytest.raises(MissingEvidence,match='PROGRAM_WRITE_STATE_REGRESSION'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE MissingEvidence
+=========================== short test summary info ============================
+FAILED tests/integration/test_application_write_obligations.py::test_ready_reversion_retains_original_uncertain_identity[pending-MAY_HAVE_SENT]
+FAILED tests/integration/test_application_write_obligations.py::test_ready_reversion_retains_original_uncertain_identity[pending-UNKNOWN]
+FAILED tests/integration/test_application_write_obligations.py::test_ready_reversion_retains_original_uncertain_identity[original-boundary-MAY_HAVE_SENT]
+FAILED tests/integration/test_application_write_obligations.py::test_ready_reversion_retains_original_uncertain_identity[original-boundary-UNKNOWN]
+FAILED tests/unit/test_application_write_reader.py::test_ready_reversion_cannot_erase_uncertain_history[pending-MAY_HAVE_SENT]
+FAILED tests/unit/test_application_write_reader.py::test_ready_reversion_cannot_erase_uncertain_history[pending-UNKNOWN]
+FAILED tests/unit/test_application_write_reader.py::test_ready_reversion_cannot_erase_uncertain_history[original-send-boundary-MAY_HAVE_SENT]
+FAILED tests/unit/test_application_write_reader.py::test_ready_reversion_cannot_erase_uncertain_history[original-send-boundary-UNKNOWN]
+8 failed, 2 passed, 37 deselected in 5.90s

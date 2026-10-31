@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.406" timestamp="2026-10-30T12:47:46.710007+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.unit.test_program_continuation" name="test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context[1.23456789]" time="0.120"><failure message="AssertionError: assert (Quantity(valu..., unit='BASE') == Quantity(valu..., unit='BASE')&#10;  &#10;  Omitting 1 identical items, use -vv to show&#10;  Differing attributes:&#10;  ['value']&#10;  &#10;  Drill down into differing attribute value:&#10;    value: Decimal('1.23000000') != Decimal('1.23456789'))">tests\unit\test_program_continuation.py:75: in test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context
+    assert executable==qty and residual.value==0
+E   AssertionError: assert (Quantity(valu..., unit='BASE') == Quantity(valu..., unit='BASE')
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing attributes:
+E     ['value']
+E     
+E     Drill down into differing attribute value:
+E       value: Decimal('1.23000000') != Decimal('1.23456789'))</failure></testcase><testcase classname="tests.unit.test_program_continuation" name="test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context[-1.23456789]" time="0.001"><failure message="AssertionError: assert (Quantity(valu..., unit='BASE') == Quantity(valu..., unit='BASE')&#10;  &#10;  Omitting 1 identical items, use -vv to show&#10;  Differing attributes:&#10;  ['value']&#10;  &#10;  Drill down into differing attribute value:&#10;    value: Decimal('-1.23000000') != Decimal('-1.23456789'))">tests\unit\test_program_continuation.py:75: in test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context
+    assert executable==qty and residual.value==0
+E   AssertionError: assert (Quantity(valu..., unit='BASE') == Quantity(valu..., unit='BASE')
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing attributes:
+E     ['value']
+E     
+E     Drill down into differing attribute value:
+E       value: Decimal('-1.23000000') != Decimal('-1.23456789'))</failure></testcase></testsuite></testsuites>

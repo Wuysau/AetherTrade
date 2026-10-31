@@ -51,7 +51,8 @@ def clock_now() -> t.ClockReading:
 class CommandDispatcher:
     def __init__(self, uow, scope: t.ScopeKey, engine: EnginePort | None = None, *,
                  load_facts=None, owner_guard=None, clock=clock_now, load_action_proof=None,
-                 side_effect_guard=None, before_check=None):
+                 side_effect_guard=None, before_check=None, load_program_facts=None,
+                 load_program_qualification=None):
         if scope.environment not in (t.Environment.PAPER, t.Environment.RESEARCH):
             raise DispatchDenied('only offline PAPER/RESEARCH composition is enabled')
         self.uow, self.scope, self.engine = uow, scope, engine
@@ -59,6 +60,8 @@ class CommandDispatcher:
         self.load_action_proof = load_action_proof
         self.side_effect_guard = side_effect_guard
         self.before_check = before_check
+        self.load_program_facts = load_program_facts
+        self.load_program_qualification = load_program_qualification
 
     def _clock_check(self, lease, facts=None, permit=None):
         reading = self.clock()
@@ -76,6 +79,22 @@ class CommandDispatcher:
     def _check(self, tx, command, lease, permit=None):
         repo = CommandRepository(tx)
         intent = repo.validate_binding(command)
+        from trading_system.intents.order_program_ingress import (
+            COMMAND_PREFIX, OrderProgramCommandBinding, ProgramAdmission, ProgramIntake,
+            trusted_program_intake, validate_program_command,
+        )
+        program = tx._latest('audit_events', COMMAND_PREFIX + command.command_id, OrderProgramCommandBinding)
+        if program is None and (
+                tx._latest('audit_events', 'order-program-admission:' + intent.intent_id, ProgramAdmission) is not None
+                or tx._latest('audit_events', 'order-program-intake:' + intent.intent_id, ProgramIntake) is not None
+                or trusted_program_intake(tx,intent.intent_id) is not None):
+            # Follow-on/replan/protection builders must bind the full v2 program
+            # too; absence of a sidecar must never select the legacy path.
+            raise DispatchDenied('PROGRAM_COMMAND_BINDING_REQUIRED')
+        if program is not None:
+            if self.load_program_facts is None or self.load_program_qualification is None:
+                raise DispatchDenied('PROGRAM_DISPATCH_NOT_CONFIGURED')
+            validate_program_command(tx, command, intent, self.load_program_facts, self.load_program_qualification)
         facts = self.load_facts(tx, command, intent)
         if not isinstance(facts, DispatchFacts):
             raise DispatchDenied('DISPATCH_FACTS_MISSING')

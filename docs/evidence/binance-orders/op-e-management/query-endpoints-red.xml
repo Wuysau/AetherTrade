@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.391" timestamp="2026-10-29T17:36:45.035667+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.intents.test_order_query" name="test_caller_cannot_remove_history_endpoint_from_the_expected_scan[BINANCE_SPOT_EXECUTION_ALGO]" time="0.024"><failure message="Failed: DID NOT RAISE ValueError">reader = ((VenueManagementRequest(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isolated', product...E439EBA0&gt;, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-337/test_caller_cannot_remove_hist0'))
+
+    def test_caller_cannot_remove_history_endpoint_from_the_expected_scan(reader):
+        from trading_system.engine.nautilus.order_query import resolve_original_query
+        requests,bridge,path=reader
+        page=archive(reader,rows=[])
+&gt;       with pytest.raises(ValueError,match='QUERY_ENDPOINT_SET_REQUIRED'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\intents\test_order_query.py:91: Failed</failure></testcase><testcase classname="tests.intents.test_order_query" name="test_caller_cannot_remove_history_endpoint_from_the_expected_scan[BINANCE_USD_M_EXECUTION_ALGO]" time="0.010"><failure message="Failed: DID NOT RAISE ValueError">reader = ((VenueManagementRequest(scope=ScopeKey(environment=&lt;Environment.PAPER: 'PAPER'&gt;, venue_account_id='isolated', product...E44BF750&gt;, WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-337/test_caller_cannot_remove_hist1'))
+
+    def test_caller_cannot_remove_history_endpoint_from_the_expected_scan(reader):
+        from trading_system.engine.nautilus.order_query import resolve_original_query
+        requests,bridge,path=reader
+        page=archive(reader,rows=[])
+&gt;       with pytest.raises(ValueError,match='QUERY_ENDPOINT_SET_REQUIRED'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\intents\test_order_query.py:91: Failed</failure></testcase></testsuite></testsuites>

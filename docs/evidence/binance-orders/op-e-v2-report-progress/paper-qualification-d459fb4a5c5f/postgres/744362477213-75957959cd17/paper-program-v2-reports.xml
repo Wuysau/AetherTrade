@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="33" time="150.981" timestamp="2026-10-30T04:49:16.693080+00:00" hostname="d71b8119e6f0"><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_v2_market_partial_preserves_native_economics_and_explicit_v2_provenance" time="4.934" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_trailing_observation_survives_creation_window_and_keeps_every_causal_input" time="4.552" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_missing_nonfinal_trailing_dependency_is_archived_but_never_qualified" time="4.437" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_command" time="5.332"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2">tests/integration/test_paper_program_v2_reports_postgres.py:107: in test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_command
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_changed_native_parent_venue_identity_cannot_be_authenticated_by_a_resealed_dto" time="5.076"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2">tests/integration/test_paper_program_v2_reports_postgres.py:123: in test_changed_native_parent_venue_identity_cannot_be_authenticated_by_a_resealed_dto
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_missing_real_competing_account_allocation_cannot_be_hidden_by_resealing_evidence" time="8.660" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_complete_causal_graph_is_stored_once_not_copied_into_every_fill_provenance" time="4.704" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl" time="5.367"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2">tests/integration/test_paper_program_v2_reports_postgres.py:170: in test_accepted_native_oto_pending_observation_uses_complete_working_fills_not_new_permit_or_creation_ttl
+    c=completed_oto(database,venue_v2,tmp_path);result=observe(c,tmp_path/'raw')
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_fake_native_pending_working_fill_link_is_archived_not_accepted" time="4.989"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2">tests/integration/test_paper_program_v2_reports_postgres.py:186: in test_fake_native_pending_working_fill_link_is_archived_not_accepted
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills[EXPIRE_TAKER-1-0]" time="3.953" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills[EXPIRE_MAKER-0-1]" time="3.848" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills[EXPIRE_BOTH-1-0]" time="3.969" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_stp_preventions_have_complete_owned_depth_causality_and_never_become_fills[DECREMENT-.4-.6]" time="3.996" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_decrement_restarted_verifier_preserves_original_quantity_and_only_external_fill" time="4.170" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_primary_peg_uses_earlier_placement_depth_not_later_quote" time="4.112" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_iceberg_hidden_quantity_is_not_fill_or_released_reservation" time="7.731" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_equity_calendar_clock_can_use_prior_depth_without_replenishing_it" time="4.152" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_duplicate_actual_fill_cannot_be_replayed_inside_resealed_report" time="3.897" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_disposition_market_identity_cannot_be_changed_while_actual_raw_is_retained" time="3.911" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_resealed_input_snapshot_must_match_actual_archived_predepth_and_clock[before_levels]" time="3.777" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_resealed_input_snapshot_must_match_actual_archived_predepth_and_clock[observed_clock]" time="4.052" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_accepted_model_must_be_actual_stored_model_even_without_any_fill" time="3.899" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_order_lifecycle_cannot_be_resealed_into_a_false_terminal_observation" time="3.960" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_native_fill_survives_cumulative_remaining_and_original_quantity_conflicts_uncapped[filled_quantity-0.5-ORDER_CUMULATIVE_FILL_MISMATCH]" time="4.542" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_native_fill_survives_cumulative_remaining_and_original_quantity_conflicts_uncapped[remaining_quantity-0.9-ORDER_REMAINING_QUANTITY_MISMATCH]" time="4.115" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_native_fill_survives_cumulative_remaining_and_original_quantity_conflicts_uncapped[quantity-0.3-ORDER_OVERFILLED]" time="4.167" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_otoco_full_working_sum_native_sibling_and_pool_complete_after_creation_window" time="5.583"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2">tests/integration/test_paper_program_v2_reports_postgres.py:367: in test_actual_otoco_full_working_sum_native_sibling_and_pool_complete_after_creation_window
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:27: in observe
+    try:return service.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:170: in verify
+    manifest=self._manifest(original,clock,refs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_v2_reports.py:122: in _manifest
+    exclusive=db.execute('SELECT winner_client_id,node_ids FROM public.paper_native_exclusivity_v2 '
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_native_exclusivity_v2</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_missing_actual_rival_stp_prevention_is_never_hidden_by_resealed_proof" time="7.838" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_v2_forked_process_restart_keeps_identical_facts_and_does_not_post" time="4.022" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_unknown_market_shape_retains_actual_report_archive_and_duties" time="3.943" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_price_match_uses_original_five_level_book_without_inventing_native_limit" time="4.045" /><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_bid_ask_trigger_selects_side_specific_reference_and_existing_depth" time="0.029"><failure message="trading_system.intents.semantic_validation.ProposalRejected: SPOT_TRIGGER_SOURCE_UNSUPPORTED">tests/integration/test_paper_program_v2_reports_postgres.py:430: in test_actual_bid_ask_trigger_selects_side_specific_reference_and_existing_depth
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,
+tests/integration/test_paper_market_matcher_v2.py:21: in advanced_case
+    c=case(database,venue_v2,tmp_path,**options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:43: in case
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:76: in real_case
+    c=risk_module.risk_case(**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:67: in selected_plan
+    plan,r=original_plan_for(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:36: in plan_for
+    return compile_order_program(p,r,c,**k),r
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_compilation.py:660: in compile_order_program
+    features = requested_order_features(program, scope.product)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/order_features.py:32: in requested_order_features
+    require(order.trigger.source=='LAST','SPOT_TRIGGER_SOURCE_UNSUPPORTED')
+src/trading_system/intents/semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: SPOT_TRIGGER_SOURCE_UNSUPPORTED</failure></testcase><testcase classname="tests.integration.test_paper_program_v2_reports_postgres" name="test_actual_gtd_clock_expiry_after_original_creation_window_is_not_new_submission" time="4.257" /></testsuite></testsuites>

@@ -1,0 +1,223 @@
+{
+  "source_runner": "aethertrade-qualification-runner-78c6c2758b3a",
+  "source_run": "5afa535e51be5ee57247d18845397960abb90c76",
+  "operations": [
+    {
+      "argv": [
+        "docker",
+        "export",
+        "--output",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-report-verifier\\.runtime\\paper-offline-dependencies\\dependencies-rootfs.tar",
+        "aethertrade-qualification-runner-78c6c2758b3a"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "import",
+        "--change",
+        "ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "--change",
+        "ENV LANG=C.UTF-8",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-report-verifier\\.runtime\\paper-offline-dependencies\\dependencies-rootfs.tar"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--name",
+        "aethertrade-paper-dependency-cleaner-3e53d77",
+        "--network",
+        "none",
+        "sha256:cbd3a5b31396365334b510cfe6de2c816ec829e38a32dd7715ae55950e233681",
+        "python",
+        "-c",
+        "from pathlib import Path;import shutil;p=Path(\"/tmp\");assert p.resolve()==Path(\"/tmp\");[shutil.rmtree(x) if x.is_dir() and not x.is_symlink() else x.unlink() for x in p.iterdir()]"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "commit",
+        "aethertrade-paper-dependency-cleaner-3e53d77"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "image",
+        "inspect",
+        "--format",
+        "{{json .Config.Env}}",
+        "sha256:cc210dfc6e1533e7ceb55431f4036249545b984f501d5247e1c14f801cfd3128"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--name",
+        "aethertrade-paper-dependency-home-cleaner-27200bd",
+        "--network",
+        "none",
+        "sha256:cc210dfc6e1533e7ceb55431f4036249545b984f501d5247e1c14f801cfd3128",
+        "python",
+        "-c",
+        "from pathlib import Path;import shutil;p=Path(\"/root\");assert p.resolve()==Path(\"/root\");[shutil.rmtree(x) if x.is_dir() and not x.is_symlink() else x.unlink() for x in p.iterdir()]"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "commit",
+        "aethertrade-paper-dependency-home-cleaner-27200bd"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "sha256:dc22d922e93956af92a4076b8b6e1a57e3d1141e28c6773e33eb42f3a913768c",
+        "python",
+        "-c",
+        "import os,json;from pathlib import Path; forbidden=[x for x in os.environ if any(s in x for s in (\"PAPER_\",\"POSTGRES\",\"DSN\",\"DATABASE\",\"API_KEY\",\"TOKEN\"))]; assert not forbidden,forbidden; paths={p:sorted(str(x.name) for x in Path(p).iterdir()) if Path(p).exists() else None for p in (\"/tmp\",\"/root\",\"/handoff\")};assert all(not x for x in paths.values()),paths; print(json.dumps({\"sensitive_environment_names\":forbidden,\"empty_state_directories\":paths},sort_keys=True))"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "sha256:dc22d922e93956af92a4076b8b6e1a57e3d1141e28c6773e33eb42f3a913768c",
+        "python",
+        "-m",
+        "pip",
+        "freeze"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "cp",
+        "aethertrade-paper-dependency-wheel-discovery:/root/.cache/pip/http-v2/6/f/5/8/3/6f58315105f89fee1362c31502969537488db877c79a9478a63bd668.body",
+        ".runtime\\paper-offline-dependencies\\wheels\\setuptools-84.2.1-py3-none-any.whl"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--name",
+        "aethertrade-paper-dependency-build-tools",
+        "--network",
+        "none",
+        "--mount",
+        "type=bind,source=D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-ope-report-verifier\\.runtime\\paper-offline-dependencies\\wheels,target=/offline,readonly",
+        "sha256:dc22d922e93956af92a4076b8b6e1a57e3d1141e28c6773e33eb42f3a913768c",
+        "python",
+        "-c",
+        "import subprocess,shutil;from pathlib import Path;subprocess.run([\"python\",\"-m\",\"pip\",\"install\",\"--no-index\",\"--no-deps\",\"/offline/setuptools-84.2.1-py3-none-any.whl\"],check=True);\nfor p in (Path(\"/root\"),Path(\"/tmp\")):\n assert str(p.resolve()) in (\"/root\",\"/tmp\");[shutil.rmtree(x) if x.is_dir() and not x.is_symlink() else x.unlink() for x in p.iterdir()]"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "commit",
+        "aethertrade-paper-dependency-build-tools"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7",
+        "python",
+        "-c",
+        "import os,json;from pathlib import Path;forbidden=[x for x in os.environ if any(s in x for s in (\"PAPER_\",\"POSTGRES\",\"DSN\",\"DATABASE\",\"API_KEY\",\"TOKEN\"))];assert not forbidden;paths={p:sorted(x.name for x in Path(p).iterdir()) if Path(p).exists() else None for p in (\"/tmp\",\"/root\",\"/handoff\",\"/offline\")};assert all(not x for x in paths.values()),paths;print(json.dumps({\"sensitive_environment_names\":forbidden,\"empty_state_directories\":paths}))"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7",
+        "python",
+        "-m",
+        "pip",
+        "freeze"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "export_sha256": "a4cad8a8cba115aa362b69492b62a92bea3c0a9331f8251c3ae7788bded67145",
+  "imported_base": "sha256:cbd3a5b31396365334b510cfe6de2c816ec829e38a32dd7715ae55950e233681",
+  "runner_image": "sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7",
+  "runtime_env": [
+    "PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "LANG=C.UTF-8"
+  ],
+  "previous_derived_image": "sha256:cc210dfc6e1533e7ceb55431f4036249545b984f501d5247e1c14f801cfd3128",
+  "sanitization_audit": {
+    "sensitive_environment_names": [],
+    "empty_state_directories": {
+      "/tmp": [],
+      "/root": [],
+      "/handoff": [],
+      "/offline": []
+    }
+  },
+  "dependencies_freeze_sha256": "fb274eb81d733e454b7285487c3480c9f75a64423b5a59f7ca9301a4ca667ce7",
+  "dependency_spec_sha256": {
+    "pyproject.toml": "a845a6eb5cfa212520d11c24afe91917c12b08ca215e747d5a7b48e62efa0460"
+  },
+  "source_base_images": [
+    "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+    "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f"
+  ],
+  "setuptools_wheel": {
+    "source_cache": {
+      "path": "/root/.cache/pip/http-v2/6/f/5/8/3/6f58315105f89fee1362c31502969537488db877c79a9478a63bd668.body",
+      "metadata": "setuptools-84.2.1.dist-info/METADATA"
+    },
+    "sha256": "ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2"
+  },
+  "pre_build_tool_image": "sha256:dc22d922e93956af92a4076b8b6e1a57e3d1141e28c6773e33eb42f3a913768c",
+  "freeze_command": [
+    "docker",
+    "run",
+    "--rm",
+    "--network",
+    "none",
+    "sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7",
+    "python",
+    "-m",
+    "pip",
+    "freeze",
+    "--all"
+  ]
+}

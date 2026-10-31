@@ -1,0 +1,11 @@
+# Official lifecycle source verification — 2026-10-29
+
+Read-only documentation verification, not native qualification or an account test.
+
+- [Spot trade API](https://developers.binance.com/en/docs/catalog/core-trading-spot-trading/api/rest-api/trade): native OCO couples activation and cancellation; OTO/OTOCO pending orders activate after the working order fully fills. A placement response may still report PENDING_NEW and needs a subsequent query. These descriptions do not authenticate a particular program's membership or establish that a local software OCO is atomic.
+- [OPO FAQ](https://developers.binance.com/en/docs/products/spot/faqs/opo), page modified2026-10-28: pending quantities derive from actual working receipts and are locked. Fee debit can use available balances instead of the receipt; lot filters can leave unused quantity. Full fill is still required. The reducer must therefore distinguish actual receipt deductions, owned-position debits and locked/dust disposition, rather than assuming every base fee reduces the OPO receipt.
+- [Futures algo API](https://developers.binance.com/en/docs/catalog/advanced-trading-algo-trading/api/rest-api/future-algo): parent current/history queries and paginated subOrders are separate. Suborder records include native parent/order IDs, quantities, status and fee asset. The example feeAmt is signed negative; a qualified normalizer must interpret the documented source convention, never blindly apply abs(). A parent cancel response alone is not a complete child/fill/fee inventory proof.
+
+No credentials, account endpoints, Testnet/LIVE calls or installed adapter behavior were exercised. Exact proof readers, event normalization and native qualification remain absent. The new pure contracts retain source references and restrict unknown fee semantics instead of guessing.
+
+Additional official corroboration: [Binance OCO API guide](https://www.binance.com/en/academy/articles/how-to-place-an-oco-order-with-the-binance-api) describes cancellation of the other leg after partial or full execution, while residual positions still require management. This supports the requested guarantee's meaning but does not replace independently verified actual-instance membership or adapter qualification.

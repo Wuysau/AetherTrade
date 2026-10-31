@@ -1,0 +1,44 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_dispatcher_commits_before_actual_single_use_and_never_resends_on_recovery _
+tests/integration/test_program_dispatcher_postgres.py:26: in test_dispatcher_commits_before_actual_single_use_and_never_resends_on_recovery
+    d=dispatcher(c)
+      ^^^^^^^^^^^^^
+tests/integration/test_program_dispatcher_postgres.py:12: in dispatcher
+    from trading_system.execution.program_dispatcher import ProgramCommandDispatcher
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_dispatcher'
+__ test_actual_write_with_lost_ack_records_unknown_and_preserves_original_ids __
+tests/integration/test_program_dispatcher_postgres.py:53: in test_actual_write_with_lost_ack_records_unknown_and_preserves_original_ids
+    result=dispatcher(c).dispatch(c.write.command_id,c.lease)
+           ^^^^^^^^^^^^^
+tests/integration/test_program_dispatcher_postgres.py:12: in dispatcher
+    from trading_system.execution.program_dispatcher import ProgramCommandDispatcher
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_dispatcher'
+_ test_durable_may_survives_process_boundary_exception_before_engine_and_never_mints_again _
+tests/integration/test_program_dispatcher_postgres.py:67: in test_durable_may_survives_process_boundary_exception_before_engine_and_never_mints_again
+    with pytest.raises(SystemExit):dispatcher(c).dispatch(c.write.command_id,c.lease)
+                                   ^^^^^^^^^^^^^
+tests/integration/test_program_dispatcher_postgres.py:12: in dispatcher
+    from trading_system.execution.program_dispatcher import ProgramCommandDispatcher
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_dispatcher'
+_ test_dispatcher_missing_host_composition_never_crosses_may[missing_revocation_guard] _
+tests/integration/test_program_dispatcher_postgres.py:83: in test_dispatcher_missing_host_composition_never_crosses_may
+    with pytest.raises(ValueError):dispatcher(c,guard=fault!='missing_revocation_guard').dispatch(c.write.command_id,lease)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_dispatcher_postgres.py:12: in dispatcher
+    from trading_system.execution.program_dispatcher import ProgramCommandDispatcher
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_dispatcher'
+__ test_dispatcher_missing_host_composition_never_crosses_may[foreign_lease] ___
+tests/integration/test_program_dispatcher_postgres.py:83: in test_dispatcher_missing_host_composition_never_crosses_may
+    with pytest.raises(ValueError):dispatcher(c,guard=fault!='missing_revocation_guard').dispatch(c.write.command_id,lease)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_dispatcher_postgres.py:12: in dispatcher
+    from trading_system.execution.program_dispatcher import ProgramCommandDispatcher
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_dispatcher'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_dispatcher_postgres.py::test_dispatcher_commits_before_actual_single_use_and_never_resends_on_recovery
+FAILED tests/integration/test_program_dispatcher_postgres.py::test_actual_write_with_lost_ack_records_unknown_and_preserves_original_ids
+FAILED tests/integration/test_program_dispatcher_postgres.py::test_durable_may_survives_process_boundary_exception_before_engine_and_never_mints_again
+FAILED tests/integration/test_program_dispatcher_postgres.py::test_dispatcher_missing_host_composition_never_crosses_may[missing_revocation_guard]
+FAILED tests/integration/test_program_dispatcher_postgres.py::test_dispatcher_missing_host_composition_never_crosses_may[foreign_lease]
+5 failed in 16.04s

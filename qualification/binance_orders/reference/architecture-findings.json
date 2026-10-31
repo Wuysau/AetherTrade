@@ -1,0 +1,95 @@
+{
+  "commit": "b168966d350ed60fe8a92792f9519f4227054bc5",
+  "method": "STATIC_CODE_REVIEW",
+  "runtime_reproduction": false,
+  "findings": [
+    {
+      "id": "A01",
+      "title": "LIMIT被入口拒绝；不能只删判断",
+      "path": "src/trading_system/server/paper_runtime.py",
+      "location": "378-409",
+      "observation": "accept_proposal要求MARKET、allow_partial=True和LAST；否则返回EXECUTION_CAPABILITY_UNSUPPORTED。",
+      "proposal": "改成按账户/市场/标的/订单图/环境求交集的能力检查，保留真正不合法请求的拒绝。"
+    },
+    {
+      "id": "A02",
+      "title": "后续编译器仍硬编码MARKET",
+      "path": "src/trading_system/server/paper_runtime.py",
+      "location": "约530-625（_accept）",
+      "observation": "构造TradeIntent.execution及command.canonical_payload时写死MARKET；只覆盖滑点、期限等，未传播限价价格。",
+      "proposal": "统一订单计划编译器逐字段传播，不允许LIMIT→MARKET降级；严格关联plan哈希和编译后命令。"
+    },
+    {
+      "id": "A03",
+      "title": "已有PAPER是合成事件执行器，不是市场驱动撮合器",
+      "path": "src/trading_system/engine/paper.py",
+      "location": "1-12, 160-250及inject",
+      "observation": "提交只确认接收；成交/撤销/修改依赖受权SyntheticOrderEvent。该能力有价值，但不能证明限价自然挂单成交。",
+      "proposal": "保留该故障测试后端，另增可重放的MarketDrivenPaperMatcher，经同一事件摄取路径记账。"
+    },
+    {
+      "id": "A04",
+      "title": "模型看到的能力只有两个布尔值",
+      "path": "src/trading_system/server/paper_runtime.py",
+      "location": "analysis_evidence（约450-470）",
+      "observation": "constraints只返回execution_supported=True、protection_supported=True；不能告知模型实际MARKET/LAST限制。",
+      "proposal": "冻结CapabilitySnapshot，提供类型/参数合法组合与当前环境资格；发送前按revision复核。"
+    },
+    {
+      "id": "A05",
+      "title": "合约和提案表达不足",
+      "path": "src/trading_system/contracts/wire.py",
+      "location": "20-174",
+      "observation": "entry只有MARKET/LIMIT和allow_partial；command无列表/peg/trailing/trigger source/GTX/RPI等表达，单一parent_command_id不描述列表语义。",
+      "proposal": "新修订契约增加类型化AtomicOrderSpec/OrderProgram；旧版本历史只读，显式迁移而非扩大旧schema后重解释旧指令。"
+    },
+    {
+      "id": "A06",
+      "title": "PAPER参考规则不等于币安规则",
+      "path": "src/trading_system/server/paper_runtime.py",
+      "location": "_spec/_inputs（约295-376）",
+      "observation": "tick/step/min-notional为合成常量；bid/ask/last来自同一报价；产品/报价币/24h会话固定。",
+      "proposal": "InstrumentRuleSnapshot、真实bid/ask和市场日历分开；人工夹具保留SYNTHETIC标签，不冒充exchangeInfo。"
+    },
+    {
+      "id": "A07",
+      "title": "短期研究期限和长期订单管理耦合",
+      "path": "src/trading_system/server/paper_runtime.py",
+      "location": "authority_deadline、_accept",
+      "observation": "初始grant/intent默认缩到30秒及quote新鲜度；GTC挂单、条件等待、算法母单需跨越这些短期时间。",
+      "proposal": "区分proposal/submission/venue expiry/management duty；已提交订单即使建议过期仍须监控、保护、撤销和对账。"
+    },
+    {
+      "id": "A08",
+      "title": "触发价格来源缺失",
+      "path": "src/trading_system/protection/manager.py",
+      "location": "validate_command（约130-143）",
+      "observation": "注释明确command没有trigger source字段，非LAST被拒绝。",
+      "proposal": "将触发源持久化到计划和命令；SPOT LAST与USDM CONTRACT_PRICE/MARK_PRICE做显式映射。"
+    },
+    {
+      "id": "A09",
+      "title": "现货专属组合不应直接扩为所有市场",
+      "path": "src/trading_system/server/paper_runtime.py",
+      "location": "scope_for、_cash、_book、_spec",
+      "observation": "SPOT、USDT、现金余额、removesuffix(USDT)、固定合成费率是当前组合的有意假设。",
+      "proposal": "抽出SpotAccountSemantics/UsdMAccountSemantics/EquityAccountSemantics；不能仅加一个product字符串就共享抵押/持仓/会话逻辑。"
+    },
+    {
+      "id": "A10",
+      "title": "Nautilus仍是未准入接入边界",
+      "path": "src/trading_system/engine/nautilus/bridge.py",
+      "location": "1-5及NautilusEngine",
+      "observation": "模块明确无native clients/signing/transport，保留资格阻断。上游latest文档也不能代表项目锁定构建覆盖全部币安功能。",
+      "proposal": "逐特性检查锁定构建，不足的用受控执行客户端扩展；不让server/AI旁路直连下单。"
+    },
+    {
+      "id": "A11",
+      "title": "上一轮已修的保护锁问题不应反复报告为未修",
+      "path": "src/trading_system/execution/dispatcher.py",
+      "location": "90-109",
+      "observation": "新实现使用LockedActionVerifier及动作证明，不再仅以“存在任何锁”一律拒绝。",
+      "proposal": "保留该改善并对新增改单/列表/算法操作补充动作证明回归，不移除锁校验。"
+    }
+  ]
+}

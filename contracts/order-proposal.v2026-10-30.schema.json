@@ -1,0 +1,1351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-30"
+      ]
+    },
+    "record_kind": {
+      "enum": [
+        "POSITION_VALUE_BAND_PROPOSAL_V1"
+      ]
+    },
+    "proposal_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "instrument_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "action": {
+      "enum": [
+        "SET_TARGET"
+      ]
+    },
+    "goal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "ABSOLUTE_POSITION_VALUE_BAND"
+          ]
+        },
+        "side": {
+          "enum": [
+            "LONG",
+            "SHORT",
+            "FLAT"
+          ]
+        },
+        "minimum_quote": {
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "string",
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "amount",
+            "currency"
+          ],
+          "additionalProperties": false
+        },
+        "maximum_quote": {
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "string",
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "amount",
+            "currency"
+          ],
+          "additionalProperties": false
+        },
+        "valuation_basis": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "DECLARED_REFERENCE_PRICE"
+              ]
+            },
+            "reference_price": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                },
+                "currency": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "value",
+                "currency"
+              ],
+              "additionalProperties": false
+            },
+            "notional_multiplier": {
+              "type": "string",
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            }
+          },
+          "required": [
+            "kind",
+            "reference_price",
+            "notional_multiplier"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "kind",
+        "side",
+        "minimum_quote",
+        "maximum_quote",
+        "valuation_basis"
+      ],
+      "additionalProperties": false
+    },
+    "requested_leverage": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "program": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "contract_version": {
+              "enum": [
+                "2026-10-28"
+              ]
+            },
+            "program_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "instrument_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "template": {
+              "enum": [
+                "ATOMIC",
+                "OCO",
+                "OTO",
+                "OTOCO",
+                "OPO",
+                "OPOCO",
+                "TWAP",
+                "VP",
+                "BATCH"
+              ]
+            },
+            "execution_mode": {
+              "enum": [
+                "VENUE_NATIVE",
+                "LOCAL_SYNTHETIC",
+                "PAPER_MODEL"
+              ]
+            },
+            "nodes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "node_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "role": {
+                    "enum": [
+                      "ENTRY",
+                      "WORKING",
+                      "PENDING",
+                      "LEG",
+                      "ALGORITHM_PARENT"
+                    ]
+                  },
+                  "child_origin": {
+                    "enum": [
+                      "APPLICATION_GENERATED_CHILD",
+                      "VENUE_GENERATED_CHILD"
+                    ]
+                  },
+                  "order": {
+                    "type": "object",
+                    "properties": {
+                      "side": {
+                        "enum": [
+                          "BUY",
+                          "SELL"
+                        ]
+                      },
+                      "quantity": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "BASE_QUANTITY",
+                              "QUOTE_NOTIONAL",
+                              "CLOSE_ALL",
+                              "DERIVED_RECEIPT"
+                            ]
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "source_node": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "value",
+                          "source_node"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "price": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "MARKET",
+                              "FIXED_LIMIT",
+                              "PEG",
+                              "PRICE_MATCH"
+                            ]
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "peg_type": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "PRIMARY_PEG",
+                                  "MARKET_PEG"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "offset_levels": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "price_match": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "OPPONENT",
+                                  "OPPONENT_5",
+                                  "OPPONENT_10",
+                                  "OPPONENT_20",
+                                  "QUEUE",
+                                  "QUEUE_5",
+                                  "QUEUE_10",
+                                  "QUEUE_20"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "value",
+                          "peg_type",
+                          "offset_levels",
+                          "price_match"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "trigger": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "NONE",
+                              "STATIC",
+                              "TRAILING"
+                            ]
+                          },
+                          "purpose": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "STOP_LOSS",
+                                  "TAKE_PROFIT"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "source": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "LAST",
+                                  "CONTRACT_PRICE",
+                                  "MARK_PRICE",
+                                  "BID_ASK"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "price": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "activation_price": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "offset": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "offset_unit": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "BIPS",
+                                  "PERCENT",
+                                  "PRICE"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "price_protect": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "purpose",
+                          "source",
+                          "price",
+                          "activation_price",
+                          "offset",
+                          "offset_unit",
+                          "price_protect"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "tif": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "NONE",
+                              "GTC",
+                              "IOC",
+                              "FOK",
+                              "GTX",
+                              "GTD",
+                              "DAY",
+                              "RPI"
+                            ]
+                          },
+                          "expires_at": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "expires_at"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "post_only": {
+                        "type": "boolean"
+                      },
+                      "iceberg_quantity": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "stp": {
+                        "enum": [
+                          "NONE",
+                          "EXPIRE_TAKER",
+                          "EXPIRE_MAKER",
+                          "EXPIRE_BOTH",
+                          "DECREMENT",
+                          "TRANSFER"
+                        ]
+                      },
+                      "routing": {
+                        "enum": [
+                          "STANDARD",
+                          "SOR"
+                        ]
+                      },
+                      "position_side": {
+                        "enum": [
+                          "BOTH",
+                          "LONG",
+                          "SHORT"
+                        ]
+                      },
+                      "reduce_only": {
+                        "type": "boolean"
+                      },
+                      "trading_session": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "RTH",
+                              "EXTENDED",
+                              "24H"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "tokenize": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              false
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "side",
+                      "quantity",
+                      "price",
+                      "trigger",
+                      "tif",
+                      "post_only",
+                      "iceberg_quantity",
+                      "stp",
+                      "routing",
+                      "position_side",
+                      "reduce_only",
+                      "trading_session",
+                      "tokenize"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "node_id",
+                  "role",
+                  "child_origin",
+                  "order"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "links": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "condition": {
+                    "enum": [
+                      "FULL_FILL",
+                      "NET_RECEIPT"
+                    ]
+                  }
+                },
+                "required": [
+                  "source",
+                  "target",
+                  "condition"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "exclusive_groups": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "TWAP",
+                        "VP"
+                      ]
+                    },
+                    "duration_seconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "participation_bps": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "urgency": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "LOW",
+                            "MEDIUM",
+                            "HIGH"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "duration_seconds",
+                    "participation_bps",
+                    "urgency"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "submit_valid_until": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "management_policy": {
+              "enum": [
+                "MANAGE_UNTIL_FLAT"
+              ]
+            },
+            "capability_snapshot_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "rule_snapshot_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "contract_version",
+            "program_id",
+            "instrument_ref",
+            "template",
+            "execution_mode",
+            "nodes",
+            "links",
+            "exclusive_groups",
+            "algorithm",
+            "submit_valid_until",
+            "management_policy",
+            "capability_snapshot_ref",
+            "rule_snapshot_ref"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "contract_version": {
+              "enum": [
+                "2026-10-29"
+              ]
+            },
+            "program_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "instrument_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "template": {
+              "enum": [
+                "ATOMIC",
+                "OCO",
+                "OTO",
+                "OTOCO",
+                "OPO",
+                "OPOCO",
+                "TWAP",
+                "VP",
+                "BATCH"
+              ]
+            },
+            "execution_mode": {
+              "enum": [
+                "VENUE_NATIVE",
+                "LOCAL_SYNTHETIC",
+                "PAPER_MODEL"
+              ]
+            },
+            "nodes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "node_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "role": {
+                    "enum": [
+                      "ENTRY",
+                      "WORKING",
+                      "PENDING",
+                      "LEG",
+                      "ALGORITHM_PARENT"
+                    ]
+                  },
+                  "child_origin": {
+                    "enum": [
+                      "APPLICATION_GENERATED_CHILD",
+                      "VENUE_GENERATED_CHILD"
+                    ]
+                  },
+                  "order": {
+                    "type": "object",
+                    "properties": {
+                      "side": {
+                        "enum": [
+                          "BUY",
+                          "SELL"
+                        ]
+                      },
+                      "quantity": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "BASE_QUANTITY",
+                              "QUOTE_NOTIONAL",
+                              "CLOSE_ALL",
+                              "DERIVED_RECEIPT"
+                            ]
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "source_node": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "value",
+                          "source_node"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "price": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "MARKET",
+                              "FIXED_LIMIT",
+                              "PEG",
+                              "PRICE_MATCH"
+                            ]
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "peg_type": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "PRIMARY_PEG",
+                                  "MARKET_PEG"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "offset_levels": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "price_match": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "OPPONENT",
+                                  "OPPONENT_5",
+                                  "OPPONENT_10",
+                                  "OPPONENT_20",
+                                  "QUEUE",
+                                  "QUEUE_5",
+                                  "QUEUE_10",
+                                  "QUEUE_20"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "value",
+                          "peg_type",
+                          "offset_levels",
+                          "price_match"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "trigger": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "NONE",
+                              "STATIC",
+                              "TRAILING"
+                            ]
+                          },
+                          "purpose": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "STOP_LOSS",
+                                  "TAKE_PROFIT"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "source": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "LAST",
+                                  "CONTRACT_PRICE",
+                                  "MARK_PRICE",
+                                  "BID_ASK"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "price": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "activation_price": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "offset": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "offset_unit": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "BIPS",
+                                  "PERCENT",
+                                  "PRICE"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "price_protect": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "purpose",
+                          "source",
+                          "price",
+                          "activation_price",
+                          "offset",
+                          "offset_unit",
+                          "price_protect"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "tif": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "NONE",
+                              "GTC",
+                              "IOC",
+                              "FOK",
+                              "GTX",
+                              "GTD",
+                              "DAY",
+                              "RPI"
+                            ]
+                          },
+                          "expires_at": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "expires_at"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "post_only": {
+                        "type": "boolean"
+                      },
+                      "iceberg_quantity": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "stp": {
+                        "enum": [
+                          "NONE",
+                          "EXPIRE_TAKER",
+                          "EXPIRE_MAKER",
+                          "EXPIRE_BOTH",
+                          "DECREMENT",
+                          "TRANSFER"
+                        ]
+                      },
+                      "routing": {
+                        "enum": [
+                          "STANDARD",
+                          "SOR"
+                        ]
+                      },
+                      "position_side": {
+                        "enum": [
+                          "BOTH",
+                          "LONG",
+                          "SHORT"
+                        ]
+                      },
+                      "reduce_only": {
+                        "type": "boolean"
+                      },
+                      "trading_session": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "RTH",
+                              "EXTENDED",
+                              "24H"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "tokenize": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              false
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "side",
+                      "quantity",
+                      "price",
+                      "trigger",
+                      "tif",
+                      "post_only",
+                      "iceberg_quantity",
+                      "stp",
+                      "routing",
+                      "position_side",
+                      "reduce_only",
+                      "trading_session",
+                      "tokenize"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "node_id",
+                  "role",
+                  "child_origin",
+                  "order"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "links": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "condition": {
+                    "enum": [
+                      "FULL_FILL",
+                      "NET_RECEIPT"
+                    ]
+                  }
+                },
+                "required": [
+                  "source",
+                  "target",
+                  "condition"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "exclusive_groups": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "TWAP",
+                        "VP"
+                      ]
+                    },
+                    "duration_seconds": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "urgency": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "LOW",
+                            "MEDIUM",
+                            "HIGH"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "duration_seconds",
+                    "urgency"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "submit_valid_until": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "management_policy": {
+              "enum": [
+                "MANAGE_UNTIL_FLAT"
+              ]
+            },
+            "capability_snapshot_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "rule_snapshot_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "contract_version",
+            "program_id",
+            "instrument_ref",
+            "template",
+            "execution_mode",
+            "nodes",
+            "links",
+            "exclusive_groups",
+            "algorithm",
+            "submit_valid_until",
+            "management_policy",
+            "capability_snapshot_ref",
+            "rule_snapshot_ref"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "protection_policy": {
+      "enum": [
+        "NATIVE_REQUIRED",
+        "HOSTED_ALLOWED_CASH_ONLY"
+      ]
+    },
+    "exit_plan": {
+      "type": "object",
+      "properties": {
+        "stop_price": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop_trigger": {
+          "enum": [
+            "LAST",
+            "MARK",
+            "BID_ASK"
+          ]
+        },
+        "review_due_at": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "maximum_holding_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "thesis_invalidation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "stop_price",
+        "stop_trigger",
+        "review_due_at",
+        "maximum_holding_seconds",
+        "thesis_invalidation"
+      ],
+      "additionalProperties": false
+    },
+    "valid_until": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  },
+  "required": [
+    "contract_version",
+    "record_kind",
+    "proposal_id",
+    "instrument_ref",
+    "action",
+    "goal",
+    "requested_leverage",
+    "program",
+    "protection_policy",
+    "exit_plan",
+    "valid_until",
+    "evidence_refs",
+    "summary"
+  ],
+  "additionalProperties": false
+}

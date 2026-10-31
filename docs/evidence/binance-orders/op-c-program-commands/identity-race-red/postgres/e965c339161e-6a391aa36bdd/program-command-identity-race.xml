@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="4" time="1.736" timestamp="2026-10-29T09:41:38.551160+00:00" hostname="1295ed307064"><testcase classname="tests.integration.test_program_commands_postgres" name="test_raw_concurrent_cross_family_identity_insertion_is_serialized[client-program]" time="0.693"><failure message="AssertionError: assert 'committed' == 'collision-denied'&#10;  &#10;  - collision-denied&#10;  + committed">tests/integration/test_program_commands_postgres.py:406: in test_raw_concurrent_cross_family_identity_insertion_is_serialized
+    assert future.result(timeout=10)=='collision-denied'
+E   AssertionError: assert 'committed' == 'collision-denied'
+E     
+E     - collision-denied
+E     + committed</failure></testcase><testcase classname="tests.integration.test_program_commands_postgres" name="test_raw_concurrent_cross_family_identity_insertion_is_serialized[client-legacy]" time="0.207"><failure message="AssertionError: assert 'committed' == 'collision-denied'&#10;  &#10;  - collision-denied&#10;  + committed">tests/integration/test_program_commands_postgres.py:406: in test_raw_concurrent_cross_family_identity_insertion_is_serialized
+    assert future.result(timeout=10)=='collision-denied'
+E   AssertionError: assert 'committed' == 'collision-denied'
+E     
+E     - collision-denied
+E     + committed</failure></testcase><testcase classname="tests.integration.test_program_commands_postgres" name="test_raw_concurrent_cross_family_identity_insertion_is_serialized[command-program]" time="0.165"><failure message="AssertionError: assert 'committed' == 'collision-denied'&#10;  &#10;  - collision-denied&#10;  + committed">tests/integration/test_program_commands_postgres.py:406: in test_raw_concurrent_cross_family_identity_insertion_is_serialized
+    assert future.result(timeout=10)=='collision-denied'
+E   AssertionError: assert 'committed' == 'collision-denied'
+E     
+E     - collision-denied
+E     + committed</failure></testcase><testcase classname="tests.integration.test_program_commands_postgres" name="test_raw_concurrent_cross_family_identity_insertion_is_serialized[command-legacy]" time="0.176"><failure message="AssertionError: assert 'committed' == 'collision-denied'&#10;  &#10;  - collision-denied&#10;  + committed">tests/integration/test_program_commands_postgres.py:406: in test_raw_concurrent_cross_family_identity_insertion_is_serialized
+    assert future.result(timeout=10)=='collision-denied'
+E   AssertionError: assert 'committed' == 'collision-denied'
+E     
+E     - collision-denied
+E     + committed</failure></testcase></testsuite></testsuites>

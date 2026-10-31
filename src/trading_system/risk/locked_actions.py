@@ -21,6 +21,7 @@ from trading_system.protection.native import owned, report_errors
 from trading_system.recovery.reconciler import valid_ref
 from trading_system.storage.models import scope_id
 from .locks import ACTIONS
+from .reduction import BoundedReductionProof
 
 
 def digest(record):
@@ -53,11 +54,88 @@ class ActionProof:
     valid_until: str
 
 
+@dataclass(frozen=True,kw_only=True)
+class ProgramActionProof:
+    """Independent LOCAL current archive attestation, never a request payload."""
+    transaction_id:str
+    intent_hash:str
+    archive_hash:str
+    book_hash:str
+    reduction:BoundedReductionProof
+    valid_until:str
+
+
 class LockedActionVerifier:
     def __init__(self, read_proof=None, *, maximum_age_seconds=60):
         if type(maximum_age_seconds) is not int or maximum_age_seconds <= 0:
             raise ValueError('positive evidence age required')
         self.read_proof, self.maximum_age_seconds = read_proof, maximum_age_seconds
+
+    def verify_program(self,tx,intent,archive,now,*,book=None,read_proof=None):
+        """Same cause-lock boundary for full programs without a legacy command.
+
+        Under locks this initial path admits only the existing strictly bounded
+        atomic EXIT proof. Native/local groups require their exact qualified
+        quantity proof; no group is treated as an ordinary synthetic command.
+        """
+        try:
+            from .reduction import validate_bounded_reduction
+            from trading_system.contracts.program_financial import ProgramFinancialIntent
+            from trading_system.intents.program_assessment_archive import ProgramFinancialAssessmentArchive
+            from trading_system.contracts.quote_financial import QuoteFinancialIntentV1
+            from trading_system.intents.quote_assessment_archive import QuoteAssessmentArchiveV1
+            quote=type(intent) is QuoteFinancialIntentV1 and type(archive) is QuoteAssessmentArchiveV1
+            if not quote and (type(intent) is not ProgramFinancialIntent or type(archive) is not ProgramFinancialAssessmentArchive):
+                return None
+            if book is None:book=tx.projections.book(tx.scope)
+            coverage=book.coverage
+            if (book.scope!=tx.scope or digest(book)!=digest(archive.book) or coverage.scope!=tx.scope
+                    or coverage.query_succeeded is not True or coverage.pagination_complete is not True
+                    or coverage.supported is not True or coverage.missing or not book.evidence
+                    or type(book.sequence) is not int or book.sequence<1
+                    or any(not valid_ref(e,tx.scope,now,self.maximum_age_seconds) for e in book.evidence)):
+                return None
+            ledger_locks=tuple(tx.risk_locks.applicable(tx.scope))
+            locks=ledger_locks+tuple(lock for p in book.positions for lock in p.risk_locks)
+            validity=min([utc_timestamp(intent.valid_until)]+[utc_timestamp(e.visible_at)
+                +timedelta(seconds=self.maximum_age_seconds) for e in book.evidence])
+            if not locks:return validity.isoformat() if utc_timestamp(now)<validity else None
+            # A primary band adjustment cannot impersonate the separately
+            # versioned bounded emergency/protective EXIT proof.
+            if quote:return None
+            allowed=ACTIONS[t.RiskPermission.NORMAL]
+            for lock in locks:
+                if (lock.state!='ACTIVE' or lock.cause in {'ORDER_OUTCOME_UNKNOWN','RESERVATION_COMMAND_UNKNOWN'}
+                        or (lock.scope!=tx.scope and not (lock.cause=='DAILY_LOSS' and lock in ledger_locks))):
+                    return None
+                allowed=allowed&ACTIONS.get(lock.permission,frozenset())
+            if 'EXIT' not in allowed or read_proof is None:return None
+            from trading_system.storage.application_writes import application_write_obligations
+            if application_write_obligations(tx,scope_only=True):return None
+            from trading_system.storage.local_programs import local_program_obligations
+            if local_program_obligations(tx,scope_only=True):return None
+            queued=tx.execute('SELECT c.record_id FROM (SELECT DISTINCT ON (record_id) record_id,payload '
+                'FROM ledger.commands WHERE scope_id=%s ORDER BY record_id,sequence DESC) c '
+                "WHERE c.payload->>'state'='DURABLE_READY'",(scope_id(tx.scope),)).fetchall()
+            if any(EffectiveCommands(tx).get(cid).state!='ABORTED_UNSENT' for cid, in queued):return None
+            proof=read_proof(tx,intent,archive,book)
+            if (type(proof) is not ProgramActionProof or not tx.transaction_id
+                    or proof.transaction_id!=tx.transaction_id or proof.intent_hash!=digest(intent)
+                    or proof.archive_hash!=digest(archive) or proof.book_hash!=digest(book)
+                    or digest(proof.reduction)!=digest(archive.risk_facts.reduction_proof)
+                    or {digest(l) for l in proof.reduction.locks}!={digest(l) for l in locks}
+                    or report_errors(proof.reduction.report,tx.scope,now,self.maximum_age_seconds)
+                    or utc_timestamp(now)>=utc_timestamp(proof.valid_until)):
+                return None
+            validate_bounded_reduction(proof.reduction,archive.risk_facts.inputs,archive.risk_terms,
+                archive.compilation,archive.allocation,book,archive.risk_facts)
+            validity=min(validity,utc_timestamp(proof.valid_until),utc_timestamp(proof.reduction.valid_until),
+                utc_timestamp(proof.reduction.report.as_of)+timedelta(seconds=self.maximum_age_seconds),
+                *(utc_timestamp(e.visible_at)+timedelta(seconds=self.maximum_age_seconds)
+                    for e in proof.reduction.report.evidence))
+            return validity.isoformat() if utc_timestamp(now)<validity else None
+        except Exception:
+            return None
 
     def verify(self, tx, command, intent, now, *, book=None) -> str | None:
         """Return verified validity limit, or None. Callers must recheck at I/O."""
@@ -104,6 +182,15 @@ class LockedActionVerifier:
                 return None
             allowed &= ACTIONS.get(lock.permission, frozenset())
         if not allowed & {'EXIT', 'MANAGE'} or self.read_proof is None:
+            return None
+        from trading_system.storage.application_writes import application_write_obligations
+        # No approved quantity allocation/resolution exists for program writes.
+        # They cannot share reducible quantity with a legacy queued reduction,
+        # even when the two command namespaces happen to use the same text ID.
+        if application_write_obligations(tx, scope_only=True):
+            return None
+        from trading_system.storage.local_programs import local_program_obligations
+        if local_program_obligations(tx,scope_only=True):
             return None
         # A second queued reduction could otherwise spend the same reducible
         # position before either command has produced a working-order event.

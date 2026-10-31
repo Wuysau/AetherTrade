@@ -1,0 +1,17 @@
+....F                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness _
+tests/integration/test_program_submission_observation.py:101: in test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness
+    tx._append('audit_events','fake-submission:'+c.write.command_id,dict(source_verified=True,state='ACCEPTED'),0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_submission_observation.py::test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness
+1 failed, 4 passed in 29.17s

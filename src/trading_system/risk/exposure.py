@@ -4,7 +4,7 @@ OrderProjection has no side or valuation price. Explicit typed marks supply
 these facts; missing marks are reported, never interpreted as zero risk.
 """
 from dataclasses import dataclass
-from decimal import Decimal, localcontext
+from decimal import Decimal, localcontext,Inexact,Rounded
 from typing import Literal
 
 from trading_system.contracts import types as t
@@ -32,10 +32,48 @@ class WorkingOrder:
     side: Literal['BUY', 'SELL']
 
 
+@dataclass(frozen=True,kw_only=True)
+class PendingExposure:
+    """Reader-bound quantity absent from active orders; never cash or authority.
+
+Represented orders require zero extra quantity, matching TargetCompiler's
+pending semantics. Host readers must authenticate exact command/quantity links.
+"""
+    obligation_id:str
+    scope:t.ScopeKey
+    signed_quantity:t.Quantity
+    command_refs:tuple[str,...]
+    represented_order_ids:tuple[str,...]=()
+    source_family:Literal['LEGACY_COMMAND','APPLICATION_WRITE']='LEGACY_COMMAND'
+    service_namespace:Literal['ORDINARY','ORDER_LIST','CONDITIONAL_ALGO','EXECUTION_ALGO','EQUITY']='ORDINARY'
+    mark:ExposureMark|None=None
+
+
+@dataclass(frozen=True,kw_only=True)
+class ProposedExposure:
+    """A proposed node's fill bound, not a durable order or owned position."""
+    node_id:str
+    scope:t.ScopeKey
+    signed_quantity:t.Quantity
+    mark:ExposureMark
+
+
+@dataclass(frozen=True,kw_only=True)
+class WorkingExposure:
+    scope:t.ScopeKey
+    logical_client_order_id:str
+    side:Literal['BUY','SELL']
+    mark:ExposureMark
+
+
 class ExposureCalculator:
     def __init__(self, valuation: Valuation, marks: tuple[ExposureMark, ...],
-                 orders: tuple[WorkingOrder, ...] = ()):
+                 orders: tuple[WorkingOrder, ...] = (),*,pending:tuple[PendingExposure,...]=(),
+                 proposed:tuple[ProposedExposure,...]=(),working:tuple[WorkingExposure,...]=()):
         self.valuation, self.marks, self.orders = valuation, marks, orders
+        self.pending=pending
+        self.proposed=proposed
+        self.working=working
         if len({m.scope for m in marks}) != len(marks):
             raise ValueError('DUPLICATE_MARK')
         if len({o.logical_client_order_id for o in orders}) != len(orders):
@@ -43,7 +81,8 @@ class ExposureCalculator:
 
     def project(self, book: t.BookSnapshot, delta: t.DeltaPlan) -> t.ExposureReport:
         with localcontext() as ctx:
-            ctx.prec = 80
+            ctx.prec = 256
+            ctx.traps[Inexact]=ctx.traps[Rounded]=True
             return self._project(book, delta)
 
     def _project(self, book: t.BookSnapshot, delta: t.DeltaPlan) -> t.ExposureReport:
@@ -63,11 +102,16 @@ class ExposureCalculator:
         if delta.actual.value * delta.target.value < 0:
             missing.append('REVERSAL_REQUIRES_FLAT')
 
-        def add(scope: t.ScopeKey, quantity: t.Quantity) -> None:
-            mark = next((m for m in self.marks if m.scope == scope), None)
+        def add(scope: t.ScopeKey, quantity: t.Quantity,override=None) -> None:
+            original_mark = next((m for m in self.marks if m.scope == scope), None)
+            mark=original_mark if override is None else override
             if mark is None or mark.unit != quantity.unit:
                 missing.append('VALUATION_MARK_MISSING:' + scope.instrument_uid)
                 return
+            if (mark.scope!=scope or (original_mark is not None and (
+                mark.related_group!=original_mark.related_group or mark.unit!=original_mark.unit
+                or mark.multiplier!=original_mark.multiplier or mark.price.currency!=original_mark.price.currency))):
+                missing.append('EXPOSURE_MARK_BINDING_MISMATCH');return
             if (scope.environment != book.scope.environment
                     or scope.venue_account_id != book.scope.venue_account_id):
                 missing.append('POSITION_SCOPE_MISMATCH')
@@ -82,6 +126,18 @@ class ExposureCalculator:
             gross, net = groups.get(mark.related_group, (D(0), D(0)))
             groups[mark.related_group] = gross + abs(value), net + value
 
+        proposed_valid=True
+        if self.proposed:
+            seen=set();proposed_quantity=D(0)
+            for p in self.proposed:
+                if (type(p) is not ProposedExposure or not p.node_id or p.node_id in seen or p.scope!=delta.scope
+                    or p.mark.scope!=p.scope or p.signed_quantity.unit!=delta.remaining.unit
+                    or not p.signed_quantity.value.is_finite() or p.signed_quantity.value*delta.remaining.value<=0):
+                    missing.append('PROPOSED_EXPOSURE_BINDING_MISMATCH');proposed_valid=False;continue
+                seen.add(p.node_id);proposed_quantity+=p.signed_quantity.value
+            if proposed_quantity!=delta.remaining.value:
+                missing.append('PROPOSED_EXPOSURE_DELTA_MISMATCH');proposed_valid=False
+        split_new_inventory=bool(self.proposed) and delta.classification!='REDUCE'
         actual = D(0)
         matching = [p for p in book.positions if p.scope == delta.scope]
         if len(matching) > 1:
@@ -91,16 +147,22 @@ class ExposureCalculator:
             if position.scope == delta.scope:
                 actual += value.value
                 # Reduce only the verified leg; other legs never net against it.
-                value = t.Quantity(value=value.value + delta.remaining.value, unit=value.unit)
+                if not split_new_inventory:
+                    value = t.Quantity(value=value.value + delta.remaining.value, unit=value.unit)
             add(position.scope, value)
-        if not matching:
+        if not matching and not split_new_inventory:
             add(delta.scope, delta.remaining)
+        if split_new_inventory and proposed_valid:
+            for p in self.proposed:add(p.scope,p.signed_quantity,p.mark)
         if actual != delta.actual.value:
             missing.append('ACTUAL_QUANTITY_MISMATCH')
         working = D(0)
+        bounded={(w.scope,w.logical_client_order_id):w for w in self.working}
+        if len(bounded)!=len(self.working):missing.append('DUPLICATE_WORKING_EXPOSURE_BOUND')
         for order in book.active_orders:
             identity = order.order.identity
-            side = next((o.side for o in self.orders
+            bound=bounded.get((identity.scope,identity.logical_client_order_id))
+            side = bound.side if bound is not None else next((o.side for o in self.orders
                          if o.logical_client_order_id == identity.logical_client_order_id), None)
             if side not in ('BUY', 'SELL') or order.leaves_quantity.value < 0:
                 missing.append('WORKING_ORDER_EVIDENCE_MISSING')
@@ -108,7 +170,38 @@ class ExposureCalculator:
             signed = order.leaves_quantity.value * (1 if side == 'BUY' else -1)
             if identity.scope == delta.scope:
                 working += signed
-            add(identity.scope, t.Quantity(value=signed, unit=order.leaves_quantity.unit))
+            add(identity.scope, t.Quantity(value=signed, unit=order.leaves_quantity.unit),None if bound is None else bound.mark)
+        seen_pending=set();seen_commands=set();represented=set()
+        orders={(o.order.identity.scope,o.order.identity.logical_client_order_id):o for o in book.active_orders}
+        for pending in self.pending:
+            source=(pending.scope,pending.source_family,pending.service_namespace) if type(pending) is PendingExposure else None
+            key=(*source,pending.obligation_id) if source is not None else None
+            command_keys={(*source,ref) for ref in pending.command_refs} if source is not None else set()
+            if (type(pending) is not PendingExposure or not pending.obligation_id
+                or pending.source_family not in ('LEGACY_COMMAND','APPLICATION_WRITE')
+                or pending.service_namespace not in ('ORDINARY','ORDER_LIST','CONDITIONAL_ALGO','EXECUTION_ALGO','EQUITY')
+                or key in seen_pending or not pending.command_refs
+                or len(set(pending.command_refs))!=len(pending.command_refs)
+                or seen_commands.intersection(command_keys)):
+                missing.append('PENDING_EXPOSURE_IDENTITY_MISSING_OR_DUPLICATED');continue
+            seen_pending.add(key);seen_commands.update(command_keys)
+            value=pending.signed_quantity
+            mark=next((m for m in self.marks if m.scope==pending.scope),None)
+            if (pending.scope.environment!=book.scope.environment or pending.scope.venue_account_id!=book.scope.venue_account_id
+                or type(value) is not t.Quantity or not value.value.is_finite()
+                or mark is None or value.unit!=mark.unit):
+                missing.append('PENDING_EXPOSURE_SCOPE_OR_UNIT_MISMATCH');continue
+            if pending.represented_order_ids:
+                ids={(pending.scope,i) for i in pending.represented_order_ids}
+                if (len(ids)!=len(pending.represented_order_ids) or ids.intersection(represented)
+                    or value.value!=0 or any(i not in orders for i in ids)):
+                    missing.append('PENDING_EXPOSURE_DOUBLE_COUNT_OR_MAPPING_INVALID')
+                represented.update(ids)
+                continue
+            if value.value==0:
+                missing.append('PENDING_EXPOSURE_QUANTITY_MISSING');continue
+            if pending.scope==delta.scope:working+=value.value
+            add(pending.scope,value,pending.mark)
         if working != delta.working.value:
             missing.append('WORKING_QUANTITY_MISMATCH')
         currency = self.valuation.currency

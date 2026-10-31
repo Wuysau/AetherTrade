@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="4" time="35.706" timestamp="2026-10-29T14:51:22.630915+00:00" hostname="6fb8a1b2aa0e"><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties" time="9.491"><failure message="ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)">tests/integration/test_paper_program_reports_postgres.py:24: in test_real_partial_fill_normalizes_native_facts_and_preserves_management_duties
+    observer,codec=actual_verifier(c,tmp_path/'archive')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_reports_postgres.py:15: in actual_verifier
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+E   ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)</failure></testcase><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_consumed_but_not_observed_never_becomes_not_sent_or_releases_funds" time="7.555"><failure message="ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)">tests/integration/test_paper_program_reports_postgres.py:42: in test_consumed_but_not_observed_never_becomes_not_sent_or_releases_funds
+    observer,codec=actual_verifier(c,tmp_path/'archive')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_reports_postgres.py:15: in actual_verifier
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+E   ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)</failure></testcase><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_changed_venue_request_is_archived_but_never_adopted" time="8.585"><failure message="ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)">tests/integration/test_paper_program_reports_postgres.py:59: in test_changed_venue_request_is_archived_but_never_adopted
+    observer,codec=actual_verifier(c,tmp_path/'archive')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_reports_postgres.py:15: in actual_verifier
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+E   ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)</failure></testcase><testcase classname="tests.integration.test_paper_program_reports_postgres" name="test_source_with_excess_competing_allocation_cannot_qualify_an_own_fill" time="8.641"><failure message="ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)">tests/integration/test_paper_program_reports_postgres.py:79: in test_source_with_excess_competing_allocation_cannot_qualify_an_own_fill
+    observer,codec=actual_verifier(c,tmp_path/'archive')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_reports_postgres.py:15: in actual_verifier
+    from trading_system.execution.paper_program_reports import PaperProgramReportVerifier
+E   ImportError: cannot import name 'PaperProgramReportVerifier' from 'trading_system.execution.paper_program_reports' (/tmp/source/src/trading_system/execution/paper_program_reports.py)</failure></testcase></testsuite></testsuites>

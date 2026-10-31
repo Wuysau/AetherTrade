@@ -1,0 +1,22 @@
+..................FFF                                                    [100%]
+=================================== FAILURES ===================================
+_ test_paper_side_effect_rechecks_the_committed_original_permit_labels[expiry] _
+tests/integration/test_paper_market_matcher.py:394: in test_paper_side_effect_rechecks_the_committed_original_permit_labels
+    with pytest.raises(ValueError,match='ORIGINAL_PERMIT_WINDOW_CHANGED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_paper_side_effect_rechecks_the_committed_original_permit_labels[deadline] _
+tests/integration/test_paper_market_matcher.py:394: in test_paper_side_effect_rechecks_the_committed_original_permit_labels
+    with pytest.raises(ValueError,match='ORIGINAL_PERMIT_WINDOW_CHANGED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+__ test_paper_side_effect_rechecks_the_committed_original_permit_labels[both] __
+tests/integration/test_paper_market_matcher.py:394: in test_paper_side_effect_rechecks_the_committed_original_permit_labels
+    with pytest.raises(ValueError,match='ORIGINAL_PERMIT_WINDOW_CHANGED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher.py::test_paper_side_effect_rechecks_the_committed_original_permit_labels[expiry]
+FAILED tests/integration/test_paper_market_matcher.py::test_paper_side_effect_rechecks_the_committed_original_permit_labels[deadline]
+FAILED tests/integration/test_paper_market_matcher.py::test_paper_side_effect_rechecks_the_committed_original_permit_labels[both]
+3 failed, 18 passed in 91.63s (0:01:31)

@@ -1,0 +1,58 @@
+{
+  "contract_version": "2026-10-28",
+  "program_id": "paper-limit-4000",
+  "instrument_ref": "paper:BTCUSDT",
+  "template": "ATOMIC",
+  "execution_mode": "PAPER_MODEL",
+  "nodes": [
+    {
+      "node_id": "entry",
+      "role": "ENTRY",
+      "child_origin": "APPLICATION_GENERATED_CHILD",
+      "order": {
+        "side": "BUY",
+        "quantity": {
+          "kind": "QUOTE_NOTIONAL",
+          "value": "4000",
+          "source_node": null
+        },
+        "price": {
+          "kind": "FIXED_LIMIT",
+          "value": "81490.00",
+          "peg_type": null,
+          "offset_levels": null,
+          "price_match": null
+        },
+        "trigger": {
+          "kind": "NONE",
+          "purpose": null,
+          "source": null,
+          "price": null,
+          "activation_price": null,
+          "offset": null,
+          "offset_unit": null,
+          "price_protect": null
+        },
+        "tif": {
+          "kind": "GTC",
+          "expires_at": null
+        },
+        "post_only": false,
+        "iceberg_quantity": null,
+        "stp": "NONE",
+        "routing": "STANDARD",
+        "position_side": "BOTH",
+        "reduce_only": false,
+        "trading_session": null,
+        "tokenize": null
+      }
+    }
+  ],
+  "links": [],
+  "exclusive_groups": [],
+  "algorithm": null,
+  "submit_valid_until": "2026-10-28T10:00:30Z",
+  "management_policy": "MANAGE_UNTIL_FLAT",
+  "capability_snapshot_ref": "cap:fixture",
+  "rule_snapshot_ref": "rules:fixture"
+}

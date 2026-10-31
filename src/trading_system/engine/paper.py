@@ -71,7 +71,7 @@ class SyntheticProtectionEvidence:
 class PaperEngine:
     def __init__(self, scope: t.ScopeKey, *, dsn: str, authority_guard,
                  owner_strategy_id: str, quantity_unit: str, price_currency: str,
-                 event_guard=None, event_dsn=None, clock=_clock, lose_ack_for=frozenset()):
+                 event_guard=None, event_dsn=None, clock=_clock, lose_ack_for=frozenset(),matching_model=None):
         if (not isinstance(scope, t.ScopeKey) or scope.environment != t.Environment.PAPER
                 or not scope.venue_account_id or not scope.instrument_uid
                 or scope.venue_leg not in {'BOTH', 'LONG', 'SHORT'}):
@@ -81,6 +81,7 @@ class PaperEngine:
             raise BridgeDenied('TRUSTED_PAPER_COMPOSITION_REQUIRED')
         self.scope, self._dsn = scope, dsn
         self._event_dsn = event_dsn
+        self._matching_model=matching_model
         self._scope_key = canonical_json(domain_payload(scope))
         self._authority_guard, self._event_guard, self._clock = authority_guard, event_guard, clock
         self._owner_strategy_id = owner_strategy_id
@@ -150,6 +151,18 @@ class PaperEngine:
 
     def submit(self, command, permit):
         return self._write(command, permit, {'SUBMIT', 'CLOSE', 'SET_PROTECTION'})
+
+    def submit_creation(self,write,request,permit,*,boundary,lease,owner):
+        from .paper_market import submit_creation
+        return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+
+    def query_creation(self,command_id):
+        from .paper_market import query_creation
+        return query_creation(self,command_id)
+
+    def query_market_evidence(self,command_id):
+        from .paper_market import query_market_evidence
+        return query_market_evidence(self,command_id)
 
     def cancel(self, command, permit):
         return self._write(command, permit, {'CANCEL'})

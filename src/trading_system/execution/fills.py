@@ -12,7 +12,7 @@ from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp
 from trading_system.storage.events import EventStore
 from trading_system.storage.models import (decode, scope_id, account_key,
-    MissingEvidence, ScopeMismatch)
+    MissingEvidence, ScopeMismatch, atomic_write)
 from .evidence import EvidenceRecord, next_account_sequence
 
 
@@ -88,87 +88,112 @@ class FillLedger:
         return existing
 
     def record(self, fill: t.Fill, correction_of: str | None = None) -> t.FillReceipt:
+        with self.uow.transaction(self.scope) as tx:
+            receipt = self.record_in_tx(tx, fill, correction_of=correction_of)
+        # Return success only after the enclosing UnitOfWork commits.
+        return receipt
+
+    def require_recorded_in_tx(self,tx,fill:t.Fill)->t.Fill:
+        """Read an actual native fact with the same adapter identity/evidence rules.
+
+        This does not record the caller's normalized fill, grant ownership or
+        change a balance. A source-approved financial consumer must additionally
+        bind this existing row to its independently committed source proof.
+        """
+        tx.require_scope(self.scope)
+        self._validate(fill)
+        if fill.native_trade_id is None:raise MissingEvidence('RECORDED_NATIVE_FILL_REQUIRED')
+        actual=self._duplicate(tx,fill)
+        if actual is None:raise MissingEvidence('RECORDED_NATIVE_FILL_REQUIRED')
+        self._evidence(tx,actual)
+        if (actual.evidence.hash,actual.evidence.environment,actual.evidence.source)!=(
+                fill.evidence.hash,fill.evidence.environment,fill.evidence.source):
+            raise MissingEvidence('RECORDED_NATIVE_FILL_SOURCE_CHANGED')
+        return actual
+
+    @atomic_write
+    def record_in_tx(self, tx, fill: t.Fill, correction_of: str | None = None) -> t.FillReceipt:
+        """Reuse all native fill validation inside a caller-owned ledger transaction."""
+        tx.require_scope(self.scope)
         if correction_of is not None:
             if fill.correction_of not in (None, correction_of):
                 raise ValueError('conflicting correction targets')
             fill = replace(fill, correction_of=correction_of)
         self._validate(fill)
-        with self.uow.transaction(self.scope) as tx:
-            evidence = self._evidence(tx, fill)
-            if fill.native_trade_id is None:
-                # Fingerprint is only a reconciliation candidate; it is never
-                # used to collapse two possibly distinct economic executions.
-                key = 'ip12:unidentified:' + canonical_hash(domain_payload(fill))
-                if tx._latest('audit_events', key, FillNotice) is None:
-                    tx._append('audit_events', key, FillNotice(fill=fill,
-                        aggregate_sequence=next_account_sequence(tx),
-                        status='UNKNOWN:NATIVE_ID_AND_COVERAGE_REQUIRED',
-                        protection_recheck_required=True, event_ref=None,
-                        fees_known=bool(fill.fees)), 0)
-                receipt = t.FillReceipt(fill_id=fill.fill_id, recorded=False,
-                    duplicate_of=None, event_ref=None)
-            else:
-                duplicate = self._duplicate(tx, fill)
-                if duplicate is not None:
-                    return t.FillReceipt(fill_id=fill.fill_id, recorded=False,
-                        duplicate_of=duplicate.fill_id, event_ref=None)
-                if tx.execute('SELECT 1 FROM ledger.fills WHERE record_id=%s',
-                              (fill.fill_id,)).fetchone() is not None:
-                    raise ValueError('fill_id already belongs to another native identity')
-                if fill.correction_of is not None:
-                    row = tx.execute('SELECT payload FROM ledger.fills WHERE record_id=%s',
-                                     (fill.correction_of,)).fetchone()
-                    if row is None:
-                        raise MissingEvidence('correction target is missing')
-                    original = decode(t.Fill, row[0])
-                    if original.correction_of is not None:
-                        raise ValueError('corrections must reference the original execution')
-                    if (original.order != fill.order or original.scope != fill.scope
-                            or original.venue != fill.venue
-                            or original.quantity.unit != fill.quantity.unit
-                            or original.price.currency != fill.price.currency):
-                        raise ScopeMismatch('correction target identity/units mismatch')
-                    adjusted = tx.execute('SELECT COALESCE(sum(quantity),0) FROM ledger.fills '
-                        'WHERE record_id=%s OR correction_of=%s',
-                        (fill.correction_of, fill.correction_of)).fetchone()[0]
-                    from .projections import add_exact
-                    if add_exact(adjusted, fill.quantity.value) < 0:
-                        raise ValueError('correction exceeds original execution quantity')
-                # Do not let a conflicting unit/settlement convention corrupt
-                # totals, even if this execution has a new native ID.
-                rows = tx.execute('SELECT payload FROM ledger.fills WHERE scope_id=%s '
-                    "AND payload->'order'->>'logical_client_order_id'=%s",
-                    (scope_id(self.scope), fill.order.logical_client_order_id)).fetchall()
-                for row in rows:
-                    prior = decode(t.Fill, row[0])
-                    if (prior.order != fill.order or prior.quantity.unit != fill.quantity.unit
-                            or prior.price.currency != fill.price.currency or prior.venue != fill.venue):
-                        raise ScopeMismatch('fill identity or units changed within order')
-                total = tx.execute('SELECT COALESCE(sum(quantity),0) FROM ledger.fills '
-                    "WHERE scope_id=%s AND payload->'order'->>'logical_client_order_id'=%s",
-                    (scope_id(self.scope), fill.order.logical_client_order_id)).fetchone()[0]
+        evidence = self._evidence(tx, fill)
+        if fill.native_trade_id is None:
+            # Fingerprint is only a reconciliation candidate; it is never
+            # used to collapse two possibly distinct economic executions.
+            key = 'ip12:unidentified:' + canonical_hash(domain_payload(fill))
+            if tx._latest('audit_events', key, FillNotice) is None:
+                tx._append('audit_events', key, FillNotice(fill=fill,
+                    aggregate_sequence=next_account_sequence(tx),
+                    status='UNKNOWN:NATIVE_ID_AND_COVERAGE_REQUIRED',
+                    protection_recheck_required=True, event_ref=None,
+                    fees_known=bool(fill.fees)), 0)
+            receipt = t.FillReceipt(fill_id=fill.fill_id, recorded=False,
+                duplicate_of=None, event_ref=None)
+        else:
+            duplicate = self._duplicate(tx, fill)
+            if duplicate is not None:
+                return t.FillReceipt(fill_id=fill.fill_id, recorded=False,
+                    duplicate_of=duplicate.fill_id, event_ref=None)
+            if tx.execute('SELECT 1 FROM ledger.fills WHERE record_id=%s',
+                          (fill.fill_id,)).fetchone() is not None:
+                raise ValueError('fill_id already belongs to another native identity')
+            if fill.correction_of is not None:
+                row = tx.execute('SELECT payload FROM ledger.fills WHERE record_id=%s',
+                                 (fill.correction_of,)).fetchone()
+                if row is None:
+                    raise MissingEvidence('correction target is missing')
+                original = decode(t.Fill, row[0])
+                if original.correction_of is not None:
+                    raise ValueError('corrections must reference the original execution')
+                if (original.order != fill.order or original.scope != fill.scope
+                        or original.venue != fill.venue
+                        or original.quantity.unit != fill.quantity.unit
+                        or original.price.currency != fill.price.currency):
+                    raise ScopeMismatch('correction target identity/units mismatch')
+                adjusted = tx.execute('SELECT COALESCE(sum(quantity),0) FROM ledger.fills '
+                    'WHERE record_id=%s OR correction_of=%s',
+                    (fill.correction_of, fill.correction_of)).fetchone()[0]
                 from .projections import add_exact
-                if add_exact(total, fill.quantity.value) < 0:
-                    raise ValueError('correction exceeds accounted quantity')
-                aggregate = 'order:' + fill.order.logical_client_order_id
-                head = tx.execute('SELECT sequence FROM ledger.aggregate_heads '
-                    'WHERE scope_id=%s AND aggregate_id=%s',
-                    (scope_id(self.scope), 'events:' + aggregate)).fetchone()
-                sequence = 0 if head is None else head[0]
-                event = t.DomainEvent(event_id='ip12:fill:' + uuid4().hex,
-                    scope=self.scope, aggregate_id=aggregate, revision=sequence + 1,
-                    occurred_at=fill.occurred_at, evidence=(fill.evidence,), payload=fill)
-                ref = EventStore(received_at=evidence.raw.received_at).append(tx, event, sequence)
-                tx._append('audit_events', 'ip12:fill-notice:' + fill.fill_id,
-                    FillNotice(fill=fill, aggregate_sequence=next_account_sequence(tx),
-                        status='FILL_RECORDED', protection_recheck_required=True,
-                        event_ref=ref, fees_known=bool(fill.fees)), 0)
-                # EventStore's DOMAIN_EVENT outbox entry is the durable wake-up
-                # for protection/reconciliation. Consumer acknowledgement is a
-                # separate task; a notice is not evidence of protected exposure.
-                receipt = t.FillReceipt(fill_id=fill.fill_id, recorded=True,
-                    duplicate_of=None, event_ref=ref)
-        # Return success only after UnitOfWork commits all three records/outbox.
+                if add_exact(adjusted, fill.quantity.value) < 0:
+                    raise ValueError('correction exceeds original execution quantity')
+            # Do not let a conflicting unit/settlement convention corrupt
+            # totals, even if this execution has a new native ID.
+            rows = tx.execute('SELECT payload FROM ledger.fills WHERE scope_id=%s '
+                "AND payload->'order'->>'logical_client_order_id'=%s",
+                (scope_id(self.scope), fill.order.logical_client_order_id)).fetchall()
+            for row in rows:
+                prior = decode(t.Fill, row[0])
+                if (prior.order != fill.order or prior.quantity.unit != fill.quantity.unit
+                        or prior.price.currency != fill.price.currency or prior.venue != fill.venue):
+                    raise ScopeMismatch('fill identity or units changed within order')
+            total = tx.execute('SELECT COALESCE(sum(quantity),0) FROM ledger.fills '
+                "WHERE scope_id=%s AND payload->'order'->>'logical_client_order_id'=%s",
+                (scope_id(self.scope), fill.order.logical_client_order_id)).fetchone()[0]
+            from .projections import add_exact
+            if add_exact(total, fill.quantity.value) < 0:
+                raise ValueError('correction exceeds accounted quantity')
+            aggregate = 'order:' + fill.order.logical_client_order_id
+            head = tx.execute('SELECT sequence FROM ledger.aggregate_heads '
+                'WHERE scope_id=%s AND aggregate_id=%s',
+                (scope_id(self.scope), 'events:' + aggregate)).fetchone()
+            sequence = 0 if head is None else head[0]
+            event = t.DomainEvent(event_id='ip12:fill:' + uuid4().hex,
+                scope=self.scope, aggregate_id=aggregate, revision=sequence + 1,
+                occurred_at=fill.occurred_at, evidence=(fill.evidence,), payload=fill)
+            ref = EventStore(received_at=evidence.raw.received_at).append(tx, event, sequence)
+            tx._append('audit_events', 'ip12:fill-notice:' + fill.fill_id,
+                FillNotice(fill=fill, aggregate_sequence=next_account_sequence(tx),
+                    status='FILL_RECORDED', protection_recheck_required=True,
+                    event_ref=ref, fees_known=bool(fill.fees)), 0)
+            # EventStore's DOMAIN_EVENT outbox entry is the durable wake-up
+            # for protection/reconciliation. Consumer acknowledgement is a
+            # separate task; a notice is not evidence of protected exposure.
+            receipt = t.FillReceipt(fill_id=fill.fill_id, recorded=True,
+                duplicate_of=None, event_ref=ref)
         return receipt
 
     def quantity_at(self, event: t.DomainEvent) -> t.Quantity:

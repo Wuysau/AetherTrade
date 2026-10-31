@@ -1,0 +1,145 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[1] _
+tests/integration/test_program_submission_observation.py:43: in test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release
+    submit(c)
+tests/integration/test_paper_market_matcher.py:75: in submit
+    if c.permit is None:c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:450: in mark_may_have_sent
+    w,clock,ttl=ProgramCommandRepository(tx,**self.readers).mark_may_have_sent(command_id,lease,
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:388: in mark_may_have_sent
+    context,clock,current,expires,_=self._current(w,lease)
+                                    ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:286: in _current
+    require_current_account_book(self.tx,book)
+src/trading_system/risk/program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_book_cash.py:61: in require_current_program_book_cash
+    frame=read_program_account_cash(tx,read_opening=read_opening)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_account_cash.py:104: in read_program_account_cash
+    sources=tx.execute('SELECT scope_id,approval_id,identity_hash,payload FROM ledger.program_fill_source_approvals '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table program_fill_source_approvals
+_ test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[2] _
+tests/integration/test_program_submission_observation.py:43: in test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release
+    submit(c)
+tests/integration/test_paper_market_matcher.py:75: in submit
+    if c.permit is None:c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:450: in mark_may_have_sent
+    w,clock,ttl=ProgramCommandRepository(tx,**self.readers).mark_may_have_sent(command_id,lease,
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:388: in mark_may_have_sent
+    context,clock,current,expires,_=self._current(w,lease)
+                                    ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:286: in _current
+    require_current_account_book(self.tx,book)
+src/trading_system/risk/program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_book_cash.py:61: in require_current_program_book_cash
+    frame=read_program_account_cash(tx,read_opening=read_opening)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_account_cash.py:104: in read_program_account_cash
+    sources=tx.execute('SELECT scope_id,approval_id,identity_hash,payload FROM ledger.program_fill_source_approvals '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table program_fill_source_approvals
+_ test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold __
+tests/integration/test_program_submission_observation.py:69: in test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold
+    PaperMatcher(c.engine).apply_market_event(event(c,ask='81480',quantity='1'));submit(c)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:82: in event
+    return PaperMarketEvent(contract_version='2026-10-29',event_id=event_id or uuid4().hex,stream_id=c.scope.instrument_uid,
+<string>:14: in __init__
+    ???
+src/trading_system/engine/paper_market.py:83: in __post_init__
+    require(max(number(l.price) for l in self.bids)<min(number(l.price) for l in self.asks),'PAPER_CROSSED_SOURCE_BOOK')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_CROSSED_SOURCE_BOOK
+_ test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty _
+tests/integration/test_program_submission_observation.py:81: in test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty
+    c=case(database,venue,tmp_path);submit(c);service,codec=observer(c,tmp_path/'unknown')
+                                    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:75: in submit
+    if c.permit is None:c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:450: in mark_may_have_sent
+    w,clock,ttl=ProgramCommandRepository(tx,**self.readers).mark_may_have_sent(command_id,lease,
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:388: in mark_may_have_sent
+    context,clock,current,expires,_=self._current(w,lease)
+                                    ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:286: in _current
+    require_current_account_book(self.tx,book)
+src/trading_system/risk/program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_book_cash.py:61: in require_current_program_book_cash
+    frame=read_program_account_cash(tx,read_opening=read_opening)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_account_cash.py:104: in read_program_account_cash
+    sources=tx.execute('SELECT scope_id,approval_id,identity_hash,payload FROM ledger.program_fill_source_approvals '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table program_fill_source_approvals
+_ test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness _
+tests/integration/test_program_submission_observation.py:98: in test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness
+    c=case(database,venue,tmp_path);submit(c)
+                                    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:75: in submit
+    if c.permit is None:c.permit=c.gate.mark_may_have_sent(c.write.command_id,c.lease)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:450: in mark_may_have_sent
+    w,clock,ttl=ProgramCommandRepository(tx,**self.readers).mark_may_have_sent(command_id,lease,
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:388: in mark_may_have_sent
+    context,clock,current,expires,_=self._current(w,lease)
+                                    ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:286: in _current
+    require_current_account_book(self.tx,book)
+src/trading_system/risk/program_cash_guard.py:14: in require_current_account_book
+    return require_current_program_book_cash(tx,book,read_opening=read_program_local_account_opening)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_book_cash.py:61: in require_current_program_book_cash
+    frame=read_program_account_cash(tx,read_opening=read_opening)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_account_cash.py:104: in read_program_account_cash
+    sources=tx.execute('SELECT scope_id,approval_id,identity_hash,payload FROM ledger.program_fill_source_approvals '
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table program_fill_source_approvals
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_submission_observation.py::test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[1]
+FAILED tests/integration/test_program_submission_observation.py::test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[2]
+FAILED tests/integration/test_program_submission_observation.py::test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold
+FAILED tests/integration/test_program_submission_observation.py::test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty
+FAILED tests/integration/test_program_submission_observation.py::test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness
+5 failed in 9.72s

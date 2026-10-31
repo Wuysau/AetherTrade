@@ -1,5 +1,11 @@
 # 统一 PAPER：证据索引与未完成项
 
+当前新增工程（2026-10-29）仍ACTIVE：Binance46项能力/56项场景，OP-C→D/E/F→G未完成。
+以 docs/current-task.md 顶部、docs/orders/OP-C-GENERIC-ADMISSION.md 和
+OP-C-QUOTE-INTERVAL-PLAN.md 为最新实施索引。固定b7e0dd5真实PG16例通过，固定681329a
+公共接入PG5例通过（均零失败/错误/跳过）；它们是各自源码的组件证明，不代表后续
+合并树、撮合、native或46/56全量验收通过。旧统一PAPER结论及证据保留下方。
+
 ## 当前判定：本地统一 PAPER 工程验收通过（2026-10-28）
 
 最终后端固定源 `6cbc870`，最终前端代码 `c4520da`（前端/文档差异，后端源码

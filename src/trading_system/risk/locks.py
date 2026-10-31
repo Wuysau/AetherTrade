@@ -15,6 +15,9 @@ from trading_system.storage.models import encode, scope_id
 
 
 POLICIES = {
+    'PROGRAM_ACCOUNTING_UNRESOLVED': (t.RiskPermission.RECOVERY_REQUIRED,
+        ('FILL_SOURCE_AND_LEDGER_RECONCILED','ASSET_POSTINGS_RECONCILED',
+         'OWNERSHIP_ALLOCATION_RECONCILED','PROTECTION_CONFIRMED')),
     'PROTECTION_PENDING': (t.RiskPermission.NO_NEW_RISK, ('PROTECTION_CONFIRMED',)),
     'ORDER_OUTCOME_UNKNOWN': (t.RiskPermission.RECOVERY_REQUIRED, ('ORIGINAL_COMMAND_RECONCILIATION',)),
     'RESERVATION_COMMAND_UNKNOWN': (t.RiskPermission.NO_NEW_RISK, ('command_terminal', 'fills_and_balance_reconciled')),

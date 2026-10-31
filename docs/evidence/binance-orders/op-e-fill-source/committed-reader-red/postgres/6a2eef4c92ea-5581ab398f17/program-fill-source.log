@@ -1,0 +1,14 @@
+........FF.                                                              [100%]
+=================================== FAILURES ===================================
+___ test_owner_reads_only_committed_protected_source_and_not_own_audit_json ____
+tests/integration/test_program_fill_source_approval.py:177: in test_owner_reads_only_committed_protected_source_and_not_own_audit_json
+    from trading_system.execution.program_fill_source import read_committed_fill_source
+E   ImportError: cannot import name 'read_committed_fill_source' from 'trading_system.execution.program_fill_source' (/tmp/source/src/trading_system/execution/program_fill_source.py)
+_ test_uncommitted_approval_cannot_be_consumed_even_in_the_source_transaction __
+tests/integration/test_program_fill_source_approval.py:196: in test_uncommitted_approval_cannot_be_consumed_even_in_the_source_transaction
+    from trading_system.execution.program_fill_source import read_committed_fill_source,_source_context
+E   ImportError: cannot import name 'read_committed_fill_source' from 'trading_system.execution.program_fill_source' (/tmp/source/src/trading_system/execution/program_fill_source.py)
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_fill_source_approval.py::test_owner_reads_only_committed_protected_source_and_not_own_audit_json
+FAILED tests/integration/test_program_fill_source_approval.py::test_uncommitted_approval_cannot_be_consumed_even_in_the_source_transaction
+2 failed, 9 passed in 31.61s

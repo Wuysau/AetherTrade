@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="5.324" timestamp="2026-10-30T02:31:06.985321+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_actual_consumed_command_cannot_start_against_a_market_book_from_its_future" time="5.004"><failure message="Failed: DID NOT RAISE ValueError">tests/integration/test_paper_market_matcher_v2.py:286: in test_actual_consumed_command_cannot_start_against_a_market_book_from_its_future
+    with pytest.raises(ValueError,match='PAPER_MARKET_CLOCK_AHEAD_OF_ACCEPTANCE'):submit(c)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase></testsuite></testsuites>

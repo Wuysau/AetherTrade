@@ -1,0 +1,841 @@
+{
+  "as_of": "2026-10-28",
+  "audited_repository": "Wuysau/AetherTrade",
+  "audited_branch": "public-snapshot",
+  "audited_commit": "b168966d350ed60fe8a92792f9519f4227054bc5",
+  "scope": [
+    "SPOT",
+    "USD_M_PERP",
+    "US_EQUITY"
+  ],
+  "scope_note": "覆盖原批准市场的完整订单语义；Margin/COIN-M/Options/Portfolio Margin等是另一个产品账户域的扩展，不声称已经覆盖。REST为明确核验的主路径，WS/FIX传输资格另记。",
+  "features": [
+    {
+      "id": "SPOT-MARKET",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "MARKET",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B02"
+      ],
+      "notes": "按标的订单类型和过滤器准入；响应不等于全部成交。",
+      "target_required": true,
+      "observed_current_support": "SYNTHETIC_SUBMISSION_AND_CONTROLLED_EVENT_INJECTION_ONLY",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-LIMIT",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "LIMIT",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B02"
+      ],
+      "notes": "按标的订单类型和过滤器准入；响应不等于全部成交。",
+      "target_required": true,
+      "observed_current_support": "EXPLICITLY_REJECTED_BY_ACCEPT_PROPOSAL",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-LIMIT_MAKER",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "LIMIT_MAKER",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B02"
+      ],
+      "notes": "按标的订单类型和过滤器准入；响应不等于全部成交。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-STOP_LOSS",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "STOP_LOSS",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B02"
+      ],
+      "notes": "按标的订单类型和过滤器准入；响应不等于全部成交。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-STOP_LOSS_LIMIT",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "STOP_LOSS_LIMIT",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B02"
+      ],
+      "notes": "按标的订单类型和过滤器准入；响应不等于全部成交。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-TAKE_PROFIT",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "TAKE_PROFIT",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B02"
+      ],
+      "notes": "按标的订单类型和过滤器准入；响应不等于全部成交。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-TAKE_PROFIT_LIMIT",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "TAKE_PROFIT_LIMIT",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B02"
+      ],
+      "notes": "按标的订单类型和过滤器准入；响应不等于全部成交。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-LIST-OCO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OCO",
+      "route": "POST /api/v3/orderList/oco",
+      "official_documented": true,
+      "source_refs": [
+        "B01"
+      ],
+      "notes": "列表/子单分别持久化。OTO系工作单完全成交后激活；OPO系按实际到账数量、费用、过滤器决定后续量。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-LIST-OTO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OTO",
+      "route": "POST /api/v3/orderList/oto",
+      "official_documented": true,
+      "source_refs": [
+        "B01"
+      ],
+      "notes": "列表/子单分别持久化。OTO系工作单完全成交后激活；OPO系按实际到账数量、费用、过滤器决定后续量。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-LIST-OTOCO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OTOCO",
+      "route": "POST /api/v3/orderList/otoco",
+      "official_documented": true,
+      "source_refs": [
+        "B01"
+      ],
+      "notes": "列表/子单分别持久化。OTO系工作单完全成交后激活；OPO系按实际到账数量、费用、过滤器决定后续量。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-LIST-OPO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OPO",
+      "route": "POST /api/v3/orderList/opo",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B05"
+      ],
+      "notes": "列表/子单分别持久化。OTO系工作单完全成交后激活；OPO系按实际到账数量、费用、过滤器决定后续量。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-LIST-OPOCO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OPOCO",
+      "route": "POST /api/v3/orderList/opoco",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B05"
+      ],
+      "notes": "列表/子单分别持久化。OTO系工作单完全成交后激活；OPO系按实际到账数量、费用、过滤器决定后续量。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-TRAILING",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "trailingDelta",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B03"
+      ],
+      "notes": "附着在四种条件单上；单位BIPS，不能套用合约callbackRate。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-PEG",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "PRIMARY_PEG / MARKET_PEG",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B04"
+      ],
+      "notes": "只用于允许的限价类；不是自动反复追价策略。依类型/TIF/标的验证。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-ICEBERG",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "icebergQty",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B07"
+      ],
+      "notes": "显示量/总量、GTC和ICEBERG_PARTS等限制。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-SOR",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Smart Order Routing",
+      "route": "POST /api/v3/sor/order",
+      "official_documented": true,
+      "source_refs": [
+        "B06",
+        "B01"
+      ],
+      "notes": "LIMIT/MARKET；需路由组、支付/成交资产及allocation对账，不能只给symbol打勾。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-QTY",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "quantity / quoteOrderQty",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01"
+      ],
+      "notes": "按类型互斥和标的能力检查；最终成交和费用按真实资产入账。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-TIF",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "GTC / IOC / FOK",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B02"
+      ],
+      "notes": "TIF与type组合验证，allow_partial布尔值不能替代TIF。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-AMEND",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Order Amend Keep Priority",
+      "route": "PUT /api/v3/order/amend/keepPriority",
+      "official_documented": true,
+      "source_refs": [
+        "B08"
+      ],
+      "notes": "只减少原始数量，保留时间优先级；与cancel-replace不同。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-CANCEL_REPLACE",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Cancel Replace",
+      "route": "POST /api/v3/order/cancelReplace",
+      "official_documented": true,
+      "source_refs": [
+        "B01"
+      ],
+      "notes": "撤旧和下新分别成功/失败/未知；不把HTTP状态当原子回滚。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-STP",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "selfTradePreventionMode",
+      "route": "POST /api/v3/order",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B02"
+      ],
+      "notes": "允许枚举及默认值由标的/账户声明；防自成交终态不能丢失。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-CANCEL_QUERY",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Cancel / query / user events",
+      "route": "DELETE /api/v3/order; GET /api/v3/order; list query",
+      "official_documented": true,
+      "source_refs": [
+        "B01",
+        "B18"
+      ],
+      "notes": "按所有权取消；超时先查原ID；列表状态与成交回报共同对账。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-MARKET",
+      "product": "USD_M_PERP",
+      "family": "ATOMIC",
+      "feature": "MARKET",
+      "route": "POST /fapi/v1/order",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10"
+      ],
+      "notes": "普通订单路径；不要由共享枚举推断条件单也可走此路径。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-LIMIT",
+      "product": "USD_M_PERP",
+      "family": "ATOMIC",
+      "feature": "LIMIT",
+      "route": "POST /fapi/v1/order",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10"
+      ],
+      "notes": "普通订单路径；不要由共享枚举推断条件单也可走此路径。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-STOP",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "STOP",
+      "route": "POST /fapi/v1/algoOrder",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10"
+      ],
+      "notes": "algoType=CONDITIONAL；算法ID与触发生成的普通orderId独立保存。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-STOP_MARKET",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "STOP_MARKET",
+      "route": "POST /fapi/v1/algoOrder",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10"
+      ],
+      "notes": "algoType=CONDITIONAL；算法ID与触发生成的普通orderId独立保存。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-TAKE_PROFIT",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "TAKE_PROFIT",
+      "route": "POST /fapi/v1/algoOrder",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10"
+      ],
+      "notes": "algoType=CONDITIONAL；算法ID与触发生成的普通orderId独立保存。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-TAKE_PROFIT_MARKET",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "TAKE_PROFIT_MARKET",
+      "route": "POST /fapi/v1/algoOrder",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10"
+      ],
+      "notes": "algoType=CONDITIONAL；算法ID与触发生成的普通orderId独立保存。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-TRAILING_STOP_MARKET",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "TRAILING_STOP_MARKET",
+      "route": "POST /fapi/v1/algoOrder",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10"
+      ],
+      "notes": "algoType=CONDITIONAL；算法ID与触发生成的普通orderId独立保存。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-TIF",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "GTC / IOC / FOK / GTX / GTD / RPI",
+      "route": "按 /fapi 普通/条件端点分流",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10",
+        "B11"
+      ],
+      "notes": "逐接口逐type验证，GTD时间精度和边界不能静默取整；RPI权限与对手盘可见性独立。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-TRIGGER",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "CONTRACT_PRICE / MARK_PRICE + priceProtect",
+      "route": "按 /fapi 普通/条件端点分流",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10",
+        "B11"
+      ],
+      "notes": "触发源与保护参数必须端到端保存；不把MARK静默当LAST。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-REDUCTION",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "positionSide / reduceOnly / closePosition",
+      "route": "按 /fapi 普通/条件端点分流",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10",
+        "B11"
+      ],
+      "notes": "hedge与one-way参数互斥；closePosition与quantity/reduceOnly不可直接合用。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-PRICE_MATCH",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "priceMatch",
+      "route": "按 /fapi 普通/条件端点分流",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10",
+        "B11"
+      ],
+      "notes": "价格匹配与固定price互斥；以当前change-log和接口有效值为准。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-STP",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "selfTradePreventionMode",
+      "route": "按 /fapi 普通/条件端点分流",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10",
+        "B11"
+      ],
+      "notes": "分别验证普通和条件单、TIF适用性。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-AMEND",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "LIMIT modify / batch modify",
+      "route": "按 /fapi 普通/条件端点分流",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10",
+        "B11"
+      ],
+      "notes": "普通LIMIT改价改量会重新排队；未触发条件单无直接修改能力时走显式撤换状态机。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-BATCH",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "batch submit / cancel",
+      "route": "按 /fapi 普通/条件端点分流",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10",
+        "B11"
+      ],
+      "notes": "非业务原子批次；普通订单与条件单使用各自正确路由。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USDM-CANCEL_QUERY",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "ordinary / algo query-cancel and user events",
+      "route": "按 /fapi 普通/条件端点分流",
+      "official_documented": true,
+      "source_refs": [
+        "B09",
+        "B10",
+        "B11"
+      ],
+      "notes": "分别记录clientOrderId/clientAlgoId、algoId/orderId；触发后的关联关系可恢复。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-EXEC-TWAP",
+      "product": "SPOT",
+      "family": "VENUE_EXECUTION_ALGORITHM",
+      "feature": "TWAP",
+      "route": "POST /sapi/v1/algo/spot/newOrderTwap",
+      "official_documented": true,
+      "source_refs": [
+        "B15"
+      ],
+      "notes": "独立算法母单/子单/查询/撤销；success不代表成交。账户、金额、时长与可用权限逐项验证；模拟模型不承诺复刻平台私有调度。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-EXEC-VP",
+      "product": "SPOT",
+      "family": "VENUE_EXECUTION_ALGORITHM",
+      "feature": "VP",
+      "route": "POST /sapi/v1/algo/spot/newOrderVp",
+      "official_documented": true,
+      "source_refs": [
+        "B15"
+      ],
+      "notes": "独立算法母单/子单/查询/撤销；success不代表成交。账户、金额、时长与可用权限逐项验证；模拟模型不承诺复刻平台私有调度。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USD_M_PERP-EXEC-TWAP",
+      "product": "USD_M_PERP",
+      "family": "VENUE_EXECUTION_ALGORITHM",
+      "feature": "TWAP",
+      "route": "POST /sapi/v1/algo/futures/newOrderTwap",
+      "official_documented": true,
+      "source_refs": [
+        "B16"
+      ],
+      "notes": "独立算法母单/子单/查询/撤销；success不代表成交。账户、金额、时长与可用权限逐项验证；模拟模型不承诺复刻平台私有调度。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "USD_M_PERP-EXEC-VP",
+      "product": "USD_M_PERP",
+      "family": "VENUE_EXECUTION_ALGORITHM",
+      "feature": "VP",
+      "route": "POST /sapi/v1/algo/futures/newOrderVp",
+      "official_documented": true,
+      "source_refs": [
+        "B16"
+      ],
+      "notes": "独立算法母单/子单/查询/撤销；success不代表成交。账户、金额、时长与可用权限逐项验证；模拟模型不承诺复刻平台私有调度。",
+      "target_required": true,
+      "observed_current_support": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "EQUITY-MARKET",
+      "product": "US_EQUITY",
+      "family": "ATOMIC",
+      "feature": "MARKET",
+      "route": "POST /sapi/v1/equity/order/place",
+      "official_documented": true,
+      "source_refs": [
+        "B12",
+        "B13"
+      ],
+      "notes": "真实证券显式tokenize=false；BUY MARKET用notional，SELL MARKET用quantity，LIMIT用price/quantity/tradingSession。",
+      "target_required": true,
+      "observed_current_support": "NOT_THE_CURRENT_SPOT_ONLY_CONSOLE_COMPOSITION",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "EQUITY-LIMIT",
+      "product": "US_EQUITY",
+      "family": "ATOMIC",
+      "feature": "LIMIT",
+      "route": "POST /sapi/v1/equity/order/place",
+      "official_documented": true,
+      "source_refs": [
+        "B12",
+        "B13"
+      ],
+      "notes": "真实证券显式tokenize=false；BUY MARKET用notional，SELL MARKET用quantity，LIMIT用price/quantity/tradingSession。",
+      "target_required": true,
+      "observed_current_support": "NOT_THE_CURRENT_SPOT_ONLY_CONSOLE_COMPOSITION",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "EQUITY-SESSIONS",
+      "product": "US_EQUITY",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "DAY / GTC; RTH / EXTENDED / 24H",
+      "route": "/sapi/v1/equity/order/place",
+      "official_documented": true,
+      "source_refs": [
+        "B12",
+        "B13"
+      ],
+      "notes": "GTC仅LIMIT；fractional GTC与时段有组合约束。MARKET不传tradingSession。",
+      "target_required": true,
+      "observed_current_support": "NOT_THE_CURRENT_SPOT_ONLY_CONSOLE_COMPOSITION",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "EQUITY-CANCEL_QUERY",
+      "product": "US_EQUITY",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Cancel / query / private orderReport",
+      "route": "POST /sapi/v1/equity/order/cancel; GET order detail/open/history; WSS orderReport",
+      "official_documented": true,
+      "source_refs": [
+        "B12",
+        "B13",
+        "B14"
+      ],
+      "notes": "S/F是请求确认，不是FILLED；接收更多回报枚举不代表相应下单能力已开放。",
+      "target_required": true,
+      "observed_current_support": "NOT_THE_CURRENT_SPOT_ONLY_CONSOLE_COMPOSITION",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    },
+    {
+      "id": "SPOT-EXECUTION_RULES",
+      "product": "SPOT",
+      "family": "EXECUTION_RULE",
+      "feature": "Dynamic price-range execution rules / expiryReason",
+      "route": "GET executionRules + referenced market data; order lifecycle events",
+      "official_documented": true,
+      "source_refs": [
+        "B19"
+      ],
+      "notes": "价格范围执行规则不同于下单价格过滤器；吃单越界可导致EXPIRED，必须记录平台expiryReason，不能假设MARKET一定全部成交。",
+      "target_required": true,
+      "observed_current_support": "NOT_VERIFIED_IN_REVIEW",
+      "paper_semantic_tests": "NOT_RUN",
+      "venue_tests": "NOT_RUN",
+      "live_enabled": false
+    }
+  ],
+  "overall_qualification": "NOT_RUN",
+  "live_enabled": false,
+  "catalog_kind": "ORDER_SEMANTIC_FEATURES_NOT_NUMBER_OF_DISTINCT_ORDER_TYPES",
+  "coverage_note": "本次已确认的完整目标清单；不等于所有金融产品、全部传输协议或每个未来API参数已永久穷尽。官方文档差异与未取得内容单独记录。"
+}

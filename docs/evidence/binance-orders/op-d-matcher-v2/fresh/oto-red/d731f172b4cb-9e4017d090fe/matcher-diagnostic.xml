@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="10.640" timestamp="2026-10-30T02:48:55.224284+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_native_pending_members_wait_for_actual_full_working_fill_then_activate_without_application_commands[OTO]" time="4.995"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_market_matcher_v2.py:353: in test_native_pending_members_wait_for_actual_full_working_fill_then_activate_without_application_commands
+    submit(c);matcher=PaperMatcher(c.engine)
+    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:399: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_oco)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_native_pending_members_wait_for_actual_full_working_fill_then_activate_without_application_commands[OTOCO]" time="5.249"><failure message="ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED">tests/integration/test_paper_market_matcher_v2.py:353: in test_native_pending_members_wait_for_actual_full_working_fill_then_activate_without_application_commands
+    submit(c);matcher=PaperMatcher(c.engine)
+    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:399: in submit_creation
+    require((plan.original_program.template=='ATOMIC' and len(plan.nodes)==1 or native_oco)
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_PROGRAM_MATCHER_STAGE_REQUIRED</failure></testcase></testsuite></testsuites>

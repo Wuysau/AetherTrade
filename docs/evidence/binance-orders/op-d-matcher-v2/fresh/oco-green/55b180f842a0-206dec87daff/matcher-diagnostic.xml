@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="6.006" timestamp="2026-10-30T02:44:59.171082+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_native_oco_has_one_real_parent_command_and_observed_member_cancellation_on_activation" time="5.500"><failure message="psycopg.errors.InsufficientPrivilege: permission denied for table paper_engine_commands&#10;CONTEXT:  SQL statement &quot;SELECT *              FROM public.paper_engine_commands WHERE scope_key=p_scope AND command_id=p_command FOR SHARE&quot;&#10;PL/pgSQL function public.paper_accept_native_program_v2(text,text) line 4 at SQL statement">tests/integration/test_paper_market_matcher_v2.py:325: in test_native_oco_has_one_real_parent_command_and_observed_member_cancellation_on_activation
+    submit(c);matcher=PaperMatcher(c.engine)
+    ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:481: in submit_creation
+    if native_oco:db.execute('SELECT public.paper_accept_native_program_v2(%s,%s)',(engine._scope_key,write.command_id))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InsufficientPrivilege: permission denied for table paper_engine_commands
+E   CONTEXT:  SQL statement "SELECT *              FROM public.paper_engine_commands WHERE scope_key=p_scope AND command_id=p_command FOR SHARE"
+E   PL/pgSQL function public.paper_accept_native_program_v2(text,text) line 4 at SQL statement</failure></testcase></testsuite></testsuites>

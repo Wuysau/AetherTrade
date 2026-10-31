@@ -1,0 +1,79 @@
+{
+  "commit": "4c88f2d442450d8fc9bc2eca85ffaad41ae9c4b1",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "oco-red",
+  "finished_utc": "2026-10-30T02:40:18.540422+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-4c88f2d.bundle",
+        "HEAD",
+        "4c88f2d442450d8fc9bc2eca85ffaad41ae9c4b1"
+      ],
+      "log": "4c88f2d-oco-red-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "4c88f2d-oco-red-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-4c88f2d.bundle",
+        "4c88f2d442450d8fc9bc2eca85ffaad41ae9c4b1"
+      ],
+      "log": "4c88f2d-oco-red-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "4c88f2d442450d8fc9bc2eca85ffaad41ae9c4b1"
+      ],
+      "log": "4c88f2d-oco-red-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=4c88f2d442450d8fc9bc2eca85ffaad41ae9c4b1",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_oco_has_one_real_parent_command_and_observed_member_cancellation_on_activation'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/oco-red"
+      ],
+      "log": "4c88f2d-oco-red.txt",
+      "exit_code": 1
+    }
+  ]
+}

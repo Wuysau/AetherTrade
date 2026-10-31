@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="7" time="56.238" timestamp="2026-10-29T16:24:03.239192+00:00" hostname="5b24092dcadb"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_actual_v2_base_market_uses_visible_opposing_quote_and_partial_expiry" time="9.428" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_stop_limit_waits_for_exact_last_source_then_keeps_native_limit" time="8.688" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price" time="9.222" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_v1_and_v2_competing_accounts_share_one_actual_depth_source" time="19.057" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_runtime_cannot_publish_price_sources_or_change_activation_progress" time="0.035" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_primary_peg_latches_placement_price_without_rewriting_native_spec" time="8.790"><failure message="ValueError: PAPER_V2_EXECUTION_STAGE_REQUIRED">tests/integration/test_paper_market_matcher_v2.py:116: in test_primary_peg_latches_placement_price_without_rewriting_native_spec
+    matcher.apply_market_event(snapshot);submit(c)
+                                         ^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:68: in submit
+    return c.engine.submit_creation(c.write,c.request,c.permit,boundary=c.gate,lease=c.lease,owner=c.owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper.py:157: in submit_creation
+    return submit_creation(self,write,request,permit,boundary=boundary,lease=lease,owner=owner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market.py:401: in submit_creation
+    if v2:validate_atomic_v2(engine.scope,node)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/engine/paper_market_v2.py:106: in validate_atomic_v2
+    require(o.price.kind in ('FIXED_LIMIT','MARKET') and o.trigger.kind in ('NONE','STATIC','TRAILING')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_V2_EXECUTION_STAGE_REQUIRED</failure></testcase><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority" time="0.063"><failure message="ValueError: expected finite plain decimal string">tests/integration/test_paper_market_matcher_v2.py:130: in test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority
+    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda order:replace(order,iceberg_quantity='.1'))
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher_v2.py:21: in advanced_case
+    c=case(database,venue_v2,tmp_path,**options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:43: in case
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:69: in real_case
+    c=risk_module.risk_case(**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:64: in selected_plan
+    if not preserve_quote_limit:return original_plan_for(**options)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:32: in plan_for
+    p,r,c,k=inputs(product);p=change(p,side=side,quantity=QuantitySpec(kind='BASE_QUANTITY',value=quantity,source_node=None))
+            ^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:54: in scoped_inputs
+    if proposal_transform is not None:p=proposal_transform(p)
+                                        ^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:41: in transform
+    if order_transform is not None:order=order_transform(order)
+                                         ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher_v2.py:130: in &lt;lambda&gt;
+    c=advanced_case(database,venue_v2,tmp_path,market=market,order_transform=lambda order:replace(order,iceberg_quantity='.1'))
+                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:16: in __init__
+    ???
+src/trading_system/contracts/order_program.py:98: in __post_init__
+    if self.iceberg_quantity is not None:amount(self.iceberg_quantity)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/order_program.py:25: in amount
+    result=decimal_string(value)
+           ^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:18: in decimal_string
+    raise ValueError("expected finite plain decimal string")
+E   ValueError: expected finite plain decimal string</failure></testcase></testsuite></testsuites>

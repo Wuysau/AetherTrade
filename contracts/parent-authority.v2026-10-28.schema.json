@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "enum": [
+        "2026-10-28"
+      ]
+    },
+    "program_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "program_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "venue_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "product": {
+          "enum": [
+            "SPOT",
+            "USD_M_PERP",
+            "US_EQUITY"
+          ]
+        },
+        "instrument_uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "venue_leg": {
+          "enum": [
+            "BOTH",
+            "LONG",
+            "SHORT"
+          ]
+        }
+      },
+      "required": [
+        "environment",
+        "venue_account_id",
+        "product",
+        "instrument_uid",
+        "venue_leg"
+      ],
+      "additionalProperties": false
+    },
+    "namespace": {
+      "enum": [
+        "ORDINARY",
+        "ORDER_LIST",
+        "CONDITIONAL_ALGO",
+        "EXECUTION_ALGO"
+      ]
+    },
+    "venue": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "parent_command_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "parent_client_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "parent_venue_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "owner_strategy_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "ownership_epoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "authorization_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "funding_intent_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "reservation_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "funding_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "amount": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "asset",
+          "amount"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "base_asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "starting_position_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "allowed_child_sides": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "BUY",
+          "SELL"
+        ]
+      }
+    },
+    "maximum_quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "maximum_price": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "maximum_notional": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "quote_asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "fee_budgets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "amount": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "asset",
+          "amount"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "management_policy": {
+      "enum": [
+        "MANAGE_UNTIL_FLAT"
+      ]
+    },
+    "protection_required": {
+      "type": "boolean"
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "hash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "environment": {
+          "enum": [
+            "RESEARCH",
+            "PAPER",
+            "TESTNET",
+            "LIVE"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "visible_at": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "id",
+        "hash",
+        "environment",
+        "source",
+        "visible_at"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "contract_version",
+    "program_id",
+    "program_hash",
+    "scope",
+    "namespace",
+    "venue",
+    "parent_command_id",
+    "parent_client_id",
+    "parent_venue_id",
+    "owner_strategy_id",
+    "ownership_epoch",
+    "authorization_id",
+    "funding_intent_id",
+    "reservation_ids",
+    "funding_requirements",
+    "base_asset",
+    "starting_position_quantity",
+    "allowed_child_sides",
+    "maximum_quantity",
+    "maximum_price",
+    "maximum_notional",
+    "quote_asset",
+    "fee_budgets",
+    "management_policy",
+    "protection_required",
+    "evidence"
+  ],
+  "additionalProperties": false
+}

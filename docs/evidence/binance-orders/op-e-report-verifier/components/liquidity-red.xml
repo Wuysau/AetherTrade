@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="21" skipped="0" tests="21" time="1.135" timestamp="2026-10-29T21:35:32.225948+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.unit.test_paper_program_liquidity" name="test_all_competing_accounts_consume_one_shared_liquidity_pool" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">def test_all_competing_accounts_consume_one_shared_liquidity_pool():
+&gt;       assert codes(packet())==()
+               ^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_snapshot_cannot_replenish_previously_consumed_depth" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">def test_snapshot_cannot_replenish_previously_consumed_depth():
+        before=(PaperDepthState(side='ASK',price='101',reported='1',available='.1'),)
+&gt;       assert codes(packet(before=before,amounts=('.1',)))==()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_explicit_positive_delta_adds_only_declared_new_liquidity" time="0.001"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">def test_explicit_positive_delta_adds_only_declared_new_liquidity():
+        before=(PaperDepthState(side='ASK',price='101',reported='1',available='.1'),)
+&gt;       assert codes(packet(kind='DEPTH_DELTA',ask='.5',before=before,amounts=('.6',)))==()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_negative_delta_never_creates_negative_or_reusable_liquidity" time="0.001"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">def test_negative_delta_never_creates_negative_or_reusable_liquidity():
+        before=(PaperDepthState(side='ASK',price='101',reported='1',available='.1'),)
+&gt;       assert codes(packet(kind='DEPTH_DELTA',ask='-.5',before=before,amounts=()))==()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_allocations_cannot_escape_exact_source_scope_side_price_and_identity[duplicate_fill]" time="0.003"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'duplicate_fill'
+
+    @pytest.mark.parametrize('fault',['duplicate_fill','missing_event','other_instrument','other_product','wrong_price','wrong_side','negative','nondecimal'])
+    def test_allocations_cannot_escape_exact_source_scope_side_price_and_identity(fault):
+        value=packet(amounts=('.2',))
+        first=value.consumptions[0]
+        if fault=='duplicate_fill':value=replace(value,consumptions=(first,first))
+        if fault=='missing_event':value=replace(value,inputs=())
+        if fault=='other_instrument':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,instrument_uid='other')),))
+        if fault=='other_product':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,product=t.Product.USD_M_PERP)),))
+        if fault=='wrong_price':value=replace(value,consumptions=(replace(first,price=D('102')),))
+        if fault=='wrong_side':value=replace(value,consumptions=(replace(first,side='BID',price=D('101')),))
+        if fault=='negative':value=replace(value,consumptions=(replace(first,quantity=D('-.1')),))
+        if fault=='nondecimal':value=replace(value,consumptions=(replace(first,quantity=True),))
+&gt;       assert codes(reseal(value))
+               ^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_allocations_cannot_escape_exact_source_scope_side_price_and_identity[missing_event]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'missing_event'
+
+    @pytest.mark.parametrize('fault',['duplicate_fill','missing_event','other_instrument','other_product','wrong_price','wrong_side','negative','nondecimal'])
+    def test_allocations_cannot_escape_exact_source_scope_side_price_and_identity(fault):
+        value=packet(amounts=('.2',))
+        first=value.consumptions[0]
+        if fault=='duplicate_fill':value=replace(value,consumptions=(first,first))
+        if fault=='missing_event':value=replace(value,inputs=())
+        if fault=='other_instrument':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,instrument_uid='other')),))
+        if fault=='other_product':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,product=t.Product.USD_M_PERP)),))
+        if fault=='wrong_price':value=replace(value,consumptions=(replace(first,price=D('102')),))
+        if fault=='wrong_side':value=replace(value,consumptions=(replace(first,side='BID',price=D('101')),))
+        if fault=='negative':value=replace(value,consumptions=(replace(first,quantity=D('-.1')),))
+        if fault=='nondecimal':value=replace(value,consumptions=(replace(first,quantity=True),))
+&gt;       assert codes(reseal(value))
+               ^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_allocations_cannot_escape_exact_source_scope_side_price_and_identity[other_instrument]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'other_instrument'
+
+    @pytest.mark.parametrize('fault',['duplicate_fill','missing_event','other_instrument','other_product','wrong_price','wrong_side','negative','nondecimal'])
+    def test_allocations_cannot_escape_exact_source_scope_side_price_and_identity(fault):
+        value=packet(amounts=('.2',))
+        first=value.consumptions[0]
+        if fault=='duplicate_fill':value=replace(value,consumptions=(first,first))
+        if fault=='missing_event':value=replace(value,inputs=())
+        if fault=='other_instrument':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,instrument_uid='other')),))
+        if fault=='other_product':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,product=t.Product.USD_M_PERP)),))
+        if fault=='wrong_price':value=replace(value,consumptions=(replace(first,price=D('102')),))
+        if fault=='wrong_side':value=replace(value,consumptions=(replace(first,side='BID',price=D('101')),))
+        if fault=='negative':value=replace(value,consumptions=(replace(first,quantity=D('-.1')),))
+        if fault=='nondecimal':value=replace(value,consumptions=(replace(first,quantity=True),))
+&gt;       assert codes(reseal(value))
+               ^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_allocations_cannot_escape_exact_source_scope_side_price_and_identity[other_product]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'other_product'
+
+    @pytest.mark.parametrize('fault',['duplicate_fill','missing_event','other_instrument','other_product','wrong_price','wrong_side','negative','nondecimal'])
+    def test_allocations_cannot_escape_exact_source_scope_side_price_and_identity(fault):
+        value=packet(amounts=('.2',))
+        first=value.consumptions[0]
+        if fault=='duplicate_fill':value=replace(value,consumptions=(first,first))
+        if fault=='missing_event':value=replace(value,inputs=())
+        if fault=='other_instrument':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,instrument_uid='other')),))
+        if fault=='other_product':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,product=t.Product.USD_M_PERP)),))
+        if fault=='wrong_price':value=replace(value,consumptions=(replace(first,price=D('102')),))
+        if fault=='wrong_side':value=replace(value,consumptions=(replace(first,side='BID',price=D('101')),))
+        if fault=='negative':value=replace(value,consumptions=(replace(first,quantity=D('-.1')),))
+        if fault=='nondecimal':value=replace(value,consumptions=(replace(first,quantity=True),))
+&gt;       assert codes(reseal(value))
+               ^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_allocations_cannot_escape_exact_source_scope_side_price_and_identity[wrong_price]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'wrong_price'
+
+    @pytest.mark.parametrize('fault',['duplicate_fill','missing_event','other_instrument','other_product','wrong_price','wrong_side','negative','nondecimal'])
+    def test_allocations_cannot_escape_exact_source_scope_side_price_and_identity(fault):
+        value=packet(amounts=('.2',))
+        first=value.consumptions[0]
+        if fault=='duplicate_fill':value=replace(value,consumptions=(first,first))
+        if fault=='missing_event':value=replace(value,inputs=())
+        if fault=='other_instrument':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,instrument_uid='other')),))
+        if fault=='other_product':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,product=t.Product.USD_M_PERP)),))
+        if fault=='wrong_price':value=replace(value,consumptions=(replace(first,price=D('102')),))
+        if fault=='wrong_side':value=replace(value,consumptions=(replace(first,side='BID',price=D('101')),))
+        if fault=='negative':value=replace(value,consumptions=(replace(first,quantity=D('-.1')),))
+        if fault=='nondecimal':value=replace(value,consumptions=(replace(first,quantity=True),))
+&gt;       assert codes(reseal(value))
+               ^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_allocations_cannot_escape_exact_source_scope_side_price_and_identity[wrong_side]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'wrong_side'
+
+    @pytest.mark.parametrize('fault',['duplicate_fill','missing_event','other_instrument','other_product','wrong_price','wrong_side','negative','nondecimal'])
+    def test_allocations_cannot_escape_exact_source_scope_side_price_and_identity(fault):
+        value=packet(amounts=('.2',))
+        first=value.consumptions[0]
+        if fault=='duplicate_fill':value=replace(value,consumptions=(first,first))
+        if fault=='missing_event':value=replace(value,inputs=())
+        if fault=='other_instrument':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,instrument_uid='other')),))
+        if fault=='other_product':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,product=t.Product.USD_M_PERP)),))
+        if fault=='wrong_price':value=replace(value,consumptions=(replace(first,price=D('102')),))
+        if fault=='wrong_side':value=replace(value,consumptions=(replace(first,side='BID',price=D('101')),))
+        if fault=='negative':value=replace(value,consumptions=(replace(first,quantity=D('-.1')),))
+        if fault=='nondecimal':value=replace(value,consumptions=(replace(first,quantity=True),))
+&gt;       assert codes(reseal(value))
+               ^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_allocations_cannot_escape_exact_source_scope_side_price_and_identity[negative]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'negative'
+
+    @pytest.mark.parametrize('fault',['duplicate_fill','missing_event','other_instrument','other_product','wrong_price','wrong_side','negative','nondecimal'])
+    def test_allocations_cannot_escape_exact_source_scope_side_price_and_identity(fault):
+        value=packet(amounts=('.2',))
+        first=value.consumptions[0]
+        if fault=='duplicate_fill':value=replace(value,consumptions=(first,first))
+        if fault=='missing_event':value=replace(value,inputs=())
+        if fault=='other_instrument':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,instrument_uid='other')),))
+        if fault=='other_product':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,product=t.Product.USD_M_PERP)),))
+        if fault=='wrong_price':value=replace(value,consumptions=(replace(first,price=D('102')),))
+        if fault=='wrong_side':value=replace(value,consumptions=(replace(first,side='BID',price=D('101')),))
+        if fault=='negative':value=replace(value,consumptions=(replace(first,quantity=D('-.1')),))
+        if fault=='nondecimal':value=replace(value,consumptions=(replace(first,quantity=True),))
+&gt;       assert codes(reseal(value))
+               ^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_allocations_cannot_escape_exact_source_scope_side_price_and_identity[nondecimal]" time="0.001"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'nondecimal'
+
+    @pytest.mark.parametrize('fault',['duplicate_fill','missing_event','other_instrument','other_product','wrong_price','wrong_side','negative','nondecimal'])
+    def test_allocations_cannot_escape_exact_source_scope_side_price_and_identity(fault):
+        value=packet(amounts=('.2',))
+        first=value.consumptions[0]
+        if fault=='duplicate_fill':value=replace(value,consumptions=(first,first))
+        if fault=='missing_event':value=replace(value,inputs=())
+        if fault=='other_instrument':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,instrument_uid='other')),))
+        if fault=='other_product':value=replace(value,consumptions=(replace(first,scope=replace(first.scope,product=t.Product.USD_M_PERP)),))
+        if fault=='wrong_price':value=replace(value,consumptions=(replace(first,price=D('102')),))
+        if fault=='wrong_side':value=replace(value,consumptions=(replace(first,side='BID',price=D('101')),))
+        if fault=='negative':value=replace(value,consumptions=(replace(first,quantity=D('-.1')),))
+        if fault=='nondecimal':value=replace(value,consumptions=(replace(first,quantity=True),))
+&gt;       assert codes(reseal(value))
+               ^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_raw_market_context_is_checked_independently_of_its_outer_hash[source_hash]" time="0.001"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'source_hash'
+
+    @pytest.mark.parametrize('fault',['source_hash','raw_hash','future_clock','unhealthy_clock','duplicate_event','before_available','before_duplicate','crossed_book'])
+    def test_raw_market_context_is_checked_independently_of_its_outer_hash(fault):
+        value=packet();first=value.inputs[0]
+        if fault=='source_hash':return_value=replace(value,evidence=replace(value.evidence,hash='f'*64))
+        else:
+            if fault=='raw_hash':first=replace(first,raw_payload_json='{}')
+            if fault=='future_clock':first=replace(first,observed_clock=replace(first.observed_clock,utc_now='2026-10-28T10:01:00Z'))
+            if fault=='unhealthy_clock':first=replace(first,observed_clock=replace(first.observed_clock,clock_health='UNHEALTHY'))
+            if fault=='duplicate_event':value=replace(value,inputs=(first,first))
+            if fault=='before_available':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='2'),))
+            if fault=='before_duplicate':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='1'),)*2)
+            if fault=='crossed_book':
+                value=packet(kind='DEPTH_DELTA',ask='1',amounts=())
+                first=replace(value.inputs[0],before_levels=(PaperDepthState(side='BID',price='102',reported='1',available='1'),))
+            if fault!='duplicate_event':value=replace(value,inputs=(first,))
+            return_value=reseal(value)
+&gt;       assert codes(return_value)
+               ^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_raw_market_context_is_checked_independently_of_its_outer_hash[raw_hash]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'raw_hash'
+
+    @pytest.mark.parametrize('fault',['source_hash','raw_hash','future_clock','unhealthy_clock','duplicate_event','before_available','before_duplicate','crossed_book'])
+    def test_raw_market_context_is_checked_independently_of_its_outer_hash(fault):
+        value=packet();first=value.inputs[0]
+        if fault=='source_hash':return_value=replace(value,evidence=replace(value.evidence,hash='f'*64))
+        else:
+            if fault=='raw_hash':first=replace(first,raw_payload_json='{}')
+            if fault=='future_clock':first=replace(first,observed_clock=replace(first.observed_clock,utc_now='2026-10-28T10:01:00Z'))
+            if fault=='unhealthy_clock':first=replace(first,observed_clock=replace(first.observed_clock,clock_health='UNHEALTHY'))
+            if fault=='duplicate_event':value=replace(value,inputs=(first,first))
+            if fault=='before_available':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='2'),))
+            if fault=='before_duplicate':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='1'),)*2)
+            if fault=='crossed_book':
+                value=packet(kind='DEPTH_DELTA',ask='1',amounts=())
+                first=replace(value.inputs[0],before_levels=(PaperDepthState(side='BID',price='102',reported='1',available='1'),))
+            if fault!='duplicate_event':value=replace(value,inputs=(first,))
+            return_value=reseal(value)
+&gt;       assert codes(return_value)
+               ^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_raw_market_context_is_checked_independently_of_its_outer_hash[future_clock]" time="0.001"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'future_clock'
+
+    @pytest.mark.parametrize('fault',['source_hash','raw_hash','future_clock','unhealthy_clock','duplicate_event','before_available','before_duplicate','crossed_book'])
+    def test_raw_market_context_is_checked_independently_of_its_outer_hash(fault):
+        value=packet();first=value.inputs[0]
+        if fault=='source_hash':return_value=replace(value,evidence=replace(value.evidence,hash='f'*64))
+        else:
+            if fault=='raw_hash':first=replace(first,raw_payload_json='{}')
+            if fault=='future_clock':first=replace(first,observed_clock=replace(first.observed_clock,utc_now='2026-10-28T10:01:00Z'))
+            if fault=='unhealthy_clock':first=replace(first,observed_clock=replace(first.observed_clock,clock_health='UNHEALTHY'))
+            if fault=='duplicate_event':value=replace(value,inputs=(first,first))
+            if fault=='before_available':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='2'),))
+            if fault=='before_duplicate':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='1'),)*2)
+            if fault=='crossed_book':
+                value=packet(kind='DEPTH_DELTA',ask='1',amounts=())
+                first=replace(value.inputs[0],before_levels=(PaperDepthState(side='BID',price='102',reported='1',available='1'),))
+            if fault!='duplicate_event':value=replace(value,inputs=(first,))
+            return_value=reseal(value)
+&gt;       assert codes(return_value)
+               ^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_raw_market_context_is_checked_independently_of_its_outer_hash[unhealthy_clock]" time="0.001"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'unhealthy_clock'
+
+    @pytest.mark.parametrize('fault',['source_hash','raw_hash','future_clock','unhealthy_clock','duplicate_event','before_available','before_duplicate','crossed_book'])
+    def test_raw_market_context_is_checked_independently_of_its_outer_hash(fault):
+        value=packet();first=value.inputs[0]
+        if fault=='source_hash':return_value=replace(value,evidence=replace(value.evidence,hash='f'*64))
+        else:
+            if fault=='raw_hash':first=replace(first,raw_payload_json='{}')
+            if fault=='future_clock':first=replace(first,observed_clock=replace(first.observed_clock,utc_now='2026-10-28T10:01:00Z'))
+            if fault=='unhealthy_clock':first=replace(first,observed_clock=replace(first.observed_clock,clock_health='UNHEALTHY'))
+            if fault=='duplicate_event':value=replace(value,inputs=(first,first))
+            if fault=='before_available':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='2'),))
+            if fault=='before_duplicate':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='1'),)*2)
+            if fault=='crossed_book':
+                value=packet(kind='DEPTH_DELTA',ask='1',amounts=())
+                first=replace(value.inputs[0],before_levels=(PaperDepthState(side='BID',price='102',reported='1',available='1'),))
+            if fault!='duplicate_event':value=replace(value,inputs=(first,))
+            return_value=reseal(value)
+&gt;       assert codes(return_value)
+               ^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_raw_market_context_is_checked_independently_of_its_outer_hash[duplicate_event]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'duplicate_event'
+
+    @pytest.mark.parametrize('fault',['source_hash','raw_hash','future_clock','unhealthy_clock','duplicate_event','before_available','before_duplicate','crossed_book'])
+    def test_raw_market_context_is_checked_independently_of_its_outer_hash(fault):
+        value=packet();first=value.inputs[0]
+        if fault=='source_hash':return_value=replace(value,evidence=replace(value.evidence,hash='f'*64))
+        else:
+            if fault=='raw_hash':first=replace(first,raw_payload_json='{}')
+            if fault=='future_clock':first=replace(first,observed_clock=replace(first.observed_clock,utc_now='2026-10-28T10:01:00Z'))
+            if fault=='unhealthy_clock':first=replace(first,observed_clock=replace(first.observed_clock,clock_health='UNHEALTHY'))
+            if fault=='duplicate_event':value=replace(value,inputs=(first,first))
+            if fault=='before_available':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='2'),))
+            if fault=='before_duplicate':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='1'),)*2)
+            if fault=='crossed_book':
+                value=packet(kind='DEPTH_DELTA',ask='1',amounts=())
+                first=replace(value.inputs[0],before_levels=(PaperDepthState(side='BID',price='102',reported='1',available='1'),))
+            if fault!='duplicate_event':value=replace(value,inputs=(first,))
+            return_value=reseal(value)
+&gt;       assert codes(return_value)
+               ^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_raw_market_context_is_checked_independently_of_its_outer_hash[before_available]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'before_available'
+
+    @pytest.mark.parametrize('fault',['source_hash','raw_hash','future_clock','unhealthy_clock','duplicate_event','before_available','before_duplicate','crossed_book'])
+    def test_raw_market_context_is_checked_independently_of_its_outer_hash(fault):
+        value=packet();first=value.inputs[0]
+        if fault=='source_hash':return_value=replace(value,evidence=replace(value.evidence,hash='f'*64))
+        else:
+            if fault=='raw_hash':first=replace(first,raw_payload_json='{}')
+            if fault=='future_clock':first=replace(first,observed_clock=replace(first.observed_clock,utc_now='2026-10-28T10:01:00Z'))
+            if fault=='unhealthy_clock':first=replace(first,observed_clock=replace(first.observed_clock,clock_health='UNHEALTHY'))
+            if fault=='duplicate_event':value=replace(value,inputs=(first,first))
+            if fault=='before_available':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='2'),))
+            if fault=='before_duplicate':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='1'),)*2)
+            if fault=='crossed_book':
+                value=packet(kind='DEPTH_DELTA',ask='1',amounts=())
+                first=replace(value.inputs[0],before_levels=(PaperDepthState(side='BID',price='102',reported='1',available='1'),))
+            if fault!='duplicate_event':value=replace(value,inputs=(first,))
+            return_value=reseal(value)
+&gt;       assert codes(return_value)
+               ^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_raw_market_context_is_checked_independently_of_its_outer_hash[before_duplicate]" time="0.001"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'before_duplicate'
+
+    @pytest.mark.parametrize('fault',['source_hash','raw_hash','future_clock','unhealthy_clock','duplicate_event','before_available','before_duplicate','crossed_book'])
+    def test_raw_market_context_is_checked_independently_of_its_outer_hash(fault):
+        value=packet();first=value.inputs[0]
+        if fault=='source_hash':return_value=replace(value,evidence=replace(value.evidence,hash='f'*64))
+        else:
+            if fault=='raw_hash':first=replace(first,raw_payload_json='{}')
+            if fault=='future_clock':first=replace(first,observed_clock=replace(first.observed_clock,utc_now='2026-10-28T10:01:00Z'))
+            if fault=='unhealthy_clock':first=replace(first,observed_clock=replace(first.observed_clock,clock_health='UNHEALTHY'))
+            if fault=='duplicate_event':value=replace(value,inputs=(first,first))
+            if fault=='before_available':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='2'),))
+            if fault=='before_duplicate':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='1'),)*2)
+            if fault=='crossed_book':
+                value=packet(kind='DEPTH_DELTA',ask='1',amounts=())
+                first=replace(value.inputs[0],before_levels=(PaperDepthState(side='BID',price='102',reported='1',available='1'),))
+            if fault!='duplicate_event':value=replace(value,inputs=(first,))
+            return_value=reseal(value)
+&gt;       assert codes(return_value)
+               ^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_raw_market_context_is_checked_independently_of_its_outer_hash[crossed_book]" time="0.002"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">fault = 'crossed_book'
+
+    @pytest.mark.parametrize('fault',['source_hash','raw_hash','future_clock','unhealthy_clock','duplicate_event','before_available','before_duplicate','crossed_book'])
+    def test_raw_market_context_is_checked_independently_of_its_outer_hash(fault):
+        value=packet();first=value.inputs[0]
+        if fault=='source_hash':return_value=replace(value,evidence=replace(value.evidence,hash='f'*64))
+        else:
+            if fault=='raw_hash':first=replace(first,raw_payload_json='{}')
+            if fault=='future_clock':first=replace(first,observed_clock=replace(first.observed_clock,utc_now='2026-10-28T10:01:00Z'))
+            if fault=='unhealthy_clock':first=replace(first,observed_clock=replace(first.observed_clock,clock_health='UNHEALTHY'))
+            if fault=='duplicate_event':value=replace(value,inputs=(first,first))
+            if fault=='before_available':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='2'),))
+            if fault=='before_duplicate':first=replace(first,before_levels=(PaperDepthState(side='ASK',price='101',reported='1',available='1'),)*2)
+            if fault=='crossed_book':
+                value=packet(kind='DEPTH_DELTA',ask='1',amounts=())
+                first=replace(value.inputs[0],before_levels=(PaperDepthState(side='BID',price='102',reported='1',available='1'),))
+            if fault!='duplicate_event':value=replace(value,inputs=(first,))
+            return_value=reseal(value)
+&gt;       assert codes(return_value)
+               ^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.test_paper_program_liquidity" name="test_ambient_rounding_does_not_hide_aggregate_liquidity_overspend" time="0.001"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'">def test_ambient_rounding_does_not_hide_aggregate_liquidity_overspend():
+        value=packet(ask='1.000000',amounts=('.999999','.000002'))
+        with localcontext() as context:
+            context.prec=3
+&gt;           result=codes(value)
+                   ^^^^^^^^^^^^
+
+tests\unit\test_paper_program_liquidity.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = PaperMarketEvidence(command_id='command-one', request_hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., environment=&lt;Environment.PAPER: 'PAPER'&gt;, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))
+
+    def codes(value):
+&gt;       from trading_system.execution.paper_program_liquidity import market_evidence_codes
+E       ModuleNotFoundError: No module named 'trading_system.execution.paper_program_liquidity'
+
+tests\unit\test_paper_program_liquidity.py:43: ModuleNotFoundError</failure></testcase></testsuite></testsuites>

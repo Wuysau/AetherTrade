@@ -1,0 +1,15 @@
+{
+  "review_date": "2026-10-29",
+  "method": "Read official successful-response sections with web tool; factual field/envelope notes, no venue packet capture",
+  "native_protocol_qualification": "NOT_RUN",
+  "rows": [
+    {"namespace":"BINANCE_SPOT_ORDINARY","source":"https://developers.binance.com/en/docs/catalog/core-trading-spot-trading/api/rest-api/account","endpoint":"/api/v3/order","envelope":"direct order object","identity":["orderId","clientOrderId","symbol"],"state":"status"},
+    {"namespace":"BINANCE_SPOT_ORDER_LIST","source":"https://developers.binance.com/en/docs/catalog/core-trading-spot-trading/api/rest-api/account","endpoint":"/api/v3/orderList","envelope":"direct list object","identity":["orderListId","listClientOrderId","symbol"],"state":"listOrderStatus"},
+    {"namespace":"BINANCE_USD_M_ORDINARY","source":"https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/trade","endpoint":"/fapi/v1/order","envelope":"direct order object","identity":["orderId","clientOrderId","symbol","positionSide"],"state":"status"},
+    {"namespace":"BINANCE_USD_M_CONDITIONAL_ALGO","source":"https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/trade","endpoint":"/fapi/v1/algoOrder","envelope":"direct algorithm object","identity":["algoId","clientAlgoId","symbol","positionSide"],"state":"algoStatus"},
+    {"namespace":"BINANCE_SPOT_EXECUTION_ALGO","source":"https://developers.binance.com/en/docs/catalog/advanced-trading-algo-trading/api/rest-api/spot-algo","endpoints":["/sapi/v1/algo/spot/openOrders","/sapi/v1/algo/spot/historicalOrders"],"envelope":"total and orders collection","identity":["algoId","clientAlgoId","symbol"],"state":"algoStatus"},
+    {"namespace":"BINANCE_USD_M_EXECUTION_ALGO","source":"https://developers.binance.com/en/docs/catalog/advanced-trading-algo-trading/api/rest-api/future-algo","endpoints":["/sapi/v1/algo/futures/openOrders","/sapi/v1/algo/futures/historicalOrders"],"envelope":"total and orders collection","identity":["algoId","clientAlgoId","symbol","positionSide"],"state":"algoStatus"},
+    {"namespace":"BINANCE_REAL_EQUITY","source":"https://developers.binance.com/en/docs/catalog/advanced-trading-stocks-trading/api/rest-api/trade","endpoint":"/sapi/v1/equity/order/detail","envelope":"direct order object with trades","identity":["orderId","clientOrderId","symbol"],"state":"status"}
+  ],
+  "notes": ["No top-level successful code wrapper is documented for these selected query response sections; unexpected code bodies remain errors.","Equity submit/cancel S acknowledgement is not the order-detail lifecycle response.","Missing or contradictory futures positionSide never establishes the scoped leg.","Native source authentication, signatures, transport and ledger/lifecycle attestation remain unqualified."]
+}

@@ -120,11 +120,17 @@ def validate_bridge_authority(command, permit, authority, *, scope, clock):
 
 
 class NautilusEngine:
-    def __init__(self, compatibility: t.CompatibilityMap, *, offline: OfflineBridge | None = None):
+    def __init__(self, compatibility: t.CompatibilityMap, *, offline: OfflineBridge | None = None,creation_probe=None):
         if not isinstance(compatibility, t.CompatibilityMap):
             raise TypeError('typed CompatibilityMap required')
         self.compatibility = compatibility
         self._offline = offline
+        if creation_probe is not None:
+            from .native_program_adapter import OfflineNativeCreationProbe,PinnedSdkOfflineCreationProbe
+            if (type(creation_probe) not in (OfflineNativeCreationProbe,PinnedSdkOfflineCreationProbe)
+                    or offline is not None and creation_probe.scope!=offline.scope):
+                raise BridgeDenied('CONTROLLED_OFFLINE_CREATION_PROBE_REQUIRED')
+        self._creation_probe=creation_probe
         self._lock = RLock()
         self._consumed: set[str] = set()
         self._observed_clients: set[str] = set()
@@ -151,6 +157,12 @@ class NautilusEngine:
     def enable_native_path(self, path: str) -> None:
         # Even a caller-supplied CompatibilityMap cannot activate a native API.
         raise BridgeDenied('NATIVE_PATH_NOT_QUALIFIED')
+
+    def submit_creation(self,write,request,permit,*,boundary,lease,owner):
+        if self._creation_probe is None:raise BridgeDenied('NATIVE_CREATION_CLIENT_NOT_INSTALLED')
+        from .native_program_adapter import submit_creation_probe
+        return submit_creation_probe(self,write,request,permit,boundary=boundary,lease=lease,owner=owner,
+            probe=self._creation_probe)
 
     def submit(self, command: ExecutionCommand, permit: t.DurablePermit) -> t.CommandReceipt:
         return self._write(command, permit, frozenset({'SUBMIT', 'CLOSE', 'SET_PROTECTION'}))

@@ -1,0 +1,14 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_terminal_v2_order_is_not_reactivated_by_later_reference_or_depth _____
+tests/integration/test_paper_market_matcher_v2.py:158: in test_terminal_v2_order_is_not_reactivated_by_later_reference_or_depth
+    assert after.status=='FILLED' and after.filled_quantity==1 and not after.orders[0].runtime.active
+E   AssertionError: assert ('FILLED' == 'FILLED'
+E     
+E       FILLED and Decimal('1.000000') == 1 and not True)
+E    +  where Decimal('1.000000') = PaperCreationReportV2(command_id='isolated-command-71806a7f3d8046baaf9bfcf227fb36ae', request=VenueCreationRequest(con...81490.00', fee_ceilings=())),), dispositions=(), contract_version='2026-10-30', record_kind='PAPER_CREATION_REPORT_V2').filled_quantity
+E    +  and   True = PaperOrderRuntimeV2(active=True, phase='ACTIVE', activation_event_id='reference-3', high_water=None, low_water=None, effective_limit=Decimal('81490.00'), visible_remaining=Decimal('0'), queue_priority=1).active
+E    +    where PaperOrderRuntimeV2(active=True, phase='ACTIVE', activation_event_id='reference-3', high_water=None, low_water=None, effective_limit=Decimal('81490.00'), visible_remaining=Decimal('0'), queue_priority=1) = PaperMatchedOrderV2(client_id='ac2db1590dc3dcbdee5274027cc6629a', venue_order_id='paper-v3:ac2db1590dc3dcbdee5274027cc...igh_water=None, low_water=None, effective_limit=Decimal('81490.00'), visible_remaining=Decimal('0'), queue_priority=1)).runtime
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_market_matcher_v2.py::test_terminal_v2_order_is_not_reactivated_by_later_reference_or_depth
+1 failed in 10.72s

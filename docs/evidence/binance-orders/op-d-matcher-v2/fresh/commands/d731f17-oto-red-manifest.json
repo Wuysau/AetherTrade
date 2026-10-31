@@ -1,0 +1,79 @@
+{
+  "commit": "d731f172b4cbf113a6054195a610ddca6117b0db",
+  "scope": "FIXED_SOURCE_FRESH_DATABASE_OWN_ISOLATED_CLUSTER",
+  "phase": "oto-red",
+  "finished_utc": "2026-10-30T02:49:06.167874+00:00",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-c533ccc29867\\source-d731f17.bundle",
+        "HEAD",
+        "d731f172b4cbf113a6054195a610ddca6117b0db"
+      ],
+      "log": "d731f17-oto-red-bundle.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "start",
+        "aethertrade-qualification-runner-c533ccc29867"
+      ],
+      "log": "d731f17-oto-red-runner.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-d731f17.bundle",
+        "d731f172b4cbf113a6054195a610ddca6117b0db"
+      ],
+      "log": "d731f17-oto-red-fetch.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "d731f172b4cbf113a6054195a610ddca6117b0db"
+      ],
+      "log": "d731f17-oto-red-source.txt",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=d731f172b4cbf113a6054195a610ddca6117b0db",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-c533ccc29867",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c;c.SUITES=(('matcher-diagnostic','03','tests/integration/test_paper_market_matcher_v2.py::test_native_pending_members_wait_for_actual_full_working_fill_then_activate_without_application_commands'),);raise SystemExit(c.main())",
+        "--suite",
+        "matcher-diagnostic",
+        "--evidence-dir",
+        "/handoff/evidence/oto-red"
+      ],
+      "log": "d731f17-oto-red.txt",
+      "exit_code": 1
+    }
+  ]
+}

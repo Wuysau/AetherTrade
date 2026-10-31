@@ -1,0 +1,10 @@
+......F.....                                                             [100%]
+=================================== FAILURES ===================================
+___ test_upgrade_refuses_preexisting_unapproved_credit_without_rewriting_it ____
+tests/integration/test_order_program_financial_credit.py:137: in test_upgrade_refuses_preexisting_unapproved_credit_without_rewriting_it
+    with pytest.raises(psycopg.errors.CheckViolation,match='unreviewed linked financial credit'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE CheckViolation
+=========================== short test summary info ============================
+FAILED tests/integration/test_order_program_financial_credit.py::test_upgrade_refuses_preexisting_unapproved_credit_without_rewriting_it
+1 failed, 11 passed in 9.09s

@@ -1,0 +1,397 @@
+{
+  "build": {
+    "version": "1.231.0",
+    "python_version": "3.14.2",
+    "platform_tag": "win_amd64",
+    "source_hashes": {
+      "adapters/binance/execution.py": "642b91645bea94648a674db4c202072a96b7a184a91c5f91d33792587dba0d2b",
+      "adapters/binance/config.py": "838366a8660343c3cace4b60a17917949425e665684fef359973524ffefd39f4",
+      "adapters/binance/http/client.py": "b7cc9cfc6c05b8168a9c0181c96156a31e05634d874bcb19199c2ff54f6516c6",
+      "adapters/binance/http/endpoint.py": "8f86df89ad9085710ef704866c27a602146dd554ab5da1bb5136173d52a85876",
+      "adapters/binance/spot/http/account.py": "5dfe5d19898de6dc8b31ae2df8082dd1cafc1713bd7614fc8ebb512701ced07e",
+      "adapters/binance/futures/http/account.py": "53ab44531c556adfc772518d668db7f01047becfc4e6007ee5955c0130e36d5e",
+      "core/nautilus_pyo3.cp314-win_amd64.pyd": "0b47c2849a11e7d20661ec6f8053ea94fe90118b219b61c4f6ea7c3cd9795111"
+    },
+    "source_commit_reference": "27a8e54e7ac3c57d6cbf8891f0283dfbaee97317",
+    "published_wheel_sha256": "295b67b127f67429ebb9d937bd11448f930bee697fca6a8e0ec1de343ad3c68c",
+    "execution_authorized": false,
+    "native_order_qualified": false,
+    "external_activation_allowed": false,
+    "post_wait_last_send_qualification": "BLOCKED",
+    "linux_deployment": "BLOCKED"
+  },
+  "actual_sdk_client_constructed": true,
+  "http_transport": "IN_PROCESS_FAKE_NO_NETWORK",
+  "actual_account_or_endpoint_called": false,
+  "permission_or_consumption_proof": false,
+  "native_order_qualification": "NOT_RUN",
+  "results": [
+    {
+      "family": "management",
+      "method": "GET",
+      "command_id": null,
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "endpoint": "/api/v3/order",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "origClientOrderId",
+          "original-client"
+        ]
+      ],
+      "request_hash": "e0f15ba424d6e32d4f052dbd8d9a59eb033ccc77fd7296ad60f2ab9530758933",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "DELETE",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "endpoint": "/api/v3/order",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "orderId",
+          "123"
+        ]
+      ],
+      "request_hash": "173bf6ae0f99d05d6884bf823eff8da00695c078111fe64395142aea9977d381",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "GET",
+      "command_id": null,
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "endpoint": "/api/v3/orderList",
+      "original_parameters": [
+        [
+          "origClientOrderId",
+          "original-client"
+        ]
+      ],
+      "request_hash": "9b6afc78f4f5ea10ec5147e670ecc79883e7c2cba9023b8b3623e437b2fd0f65",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "DELETE",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "endpoint": "/api/v3/orderList",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "orderListId",
+          "123"
+        ]
+      ],
+      "request_hash": "d7610120f39f693a17bad82519c3c0718a0d97e00e0a14db769086a1c4ea37e0",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "GET",
+      "command_id": null,
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "endpoint": "/fapi/v1/order",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "origClientOrderId",
+          "original-client"
+        ]
+      ],
+      "request_hash": "e9790b967cc5e24a88ee7c26c97d360c4883b30f866c19ba7589687563c98ac0",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "DELETE",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "endpoint": "/fapi/v1/order",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "orderId",
+          "123"
+        ]
+      ],
+      "request_hash": "8ce6d6d7f3247bf5b32fc38b53928cb547675ba38326ddca7b1ae9b611e43b96",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "GET",
+      "command_id": null,
+      "namespace": "BINANCE_USD_M_CONDITIONAL_ALGO",
+      "endpoint": "/fapi/v1/algoOrder",
+      "original_parameters": [
+        [
+          "clientAlgoId",
+          "original-client"
+        ]
+      ],
+      "request_hash": "f3901e70b42e61b99bc254a6e3c53e54bdae4721e5191da37774d87d6d03990f",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "DELETE",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_USD_M_CONDITIONAL_ALGO",
+      "endpoint": "/fapi/v1/algoOrder",
+      "original_parameters": [
+        [
+          "algoId",
+          "123"
+        ]
+      ],
+      "request_hash": "e691be434909511f5dee412124090d06e5cb8301d6d5a191894f495e704509d1",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "GET",
+      "command_id": null,
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/spot/openOrders",
+      "original_parameters": [],
+      "request_hash": "b756d8f175ca92c270eb7a9a3653badf9ac25ac121f268bf23db86311db2968d",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "GET",
+      "command_id": null,
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/spot/historicalOrders",
+      "original_parameters": [
+        [
+          "page",
+          "2"
+        ],
+        [
+          "pageSize",
+          "10"
+        ]
+      ],
+      "request_hash": "2dc573423ff2fdba25f328060dda1409bb1b5c8c56554a8ec8ecefc0bd887acb",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "DELETE",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/spot/order",
+      "original_parameters": [
+        [
+          "algoId",
+          "123"
+        ]
+      ],
+      "request_hash": "c07373a9c5f6d916f19e5dd2ec473f54bab09b789d95bbfb2231d5e774101952",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "GET",
+      "command_id": null,
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/futures/openOrders",
+      "original_parameters": [],
+      "request_hash": "a3c984475fc272ce0cf9ef66819e727cd26cb7e7c43b076e1c9b813e22f304b7",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "GET",
+      "command_id": null,
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/futures/historicalOrders",
+      "original_parameters": [
+        [
+          "page",
+          "2"
+        ],
+        [
+          "pageSize",
+          "10"
+        ]
+      ],
+      "request_hash": "2e12b94db415c723a11930da3c74c23be4e7d6e0cda706488f666e7c5cae7288",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "DELETE",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "endpoint": "/sapi/v1/algo/futures/order",
+      "original_parameters": [
+        [
+          "algoId",
+          "123"
+        ]
+      ],
+      "request_hash": "871483671da6ff3b1dbe9f55dc75e3a263a9526e662a5fad51de6a56c25efc8f",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "GET",
+      "command_id": null,
+      "namespace": "BINANCE_REAL_EQUITY",
+      "endpoint": "/sapi/v1/equity/order/detail",
+      "original_parameters": [
+        [
+          "clientOrderId",
+          "original-client"
+        ]
+      ],
+      "request_hash": "3abc26e8c64376e3252f00dd331cc009b59ce5a749e2129aa4303967201657f1",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "POST",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_REAL_EQUITY",
+      "endpoint": "/sapi/v1/equity/order/cancel",
+      "original_parameters": [
+        [
+          "orderId",
+          "123"
+        ]
+      ],
+      "request_hash": "21725042503ffee7b40fc7240106cd32fbe3db30c6a7c290b9f2938e633388ca",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "PUT",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "endpoint": "/api/v3/order/amend/keepPriority",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "orderId",
+          "123"
+        ],
+        [
+          "newQty",
+          "0.5"
+        ]
+      ],
+      "request_hash": "fba2d40c3e345219f93d1b7a1f4957cffd33cbd022d77db68ce7d91e4d9769e9",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "POST",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "endpoint": "/api/v3/order/cancelReplace",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "type",
+          "LIMIT"
+        ],
+        [
+          "quantity",
+          "0.049085"
+        ],
+        [
+          "price",
+          "81490.00"
+        ],
+        [
+          "timeInForce",
+          "GTC"
+        ],
+        [
+          "selfTradePreventionMode",
+          "NONE"
+        ],
+        [
+          "cancelOrderId",
+          "123"
+        ],
+        [
+          "newClientOrderId",
+          "management-client"
+        ],
+        [
+          "cancelReplaceMode",
+          "ALLOW_FAILURE"
+        ],
+        [
+          "orderRateLimitExceededMode",
+          "CANCEL_ONLY"
+        ]
+      ],
+      "request_hash": "aa5607d432492de040ec88360c838202a20999c239b629ab320a76cd4c4df452",
+      "exact_sdk_signature_and_wire_shape": true
+    },
+    {
+      "family": "management",
+      "method": "PUT",
+      "command_id": "amend-command",
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "endpoint": "/fapi/v1/order",
+      "original_parameters": [
+        [
+          "symbol",
+          "BTCUSDT"
+        ],
+        [
+          "orderId",
+          "123"
+        ],
+        [
+          "side",
+          "BUY"
+        ],
+        [
+          "quantity",
+          "0.5"
+        ],
+        [
+          "price",
+          "81480.00"
+        ]
+      ],
+      "request_hash": "cf19323b6c9be729ea082b9cb6459a4cc5943e30a39602d13d523c446a917f02",
+      "exact_sdk_signature_and_wire_shape": true
+    }
+  ]
+}

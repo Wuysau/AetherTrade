@@ -1,0 +1,1514 @@
+{
+  "baseline": "9b28899",
+  "scope": "exact full legacy decisions before extraction",
+  "cases": {
+    "perp": {
+      "risk_decision_id": "c89b46684184cb77deb17efb3d00f52ed42349664e533b38f0caeb79535d1860",
+      "intent_id": "paper-intent-demo",
+      "verdict": "ALLOW",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": []
+      }
+    },
+    "spot": {
+      "risk_decision_id": "6b5fbc7d04e9a1bfd4cc47b4c5c30e0a60762617af113664529cd0cbaaffcb76",
+      "intent_id": "paper-intent-demo",
+      "verdict": "ALLOW",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "b15bab402080020d40bd1fbca6b6db6218f8a33e54028e15d8c9b49d336bdec2",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "BASE"
+      },
+      "permitted_leverage": 1,
+      "reserved_assets": [
+        {
+          "amount": "203",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "SPOT",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": []
+      }
+    },
+    "equity": {
+      "risk_decision_id": "174f03d34c5eb786f32dd2480343231ce704bd2d6747d76881462768601adbd3",
+      "intent_id": "paper-intent-demo",
+      "verdict": "ALLOW",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "6a33a40eb8fdb6918fcb6374a725ee299bd8642469dd04380373283fb47d5bee",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "SHARE"
+      },
+      "permitted_leverage": 1,
+      "reserved_assets": [
+        {
+          "amount": "203",
+          "currency": "USD"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USD"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USD"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USD"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USD"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USD"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USD"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "US_EQUITY",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": []
+      }
+    },
+    "reduce": {
+      "risk_decision_id": "bc035ac692b791c16a9d4d765c83af15a7e3c1db63b3dc0003d1ee1600443652",
+      "intent_id": "paper-intent-demo",
+      "verdict": "ALLOW",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "0",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "3",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "3",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "0",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "0",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "0",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "0",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": []
+      }
+    },
+    "reduce_without_emergency": {
+      "risk_decision_id": "bc035ac692b791c16a9d4d765c83af15a7e3c1db63b3dc0003d1ee1600443652",
+      "intent_id": "paper-intent-demo",
+      "verdict": "ALLOW",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "0",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "3",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "3",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "0",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "0",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "0",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "0",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": []
+      }
+    },
+    "order_limit": {
+      "risk_decision_id": "9749f9863f04b8db7578eb6f00a24bbf324d79221de9e8f96d5f3fce67ac0871",
+      "intent_id": "paper-intent-demo",
+      "verdict": "REPLAN_REQUIRED",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "REPLAN:ORDER_NOTIONAL"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "REPLAN:ORDER_NOTIONAL"
+        ]
+      }
+    },
+    "loss_limit": {
+      "risk_decision_id": "e76da5bc716b3f37827065afe01461b23ae5a2676674929dc0ca18ce2c0a09fd",
+      "intent_id": "paper-intent-demo",
+      "verdict": "REPLAN_REQUIRED",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "REPLAN:INTENT_LOSS"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "REPLAN:INTENT_LOSS"
+        ]
+      }
+    },
+    "gross_limit": {
+      "risk_decision_id": "8e866a3cbc4f1de789f43f2eceb6690ecafcefcd8f786995097936a23748cb8b",
+      "intent_id": "paper-intent-demo",
+      "verdict": "REPLAN_REQUIRED",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "REPLAN:GROSS"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "REPLAN:GROSS"
+        ]
+      }
+    },
+    "net_limit": {
+      "risk_decision_id": "5e56c899587c6fc82b4873adfccae21e4e563c8a7ae4c42bdd8c18d566538327",
+      "intent_id": "paper-intent-demo",
+      "verdict": "REPLAN_REQUIRED",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "REPLAN:NET"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "REPLAN:NET"
+        ]
+      }
+    },
+    "capital_limit": {
+      "risk_decision_id": "ee7bf2c8d6edab3c9124e4b02f9c6b4186f7dddb85ad909ed467574a0c3d9f07",
+      "intent_id": "paper-intent-demo",
+      "verdict": "REPLAN_REQUIRED",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "REPLAN:CAPITAL"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "REPLAN:CAPITAL"
+        ]
+      }
+    },
+    "count_limit": {
+      "risk_decision_id": "ad6c622e7d3f1e44ecd83fb8b7c8a8d9fff5ef00d1b4e0467eeade901a2ed705",
+      "intent_id": "paper-intent-demo",
+      "verdict": "REPLAN_REQUIRED",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "REPLAN:COUNT_LIMIT"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "REPLAN:COUNT_LIMIT"
+        ]
+      }
+    },
+    "leverage_limit": {
+      "risk_decision_id": "699e2673b6d047d5b5f70416c7cce5ced6042e3345ab9f080a7a567cdf677fbb",
+      "intent_id": "paper-intent-demo",
+      "verdict": "REPLAN_REQUIRED",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 6,
+      "reserved_assets": [
+        {
+          "amount": "36.333333333333333333333333333333333333333333333333333333333333333333333333333333",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "REPLAN:LEVERAGE_LIMIT"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "REPLAN:LEVERAGE_LIMIT"
+        ]
+      }
+    },
+    "mode_mismatch": {
+      "risk_decision_id": "8dfbf987075b6d52c4d5db3e92e397fa05d96af975ca91dcbe14ab4684baab04",
+      "intent_id": "paper-intent-demo",
+      "verdict": "DENY",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "ACCOUNT_MODE_MISMATCH"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "ACCOUNT_MODE_MISMATCH"
+        ]
+      }
+    },
+    "wrong_scope": {
+      "risk_decision_id": "c38c495421d0ab4489a043ad7fbe4fee96044ba20d840ffa27954040ba7110af",
+      "intent_id": "paper-intent-demo",
+      "verdict": "DENY",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "SCOPE_MISMATCH"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "SCOPE_MISMATCH"
+        ]
+      }
+    },
+    "stale_basis": {
+      "risk_decision_id": "e1ee63346e3243c5d405883d890c3dba3120a7e985118efd139aa76dcbaf37fe",
+      "intent_id": "paper-intent-demo",
+      "verdict": "DENY",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "STALE_BASIS"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "STALE_BASIS"
+        ]
+      }
+    },
+    "expired": {
+      "risk_decision_id": "dcd1e639879b8bdd7a819f43763ef5a4f9151fbe3ce431cf9264aa30f0041806",
+      "intent_id": "paper-intent-demo",
+      "verdict": "DENY",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T11:00:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "EXPIRED_OR_FUTURE_INTENT"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "EXPIRED_OR_FUTURE_INTENT"
+        ]
+      }
+    },
+    "missing_stop": {
+      "risk_decision_id": "8eb0434d6ea603974cef4b0b4237a83e9ba8785111340c481324fda44717ef04",
+      "intent_id": "paper-intent-demo",
+      "verdict": "DENY",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [],
+      "estimated_loss": {
+        "amount": "0",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "STOP_REQUIRED"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "STOP_REQUIRED"
+        ]
+      }
+    },
+    "negative_fee": {
+      "risk_decision_id": "69d5afac7ab4ca267bccc49ef41031ed526ddbc6ad06bceac4a18f541dd98c59",
+      "intent_id": "paper-intent-demo",
+      "verdict": "DENY",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [],
+      "estimated_loss": {
+        "amount": "0",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "0",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "INVALID_OR_MISSING_INPUT:NONNEGATIVE_DECIMAL_REQUIRED"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "INVALID_OR_MISSING_INPUT:NONNEGATIVE_DECIMAL_REQUIRED"
+        ]
+      }
+    },
+    "unknown_clock": {
+      "risk_decision_id": "37e55973ce0a7230f5078db86fc70f1e66cccc755be12b58fc561392ac36987b",
+      "intent_id": "paper-intent-demo",
+      "verdict": "DENY",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "CLOCK_UNHEALTHY"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "CLOCK_UNHEALTHY"
+        ]
+      }
+    },
+    "compound": {
+      "risk_decision_id": "a4c9f3bf0db6729d38c74ce517034a313891a58a486980f7d3b08b189e82917d",
+      "intent_id": "paper-intent-demo",
+      "verdict": "DENY",
+      "policy_revision": 1,
+      "evaluated_at": "2026-10-22T12:00:00Z",
+      "expires_at": "2026-10-22T12:01:00Z",
+      "snapshot_ref": {
+        "id": "paper-snapshot-demo",
+        "hash": "d3fc82f7ca44f38030e78ca86304c9832c0241fa047097bd53eb4f258312d506",
+        "environment": "PAPER",
+        "source": "synthetic-test",
+        "visible_at": "2026-10-22T11:59:59Z"
+      },
+      "permitted_quantity": {
+        "value": "2",
+        "unit": "CONTRACT"
+      },
+      "permitted_leverage": 2,
+      "reserved_assets": [
+        {
+          "amount": "103",
+          "currency": "USDT"
+        }
+      ],
+      "estimated_loss": {
+        "amount": "23.4",
+        "currency": "USDT"
+      },
+      "fees_assumption": {
+        "amount": "2",
+        "currency": "USDT"
+      },
+      "aggregate_exposure_after": {
+        "gross": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "net": {
+          "amount": "200",
+          "currency": "USDT"
+        },
+        "groups": [
+          {
+            "group_id": "related",
+            "gross": {
+              "amount": "200",
+              "currency": "USDT"
+            },
+            "net": {
+              "amount": "200",
+              "currency": "USDT"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "rejection_codes": [
+        "NEW_RISK_LOCKED",
+        "REPLAN:LEVERAGE_LIMIT",
+        "ACCOUNT_MODE_MISMATCH",
+        "REPLAN:ORDER_NOTIONAL",
+        "REPLAN:INTENT_LOSS",
+        "REPLAN:GROSS",
+        "REPLAN:NET",
+        "REPLAN:TOTAL_LOSS",
+        "REPLAN:COUNT_LIMIT",
+        "REPLAN:CAPITAL"
+      ],
+      "evidence_completeness": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "paper-account-demo",
+          "product": "USD_M_PERP",
+          "instrument_uid": "paper-binance-spot-btcusdt",
+          "venue_leg": "BOTH"
+        },
+        "query_succeeded": true,
+        "pagination_complete": true,
+        "supported": true,
+        "missing": [
+          "ACCOUNT_MODE_MISMATCH",
+          "NEW_RISK_LOCKED",
+          "REPLAN:CAPITAL",
+          "REPLAN:COUNT_LIMIT",
+          "REPLAN:GROSS",
+          "REPLAN:INTENT_LOSS",
+          "REPLAN:LEVERAGE_LIMIT",
+          "REPLAN:NET",
+          "REPLAN:ORDER_NOTIONAL",
+          "REPLAN:TOTAL_LOSS"
+        ]
+      }
+    }
+  }
+}

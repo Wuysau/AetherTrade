@@ -1,0 +1,36 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_raw_concurrent_cross_family_identity_insertion_is_serialized[client-program] _
+tests/integration/test_program_commands_postgres.py:406: in test_raw_concurrent_cross_family_identity_insertion_is_serialized
+    assert future.result(timeout=10)=='collision-denied'
+E   AssertionError: assert 'committed' == 'collision-denied'
+E     
+E     - collision-denied
+E     + committed
+_ test_raw_concurrent_cross_family_identity_insertion_is_serialized[client-legacy] _
+tests/integration/test_program_commands_postgres.py:406: in test_raw_concurrent_cross_family_identity_insertion_is_serialized
+    assert future.result(timeout=10)=='collision-denied'
+E   AssertionError: assert 'committed' == 'collision-denied'
+E     
+E     - collision-denied
+E     + committed
+_ test_raw_concurrent_cross_family_identity_insertion_is_serialized[command-program] _
+tests/integration/test_program_commands_postgres.py:406: in test_raw_concurrent_cross_family_identity_insertion_is_serialized
+    assert future.result(timeout=10)=='collision-denied'
+E   AssertionError: assert 'committed' == 'collision-denied'
+E     
+E     - collision-denied
+E     + committed
+_ test_raw_concurrent_cross_family_identity_insertion_is_serialized[command-legacy] _
+tests/integration/test_program_commands_postgres.py:406: in test_raw_concurrent_cross_family_identity_insertion_is_serialized
+    assert future.result(timeout=10)=='collision-denied'
+E   AssertionError: assert 'committed' == 'collision-denied'
+E     
+E     - collision-denied
+E     + committed
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_commands_postgres.py::test_raw_concurrent_cross_family_identity_insertion_is_serialized[client-program]
+FAILED tests/integration/test_program_commands_postgres.py::test_raw_concurrent_cross_family_identity_insertion_is_serialized[client-legacy]
+FAILED tests/integration/test_program_commands_postgres.py::test_raw_concurrent_cross_family_identity_insertion_is_serialized[command-program]
+FAILED tests/integration/test_program_commands_postgres.py::test_raw_concurrent_cross_family_identity_insertion_is_serialized[command-legacy]
+4 failed in 1.74s

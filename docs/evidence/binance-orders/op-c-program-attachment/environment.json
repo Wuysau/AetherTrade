@@ -1,0 +1,41 @@
+{
+  "scope": "ACTUAL_SAME_TX_KERNEL_WITNESS_AND_ATTACHMENT_NOT_SEND_AUTHORITY",
+  "base_commit": "bdbd9b0",
+  "commands": [
+    "python -m pytest tests/unit/test_program_attachment.py -q --tb=short",
+    "python -m pytest tests/integration/test_program_attachment_postgres.py -q --tb=short",
+    "python -m pytest tests/integration/test_program_financial_admission.py -q --tb=short"
+  ],
+  "runs": {
+    "unit-green": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0
+    },
+    "postgres-green": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0
+    },
+    "financial-regression": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0
+    }
+  },
+  "source_sha256": {
+    "src/trading_system/risk/program_financial_admission.py": "8101315af1fe76b43f61a4e73c0bd03ef2558ab7673f7564d8978f5bd82fc99e",
+    "tests/unit/test_program_attachment.py": "08e80f4ddf5f3a8c8425b70b58c00bb40564c85f7a058472aef1e3e243fc0f54",
+    "tests/integration/test_program_attachment_postgres.py": "9e89fbd487e2be7a57e2a5b99c6e02a92eae8d0442850a1db16c1154fc06e272"
+  },
+  "images": {
+    "python": "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f",
+    "postgres": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+  }
+}

@@ -1,0 +1,16 @@
+........FF                                                               [100%]
+=================================== FAILURES ===================================
+_ test_real_zero_asset_local_unknown_cannot_be_bypassed_by_external_current_boundary[mark] _
+tests/integration/test_generic_program_admission_postgres.py:141: in test_real_zero_asset_local_unknown_cannot_be_bypassed_by_external_current_boundary
+    with pytest.raises(ValueError,match='LOCAL_PROGRAM'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_real_zero_asset_local_unknown_cannot_be_bypassed_by_external_current_boundary[consume] _
+tests/integration/test_generic_program_admission_postgres.py:141: in test_real_zero_asset_local_unknown_cannot_be_bypassed_by_external_current_boundary
+    with pytest.raises(ValueError,match='LOCAL_PROGRAM'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_generic_program_admission_postgres.py::test_real_zero_asset_local_unknown_cannot_be_bypassed_by_external_current_boundary[mark]
+FAILED tests/integration/test_generic_program_admission_postgres.py::test_real_zero_asset_local_unknown_cannot_be_bypassed_by_external_current_boundary[consume]
+2 failed, 8 passed in 40.65s

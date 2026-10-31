@@ -1,0 +1,41 @@
+{
+  "scope": "CAPTURED_FACT_TTL_CONTENT_VALIDATION_NOT_FINANCIAL_APPROVAL",
+  "base_commit": "a9ff18fc423b0f879eea4584e075799d4783f616",
+  "commands": [
+    "python -m pytest tests/unit/test_financial_archive_ttl.py -q --tb=short",
+    "python -m pytest tests/unit/test_financial_archive_ttl.py tests/unit/test_program_financial_records.py tests/contracts/test_ledger_intent_registry.py -q --tb=short",
+    "python -m pytest tests/integration/test_program_financial_ledger.py -q --tb=short"
+  ],
+  "runs": {
+    "red": {
+      "tests": 8,
+      "failures": 5,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 1
+    },
+    "green": {
+      "tests": 40,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0
+    },
+    "postgres-green": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0
+    }
+  },
+  "all_prior_public_packaged_files_byte_unchanged": 42,
+  "source_sha256": {
+    "src/trading_system/intents/program_financial_records.py": "7cbddc76e724eaf79b69fdd1914d1f39a83586c01eeb94acce23e09c66590521",
+    "tests/unit/test_financial_archive_ttl.py": "107829421b9fc2b1e9c4a79ca126b7dcc5021ce853311f022493e23c8f3f11a5"
+  },
+  "images": {
+    "python": "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f",
+    "postgres": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+  }
+}

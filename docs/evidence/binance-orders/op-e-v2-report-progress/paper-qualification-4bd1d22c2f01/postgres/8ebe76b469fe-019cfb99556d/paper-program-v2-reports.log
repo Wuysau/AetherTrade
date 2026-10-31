@@ -1,0 +1,17 @@
+.................................F........F                              [100%]
+=================================== FAILURES ===================================
+_ test_actual_competing_oco_trigger_attempts_execute_only_the_unique_winner_with_complete_sibling_cancel _
+tests/integration/test_paper_program_v2_reports_postgres.py:475: in test_actual_competing_oco_trigger_attempts_execute_only_the_unique_winner_with_complete_sibling_cancel
+    assert len(result.fills)==2 and {f.raw.node_id for f in result.fills}=={'above'}
+E   AssertionError: assert (1 == 2)
+E    +  where 1 = len((NormalizedPaperFillV2(fill=Fill(fill_id='paper-program:e5648454ee51c4dd858d5752370e3240e96154952e4dbc38495ee7695758df...6-10-30', record_kind='PAPER_FILL_SOURCE_V2'), contract_version='2026-10-30', record_kind='NORMALIZED_PAPER_FILL_V2'),))
+E    +    where (NormalizedPaperFillV2(fill=Fill(fill_id='paper-program:e5648454ee51c4dd858d5752370e3240e96154952e4dbc38495ee7695758df...6-10-30', record_kind='PAPER_FILL_SOURCE_V2'), contract_version='2026-10-30', record_kind='NORMALIZED_PAPER_FILL_V2'),) = PaperProgramVerificationV2(command_id='isolated-command-4d0c1902a2bf45348c6f6524f45ea5c7', status='VERIFIED', source_v...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).fills
+_ test_actual_native_exclusivity_needs_complete_unique_source_witness_not_membership_or_one_cancel[second_leg_fill] _
+tests/integration/test_paper_program_v2_reports_postgres.py:508: in test_actual_native_exclusivity_needs_complete_unique_source_witness_not_membership_or_one_cancel
+    changed=replace(report,fills=(report.fills[0],replace(report.fills[1],client_id=peer.client_id,node_id=peer.node_id)))
+                                                          ^^^^^^^^^^^^^^^
+E   IndexError: tuple index out of range
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_competing_oco_trigger_attempts_execute_only_the_unique_winner_with_complete_sibling_cancel
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_native_exclusivity_needs_complete_unique_source_witness_not_membership_or_one_cancel[second_leg_fill]
+2 failed, 41 passed in 201.31s (0:03:21)

@@ -1,0 +1,117 @@
+{
+  "functional_source_commit": "2d0d310",
+  "scope": "REAL_ISOLATED_POSTGRES_PAPER_ENGINEERING_ONLY",
+  "baseline": "a5dcb536ec46d9978c467751792eee35cbeb6798",
+  "actual_activation": "ParentAuthorityV3 + LOCAL_PROGRAM_ACTIVATION binding + source-derived role proofs + prepare/bind/activate + persistent quantity obligations",
+  "not_delivered": [
+    "external child admission/scheduler/command dispatch",
+    "production lifecycle reader or transport qualification",
+    "actual ownership transfer integration coverage",
+    "full46/56 qualification"
+  ],
+  "isolation": "Initial docker cluster fresh private PAPER PG; subsequent new test databases in that same explicitly isolated cluster, never operational databases. Resumed dependency runner executes fixed clean committed source; all source changes in manifests. Failed network dependency run is not acceptance evidence.",
+  "counts": {
+    "python-final.xml": {
+      "tests": 1470,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "initial-red\\local-program-activation.xml": {
+      "tests": 5,
+      "failed": 5,
+      "errors": 0,
+      "skipped": 0
+    },
+    "regressions\\56f7cbb54583-06c529ca0ff3\\order-closure.xml": {
+      "tests": 27,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "regressions\\56f7cbb54583-15af31016325\\application-write-obligations.xml": {
+      "tests": 18,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "regressions\\56f7cbb54583-63d509a70b99\\order-financial-credit.xml": {
+      "tests": 8,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "regressions\\56f7cbb54583-849da05939d9\\order-programs.xml": {
+      "tests": 32,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "regressions\\56f7cbb54583-dcb9e3937546\\program-financial-admission.xml": {
+      "tests": 12,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "green\\2d0d310e7316-c64a51c444a4\\local-program-activation.xml": {
+      "tests": 15,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "clock-red\\7a7f3c28b520-b05190b1744f\\local-program-activation.xml": {
+      "tests": 15,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "source_sha256": {
+    "src/trading_system/execution/local_program_activation.py": "f74a296cd2a3e901a8d037a8f4dd43f7cf632b17dd4de6b6891f37e2c4acc04d",
+    "src/trading_system/storage/local_programs.py": "e3fcc89ccf43988b83af51af467ca52a776e604e3e50316b7a3c3c7586357625",
+    "src/trading_system/execution/commands.py": "031395366ad7148fb918d45f7cf63d20051f24d867fa2e705f4874009c8ed2a8",
+    "src/trading_system/risk/target_guard.py": "607be0fddf5945f4189fcc6a997e76e6a355c201110d3234aa7be2207d526c18",
+    "src/trading_system/risk/locked_actions.py": "bf1c3935076284c780c0570a5ece43f0d4064a929787586a8b0df0eec365725e",
+    "tests/integration/test_local_program_activation.py": "39ce4e597d2ba410176a0cf7b51ee7b51ea13a66eba436a92726415e5e31ba3d",
+    "tests/integration/test_program_financial_admission.py": "9da45f5acafbeecd353f9d4b3b29cf79e7f552ebe33a5ea2268cbdbe3efab6e8",
+    "tests/intents/test_program_target_allocation.py": "cbc8060ac0e5b97289f4a8329fa3c030321d9afc11ce88985871d4696826dfff",
+    "tests/unit/test_application_write_reader.py": "02854e5907af15db47bbf51d6c3d5739c4ab65ec91739f6f71a3cb8bad90d617",
+    "tests/unit/test_target_history_owner.py": "eb2a522ccc8e94897d1f75e0ef0d27f8392c6579bf305ebd484ed4f6f59bfe66",
+    "tools/ci_paper_postgres.py": "d7f99e11a487f6b7f1c84dd2d0ce55b4fb8b28bd8bc0a58b6a99fdb253981fb9"
+  },
+  "evidence_sha256": {
+    "activation-resume-manifest.json": "2830912fcb394e55e7a1db29849a1a20e07718d2da10c0b57054acbe3947c7a9",
+    "clock-red2-manifest.json": "0b146316baf41e62e62ae14da979b5a64f16e41a24fb2f0ce9968bb2e9a9b4f8",
+    "container-images.txt": "ef6ccce9418a1c9a5c8f651a5e52d60acd1b6314828177017c99f335a01115ff",
+    "green-manifest.json": "5c973ac707cb2fe814ef88d970a2d6ae764e7c2188c68b09a47fa5829fdec122",
+    "initial-red-container-images.txt": "ef6ccce9418a1c9a5c8f651a5e52d60acd1b6314828177017c99f335a01115ff",
+    "initial-red-launcher-manifest.json": "f9a4cc9a24037bd6e91b68a4ace8f0a51a52a23a847c16473447debab27c81a7",
+    "python-final.txt": "a1cc44f828cf544da92b310e0936b7553794862514fdcbfd96036d583ce4e4b3",
+    "python-final.xml": "5b62c18a6a333ae721ba601d7dd4dfe1343fa679ebf2a8b4ec4d10758fc21ab6",
+    "regression-manifest.json": "d13816917eae98b1ced46e6ad7ca0f6308e417315b6ada2a311f5410053fb1ec",
+    "initial-red/local-program-activation.log": "6f03d6c6b5ab95d485097b883336bc6ee79c02d45a97cdd080947224572d3875",
+    "initial-red/local-program-activation.xml": "06294d20a0783483c6cb3926b8bc10248130739c3455b744b1ffc83332b21280",
+    "initial-red/summary.json": "78451327204d858d6af5f53ccb454460b8e27eaab927bd96311955c1b8b1a115",
+    "regressions/56f7cbb54583-06c529ca0ff3/order-closure.log": "cd266587dcb190ed9016a26fffd71f2a7fb4314214f804d151818e99e2354b78",
+    "regressions/56f7cbb54583-06c529ca0ff3/order-closure.xml": "7977a27abfaa5558738d75d203a0bb7fc620c038ace3e1ba6c68f5669aa63e92",
+    "regressions/56f7cbb54583-06c529ca0ff3/summary.json": "413f7611f11550d402ccd0a7c760fbf7f789be45d0387425da54d3a0f168797a",
+    "regressions/56f7cbb54583-15af31016325/application-write-obligations.log": "87e98ee618e1f0f948d6341fb22fa1832f592c0af0a9dd4f3347b6a69d48e6a8",
+    "regressions/56f7cbb54583-15af31016325/application-write-obligations.xml": "2dca9525b6f01a37f2c9fa4b330cba835a2263e5e8b13696ddc52cbc20bf8d7f",
+    "regressions/56f7cbb54583-15af31016325/summary.json": "f790ec770725d10b62b19fced4696194cb1540dcd7a9db8ce0cf175d71eeae9e",
+    "regressions/56f7cbb54583-63d509a70b99/order-financial-credit.log": "58d76103b3b771eb5750f4d29f53cfd29f72ab63ed89217c105d9090f6c3d727",
+    "regressions/56f7cbb54583-63d509a70b99/order-financial-credit.xml": "882ea9b6744c80b426c015aef49bbabda27546c2e17946ecff28351a528e77c7",
+    "regressions/56f7cbb54583-63d509a70b99/summary.json": "710fdef4d86841003d26d1857b81e57285f4c7360016e27a3036301f2913b55b",
+    "regressions/56f7cbb54583-849da05939d9/order-programs.log": "afaa94d27fb94842d46c5a02548991c3fcead13188bae0a5254b45506ed4b600",
+    "regressions/56f7cbb54583-849da05939d9/order-programs.xml": "f73b81144822b17b0d1207d7decdf58da87d7479eeeeec278db9856b6ca8b13d",
+    "regressions/56f7cbb54583-849da05939d9/summary.json": "b1123ccc52a86a4d7703ca0ea4673f2cf904c0d1312cf8cc75dad995d75d3250",
+    "regressions/56f7cbb54583-dcb9e3937546/program-financial-admission.log": "351ab3924a80d14735ca3fc044fcb8849d681e9e9054c52d5e1107f7289e6a9c",
+    "regressions/56f7cbb54583-dcb9e3937546/program-financial-admission.xml": "7dba78b0ac86cdda24cc7d2d5fd8f0b1eb3f83c810f0cd1d93a4675e40d18ea8",
+    "regressions/56f7cbb54583-dcb9e3937546/summary.json": "cc13183adc8ea6151944e0063b82c4a3118058535f822de1299a3868a2a66acb",
+    "green/2d0d310e7316-c64a51c444a4/local-program-activation.log": "f737643456f277cd4b61590bb15a22c14464ecd7939c8927b8e52138b623dd2d",
+    "green/2d0d310e7316-c64a51c444a4/local-program-activation.xml": "48631c2b1daa88346e3b8903088148c884d29fe7d8f473e496d1cfc1c2269988",
+    "green/2d0d310e7316-c64a51c444a4/summary.json": "25966349934501f98ede0d935922a5f0b6181413f8c138823678440dbb0f9c52",
+    "clock-red/7a7f3c28b520-b05190b1744f/local-program-activation.log": "a9a74106c474d9bb5b34de73cbb909110f76fca173a9c83c6d01551018db8095",
+    "clock-red/7a7f3c28b520-b05190b1744f/local-program-activation.xml": "a59d713dbb4c27a57888996d4e71ffbf89170d0cf06dde433adf6b63453afb67",
+    "clock-red/7a7f3c28b520-b05190b1744f/summary.json": "53ce0f6e7a12f351c5f8c316634f15a5b725f700550b65e6632d1c216e80e11d"
+  }
+}

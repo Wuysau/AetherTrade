@@ -1,0 +1,99 @@
+{
+  "scope": "ISOLATED_SYNTHETIC_PAPER_LEDGER_RECORDS_NOT_FINANCIAL_APPROVAL_OR_VENUE_QUALIFICATION",
+  "source_base_commit": "c5b2dd3",
+  "risk_terms_dependency": "88d3c90 (owned cherry-pick3bce1a8)",
+  "financial_conversion": "BLOCKED: PROGRAM_RISK_FACTS_ARCHIVE_REQUIRED; no budget-facts alias or generic ALLOW",
+  "commands": [
+    "python -m pytest -p no:cacheprovider tests/integration/test_program_financial_ledger.py -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/integration/test_ledger_transactions.py -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/integration/test_reservations.py -q --tb=short",
+    "python -m pytest tests/contracts tests/intents tests/unit -q --tb=short"
+  ],
+  "runs": {
+    "owner-red": {
+      "exit_code": 1,
+      "tests": 9,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "hold-owner-red": {
+      "exit_code": 1,
+      "tests": 10,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "records-green": {
+      "exit_code": 0,
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "legacy-ledger": {
+      "exit_code": 0,
+      "tests": 30,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "legacy-reservations": {
+      "exit_code": 0,
+      "tests": 67,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "source-terms-red": {
+      "exit_code": 1,
+      "tests": 3,
+      "failures": 3,
+      "errors": 0,
+      "skipped": 0
+    },
+    "source-unit-red": {
+      "exit_code": 1,
+      "tests": 3,
+      "failures": 3,
+      "errors": 0,
+      "skipped": 0
+    },
+    "unit-green": {
+      "exit_code": 0,
+      "tests": 1123,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "existing_public_packaged_files_unchanged": 38,
+  "source_sha256": {
+    "src/trading_system/contracts/program_financial.py": "b3b50642601201d4140ac3d654e87e624e35058e5f43dd5934d2f3544a0575f3",
+    "src/trading_system/contracts/ledger_intents.py": "32b06426e637dd430b169c0e7ad9cb8065d44da59247623a691eba6625b302be",
+    "src/trading_system/contracts/order_codec.py": "e79e13a6b1c0a6f5997c161fd7132a32bce9c03fc491e936c43acffd77926bd8",
+    "src/trading_system/contracts/order_program.py": "d575faf40c46705cfd59ea00c1ae26d679866081866917c7f92680330183dc4e",
+    "src/trading_system/intents/program_financial_records.py": "4503886e54837c8b4caea526b70826d15ae44362fb09e815ee49ccb61f7f2b9e",
+    "src/trading_system/storage/models.py": "84dd979d2ec286578f129d35b3e6fc5225dc7f2da45bd74aaf1eb2f7d1117571",
+    "src/trading_system/storage/uow.py": "e9ae5a28e3b238683bc39532a11fc943b50645a54c9f943f6fd4a0afee98ff68",
+    "src/trading_system/execution/commands.py": "ce36eea833d64e082110c2a193dda19130a38b28fea188421624b1880a05a147",
+    "src/trading_system/risk/reservation_repository.py": "4660572e8d5d3997e3e7226ddb8644f4f449c13b9ac69a8d6df2804174f96834",
+    "tools/generate_order_schemas.py": "3b473be0ec2da5d4fa363afb7c73c536584850e82a418658c4fe213bb22d8f6a",
+    "tests/unit/support_program_financial.py": "e3c99ab50207939f215ef16ea131a0fad341e5e1e484f4b9058fb8c210e433a1",
+    "tests/unit/test_program_financial_records.py": "891f939b16827677e44de4a20a64a8c1cd5529a2c08906b59f6d0aa474bafa0b",
+    "tests/contracts/test_ledger_intent_registry.py": "bb9ac9fb2a0fe973ea489f0439e005d817743239806f3ca0cb8947f50f5cf5e2",
+    "tests/integration/test_program_financial_ledger.py": "f82c6a865b120a8144cc086b8834dd0f07077032d5f87c0082790655488ee700",
+    "contracts/program-financial-intent.v2026-10-29.schema.json": "1f00c73e847ef9117a15cae26304e6230a25556eae6a63766892bbf0a1b6b6fe",
+    "contracts/program-financial-risk-basis.v2026-10-29.schema.json": "53eca32e402adbc3bd437d300aba854aba0193686acd58cac7b2ad124c0e2829",
+    "src/trading_system/schemas/program-financial-intent.v2026-10-29.schema.json": "1f00c73e847ef9117a15cae26304e6230a25556eae6a63766892bbf0a1b6b6fe",
+    "src/trading_system/schemas/program-financial-risk-basis.v2026-10-29.schema.json": "53eca32e402adbc3bd437d300aba854aba0193686acd58cac7b2ad124c0e2829"
+  },
+  "images": {
+    "python": "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f",
+    "postgres": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+  },
+  "host_unit_environment": {
+    "python": "3.14.2",
+    "platform": "Windows-11-10.0.26300-SP0"
+  }
+}

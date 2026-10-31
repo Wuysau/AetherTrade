@@ -1,0 +1,63 @@
+{
+  "scope": "ISOLATED_SYNTHETIC_POSTGRES_AND_UNIT_NOT_VENUE_QUALIFICATION",
+  "source_base_commit": "ddf944c5fd6c2089ec1133d7d5ae51c718683de0",
+  "red_scope": "candidate typed reader and same tests; exactly target_guard.py, commands.py, locked_actions.py restored to ddf944c",
+  "commands": [
+    "python -m pytest -p no:cacheprovider tests/integration/test_application_write_obligations.py tests/unit/test_application_write_reader.py -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/integration/test_application_write_old_database.py -q --tb=short",
+    "python -m pytest tests/intents tests/unit tests/contracts -q --tb=short"
+  ],
+  "runs": {
+    "red": {
+      "exit_code": 1,
+      "tests": 37,
+      "failures": 20,
+      "errors": 0,
+      "skipped": 0
+    },
+    "green": {
+      "exit_code": 0,
+      "tests": 37,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "legacy": {
+      "exit_code": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "initial-collection-error": {
+      "exit_code": 2,
+      "tests": 1,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 0
+    },
+    "unit-regression": {
+      "exit_code": 0,
+      "tests": 902,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "python": "3.14.2",
+      "platform": "Windows-11-10.0.26300-SP0"
+    }
+  },
+  "source_sha256": {
+    "src/trading_system/storage/application_writes.py": "3d7e9b0fc6267cd7fea71b6faa1cfc94fb73da629cb214c437ca891b13a479d2",
+    "src/trading_system/risk/target_guard.py": "f256b797ddcfa7519ea90541bc6d1126d6cf38168fcbc312af1deb46861ba403",
+    "src/trading_system/execution/commands.py": "ca5a86a57bec6a86e63a0803e768f02bcfa2fd31168ce30816b48644d9d06815",
+    "src/trading_system/risk/locked_actions.py": "6aca1374ff5d3e346d2cb2377f351fae9d1afff7855cb4aae9cbc52b0756439a",
+    "tests/unit/test_application_write_reader.py": "490ee5c081027f04431a162b253d25b38e57ae39d062135a5facaa3958622ac4",
+    "tests/unit/test_target_history_owner.py": "8c2d6d565ce8b6200deb5cab020f9f7f90edac72eb1518313f051d5ed2008687",
+    "tests/integration/test_application_write_obligations.py": "ee0fbfa7b737b5ad89079826a5f9dfa4db2d1a3078098abdf1519673d81997bf",
+    "tests/integration/test_application_write_old_database.py": "e28aea4bb13d1cba2c78ce5556144b7516ee52bdc6cc95a81649a773f0706d0e"
+  },
+  "images": {
+    "python": "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f",
+    "postgres": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+  }
+}

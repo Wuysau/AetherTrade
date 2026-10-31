@@ -1,0 +1,56 @@
+{
+  "scope": "ISOLATED_SYNTHETIC_POSTGRES_AND_UNIT_NOT_VENUE_QUALIFICATION",
+  "source_base_commit": "e05e165baa77a5b237e6f21907a3d6baa74ddf29",
+  "migration_0009_historical_sha256": "d716937224421b366a1f930a7209784609c6d1609d2d40c789aa87a8635b8106",
+  "commands": [
+    "python -m pytest -p no:cacheprovider tests/integration/test_order_program_financial_credit.py tests/unit/test_order_closure_review.py tests/unit/test_program_financial_credit_precision.py -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/unit/test_order_closure_review.py tests/integration/test_order_program_closure.py -q --tb=short"
+  ],
+  "runs": {
+    "preflight-red": {
+      "exit_code": 1,
+      "tests": 12,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "source_commit": "e05e165baa77a5b237e6f21907a3d6baa74ddf29"
+    },
+    "green": {
+      "exit_code": 0,
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "source_commit": "e05e165baa77a5b237e6f21907a3d6baa74ddf29"
+    },
+    "regression": {
+      "exit_code": 0,
+      "tests": 28,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "source_commit": "e05e165baa77a5b237e6f21907a3d6baa74ddf29"
+    }
+  },
+  "precision_red": {
+    "exit_code": 1,
+    "source": "committed e05e165 helper loaded as AST into isolated test process",
+    "command": "python -X utf8 docs/evidence/binance-orders/op-c-financial-credit-upgrade/precision-red-command.py",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "python": "3.14.2",
+    "failures": 2,
+    "passed": 1
+  },
+  "source_sha256": {
+    "migrations/0009_order_program_closure.sql": "d716937224421b366a1f930a7209784609c6d1609d2d40c789aa87a8635b8106",
+    "migrations/0011_order_program_financial_credit_guard.sql": "577f33d29e504c5ff49b075549e7f468e716937c7ae3f4e7a56b79959629ff62",
+    "src/trading_system/risk/reservation_repository.py": "2f29bb119940768d574dd5edfbe14452731b8079d86d3e39ae5f4c779d943790",
+    "tests/integration/test_order_program_closure.py": "9bfe221dad4f8edbf21d709fdff1adfb650dcd1ad21997ed2fc6c6323c001150",
+    "tests/integration/test_order_program_financial_credit.py": "b1ba319c431fbecd14db706dbd6031b17a5a8895a4265dcb58df588317bd9ed2",
+    "tests/unit/test_program_financial_credit_precision.py": "4471af3190e12b44d252235cc7e8ecafbb3b93a164daf1acd0925a315e07f913"
+  },
+  "images": {
+    "python": "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f",
+    "postgres": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+  }
+}

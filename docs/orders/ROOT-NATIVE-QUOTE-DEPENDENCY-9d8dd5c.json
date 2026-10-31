@@ -1,0 +1,246 @@
+{
+  "root_base": "a741fe9d182718b5cf581df52114882fab4f2a00",
+  "root_test_source": "9d8dd5c90ed1cade158bca0a825edac0890be4e9",
+  "reviewed_native_candidate": "da12780f358e666ec5035adec95c637ae74403ca",
+  "reviewed_native_test_source": "203596d03461e72c870092a1901bb8b922ecd550",
+  "selected_paths": [
+    {
+      "path": "migrations/0026_paper_native_execution.sql",
+      "sha256": "970adf545e7ce7e0624e2c00de2e7102da8299c42d7c4f8d6730256b89332b76",
+      "origin": "BYTE_IDENTICAL_REVIEWED_NATIVE"
+    },
+    {
+      "path": "src/trading_system/engine/paper_market.py",
+      "sha256": "70c41326d62970e5e92083342eda164e0c528840f9c2dd1406b8ad4f7884b65f",
+      "origin": "ROOT_QUOTE_NATIVE_THREE_WAY_MERGE"
+    },
+    {
+      "path": "src/trading_system/engine/paper_market_v2.py",
+      "sha256": "6d88201ad5bc7f706a8788f11ae8f425d3addf841f80b01a2a73e7fb43ab9b67",
+      "origin": "BYTE_IDENTICAL_REVIEWED_NATIVE"
+    },
+    {
+      "path": "src/trading_system/engine/paper_native_programs.py",
+      "sha256": "83cb10a02aabb8e39f90bdecb6ba7ce8361c875e1ea2c36f9b3a66aba77078f4",
+      "origin": "BYTE_IDENTICAL_REVIEWED_NATIVE"
+    },
+    {
+      "path": "src/trading_system/execution/paper_native_parent_reports.py",
+      "sha256": "97596ffed913efc4c3b3dae05988f07f542389d260fbc163d827845b58179b4f",
+      "origin": "ROOT_BOUNDED_NATIVE_QUOTE_SOURCE_MANIFEST"
+    },
+    {
+      "path": "tests/integration/test_paper_native_parent_postgres.py",
+      "sha256": "9597089ef78a810d651359452d209d12ee2ed2cb3b4605d53f8f9619bd9e9a09",
+      "origin": "BYTE_IDENTICAL_REVIEWED_NATIVE"
+    },
+    {
+      "path": "tests/integration/test_paper_market_matcher.py",
+      "sha256": "72e6a1047f900f3b75d182911f5a2772dc1b22374d7f0a4d6078d60fad352905",
+      "origin": "BYTE_IDENTICAL_REVIEWED_NATIVE"
+    },
+    {
+      "path": "tests/integration/test_paper_native_quote_combined.py",
+      "sha256": "010e84f9e2970eec8abab4a9461b039e03ca7b5a0239e9c98dd2b996339b9460",
+      "origin": "ROOT_ACTUAL_COMBINED_TEST"
+    }
+  ],
+  "preserved_paths": [
+    {
+      "path": "migrations/0013_paper_market_matcher.sql",
+      "sha256": "efd0a3a2edc1cca12de47baa60be5e7ec90abae155f7a014404a3aadc14f80d2"
+    },
+    {
+      "path": "migrations/0014_paper_market_matcher_v2.sql",
+      "sha256": "df9e0709b7ebb12006549c464251b29f1937aed2efd20182319e9d42a13dd565"
+    },
+    {
+      "path": "migrations/0025_paper_quote_budget.sql",
+      "sha256": "b9e22f954fc1b36bbace6da86cfaa6035cd94a58a011f31a3dd27fdc0a9340a7"
+    },
+    {
+      "path": "src/trading_system/engine/paper_market_quote.py",
+      "sha256": "67120df3134c8a7dfe1aa92581f7ad8d33ae65678b51ed693e155c0c4de3879e"
+    },
+    {
+      "path": "src/trading_system/execution/paper_quote_reports.py",
+      "sha256": "ee5d5cf13df137dfecf44ec3523e5437058b1f72e199026670992d72287c1e8c"
+    },
+    {
+      "path": "src/trading_system/execution/paper_program_v2_reports.py",
+      "sha256": "d8e8652b366e9db4a558ea459bb1ea6cb97b6de2e85e178fb42ecbbb879be776"
+    },
+    {
+      "path": "src/trading_system/execution/paper_program_v2_liquidity.py",
+      "sha256": "276d29e29dd052b729fe2609b02644a7a7110ea04f5ea202a6fd6cf0b4672ff9"
+    },
+    {
+      "path": "src/trading_system/execution/program_fill_source.py",
+      "sha256": "4b44bc69e5f8ad4b4e46453a098498e27baf406ac62ffce715a7eec9f8d5fd62"
+    },
+    {
+      "path": "src/trading_system/risk/reservations.py",
+      "sha256": "48510f84309ca0c1b0f00fb6743737d484ca7854ec5ad5e8306c65cdcffc34c3"
+    },
+    {
+      "path": "src/trading_system/risk/program_quantity_scope.py",
+      "sha256": "8809abd33ca8b18bd3c0b5e4b355e5fe934aae7a55dd34991cec604bcb94869b"
+    },
+    {
+      "path": "src/trading_system/risk/program_financial_admission.py",
+      "sha256": "ecf82ea48832319b94ae09e84883ef88e36a99b315a617d52cb7b89ca2a89876"
+    },
+    {
+      "path": "src/trading_system/execution/program_commands.py",
+      "sha256": "34107f2ae08711d3200f36a795644bd6c6241752b59ec829557165b57cc5391f"
+    },
+    {
+      "path": "src/trading_system/execution/program_consumed_boundary.py",
+      "sha256": "e1111249f06401de09441b24f1db36a9b5bf346445eb9d734a6cb0a6bbe375ef"
+    }
+  ],
+  "registry_hunk": "Add paper-native-parent and paper-native-quote-combined only; all64 prior entries retained,66total.",
+  "post_merge_evidence": [
+    {
+      "run": "23b0e1912c8b",
+      "original_handle": 55011,
+      "label": "FIXTURE_VARIANT_FAILURE",
+      "source_commit": "48b09ab21f78d843d2d310596e4416141a00979c",
+      "suite": "paper-native-quote-combined",
+      "tests": "2",
+      "failures": "2",
+      "errors": "0",
+      "skipped": "0",
+      "time": "9.411",
+      "terminal": true
+    },
+    {
+      "run": "3cb1c826a6b7",
+      "original_handle": 81888,
+      "label": "FIXTURE_PROFILE_FAILURE",
+      "source_commit": "2ea29966fe065fdb5ba7aa445b648910b9116b6f",
+      "suite": "paper-native-quote-combined",
+      "tests": "2",
+      "failures": "2",
+      "errors": "0",
+      "skipped": "0",
+      "time": "9.846",
+      "terminal": true
+    },
+    {
+      "run": "7f85f8865141",
+      "original_handle": 49939,
+      "label": "FIXTURE_LOSS_FAILURE",
+      "source_commit": "5f7c359c7d2eaabe8bc38fa490970ac211bf852a",
+      "suite": "paper-native-quote-combined",
+      "tests": "2",
+      "failures": "2",
+      "errors": "0",
+      "skipped": "0",
+      "time": "9.757",
+      "terminal": true
+    },
+    {
+      "run": "3a7e3f9c539c",
+      "original_handle": 46544,
+      "label": "GENUINE_COMBINED_SOURCE_RED",
+      "source_commit": "236af3908b77e2b189edb8880fbc46183c6a4443",
+      "suite": "paper-native-quote-combined",
+      "tests": "2",
+      "failures": "2",
+      "errors": "0",
+      "skipped": "0",
+      "time": "35.352",
+      "terminal": true
+    },
+    {
+      "run": "58002a0250be",
+      "original_handle": 28373,
+      "label": "FIXED_SQL_JOIN_AMBIGUITY",
+      "source_commit": "0657e3a94e9bdc6f1feaa8e519b4d7c8672fea5c",
+      "suite": "paper-native-quote-combined",
+      "tests": "2",
+      "failures": "2",
+      "errors": "0",
+      "skipped": "0",
+      "time": "35.672",
+      "terminal": true
+    },
+    {
+      "run": "405ca12357c7",
+      "original_handle": 71461,
+      "label": "COMBINED_GREEN",
+      "source_commit": "9d8dd5c90ed1cade158bca0a825edac0890be4e9",
+      "suite": "paper-native-quote-combined",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "35.862",
+      "terminal": true
+    },
+    {
+      "run": "5ae3c768ab65",
+      "original_handle": 11501,
+      "label": "NATIVE_REGRESSION_GREEN",
+      "source_commit": "9d8dd5c90ed1cade158bca0a825edac0890be4e9",
+      "suite": "paper-native-parent",
+      "tests": "27",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "128.351",
+      "terminal": true
+    },
+    {
+      "run": "f26ab05b850a",
+      "original_handle": 41834,
+      "label": "QUOTE_REGRESSION_GREEN",
+      "source_commit": "9d8dd5c90ed1cade158bca0a825edac0890be4e9",
+      "suite": "paper-quote-budget",
+      "tests": "30",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "191.605",
+      "terminal": true
+    },
+    {
+      "run": "60466ddbdd77",
+      "original_handle": 62776,
+      "label": "V2_SOURCE_REGRESSION_GREEN",
+      "source_commit": "9d8dd5c90ed1cade158bca0a825edac0890be4e9",
+      "suite": "paper-program-v2-reports",
+      "tests": "51",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "259.222",
+      "terminal": true
+    },
+    {
+      "run": "a7c68ba45b83",
+      "original_handle": 99218,
+      "label": "V2_COMPAT_REGRESSION_GREEN",
+      "source_commit": "9d8dd5c90ed1cade158bca0a825edac0890be4e9",
+      "suite": "paper-market-matcher-v2-compat",
+      "tests": "23",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "120.737",
+      "terminal": true
+    }
+  ],
+  "unit_evidence": {
+    "passed": 53,
+    "seconds": 2.33
+  },
+  "blocked": [
+    "native/quote0021 knownness/source registry",
+    "native/quote owned financial posting",
+    "native management/VP",
+    "host/default qualification",
+    "full46/56"
+  ]
+}

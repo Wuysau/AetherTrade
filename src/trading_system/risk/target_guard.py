@@ -178,8 +178,36 @@ class TargetReportService:
         return record
 
 
-def target_obligations(tx, intent, book, scope_holds, now):
+def target_obligations(tx, intent, book, scope_holds, now, *, program_exclusion=()):
     """Return verified unsent quantity; any sent uncertainty requires a report."""
+    from trading_system.storage.local_programs import local_program_obligations
+    local=local_program_obligations(tx,scope_only=True)
+    require(not any(p.unresolved for p in local),'LOCAL_PROGRAM_TARGET_RECONCILIATION_REQUIRED')
+    require(not local,'LOCAL_PROGRAM_TARGET_ALLOCATION_REQUIRED')
+    from trading_system.storage.application_writes import application_write_obligations
+    program_writes = application_write_obligations(tx, scope_only=True)
+    if program_exclusion:
+        from trading_system.contracts.application_write_v3 import ApplicationWriteV3
+        from trading_system.contracts.canonical import domain_payload,canonical_hash
+        require(type(program_exclusion) is tuple and all(type(w) is ApplicationWriteV3
+            and w.scope==tx.scope and w.intent_id==intent.intent_id and w.state=='DURABLE_READY'
+            for w in program_exclusion),'PROGRAM_TARGET_EXCLUSION_INVALID')
+        hashes={canonical_hash(domain_payload(w)) for w in program_exclusion}
+        actual={canonical_hash(domain_payload(o.original)) for o in program_writes
+            if canonical_hash(domain_payload(o.original)) in hashes}
+        require(actual==hashes,'PROGRAM_TARGET_EXCLUSION_INVALID')
+        program_writes=tuple(o for o in program_writes if canonical_hash(domain_payload(o.original)) not in hashes)
+    require(not any(write.unresolved for write in program_writes), 'PROGRAM_TARGET_RECONCILIATION_REQUIRED')
+    require(not program_writes, 'PROGRAM_TARGET_ALLOCATION_REQUIRED')
+    return _legacy_target_obligations(tx,intent,book,scope_holds,now)
+
+def _legacy_target_obligations(tx,intent,book,scope_holds,now):
+    """Internal legacy quantity calculation after the caller checks programs.
+
+    Program current-boundary composition validates its full immutable program
+    obligation snapshot once under the SAME collateral mutex before using this.
+    Public legacy entry points retain target_obligations' registry checks.
+    """
     commands = roots(tx)
     by_id = {c.command_id: c for c in commands}
     for projection in scope_holds:

@@ -1,0 +1,51 @@
+.............FF.                                                         [100%]
+=================================== FAILURES ===================================
+_ test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[mark] _
+tests/integration/test_program_scoped_financial.py:185: in test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit
+    gate.mark_may_have_sent(write.command_id,lease(c))
+src/trading_system/execution/program_commands.py:469: in mark_may_have_sent
+    w,clock,ttl=ProgramCommandRepository(tx,**self.readers).mark_may_have_sent(command_id,lease,
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:406: in mark_may_have_sent
+    context,clock,current,expires,_=self._current(w,lease)
+                                    ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:300: in _current
+    inputs=self.load_current_facts(self.tx,source,intake,financial_book,clock) if self.load_current_facts else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:158: in load
+    ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle,
+src/trading_system/risk/program_quantity_scope.py:124: in current_program_quantity_reservation_ids
+    need(len(supplied)==len(financial_book.reservations) and supplied==expected_by_id,
+src/trading_system/risk/program_quantity_scope.py:14: in need
+    if not value:raise MissingEvidence(code)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   trading_system.storage.models.MissingEvidence: PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED
+_ test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[consume] _
+tests/integration/test_program_scoped_financial.py:191: in test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit
+    gate.consume(permit,lease(c))
+src/trading_system/execution/program_commands.py:477: in consume
+    request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:425: in consume
+    context,clock,_,_,request=self._current(w,lease)
+                              ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:300: in _current
+    inputs=self.load_current_facts(self.tx,source,intake,financial_book,clock) if self.load_current_facts else None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:158: in load
+    ids=current_program_quantity_reservation_ids(tx,original_book,book,bundle=stored_bundle,
+src/trading_system/risk/program_quantity_scope.py:124: in current_program_quantity_reservation_ids
+    need(len(supplied)==len(financial_book.reservations) and supplied==expected_by_id,
+src/trading_system/risk/program_quantity_scope.py:14: in need
+    if not value:raise MissingEvidence(code)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   trading_system.storage.models.MissingEvidence: PROGRAM_CURRENT_FINANCIAL_HOLDS_CHANGED
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_scoped_financial.py::test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[mark]
+FAILED tests/integration/test_program_scoped_financial.py::test_released_zero_hold_without_current_reattestation_never_grants_scoped_credit[consume]
+2 failed, 14 passed in 40.87s

@@ -1,0 +1,22 @@
+.F..............................                                         [100%]
+================================== FAILURES ===================================
+_ test_all_fifteen_static_service_routes_preserve_every_original_field_and_id[sor] _
+tests\intents\test_native_creation_call.py:47: in test_all_fifteen_static_service_routes_preserve_every_original_field_and_id
+    request,now=request_for(kind);before=domain_payload(request)
+                ^^^^^^^^^^^^^^^^^
+tests\intents\test_native_creation_call.py:34: in request_for
+    plan=compile_order_program(p,r,c,**k);profile=k['profile']
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_compilation.py:670: in compile_order_program
+    compiled = _compile_node(candidate, program, rules, profile, allow_round_down, now)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_compilation.py:373: in _compile_node
+    _spot_fields(o, quantity, order_type, profile, rules, parameters)
+src\trading_system\intents\program_compilation.py:463: in _spot_fields
+    require(s.sor_enabled and order_type in ('LIMIT', 'MARKET') and o.quantity.kind == 'BASE_QUANTITY'
+src\trading_system\intents\semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: SOR_COMBINATION_UNSUPPORTED
+=========================== short test summary info ===========================
+FAILED tests/intents/test_native_creation_call.py::test_all_fifteen_static_service_routes_preserve_every_original_field_and_id[sor]
+1 failed, 31 passed in 2.31s

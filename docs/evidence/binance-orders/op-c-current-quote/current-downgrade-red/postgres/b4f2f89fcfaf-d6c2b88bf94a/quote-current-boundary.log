@@ -1,0 +1,10 @@
+..........F                                                              [100%]
+=================================== FAILURES ===================================
+____ test_protected_sql_cannot_bypass_new_quote_context_binding[downgrade] _____
+tests/integration/test_quote_current_boundary_postgres.py:112: in test_protected_sql_cannot_bypass_new_quote_context_binding
+    with pytest.raises(psycopg.errors.CheckViolation):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE CheckViolation
+=========================== short test summary info ============================
+FAILED tests/integration/test_quote_current_boundary_postgres.py::test_protected_sql_cannot_bypass_new_quote_context_binding[downgrade]
+1 failed, 10 passed in 39.87s

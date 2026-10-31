@@ -1,0 +1,17 @@
+...........................F....                                         [100%]
+=================================== FAILURES ===================================
+_______ test_unknown_program_version_is_preserved_but_not_decoded_as_v2 ________
+tests/integration/test_order_programs.py:341: in test_unknown_program_version_is_preserved_but_not_decoded_as_v2
+    tx._append('order_programs',raw['program_id'],raw,0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record
+=========================== short test summary info ============================
+FAILED tests/integration/test_order_programs.py::test_unknown_program_version_is_preserved_but_not_decoded_as_v2
+1 failed, 31 passed in 3.42s

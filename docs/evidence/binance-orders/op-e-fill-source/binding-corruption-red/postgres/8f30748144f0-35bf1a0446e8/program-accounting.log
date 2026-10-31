@@ -1,0 +1,16 @@
+.......FF                                                                [100%]
+=================================== FAILURES ===================================
+_ test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[cash] _
+tests/integration/test_program_accounting_postgres.py:192: in test_missing_foreign_source_binding_cannot_hide_unreconciled_execution
+    with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ApiError
+_ test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[book] _
+tests/integration/test_program_accounting_postgres.py:192: in test_missing_foreign_source_binding_cannot_hide_unreconciled_execution
+    with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ApiError
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_accounting_postgres.py::test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[cash]
+FAILED tests/integration/test_program_accounting_postgres.py::test_missing_foreign_source_binding_cannot_hide_unreconciled_execution[book]
+2 failed, 7 passed in 47.92s

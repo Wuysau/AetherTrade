@@ -1,0 +1,1365 @@
+[
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-spot",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "19fa89087de51f41bb008b6009e4c732ea077d85c3836d5ae5acc1befe4cd682",
+      "profile_hash": "41ed3213e3ddca80325bde4354f03a6c0f0a1546c1d1a10212b062981d81153c",
+      "request_index": 0,
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "operation": "SUBMIT_ORDER",
+      "endpoint": "/api/v3/order",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "type",
+          "value": "LIMIT"
+        },
+        {
+          "name": "quantity",
+          "value": "0.049085"
+        },
+        {
+          "name": "price",
+          "value": "81490.00"
+        },
+        {
+          "name": "timeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "newClientOrderId",
+          "value": "021336b10a16dcc7318623f19a317ee6"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-spot",
+        "compilation_hash": "19fa89087de51f41bb008b6009e4c732ea077d85c3836d5ae5acc1befe4cd682",
+        "request_index": 0,
+        "parent_client_id": null,
+        "members": [
+          {
+            "node_id": "entry",
+            "client_id": "021336b10a16dcc7318623f19a317ee6"
+          }
+        ]
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-sor",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "1fb7e1db2bc2f7c9bca1b75d1a2b9d7c379b7b2588d150aff528e8f5d72aab99",
+      "profile_hash": "41ed3213e3ddca80325bde4354f03a6c0f0a1546c1d1a10212b062981d81153c",
+      "request_index": 0,
+      "namespace": "BINANCE_SPOT_ORDINARY",
+      "operation": "SUBMIT_SOR_ORDER",
+      "endpoint": "/api/v3/sor/order",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "type",
+          "value": "LIMIT"
+        },
+        {
+          "name": "quantity",
+          "value": "0.05"
+        },
+        {
+          "name": "price",
+          "value": "81490.00"
+        },
+        {
+          "name": "timeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "newClientOrderId",
+          "value": "83c5db330da8b7216ff791088e5a6865"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-sor",
+        "compilation_hash": "1fb7e1db2bc2f7c9bca1b75d1a2b9d7c379b7b2588d150aff528e8f5d72aab99",
+        "request_index": 0,
+        "parent_client_id": null,
+        "members": [
+          {
+            "node_id": "entry",
+            "client_id": "83c5db330da8b7216ff791088e5a6865"
+          }
+        ]
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-usdm",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "9810c1c5966e65ddb7c3b28b90b50bd4c1c62b2f36e45aa39dc632ccf8a31a84",
+      "profile_hash": "75180399e68559a0664d37bd5b326f9193abea70f50b435b476465cfb3e46b42",
+      "request_index": 0,
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "operation": "SUBMIT_ORDER",
+      "endpoint": "/fapi/v1/order",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "type",
+          "value": "LIMIT"
+        },
+        {
+          "name": "quantity",
+          "value": "0.049085"
+        },
+        {
+          "name": "price",
+          "value": "81490.00"
+        },
+        {
+          "name": "timeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "positionSide",
+          "value": "BOTH"
+        },
+        {
+          "name": "reduceOnly",
+          "value": false
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "newClientOrderId",
+          "value": "3df95203d3f1c295b029772ad375be7a"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-usdm",
+        "compilation_hash": "9810c1c5966e65ddb7c3b28b90b50bd4c1c62b2f36e45aa39dc632ccf8a31a84",
+        "request_index": 0,
+        "parent_client_id": null,
+        "members": [
+          {
+            "node_id": "entry",
+            "client_id": "3df95203d3f1c295b029772ad375be7a"
+          }
+        ]
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-conditional",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "03cdb5adbff18279ddcd103b9acd73420d40aae68b5b23c88def662532e8c5f7",
+      "profile_hash": "75180399e68559a0664d37bd5b326f9193abea70f50b435b476465cfb3e46b42",
+      "request_index": 0,
+      "namespace": "BINANCE_USD_M_CONDITIONAL_ALGO",
+      "operation": "SUBMIT_CONDITIONAL",
+      "endpoint": "/fapi/v1/algoOrder",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "type",
+          "value": "STOP_MARKET"
+        },
+        {
+          "name": "quantity",
+          "value": "0.05"
+        },
+        {
+          "name": "positionSide",
+          "value": "BOTH"
+        },
+        {
+          "name": "reduceOnly",
+          "value": false
+        },
+        {
+          "name": "algoType",
+          "value": "CONDITIONAL"
+        },
+        {
+          "name": "workingType",
+          "value": "MARK_PRICE"
+        },
+        {
+          "name": "triggerPrice",
+          "value": "81330.00"
+        },
+        {
+          "name": "priceProtect",
+          "value": false
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "clientAlgoId",
+          "value": "4214a784a1bb7a2018a21de217cfa068"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-conditional",
+        "compilation_hash": "03cdb5adbff18279ddcd103b9acd73420d40aae68b5b23c88def662532e8c5f7",
+        "request_index": 0,
+        "parent_client_id": "4214a784a1bb7a2018a21de217cfa068",
+        "members": []
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-batch",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "7b0b0803916ef5dca51801496473b9bdae3e25663fb4456532c99f7cefaa5630",
+      "profile_hash": "75180399e68559a0664d37bd5b326f9193abea70f50b435b476465cfb3e46b42",
+      "request_index": 0,
+      "namespace": "BINANCE_USD_M_ORDINARY",
+      "operation": "SUBMIT_BATCH",
+      "endpoint": "/fapi/v1/batchOrders",
+      "fields": [],
+      "batch_orders": [
+        {
+          "node_id": "entry",
+          "fields": [
+            {
+              "name": "side",
+              "value": "BUY"
+            },
+            {
+              "name": "type",
+              "value": "LIMIT"
+            },
+            {
+              "name": "quantity",
+              "value": "1"
+            },
+            {
+              "name": "price",
+              "value": "81490.00"
+            },
+            {
+              "name": "timeInForce",
+              "value": "GTC"
+            },
+            {
+              "name": "positionSide",
+              "value": "BOTH"
+            },
+            {
+              "name": "reduceOnly",
+              "value": false
+            },
+            {
+              "name": "selfTradePreventionMode",
+              "value": "NONE"
+            },
+            {
+              "name": "symbol",
+              "value": "BTCUSDT"
+            },
+            {
+              "name": "newClientOrderId",
+              "value": "a7045d73a4543687ccb7c99505433b19"
+            }
+          ]
+        },
+        {
+          "node_id": "second",
+          "fields": [
+            {
+              "name": "side",
+              "value": "BUY"
+            },
+            {
+              "name": "type",
+              "value": "LIMIT"
+            },
+            {
+              "name": "quantity",
+              "value": "1"
+            },
+            {
+              "name": "price",
+              "value": "81490.00"
+            },
+            {
+              "name": "timeInForce",
+              "value": "GTC"
+            },
+            {
+              "name": "positionSide",
+              "value": "BOTH"
+            },
+            {
+              "name": "reduceOnly",
+              "value": false
+            },
+            {
+              "name": "selfTradePreventionMode",
+              "value": "NONE"
+            },
+            {
+              "name": "symbol",
+              "value": "BTCUSDT"
+            },
+            {
+              "name": "newClientOrderId",
+              "value": "61b8d3a4d3ac17ca5f8b3244ed4e88ba"
+            }
+          ]
+        }
+      ],
+      "assigned_ids": {
+        "command_id": "original-batch",
+        "compilation_hash": "7b0b0803916ef5dca51801496473b9bdae3e25663fb4456532c99f7cefaa5630",
+        "request_index": 0,
+        "parent_client_id": null,
+        "members": [
+          {
+            "node_id": "entry",
+            "client_id": "a7045d73a4543687ccb7c99505433b19"
+          },
+          {
+            "node_id": "second",
+            "client_id": "61b8d3a4d3ac17ca5f8b3244ed4e88ba"
+          }
+        ]
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-equity",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "US_EQUITY",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "b14a8ab09f55e526ed4539bfd15e8634ce2c628a519fef42c822a6dd0c2b7cb8",
+      "profile_hash": "6c7101504834b965b56d8af942ba00c5be061ef1850e0f5769654eb499b5a197",
+      "request_index": 0,
+      "namespace": "BINANCE_REAL_EQUITY",
+      "operation": "SUBMIT_ORDER",
+      "endpoint": "/sapi/v1/equity/order/place",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "orderType",
+          "value": "LIMIT"
+        },
+        {
+          "name": "quantity",
+          "value": "0.049085"
+        },
+        {
+          "name": "price",
+          "value": "81490.00"
+        },
+        {
+          "name": "timeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "tradingSession",
+          "value": "24H"
+        },
+        {
+          "name": "tokenize",
+          "value": false
+        },
+        {
+          "name": "quoteAsset",
+          "value": "USDT"
+        },
+        {
+          "name": "clientOrderId",
+          "value": "94241328b4c10d3895e4adcaeff6c488"
+        },
+        {
+          "name": "walletType",
+          "value": "MAIN"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-equity",
+        "compilation_hash": "b14a8ab09f55e526ed4539bfd15e8634ce2c628a519fef42c822a6dd0c2b7cb8",
+        "request_index": 0,
+        "parent_client_id": null,
+        "members": [
+          {
+            "node_id": "entry",
+            "client_id": "94241328b4c10d3895e4adcaeff6c488"
+          }
+        ]
+      },
+      "wallet_selection": {
+        "scope": {
+          "environment": "PAPER",
+          "venue_account_id": "isolated",
+          "product": "US_EQUITY",
+          "instrument_uid": "paper:BTCUSDT",
+          "venue_leg": "BOTH"
+        },
+        "profile_hash": "6c7101504834b965b56d8af942ba00c5be061ef1850e0f5769654eb499b5a197",
+        "quote_asset": "USDT",
+        "wallet": "MAIN",
+        "evidence": {
+          "id": "fixture",
+          "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "environment": "PAPER",
+          "source": "SYNTHETIC_TEST",
+          "visible_at": "2026-10-28T09:00:00Z"
+        },
+        "valid_until": "2026-10-28T11:00:00Z"
+      }
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-OCO",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "8ca69c24be44d23bfeacabdbcfdf0b5be4d8ed4e59b3897c9174adf929089c87",
+      "profile_hash": "41ed3213e3ddca80325bde4354f03a6c0f0a1546c1d1a10212b062981d81153c",
+      "request_index": 0,
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "operation": "SUBMIT_OCO",
+      "endpoint": "/api/v3/orderList/oco",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "side",
+          "value": "SELL"
+        },
+        {
+          "name": "aboveType",
+          "value": "TAKE_PROFIT_LIMIT"
+        },
+        {
+          "name": "quantity",
+          "value": "1"
+        },
+        {
+          "name": "abovePrice",
+          "value": "83000"
+        },
+        {
+          "name": "aboveTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "aboveStopPrice",
+          "value": "83000"
+        },
+        {
+          "name": "belowType",
+          "value": "STOP_LOSS_LIMIT"
+        },
+        {
+          "name": "belowPrice",
+          "value": "81300"
+        },
+        {
+          "name": "belowTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "belowStopPrice",
+          "value": "81330"
+        },
+        {
+          "name": "listClientOrderId",
+          "value": "c490d4acc57aeabf7e32b5df19a31ac3"
+        },
+        {
+          "name": "aboveClientOrderId",
+          "value": "f94a2b32d082323de24aeb4832ff35e2"
+        },
+        {
+          "name": "belowClientOrderId",
+          "value": "6d60e4f8de72da85606c9dd0251a782b"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-OCO",
+        "compilation_hash": "8ca69c24be44d23bfeacabdbcfdf0b5be4d8ed4e59b3897c9174adf929089c87",
+        "request_index": 0,
+        "parent_client_id": "c490d4acc57aeabf7e32b5df19a31ac3",
+        "members": [
+          {
+            "node_id": "above",
+            "client_id": "f94a2b32d082323de24aeb4832ff35e2"
+          },
+          {
+            "node_id": "below",
+            "client_id": "6d60e4f8de72da85606c9dd0251a782b"
+          }
+        ]
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-OTO",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "6e96dfe342ec876f8842447c37fd2b50c17735e3cb2d8e955f1cd87140d91cb7",
+      "profile_hash": "41ed3213e3ddca80325bde4354f03a6c0f0a1546c1d1a10212b062981d81153c",
+      "request_index": 0,
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "operation": "SUBMIT_OTO",
+      "endpoint": "/api/v3/orderList/oto",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "workingSide",
+          "value": "BUY"
+        },
+        {
+          "name": "workingType",
+          "value": "LIMIT"
+        },
+        {
+          "name": "workingQuantity",
+          "value": "1"
+        },
+        {
+          "name": "workingPrice",
+          "value": "81490.00"
+        },
+        {
+          "name": "workingTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "pendingSide",
+          "value": "SELL"
+        },
+        {
+          "name": "pendingType",
+          "value": "LIMIT"
+        },
+        {
+          "name": "pendingQuantity",
+          "value": "1"
+        },
+        {
+          "name": "pendingPrice",
+          "value": "81490.00"
+        },
+        {
+          "name": "pendingTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "listClientOrderId",
+          "value": "d84516652c45deaaa538b62d067e20af"
+        },
+        {
+          "name": "workingClientOrderId",
+          "value": "1b57dde9748bfd2e009b0afecc633a5a"
+        },
+        {
+          "name": "pendingClientOrderId",
+          "value": "c99cdabb7acd1e5613e638e6acdec1a1"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-OTO",
+        "compilation_hash": "6e96dfe342ec876f8842447c37fd2b50c17735e3cb2d8e955f1cd87140d91cb7",
+        "request_index": 0,
+        "parent_client_id": "d84516652c45deaaa538b62d067e20af",
+        "members": [
+          {
+            "node_id": "entry",
+            "client_id": "1b57dde9748bfd2e009b0afecc633a5a"
+          },
+          {
+            "node_id": "exit",
+            "client_id": "c99cdabb7acd1e5613e638e6acdec1a1"
+          }
+        ]
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-OTOCO",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "60a9fb8f62842aad3c69ad7d2e63669f9c893453094629267e1116cc17c50fe0",
+      "profile_hash": "41ed3213e3ddca80325bde4354f03a6c0f0a1546c1d1a10212b062981d81153c",
+      "request_index": 0,
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "operation": "SUBMIT_OTOCO",
+      "endpoint": "/api/v3/orderList/otoco",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "workingSide",
+          "value": "BUY"
+        },
+        {
+          "name": "workingType",
+          "value": "LIMIT"
+        },
+        {
+          "name": "workingQuantity",
+          "value": "1"
+        },
+        {
+          "name": "workingPrice",
+          "value": "81490.00"
+        },
+        {
+          "name": "workingTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "pendingSide",
+          "value": "SELL"
+        },
+        {
+          "name": "pendingAboveType",
+          "value": "TAKE_PROFIT_LIMIT"
+        },
+        {
+          "name": "pendingQuantity",
+          "value": "1"
+        },
+        {
+          "name": "pendingAbovePrice",
+          "value": "83000"
+        },
+        {
+          "name": "pendingAboveTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "pendingAboveStopPrice",
+          "value": "83000"
+        },
+        {
+          "name": "pendingBelowType",
+          "value": "STOP_LOSS_LIMIT"
+        },
+        {
+          "name": "pendingBelowPrice",
+          "value": "81300"
+        },
+        {
+          "name": "pendingBelowTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "pendingBelowStopPrice",
+          "value": "81330"
+        },
+        {
+          "name": "listClientOrderId",
+          "value": "bb29895c68d4156ac802e0ddbab53279"
+        },
+        {
+          "name": "workingClientOrderId",
+          "value": "c248f34854c26019a8acba91872bd905"
+        },
+        {
+          "name": "pendingAboveClientOrderId",
+          "value": "2ede7ab684d238a6efc0e347fdfb8acb"
+        },
+        {
+          "name": "pendingBelowClientOrderId",
+          "value": "c23ec732e92924c7066f179822eb43ef"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-OTOCO",
+        "compilation_hash": "60a9fb8f62842aad3c69ad7d2e63669f9c893453094629267e1116cc17c50fe0",
+        "request_index": 0,
+        "parent_client_id": "bb29895c68d4156ac802e0ddbab53279",
+        "members": [
+          {
+            "node_id": "entry",
+            "client_id": "c248f34854c26019a8acba91872bd905"
+          },
+          {
+            "node_id": "above",
+            "client_id": "2ede7ab684d238a6efc0e347fdfb8acb"
+          },
+          {
+            "node_id": "below",
+            "client_id": "c23ec732e92924c7066f179822eb43ef"
+          }
+        ]
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-OPO",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "756dc7bfb7691e8630d2fd7f67e70212bb832bd048d2974b367848bc25eadb02",
+      "profile_hash": "41ed3213e3ddca80325bde4354f03a6c0f0a1546c1d1a10212b062981d81153c",
+      "request_index": 0,
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "operation": "SUBMIT_OPO",
+      "endpoint": "/api/v3/orderList/opo",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "workingSide",
+          "value": "BUY"
+        },
+        {
+          "name": "workingType",
+          "value": "LIMIT"
+        },
+        {
+          "name": "workingQuantity",
+          "value": "1"
+        },
+        {
+          "name": "workingPrice",
+          "value": "81490.00"
+        },
+        {
+          "name": "workingTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "pendingSide",
+          "value": "SELL"
+        },
+        {
+          "name": "pendingType",
+          "value": "LIMIT"
+        },
+        {
+          "name": "pendingPrice",
+          "value": "81490.00"
+        },
+        {
+          "name": "pendingTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "listClientOrderId",
+          "value": "826789a61d3ca36689ba7aab453d42b7"
+        },
+        {
+          "name": "workingClientOrderId",
+          "value": "05314cb6cfc8963d20ec49c46640a4ea"
+        },
+        {
+          "name": "pendingClientOrderId",
+          "value": "05c9470bd7367b755109debb3c2e90c4"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-OPO",
+        "compilation_hash": "756dc7bfb7691e8630d2fd7f67e70212bb832bd048d2974b367848bc25eadb02",
+        "request_index": 0,
+        "parent_client_id": "826789a61d3ca36689ba7aab453d42b7",
+        "members": [
+          {
+            "node_id": "entry",
+            "client_id": "05314cb6cfc8963d20ec49c46640a4ea"
+          },
+          {
+            "node_id": "exit",
+            "client_id": "05c9470bd7367b755109debb3c2e90c4"
+          }
+        ]
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-OPOCO",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "c0181210f3db7040481b728c33005c0f90a3051578e201098dae3285d1a056e9",
+      "profile_hash": "41ed3213e3ddca80325bde4354f03a6c0f0a1546c1d1a10212b062981d81153c",
+      "request_index": 0,
+      "namespace": "BINANCE_SPOT_ORDER_LIST",
+      "operation": "SUBMIT_OPOCO",
+      "endpoint": "/api/v3/orderList/opoco",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "selfTradePreventionMode",
+          "value": "NONE"
+        },
+        {
+          "name": "workingSide",
+          "value": "BUY"
+        },
+        {
+          "name": "workingType",
+          "value": "LIMIT"
+        },
+        {
+          "name": "workingQuantity",
+          "value": "1"
+        },
+        {
+          "name": "workingPrice",
+          "value": "81490.00"
+        },
+        {
+          "name": "workingTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "pendingSide",
+          "value": "SELL"
+        },
+        {
+          "name": "pendingAboveType",
+          "value": "TAKE_PROFIT_LIMIT"
+        },
+        {
+          "name": "pendingAbovePrice",
+          "value": "83000"
+        },
+        {
+          "name": "pendingAboveTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "pendingAboveStopPrice",
+          "value": "83000"
+        },
+        {
+          "name": "pendingBelowType",
+          "value": "STOP_LOSS_LIMIT"
+        },
+        {
+          "name": "pendingBelowPrice",
+          "value": "81300"
+        },
+        {
+          "name": "pendingBelowTimeInForce",
+          "value": "GTC"
+        },
+        {
+          "name": "pendingBelowStopPrice",
+          "value": "81330"
+        },
+        {
+          "name": "listClientOrderId",
+          "value": "926fe9f8542b2539a9ea62133cd7716c"
+        },
+        {
+          "name": "workingClientOrderId",
+          "value": "623f3fc9fba8a17902b3a4b20f1ff1c6"
+        },
+        {
+          "name": "pendingAboveClientOrderId",
+          "value": "e7a050d50eb60ee8612de11cea7b0bd3"
+        },
+        {
+          "name": "pendingBelowClientOrderId",
+          "value": "b5489a0e41b138e68d327b91c390de53"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-OPOCO",
+        "compilation_hash": "c0181210f3db7040481b728c33005c0f90a3051578e201098dae3285d1a056e9",
+        "request_index": 0,
+        "parent_client_id": "926fe9f8542b2539a9ea62133cd7716c",
+        "members": [
+          {
+            "node_id": "entry",
+            "client_id": "623f3fc9fba8a17902b3a4b20f1ff1c6"
+          },
+          {
+            "node_id": "above",
+            "client_id": "e7a050d50eb60ee8612de11cea7b0bd3"
+          },
+          {
+            "node_id": "below",
+            "client_id": "b5489a0e41b138e68d327b91c390de53"
+          }
+        ]
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-spot-TWAP",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "f8acf4c9785153b8ec2c3850d122786fb694673b32041c333466455a11da0517",
+      "profile_hash": "41ed3213e3ddca80325bde4354f03a6c0f0a1546c1d1a10212b062981d81153c",
+      "request_index": 0,
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "operation": "SUBMIT_TWAP",
+      "endpoint": "/sapi/v1/algo/spot/newOrderTwap",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "quantity",
+          "value": "1"
+        },
+        {
+          "name": "duration",
+          "value": 300
+        },
+        {
+          "name": "clientAlgoId",
+          "value": "10713613ec5e6fd12883e25cd1f8ef8d"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-spot-TWAP",
+        "compilation_hash": "f8acf4c9785153b8ec2c3850d122786fb694673b32041c333466455a11da0517",
+        "request_index": 0,
+        "parent_client_id": "10713613ec5e6fd12883e25cd1f8ef8d",
+        "members": []
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-spot-VP",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "SPOT",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "f637251cd0ffb2a0b4cc89b42da8acde29f5b199dbbafc836a0eebf2943ebfd3",
+      "profile_hash": "41ed3213e3ddca80325bde4354f03a6c0f0a1546c1d1a10212b062981d81153c",
+      "request_index": 0,
+      "namespace": "BINANCE_SPOT_EXECUTION_ALGO",
+      "operation": "SUBMIT_VP",
+      "endpoint": "/sapi/v1/algo/spot/newOrderVp",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "quantity",
+          "value": "1"
+        },
+        {
+          "name": "urgency",
+          "value": "HIGH"
+        },
+        {
+          "name": "clientAlgoId",
+          "value": "6dbad4fa81dd8bc0838435a5ea87bcc2"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-spot-VP",
+        "compilation_hash": "f637251cd0ffb2a0b4cc89b42da8acde29f5b199dbbafc836a0eebf2943ebfd3",
+        "request_index": 0,
+        "parent_client_id": "6dbad4fa81dd8bc0838435a5ea87bcc2",
+        "members": []
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-usdm-TWAP",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "f5f2314037e846591e953afdc82b061c39fd78139354f29a4a2e555cbe561455",
+      "profile_hash": "75180399e68559a0664d37bd5b326f9193abea70f50b435b476465cfb3e46b42",
+      "request_index": 0,
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "operation": "SUBMIT_TWAP",
+      "endpoint": "/sapi/v1/algo/futures/newOrderTwap",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "quantity",
+          "value": "1"
+        },
+        {
+          "name": "duration",
+          "value": 300
+        },
+        {
+          "name": "positionSide",
+          "value": "BOTH"
+        },
+        {
+          "name": "reduceOnly",
+          "value": false
+        },
+        {
+          "name": "clientAlgoId",
+          "value": "3b32f68df70556af62da4d36e5c17c4c"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-usdm-TWAP",
+        "compilation_hash": "f5f2314037e846591e953afdc82b061c39fd78139354f29a4a2e555cbe561455",
+        "request_index": 0,
+        "parent_client_id": "3b32f68df70556af62da4d36e5c17c4c",
+        "members": []
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  },
+  {
+    "request": {
+      "contract_version": "2026-10-29",
+      "record_kind": "VENUE_CREATION_REQUEST",
+      "command_id": "original-usdm-VP",
+      "scope": {
+        "environment": "PAPER",
+        "venue_account_id": "isolated",
+        "product": "USD_M_PERP",
+        "instrument_uid": "paper:BTCUSDT",
+        "venue_leg": "BOTH"
+      },
+      "compilation_hash": "c2bd7e202fe58c935114f0fa9ad1b03f335dae3cef47c200a2dce032f1f3b486",
+      "profile_hash": "75180399e68559a0664d37bd5b326f9193abea70f50b435b476465cfb3e46b42",
+      "request_index": 0,
+      "namespace": "BINANCE_USD_M_EXECUTION_ALGO",
+      "operation": "SUBMIT_VP",
+      "endpoint": "/sapi/v1/algo/futures/newOrderVp",
+      "fields": [
+        {
+          "name": "symbol",
+          "value": "BTCUSDT"
+        },
+        {
+          "name": "side",
+          "value": "BUY"
+        },
+        {
+          "name": "quantity",
+          "value": "1"
+        },
+        {
+          "name": "urgency",
+          "value": "HIGH"
+        },
+        {
+          "name": "positionSide",
+          "value": "BOTH"
+        },
+        {
+          "name": "reduceOnly",
+          "value": false
+        },
+        {
+          "name": "clientAlgoId",
+          "value": "63ad208fb17e8696b35ed8619b356ca7"
+        }
+      ],
+      "batch_orders": [],
+      "assigned_ids": {
+        "command_id": "original-usdm-VP",
+        "compilation_hash": "c2bd7e202fe58c935114f0fa9ad1b03f335dae3cef47c200a2dce032f1f3b486",
+        "request_index": 0,
+        "parent_client_id": "63ad208fb17e8696b35ed8619b356ca7",
+        "members": []
+      },
+      "wallet_selection": null
+    },
+    "clock": {
+      "utc_now": "2026-10-28T09:00:00Z",
+      "monotonic_ns": 123,
+      "clock_health": "HEALTHY"
+    }
+  }
+]

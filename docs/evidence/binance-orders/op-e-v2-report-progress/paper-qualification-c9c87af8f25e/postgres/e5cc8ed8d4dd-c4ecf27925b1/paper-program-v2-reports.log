@@ -1,0 +1,25 @@
+........F....F........F.......                                           [100%]
+=================================== FAILURES ===================================
+_____ test_fake_native_pending_working_fill_link_is_archived_not_accepted ______
+tests/integration/test_paper_program_v2_reports_postgres.py:188: in test_fake_native_pending_working_fill_link_is_archived_not_accepted
+    assert 'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED' in result.discrepancies
+E   AssertionError: assert 'PAPER_V2_NATIVE_WORKING_FILL_LINEAGE_CHANGED' in ('PAPER_V2_ACTUAL_RUNTIME_CHANGED',)
+E    +  where ('PAPER_V2_ACTUAL_RUNTIME_CHANGED',) = PaperProgramVerificationV2(command_id='isolated-command-46671b88420941b39f93a17218c28c9c', status='BLOCKED', source_ve...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).discrepancies
+_ test_actual_decrement_restarted_verifier_preserves_original_quantity_and_only_external_fill _
+tests/integration/test_paper_program_v2_reports_postgres.py:227: in test_actual_decrement_restarted_verifier_preserves_original_quantity_and_only_external_fill
+    assert first.fills==second.fills and len(first.fills)==1 and first.fills[0].fill.quantity.value==D('.6')
+E   AssertionError: assert ((NormalizedPa...ER_FILL_V2'),) == (NormalizedPa...ER_FILL_V2'),)
+E     
+E     At index 0 diff: NormalizedPaperFillV2(fill=Fill(fill_id='paper-program:631cf1e06548bd7cf6cec6e4f630e8967923fe340a543ef71341f836ef8e510a', venue='BINANCE', scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venue_account_id='isolated-460bcca783364b9cb9aba6c4d7e7159b', product=<Product.SPOT: 'SPOT'>, instrument_uid='isolated-market-818febcbb5b447e7a8b2f0c6fee5e743', venue_leg='BOTH'), native_trade_id='paper-market-fill:537e495e106201a2569f374843399f54aa7b3c7fbe122d8342922e792a52d310', order=OrderIdentity(scope=ScopeKey(environment=<Environment.PAPER: 'PAPER'>, venu...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show)
+__ test_order_lifecycle_cannot_be_resealed_into_a_false_terminal_observation ___
+tests/integration/test_paper_program_v2_reports_postgres.py:338: in test_order_lifecycle_cannot_be_resealed_into_a_false_terminal_observation
+    assert not result.source_verified and not result.fills and result.raw_refs
+E   AssertionError: assert (not True)
+E    +  where True = PaperProgramVerificationV2(command_id='isolated-command-a174bfb0b2b8410dbe07961b52e2ed50', status='VERIFIED', source_v...ecord_kind='PAPER_PROGRAM_VERIFICATION_V2', synthetic=True, execution_authorized=False, funds_release_authorized=False).source_verified
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_fake_native_pending_working_fill_link_is_archived_not_accepted
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_decrement_restarted_verifier_preserves_original_quantity_and_only_external_fill
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_order_lifecycle_cannot_be_resealed_into_a_false_terminal_observation
+3 failed, 27 passed in 140.04s (0:02:20)

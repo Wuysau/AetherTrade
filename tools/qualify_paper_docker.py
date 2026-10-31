@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import re
 import subprocess
 import sys
 import time
@@ -22,16 +23,38 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def dependency_setup(image,*,offline=False):
+    if offline:
+        if type(image) is not str or not re.fullmatch(r'sha256:[0-9a-f]{64}',image):
+            raise ValueError('offline dependencies require an immutable image ID')
+        return None,['python','-m','pip','install','--no-deps','--no-build-isolation','-e','.']
+    return ['sh','-c','apt-get update && apt-get install -y --no-install-recommends git'],[
+        'python','-m','pip','install','-e','.[test]']
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--commit', required=True, help='Exact committed source to test')
+    parser.add_argument('--historical-source-commit', action='append', default=[],
+                        help='Explicit immutable old runtime included in the offline source bundle for migration fixtures')
     parser.add_argument('--timeout', type=int, default=5400, help='Whole run deadline in seconds')
     parser.add_argument('--suite', help='One diagnostic PostgreSQL suite; not full qualification')
     parser.add_argument('--python-suite', action='store_true', help='Also run the ordinary full Python suite (DB skips remain explicit)')
+    parser.add_argument('--runner-image', default='python:3.12-slim',help='Runner image; immutable sha256 ID required for offline setup')
+    parser.add_argument('--offline-dependencies',action='store_true',help='Use preinstalled dependencies in the immutable runner image')
     args = parser.parse_args(argv)
     if args.timeout < 60 or args.timeout > 14400:
         parser.error('--timeout must be between 60 and 14400 seconds')
+    try:linux_setup,python_setup=dependency_setup(args.runner_image,offline=args.offline_dependencies)
+    except ValueError as exc:parser.error(str(exc))
     commit = subprocess.check_output(['git', 'rev-parse', '--verify', args.commit + '^{commit}'], cwd=ROOT, text=True).strip()
+    historical_sources = []
+    for revision in args.historical_source_commit:
+        if not re.fullmatch(r'[0-9a-f]{40}', revision):
+            parser.error('--historical-source-commit requires a full immutable SHA')
+        actual = subprocess.check_output(['git', '-c', 'core.longpaths=true', 'rev-parse', '--verify', revision + '^{commit}'],
+                                        cwd=ROOT, text=True).strip()
+        if actual not in historical_sources:historical_sources.append(actual)
     tag = secrets.token_hex(6)
     run = ROOT / '.runtime' / ('paper-qualification-' + tag)
     run.mkdir(parents=True, exist_ok=False)
@@ -48,10 +71,12 @@ def main(argv=None):
                    + '\nPAPER_CI_ADMIN_DSN=host=127.0.0.1 port=5432 dbname=paper_ci_admin user=paper_admin password=' + password
                    + '\nGITHUB_SHA=' + commit + '\n', encoding='utf-8')
     os.chmod(env, 0o600)
-    manifest = {'source_commit': commit, 'started_utc': datetime.now(timezone.utc).isoformat(),
+    manifest = {'source_commit': commit, 'historical_source_commits': historical_sources,
+                'started_utc': datetime.now(timezone.utc).isoformat(),
                 'postgres_container': pg, 'runner_container': runner, 'commands': [],
                 'launcher_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                'scope': 'LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION', 'diagnostic_suite': args.suite, 'deadline_seconds': args.timeout}
+                'scope': 'LOCAL_PAPER_ONLY_NOT_VENUE_QUALIFICATION', 'diagnostic_suite': args.suite, 'deadline_seconds': args.timeout,
+                'runner_image':args.runner_image,'offline_dependencies':args.offline_dependencies}
     deadline = time.monotonic() + args.timeout
 
     def invoke(command, name, timeout=600, check=True):
@@ -74,7 +99,8 @@ def main(argv=None):
 
     status = 1
     try:
-        invoke(['git', 'bundle', 'create', str(run / 'source.bundle'), 'HEAD', commit], 'bundle')
+        invoke(['git', '-c', 'core.longpaths=true', 'bundle', 'create', str(run / 'source.bundle'), 'HEAD', commit,
+                *historical_sources], 'bundle')
         invoke(['docker', 'run', '-d', '--name', pg, '--env-file', str(env), 'postgres:17-alpine'], 'postgres-start')
         for _ in range(60):
             ready = subprocess.run(['docker', 'exec', pg, 'pg_isready', '-U', 'paper_admin', '-d', 'paper_ci_admin'],
@@ -86,13 +112,13 @@ def main(argv=None):
             raise RuntimeError('Fresh PostgreSQL readiness deadline expired')
         invoke(['docker', 'run', '-d', '--name', runner, '--network', 'container:' + pg,
                 '--env-file', str(env), '--mount', 'type=bind,source=' + str(run) + ',target=/handoff',
-                'python:3.12-slim', 'sleep', '14400'], 'runner-start')
+                args.runner_image, 'sleep', '14400'], 'runner-start')
         invoke(['docker', 'inspect', '--format', '{{.Image}}', pg, runner], 'container-images')
-        invoke(['docker', 'exec', runner, 'sh', '-c',
-                'apt-get update && apt-get install -y --no-install-recommends git'], 'linux-dependencies')
+        if linux_setup:invoke(['docker','exec',runner,*linux_setup],'linux-dependencies')
         invoke(['docker', 'exec', runner, 'git', 'clone', '/handoff/source.bundle', '/tmp/source'], 'source-clone')
         invoke(['docker', 'exec', runner, 'git', '-C', '/tmp/source', 'checkout', '--detach', commit], 'source-checkout')
-        invoke(['docker', 'exec', '-w', '/tmp/source', runner, 'python', '-m', 'pip', 'install', '-e', '.[test]'], 'python-dependencies', 900)
+        invoke(['docker','exec','-w','/tmp/source',runner,*python_setup],'python-dependencies',900)
+        invoke(['docker','exec','-w','/tmp/source',runner,'python','-m','pip','check'],'dependency-check')
         invoke(['docker', 'exec', '-w', '/tmp/source', runner, 'python', 'tools/ci_paper_postgres.py', '--initialize'], 'initialize-marker')
         pg_exit = invoke(['docker', 'exec', '-w', '/tmp/source', runner, 'python', 'tools/ci_paper_postgres.py',
                           '--evidence-dir', '/handoff/evidence/postgres'] + (['--suite', args.suite] if args.suite else []), 'postgres-suites', 4200, check=False)

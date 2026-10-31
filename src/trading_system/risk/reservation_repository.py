@@ -5,11 +5,11 @@ Transitions live in namespaced audit_events; consumers must use this projection,
 not treat the creation index as a current balance. No schema changes are needed.
 """
 from dataclasses import replace
-from decimal import Decimal
+from decimal import Decimal, localcontext, Inexact, Rounded
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash, domain_payload
-from trading_system.contracts.wire import TradeIntent, ExecutionCommand
+from trading_system.contracts.wire import ExecutionCommand
 from trading_system.storage.models import decode, atomic_write, MissingEvidence, scope_id
 
 
@@ -42,7 +42,8 @@ class ReservationRepository:
                      for initial, projection in rows)
 
     def existing(self, intent):
-        stored = self.tx._latest('intents', intent.intent_id, TradeIntent)
+        from trading_system.storage.uow import IntentRepository
+        stored = IntentRepository(self.tx).get(intent.intent_id)
         if stored is None:
             return None
         if stored != intent:
@@ -64,6 +65,21 @@ class ReservationRepository:
 
     @atomic_write
     def save(self, projection):
+        # OP-B parent funding cannot be recycled by an ordinary-order release.
+        # OP-C/G must supply a reviewed parent/child closure proof before this
+        # conservative hold can be reduced; creation rows remain unchanged.
+        if self.tx.execute("SELECT to_regclass('ledger.order_funding_links')").fetchone()[0] is not None:
+            current=self.get(projection.reservation.reservation_id)
+            if increases_program_financial_credit(current, projection) and self.tx.execute(
+                'SELECT 1 FROM ledger.order_funding_links WHERE scope_id=%s AND record_id=%s',
+                (scope_id(self.tx.scope),projection.reservation.reservation_id)).fetchone():
+                approved = False
+                if self.tx.execute("SELECT to_regprocedure('ledger.order_closure_approved(text,text,jsonb,text)')").fetchone()[0] is not None:
+                    from trading_system.storage.models import encode
+                    approved = self.tx.execute('SELECT ledger.order_closure_approved(%s,%s,%s::jsonb,%s)',
+                        (scope_id(self.tx.scope),projection.reservation.reservation_id,encode(projection),self.tx.transaction_id)).fetchone()[0]
+                if not approved:
+                    raise MissingEvidence('PROGRAM_RESERVATION_REQUIRES_RECONCILIATION')
         self.tx._append('audit_events', 'ip07:reservation:' + projection.reservation.reservation_id,
                         projection, projection.sequence - 1)
 
@@ -86,6 +102,27 @@ class ReservationRepository:
                 query_budget=t.QueryBudget(maximum_requests=1, window_seconds=60,
                     minimum_interval_ms=1000, retry_after=None),
                 attempts=0, next_query_at=at, state='WAITING'), 0)
+
+
+def increases_program_financial_credit(before, after):
+    """Financial debit, reflection and renewed snapshot credit need authority.
+
+    A same-held projection can free capital through reflected/release_pending.
+    A zero-held projection can regain credit merely by replacing its watermark.
+    Neither transition is authenticated by knowing a public book/evidence hash.
+    """
+    # Match the existing parent-funding precision and reject arithmetic that
+    # cannot be represented exactly; a caller's context cannot hide a credit.
+    with localcontext() as arithmetic:
+        arithmetic.prec = 256
+        arithmetic.traps[Inexact] = arithmetic.traps[Rounded] = True
+        before_debit = max(before.held - before.reflected, before.release_pending)
+        after_debit = max(after.held - after.reflected, after.release_pending)
+        return (after.held < before.held or after_debit < before_debit
+            or after.reflected > before.reflected
+            or after.reservation.reflected_amount > before.reservation.reflected_amount
+            or (after.reservation.evidence_watermark != before.reservation.evidence_watermark
+                and (after.held < after.reservation.amount or after.reflected > 0)))
 
 
 def balance_watermark(book, evidence):

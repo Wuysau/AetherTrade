@@ -1,0 +1,41 @@
+{
+  "scope": "ISOLATED_SYNTHETIC_POSTGRES_CORRUPT_HISTORY_READER_DEFENSE_NOT_VENUE_QUALIFICATION",
+  "source_base_commit": "2e6f84451629037b4191ad23029b07ffa344eed9",
+  "red_scope": "unmodified2e6f844 reader in read-only copied source with new regression tests",
+  "commands": [
+    "python -m pytest -p no:cacheprovider tests/integration/test_application_write_obligations.py tests/unit/test_application_write_reader.py -k \"ready_reversion or reference_change or initial_ready\" -q --tb=short",
+    "python -m pytest -p no:cacheprovider tests/integration/test_application_write_obligations.py tests/unit/test_application_write_reader.py -q --tb=short"
+  ],
+  "runs": {
+    "red": {
+      "exit_code": 1,
+      "tests": 10,
+      "failures": 8,
+      "errors": 0,
+      "skipped": 0
+    },
+    "focused-green": {
+      "exit_code": 0,
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "regression-green": {
+      "exit_code": 0,
+      "tests": 47,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "source_sha256": {
+    "src/trading_system/storage/application_writes.py": "8e7d1827efc0ad4e80da0f3a10a8117e1d373a0dac141a5b737b5a4b00958d01",
+    "tests/integration/test_application_write_obligations.py": "496faac3e47b501ee48c3506353461dcc30f0d3487d0d5a843d57fc6ff65499c",
+    "tests/unit/test_application_write_reader.py": "f18d35d682bd4f225d97a4a9e12a6469b2261d6cd49d4d527eea4995b0a46948"
+  },
+  "images": {
+    "python": "sha256:12316debbfb86890f6b2d825820612741ba527ad5a44e3902759141d572bfe8f",
+    "postgres": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+  }
+}

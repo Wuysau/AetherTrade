@@ -1,0 +1,32 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_plan_expiring_during_review_is_not_exposed_as_a_current_candidate ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FE91712B10>
+tmp_path = WindowsPath('C:/Users/Wuysa/AppData/Local/Temp/pytest-of-Wuysa/pytest-384/test_plan_expiring_during_revi0')
+
+    def test_plan_expiring_during_review_is_not_exposed_as_a_current_candidate(monkeypatch,tmp_path):
+        with research(monkeypatch,tmp_path) as (service,store,frame,value,request,session):
+            authorized=authorize_research(service,request,session,'cross-expired',frame)
+            class LateClock(datetime):
+                @classmethod
+                def now(cls,tz=None):return NOW+timedelta(seconds=60)
+            async def provider(*args):
+                context=json.loads(args[-1]['messages'][1]['content'])
+                if context['role']=='review':
+                    monkeypatch.setattr(program_model_context,'datetime',LateClock)
+                    return envelope({'schema_revision':'review_v1','issues':[]})
+                return envelope(value)
+            monkeypatch.setattr(model_client,'request',provider)
+            result=asyncio.run(service.analyze('BTCUSDT','consensus',['default','review'],{'default':0,'review':0},
+                'cross-expired',frame,decision_policy='evidence_review',research_request=authorized))
+>           assert result['decision']['assessment_status']=='EXPIRED'
+E           AssertionError: assert 'UNQUALIFIED' == 'EXPIRED'
+E             
+E             - EXPIRED
+E             + UNQUALIFIED
+
+tests\server\test_program_evidence_review.py:110: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/server/test_program_evidence_review.py::test_plan_expiring_during_review_is_not_exposed_as_a_current_candidate
+1 failed, 9 deselected in 3.04s

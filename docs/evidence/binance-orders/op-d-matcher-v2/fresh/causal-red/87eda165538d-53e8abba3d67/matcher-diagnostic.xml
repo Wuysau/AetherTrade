@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="5.346" timestamp="2026-10-30T02:37:29.146619+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price" time="4.998"><failure message="assert {5} == {1, 2, 3, 4, 5}&#10;  &#10;  Extra items in the right set:&#10;  1&#10;  2&#10;  3&#10;  4&#10;  Use -v to get more diff">tests/integration/test_paper_market_matcher_v2.py:83: in test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price
+    assert {i.event.sequence for i in proof.inputs}=={1,2,3,4,5}
+E   assert {5} == {1, 2, 3, 4, 5}
+E     
+E     Extra items in the right set:
+E     1
+E     2
+E     3
+E     4
+E     Use -v to get more diff</failure></testcase></testsuite></testsuites>

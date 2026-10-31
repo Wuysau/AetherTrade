@@ -1,0 +1,24 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_genuine_bounded_exit_preserves_false_protection_unknown_loss_and_duties _
+tests\unit\test_assessment_archive.py:283: in test_genuine_bounded_exit_preserves_false_protection_unknown_loss_and_duties
+    restored=ProgramFinancialAssessmentArchiveCodec().decode(ProgramFinancialAssessmentArchiveCodec().encode(a))
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_assessment_archive.py:100: in encode
+    require(self.decode(payload)==archive,'ASSESSMENT_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_assessment_archive.py:93: in decode
+    archive=decode(ProgramFinancialAssessmentArchive,payload)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\storage\models.py:101: in decode
+    return restore(cls, payload)
+           ^^^^^^^^^^^^^^^^^^^^^
+src\trading_system\storage\models.py:97: in restore
+    return kind(**{k: restore(hints[k], v) for k, v in value.items()})
+                      ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\storage\models.py:77: in restore
+    raise ValueError('invalid stored union')
+E   ValueError: invalid stored union
+=========================== short test summary info ===========================
+FAILED tests/unit/test_assessment_archive.py::test_genuine_bounded_exit_preserves_false_protection_unknown_loss_and_duties
+1 failed, 33 deselected in 0.71s

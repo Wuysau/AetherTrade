@@ -1,0 +1,64 @@
+EEEEE                                                                    [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_real_fill_evidence_notice_and_accounting_duties_are_atomic _
+file /tmp/source/tests/integration/test_program_accounting_postgres.py, line 28
+  def test_real_fill_evidence_notice_and_accounting_duties_are_atomic(database,venue,tmp_path):
+file /tmp/source/tests/integration/test_program_fill_source_approval.py, line 21
+  @pytest.fixture(scope='module')
+  def database(command_database):
+E       fixture 'command_database' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, contract_fixtures, database, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, isolated_postgres, monkeypatch, paper_fixtures, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, repo_root, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, venue
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/tmp/source/tests/integration/test_program_fill_source_approval.py:21
+_ ERROR at setup of test_replay_with_later_archive_delivery_does_not_duplicate_native_fill _
+file /tmp/source/tests/integration/test_program_accounting_postgres.py, line 57
+  def test_replay_with_later_archive_delivery_does_not_duplicate_native_fill(database,venue,tmp_path):
+file /tmp/source/tests/integration/test_program_fill_source_approval.py, line 21
+  @pytest.fixture(scope='module')
+  def database(command_database):
+E       fixture 'command_database' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, contract_fixtures, database, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, isolated_postgres, monkeypatch, paper_fixtures, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, repo_root, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, venue
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/tmp/source/tests/integration/test_program_fill_source_approval.py:21
+_ ERROR at setup of test_additional_partial_fill_uses_original_ids_without_releasing_reservations _
+file /tmp/source/tests/integration/test_program_accounting_postgres.py, line 74
+  def test_additional_partial_fill_uses_original_ids_without_releasing_reservations(database,venue,tmp_path):
+file /tmp/source/tests/integration/test_program_fill_source_approval.py, line 21
+  @pytest.fixture(scope='module')
+  def database(command_database):
+E       fixture 'command_database' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, contract_fixtures, database, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, isolated_postgres, monkeypatch, paper_fixtures, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, repo_root, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, venue
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/tmp/source/tests/integration/test_program_fill_source_approval.py:21
+_ ERROR at setup of test_owner_commit_failure_rolls_back_facts_but_preserves_committed_source _
+file /tmp/source/tests/integration/test_program_accounting_postgres.py, line 93
+  def test_owner_commit_failure_rolls_back_facts_but_preserves_committed_source(database,venue,tmp_path):
+file /tmp/source/tests/integration/test_program_fill_source_approval.py, line 21
+  @pytest.fixture(scope='module')
+  def database(command_database):
+E       fixture 'command_database' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, contract_fixtures, database, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, isolated_postgres, monkeypatch, paper_fixtures, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, repo_root, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, venue
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/tmp/source/tests/integration/test_program_fill_source_approval.py:21
+_ ERROR at setup of test_source_linked_economic_discrepancy_retains_actual_quantity_and_no_cash _
+file /tmp/source/tests/integration/test_program_accounting_postgres.py, line 114
+  def test_source_linked_economic_discrepancy_retains_actual_quantity_and_no_cash(database,venue,tmp_path):
+file /tmp/source/tests/integration/test_program_fill_source_approval.py, line 21
+  @pytest.fixture(scope='module')
+  def database(command_database):
+E       fixture 'command_database' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, contract_fixtures, database, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, isolated_postgres, monkeypatch, paper_fixtures, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, repo_root, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, venue
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/tmp/source/tests/integration/test_program_fill_source_approval.py:21
+=========================== short test summary info ============================
+ERROR tests/integration/test_program_accounting_postgres.py::test_real_fill_evidence_notice_and_accounting_duties_are_atomic
+ERROR tests/integration/test_program_accounting_postgres.py::test_replay_with_later_archive_delivery_does_not_duplicate_native_fill
+ERROR tests/integration/test_program_accounting_postgres.py::test_additional_partial_fill_uses_original_ids_without_releasing_reservations
+ERROR tests/integration/test_program_accounting_postgres.py::test_owner_commit_failure_rolls_back_facts_but_preserves_committed_source
+ERROR tests/integration/test_program_accounting_postgres.py::test_source_linked_economic_discrepancy_retains_actual_quantity_and_no_cash
+5 errors in 0.60s

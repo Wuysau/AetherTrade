@@ -4,14 +4,14 @@ from __future__ import annotations
 from dataclasses import fields, is_dataclass
 from decimal import Decimal
 from enum import Enum
-from functools import wraps
+from functools import wraps,lru_cache
 import json
 from typing import get_args, get_origin, get_type_hints, Literal, Union
 from types import UnionType
 
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import domain_payload, canonical_json, canonical_hash
-from trading_system.contracts.wire import ContractCodec, ExecutionCommand, TradeIntent
+from trading_system.contracts.wire import ContractCodec, ExecutionCommand, TradeIntent, DecisionProposal, RiskPolicy
 
 
 class SequenceConflict(ValueError):
@@ -45,10 +45,19 @@ def encode(record: object) -> str:
     return canonical_json(domain_payload(record))
 
 
+@lru_cache(maxsize=256)
+def _record_metadata(cls):
+    """Immutable Python contract metadata; no payload, authority or risk facts."""
+    return get_type_hints(cls),frozenset(f.name for f in fields(cls))
+
+
 def decode(cls, payload):
     """Restore only an explicitly requested contract type; never import stored names."""
     if isinstance(payload, str):
         payload = json.loads(payload)
+    from trading_system.contracts.ledger_intents import LedgerIntentRecord, LedgerIntentCodec
+    if cls is LedgerIntentRecord:
+        return LedgerIntentCodec().decode(payload)
     if cls in (ExecutionCommand, TradeIntent):
         return ContractCodec().decode(
             'execution-command' if cls is ExecutionCommand else 'trade-intent', payload)
@@ -58,6 +67,10 @@ def decode(cls, payload):
             if kind is type(None) or type(None) in get_args(kind):
                 return None
             raise ValueError('null for non-null stored field')
+        wire_kinds={DecisionProposal:'decision-proposal',TradeIntent:'trade-intent',
+                    ExecutionCommand:'execution-command',RiskPolicy:'risk-policy'}
+        if kind in wire_kinds:
+            return ContractCodec().decode(wire_kinds[kind],value)
         origin = get_origin(kind)
         if origin in (Union, UnionType):
             for option in get_args(kind):
@@ -84,8 +97,8 @@ def decode(cls, payload):
         if isinstance(kind, type) and issubclass(kind, Enum):
             return kind(value)
         if is_dataclass(kind):
-            hints = get_type_hints(kind)
-            if set(value) != {f.name for f in fields(kind)}:
+            hints,names = _record_metadata(kind)
+            if set(value) != names:
                 raise ValueError('stored record fields differ from contract')
             return kind(**{k: restore(hints[k], v) for k, v in value.items()})
         if kind in (str, bool, int) and type(value) is not kind:

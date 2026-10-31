@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "review_ref": "96ec148a8249eda918c9ee3219c7030755cabcf0",
   "deployment_ref": null,
   "status": "BLOCKED_QUALIFICATION",
@@ -166,6 +166,16 @@
       "runtime_evidence": [],
       "status": "NOT_RUN",
       "reason": "Exact-build API binding requires native verification"
+    },
+    {
+      "product_port": "APPLICATION_GENERATED_CHILD",
+      "python_api": null,
+      "rust_api": null,
+      "signature": null,
+      "source": "docs/orders/ADR-ORDER-001.md",
+      "runtime_evidence": [],
+      "status": "NOT_RUN",
+      "reason": "Independent local child write requires OP-C/E owner and durable permit integration"
     }
   ],
   "required_native_checks": [
@@ -180,5 +190,7 @@
     "submission_recovery_semantics": "src/trading_system/recovery/reconciler.py",
     "native_risk_bypass": "src/trading_system/risk/evaluator.py",
     "flush_on_start": "src/trading_system/runtime/execution_owner.py"
-  }
+  },
+  "historical_version": "history/compatibility-map.v1.json",
+  "order_candidate_target": "order_target/manifest.json"
 }

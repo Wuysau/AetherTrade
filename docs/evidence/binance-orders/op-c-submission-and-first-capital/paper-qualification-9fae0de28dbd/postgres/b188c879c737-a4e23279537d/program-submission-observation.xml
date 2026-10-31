@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="5" time="29.166" timestamp="2026-10-30T06:56:57.274955+00:00" hostname="3beb776bbaaa"><testcase classname="tests.integration.test_program_submission_observation" name="test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[1]" time="6.545" /><testcase classname="tests.integration.test_program_submission_observation" name="test_actual_accepted_unfilled_gtc_has_protected_knownness_after_creation_ttl_without_fill_or_release[2]" time="5.974" /><testcase classname="tests.integration.test_program_submission_observation" name="test_actual_rejected_post_only_submission_never_posts_fill_or_releases_hold" time="5.270" /><testcase classname="tests.integration.test_program_submission_observation" name="test_latest_missing_query_preserves_acceptance_history_but_blocks_send_uncertainty" time="5.984" /><testcase classname="tests.integration.test_program_submission_observation" name="test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness" time="4.328"><failure message="ValueError: expected domain record">tests/integration/test_program_submission_observation.py:101: in test_owner_audit_flags_and_direct_private_calls_cannot_mint_submission_knownness
+    tx._append('audit_events','fake-submission:'+c.write.command_id,dict(source_verified=True,state='ACCEPTED'),0)
+src/trading_system/storage/uow.py:74: in _append
+    (scope_id(self.scope), record_id, sequence, encode(record), self.transaction_id))
+                                                ^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:45: in encode
+    return canonical_json(domain_payload(record))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/contracts/canonical.py:81: in domain_payload
+    raise ValueError('expected domain record')
+E   ValueError: expected domain record</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,48 @@
+{
+  "commit": "27e3add3d3add4dc9f41ddee63126edd020dc75b",
+  "scope": "FIXED_SOURCE_FRESH_TEST_DATABASE_EXISTING_OWN_ISOLATED_CLUSTER",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-2a1fe1d2f68b\\source-27e3add.bundle",
+        "HEAD",
+        "27e3add3d3add4dc9f41ddee63126edd020dc75b"
+      ],
+      "exit_code": 0,
+      "log": "27e3add-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-27e3add.bundle",
+        "27e3add3d3add4dc9f41ddee63126edd020dc75b"
+      ],
+      "exit_code": 0,
+      "log": "27e3add-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "27e3add3d3add4dc9f41ddee63126edd020dc75b"
+      ],
+      "exit_code": 0,
+      "log": "27e3add-source.txt"
+    }
+  ]
+}

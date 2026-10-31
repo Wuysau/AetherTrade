@@ -1,0 +1,957 @@
+{
+  "audit_commit": "b168966d350ed60fe8a92792f9519f4227054bc5",
+  "status": "NOT_RUN",
+  "case_count": 56,
+  "note": "设计级新增验收；未运行，不能替代既有项目安全矩阵。每项需归档固定build、规则快照、输入、原始事件、前后账本和命令退出码。",
+  "cases": [
+    {
+      "id": "ORD-01",
+      "title": "原提案限价不被改写",
+      "input_or_fault": "输入4000 USDT目标、LIMIT 81490、LAST止损81330；账户/标的/时间窗口为可控测试夹具。",
+      "expected": "编译链和原生/模拟请求保留限价、止损及预算；卖盘高于限价时不成交；不能因移除guard而发MARKET。",
+      "feature_ids": [
+        "SPOT-LIMIT",
+        "SPOT-STOP_LOSS"
+      ],
+      "source_refs": [
+        "C01",
+        "B01"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-02",
+      "title": "普通市价与限价双产品路由",
+      "input_or_fault": "同名BTCUSDT分别SPOT与USD_M_PERP，MARKET/LIMIT输入。",
+      "expected": "身份、数量单位、普通订单路由和费用/保证金语义各自正确，不能按symbol误路由。",
+      "feature_ids": [
+        "SPOT-MARKET",
+        "SPOT-LIMIT",
+        "USDM-MARKET",
+        "USDM-LIMIT"
+      ],
+      "source_refs": [
+        "B01",
+        "B09"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-03",
+      "title": "现货post-only不吃单",
+      "input_or_fault": "LIMIT_MAKER买价会与已有卖价立刻成交。",
+      "expected": "按平台语义拒绝，不静默改普通LIMIT；未穿价则挂单。",
+      "feature_ids": [
+        "SPOT-LIMIT_MAKER"
+      ],
+      "source_refs": [
+        "B01"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-04",
+      "title": "现货条件单四种映射",
+      "input_or_fault": "对不同方向分别设置STOP_LOSS/STOP_LOSS_LIMIT/TAKE_PROFIT/TAKE_PROFIT_LIMIT。",
+      "expected": "触发前不成交，触发后市价/限价区别正确；trigger与limit不是同一价格；域名不能原样套USD-M。",
+      "feature_ids": [
+        "SPOT-STOP_LOSS",
+        "SPOT-STOP_LOSS_LIMIT",
+        "SPOT-TAKE_PROFIT",
+        "SPOT-TAKE_PROFIT_LIMIT"
+      ],
+      "source_refs": [
+        "B01"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-05",
+      "title": "USD-M条件类型走algo端点",
+      "input_or_fault": "提交STOP、STOP_MARKET、TAKE_PROFIT、TAKE_PROFIT_MARKET、TRAILING_STOP_MARKET。",
+      "expected": "新条件单使用fapi algo端点，普通order和batch不得接纳不允许的条件类型；普通子单ID与algoID关联。",
+      "feature_ids": [
+        "USDM-STOP",
+        "USDM-STOP_MARKET",
+        "USDM-TAKE_PROFIT",
+        "USDM-TAKE_PROFIT_MARKET",
+        "USDM-TRAILING_STOP_MARKET"
+      ],
+      "source_refs": [
+        "B09",
+        "B10"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-06",
+      "title": "Spot追踪止损激活与单位",
+      "input_or_fault": "trailingDelta的BIPS输入、可选stopPrice、极值变化和重启。",
+      "expected": "严格区分BIPS/百分比，按方向/条件类型跟踪，未激活不使用错误极值，恢复不丢高低水位。",
+      "feature_ids": [
+        "SPOT-TRAILING"
+      ],
+      "source_refs": [
+        "B03"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-07",
+      "title": "Futures跟踪止损上限差异",
+      "input_or_fault": "在规则快照中分别测试callbackRate 0.1、10、20、越界值；锁定adapter旧文档范围。",
+      "expected": "依据有效平台规则和精确build判断；20不能仅因过时文档拒绝，也不能无测试放行；记录差异与修复证据。",
+      "feature_ids": [
+        "USDM-TRAILING_STOP_MARKET"
+      ],
+      "source_refs": [
+        "B10",
+        "N01"
+      ],
+      "work_package": "OP-A",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-08",
+      "title": "触发源与priceProtect",
+      "input_or_fault": "LAST/CONTRACT_PRICE与MARK_PRICE不同步、保护价差条件不满足。",
+      "expected": "触发源不丢失、不替换；priceProtect条件延迟触发时可解释，不能把域BID_ASK静默转LAST。",
+      "feature_ids": [
+        "USDM-TRIGGER",
+        "USDM-STOP_MARKET"
+      ],
+      "source_refs": [
+        "B09",
+        "C05"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-09",
+      "title": "Spot GTC/IOC/FOK",
+      "input_or_fault": "有限流动性，只能立即成交一部分。",
+      "expected": "GTC保留合法余量、IOC余量按平台终态退出、FOK无法全成则无部分fill；allow_partial布尔不冒充TIF。",
+      "feature_ids": [
+        "SPOT-TIF"
+      ],
+      "source_refs": [
+        "B02"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-10",
+      "title": "USD-M GTX/GTD/RPI",
+      "input_or_fault": "post-only会吃单、GTD时点、RPI适用账户与对手渠道不同。",
+      "expected": "按类型合法组合处理；不默默GTD→GTC；RPI资格/数据不明不声称普通队列等价仿真。",
+      "feature_ids": [
+        "USDM-TIF"
+      ],
+      "source_refs": [
+        "B09",
+        "B11"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-11",
+      "title": "数量与quoteOrderQty",
+      "input_or_fault": "现货MARKET以quoteOrderQty或base quantity下单，含费用和可用余额不足。",
+      "expected": "区分目标notional与线上quoteOrderQty，正确预留和实际数量；不对不支持类型填字段。",
+      "feature_ids": [
+        "SPOT-QTY",
+        "SPOT-MARKET"
+      ],
+      "source_refs": [
+        "B01"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-12",
+      "title": "真实深度与单次流动性消耗",
+      "input_or_fault": "同一市场成交事件被多个模拟订单看到、同事件重复到达。",
+      "expected": "分配一次可见流动性，不无限量全成；事件去重；市价按对手价及声明模型，不用last直接FILLED。",
+      "feature_ids": [
+        "SPOT-MARKET",
+        "USDM-MARKET"
+      ],
+      "source_refs": [
+        "C02"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-13",
+      "title": "挂钩价格与偏移限制",
+      "input_or_fault": "PRIMARY_PEG/MARKET_PEG，不合法LIMIT_MAKER MARKET_PEG或组合。",
+      "expected": "依官方支持组合检查；挂入簿/触发定价与后续价格变更正确，不臆造每tick自动追价。",
+      "feature_ids": [
+        "SPOT-PEG"
+      ],
+      "source_refs": [
+        "B04"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-14",
+      "title": "冰山展示与预算",
+      "input_or_fault": "总量与icebergQty、非GTC或超ICEBERG_PARTS。",
+      "expected": "限制按当前规则；隐藏量仍计资金风险；模拟揭示/排队模型公开。",
+      "feature_ids": [
+        "SPOT-ICEBERG"
+      ],
+      "source_refs": [
+        "B01",
+        "B07"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-15",
+      "title": "SOR路由与allocation",
+      "input_or_fault": "跨允许场所/报价资产分配、部分成交与撤销。",
+      "expected": "母单/分配/成交/费用一致，不能只保存最终symbol总量；不把SOR当第二账户独立余额。",
+      "feature_ids": [
+        "SPOT-SOR"
+      ],
+      "source_refs": [
+        "B06"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-16",
+      "title": "OCO互斥与部分成交语义",
+      "input_or_fault": "任一腿触发或执行、取消另腿及事件乱序。",
+      "expected": "严格按当前官方OCO状态转换测试，不能简单假设只有FILLED才产生互斥效果；原生与软件OCO不同。",
+      "feature_ids": [
+        "SPOT-LIST-OCO"
+      ],
+      "source_refs": [
+        "B01"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-17",
+      "title": "OTO等待工作单全成",
+      "input_or_fault": "工作LIMIT部分成交、撤销，随后全成两条场景。",
+      "expected": "只在官方定义工作单全成条件满足后激活pending，不因部分成交就宣称已触发。",
+      "feature_ids": [
+        "SPOT-LIST-OTO"
+      ],
+      "source_refs": [
+        "B01"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-18",
+      "title": "OTOCO部分仓位保护冲突",
+      "input_or_fault": "入场仅部分成交且策略要求即时保护。",
+      "expected": "明确原生列表未激活的暴露与政策冲突；不虚报保护，选替代计划须先有授权。",
+      "feature_ids": [
+        "SPOT-LIST-OTOCO"
+      ],
+      "source_refs": [
+        "B01"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-19",
+      "title": "OPO净到账、费用与锁币",
+      "input_or_fault": "BUY工作单、基础币费用/可用余额费用不同，LOT_SIZE调整。",
+      "expected": "派生pending数量来自真实净到账与官方规则；工作资产锁定、不重复花费，dust正确解锁。",
+      "feature_ids": [
+        "SPOT-LIST-OPO"
+      ],
+      "source_refs": [
+        "B05"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-20",
+      "title": "OPOCO取消与动态数量",
+      "input_or_fault": "工作单部分成交后取消列表、全成后触发两个pending。",
+      "expected": "锁定资金与余量按真实事件解锁；无自己猜测的pending qty；列表/child关联可恢复。",
+      "feature_ids": [
+        "SPOT-LIST-OPOCO"
+      ],
+      "source_refs": [
+        "B05"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-21",
+      "title": "Spot keep-priority改量",
+      "input_or_fault": "仅减量与尝试加量/改价/受限pending改量。",
+      "expected": "只执行允许减量并保留优先级；不合法修改拒绝/按明确cancel-replace政策处理；组合单联动正确。",
+      "feature_ids": [
+        "SPOT-AMEND"
+      ],
+      "source_refs": [
+        "B08"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-22",
+      "title": "cancel-replace的部分成功",
+      "input_or_fault": "cancel失败/new成功、cancel成功/new失败、任一结果UNKNOWN。",
+      "expected": "两结果分别记录与查询，按当前cancelReplaceMode处理，不能原子化成全成功或全失败。",
+      "feature_ids": [
+        "SPOT-CANCEL_REPLACE"
+      ],
+      "source_refs": [
+        "B01"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-23",
+      "title": "STP非成交失效",
+      "input_or_fault": "现货和USD-M不同STP模式/同组账户自匹配。",
+      "expected": "严格区分prevented quantity、真实Fill和终态；资金不以不存在成交记账；模式只允许官方支持集合。",
+      "feature_ids": [
+        "SPOT-STP",
+        "USDM-STP"
+      ],
+      "source_refs": [
+        "B01",
+        "B09"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-24",
+      "title": "动态执行价格区间",
+      "input_or_fault": "吃单越过当前执行price-range，或者参考价更新。",
+      "expected": "处理EXPIRED及expiryReason；不同于下单过滤器，不能无限滑点填完订单。",
+      "feature_ids": [
+        "SPOT-EXECUTION_RULES"
+      ],
+      "source_refs": [
+        "B19"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-25",
+      "title": "USD-M减仓与hedge字段",
+      "input_or_fault": "one-way/hedge、reduceOnly、closePosition+quantity、不同leg。",
+      "expected": "域减仓意图经当前实仓验证；线上互斥字段按平台规则，不发送hedge禁用组合，不关掉外部腿。",
+      "feature_ids": [
+        "USDM-REDUCTION"
+      ],
+      "source_refs": [
+        "B09"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-26",
+      "title": "priceMatch与固定价互斥",
+      "input_or_fault": "同时给price和priceMatch，或枚举已变化。",
+      "expected": "拒绝非法组合；以当前目录/锁定版本映射合法值；编译不丢价格模式。",
+      "feature_ids": [
+        "USDM-PRICE_MATCH"
+      ],
+      "source_refs": [
+        "B09"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-27",
+      "title": "USD-M LIMIT modify与条件单未触发",
+      "input_or_fault": "改普通LIMIT与尝试直接改未触发algo。",
+      "expected": "普通改单优先级变化准确；不支持的algo修改明确处理为授权撤旧建新或拒绝，保留暴露窗口。",
+      "feature_ids": [
+        "USDM-AMEND"
+      ],
+      "source_refs": [
+        "B09",
+        "B10"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-28",
+      "title": "USD-M批量部分成功",
+      "input_or_fault": "批内部分拒单、单项ACK丢失。",
+      "expected": "逐单身份/资金/状态；不假设事务性all-or-none；UNKNOWN项不换ID重发。",
+      "feature_ids": [
+        "USDM-BATCH"
+      ],
+      "source_refs": [
+        "B09"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-29",
+      "title": "Spot原生TWAP",
+      "input_or_fault": "母单受理、子单部分成交、母单停止但子单尚未核清。",
+      "expected": "提交母单前durable；原生子单仅摄取不再次发出；停止非全撤；剩余责任保持。",
+      "feature_ids": [
+        "SPOT-EXEC-TWAP"
+      ],
+      "source_refs": [
+        "B15"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-30",
+      "title": "Spot原生VP",
+      "input_or_fault": "成交量变化、urgency、母子查询和报告。",
+      "expected": "参数合法性与算法命名空间正确；PAPER模型假设明示，不声称精准重建专有算法。",
+      "feature_ids": [
+        "SPOT-EXEC-VP"
+      ],
+      "source_refs": [
+        "B15"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-31",
+      "title": "USD-M原生TWAP",
+      "input_or_fault": "futures TWAP母单、合约资金/子单/撤单。",
+      "expected": "走sapi执行算法而非fapi条件算法；正确跟踪母子/保证金及所有权。",
+      "feature_ids": [
+        "USD_M_PERP-EXEC-TWAP"
+      ],
+      "source_refs": [
+        "B16"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-32",
+      "title": "USD-M原生VP",
+      "input_or_fault": "futures VP与条件algo相同整数algoId冲突。",
+      "expected": "ID包含服务命名空间和账户产品，不误查误撤另一algo；子单成交对账完整。",
+      "feature_ids": [
+        "USD_M_PERP-EXEC-VP"
+      ],
+      "source_refs": [
+        "B16",
+        "B09"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-33",
+      "title": "本地算法子单授权",
+      "input_or_fault": "本地拆单在计划到期/epoch变化/暂停后继续产生子单。",
+      "expected": "每次本地平台写动作独立durable/permit；未发停止，已发核查，不能照搬原生子单豁免。",
+      "feature_ids": [
+        "SPOT-EXEC-TWAP",
+        "USD_M_PERP-EXEC-TWAP"
+      ],
+      "source_refs": [
+        "C06"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-34",
+      "title": "Stocks MARKET不对称字段",
+      "input_or_fault": "BUY MARKET使用notional、SELL MARKET使用quantity，反例混入price/tradingSession。",
+      "expected": "对应合法组合，tokenize=false，真实持股产品；不是SPOT或token替代。",
+      "feature_ids": [
+        "EQUITY-MARKET"
+      ],
+      "source_refs": [
+        "B12"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-35",
+      "title": "Stocks LIMIT与份额",
+      "input_or_fault": "LIMIT BUY/SELL price+quantity+tradingSession，交易所手续费冻结。",
+      "expected": "参数、数量、费用和可售份额正确；无隐式融资/额外划转；请求S不入账成交。",
+      "feature_ids": [
+        "EQUITY-LIMIT"
+      ],
+      "source_refs": [
+        "B12"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-36",
+      "title": "Stocks DAY/GTC与交易会话",
+      "input_or_fault": "零碎股GTC、RTH/EXTENDED/24H、休市/停牌/夏令时。",
+      "expected": "按当前规则与资格校验；托管触发但未成交为待市场，不假报止损。",
+      "feature_ids": [
+        "EQUITY-SESSIONS"
+      ],
+      "source_refs": [
+        "B12",
+        "B13"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-37",
+      "title": "Stocks普通/全部撤销与查询",
+      "input_or_fault": "请求确认、已部分成交、再次撤销、历史分页。",
+      "expected": "确认不是终态；保留数量、费用、在途和实际退出责任，批量全撤需明确账户级授权。",
+      "feature_ids": [
+        "EQUITY-CANCEL_QUERY"
+      ],
+      "source_refs": [
+        "B12",
+        "B13"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-38",
+      "title": "订单/列表/算法身份与查询",
+      "input_or_fault": "同client字符串在不同账户/产品/服务复用、API和WS重复回报。",
+      "expected": "按真实命名空间正确路由和去重，查询/撤销只作用合法owner，绝不symbol误撤他人。",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY",
+        "USDM-CANCEL_QUERY"
+      ],
+      "source_refs": [
+        "B01",
+        "B09"
+      ],
+      "work_package": "OP-E",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-39",
+      "title": "未知结果跨传输禁止重试",
+      "input_or_fault": "REST请求已接受但ACK丢失，尝试改用WS发送。",
+      "expected": "只查询原ID/订阅证据，不因换协议或新key再发；预算持续占用。",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY",
+        "USDM-CANCEL_QUERY",
+        "EQUITY-CANCEL_QUERY"
+      ],
+      "source_refs": [
+        "B18"
+      ],
+      "work_package": "OP-G",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-40",
+      "title": "部分成交后保护与减仓竞争",
+      "input_or_fault": "入场余单仍可能成交、保护更新、人工减仓并发。",
+      "expected": "owner/epoch及实际量核验；按真实可管理量覆盖，不把退出拒绝升级为放宽权限。",
+      "feature_ids": [
+        "SPOT-STOP_LOSS",
+        "USDM-STOP_MARKET"
+      ],
+      "source_refs": [
+        "C05",
+        "C06"
+      ],
+      "work_package": "OP-G",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-41",
+      "title": "保护失败且紧急退出失败",
+      "input_or_fault": "保护ACK未知/拒单，然后减仓失败。",
+      "expected": "保留风险锁与恢复事项；原proposal过期不结束责任；不继续新开仓。",
+      "feature_ids": [
+        "SPOT-STOP_LOSS",
+        "USDM-STOP_MARKET"
+      ],
+      "source_refs": [
+        "C06"
+      ],
+      "work_package": "OP-G",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-42",
+      "title": "普通GTC与短期提案TTL",
+      "input_or_fault": "30秒后报价/提案过期，挂单仍有效。",
+      "expected": "禁止旧建议再增险，但保持合法查询/撤单/保护管理，新的写动作重新授权；不自动丢单。",
+      "feature_ids": [
+        "SPOT-TIF",
+        "USDM-TIF"
+      ],
+      "source_refs": [
+        "C01",
+        "C06"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-43",
+      "title": "滚动限价预算和重叠委托",
+      "input_or_fault": "目标4000，已有持仓、挂单、quote数量及非报价币费用并存。",
+      "expected": "按最坏合法执行价和费用预留；净目标不重复，UNKNOWN余量不释放给第二策略。",
+      "feature_ids": [
+        "SPOT-LIMIT",
+        "SPOT-QTY"
+      ],
+      "source_refs": [
+        "C01"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-44",
+      "title": "原生与软件OCO差异",
+      "input_or_fault": "本地两腿各独立发送，在取消前另一腿也成交。",
+      "expected": "承认非原子并处理双成交/资产约束；用户未允许software模式时拒绝，不标native支持。",
+      "feature_ids": [
+        "SPOT-LIST-OCO",
+        "SPOT-LIST-OTOCO"
+      ],
+      "source_refs": [
+        "B01"
+      ],
+      "work_package": "OP-G",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-45",
+      "title": "能力向模型与执行同步",
+      "input_or_fault": "模型快照显示LIMIT可用，执行前规则/资格修订改变。",
+      "expected": "引用capability snapshot并发送前重验，报告重新规划或资格原因，不改MARKET、不误报余额不足。",
+      "feature_ids": [
+        "SPOT-LIMIT"
+      ],
+      "source_refs": [
+        "C01",
+        "C04"
+      ],
+      "work_package": "OP-F",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-46",
+      "title": "字段丢失的编译回归",
+      "input_or_fault": "给MARK_PRICE/trailing/peg/iceberg/session/TIF等非默认值。",
+      "expected": "逐字段从Proposal到Plan/Command/平台payload/归档双向核验；未知或丢失字段拒绝，不默认降级。",
+      "feature_ids": [
+        "USDM-TRIGGER",
+        "SPOT-TRAILING",
+        "SPOT-PEG",
+        "SPOT-ICEBERG",
+        "EQUITY-SESSIONS"
+      ],
+      "source_refs": [
+        "C03",
+        "C05"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-47",
+      "title": "旧schema与UNKNOWN迁移",
+      "input_or_fault": "升级时有旧版未终态订单与旧提案hash。",
+      "expected": "旧codec/原ID恢复，历史hash不改；新写用明确修订，不重编旧UNKNOWN为新订单。",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY",
+        "USDM-CANCEL_QUERY"
+      ],
+      "source_refs": [
+        "C03"
+      ],
+      "work_package": "OP-B",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-48",
+      "title": "重启恢复列表和追踪状态",
+      "input_or_fault": "在部分成交、列表激活、trail极值更新或algo产生子单时进程中断。",
+      "expected": "恢复后真实证据重建，不重复激活/提交，保护、预留和算法进度一致。",
+      "feature_ids": [
+        "SPOT-LIST-OPOCO",
+        "SPOT-TRAILING",
+        "USDM-TRAILING_STOP_MARKET",
+        "SPOT-EXEC-TWAP"
+      ],
+      "source_refs": [
+        "C02"
+      ],
+      "work_package": "OP-G",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-49",
+      "title": "不同产品账户语义",
+      "input_or_fault": "Spot余额、USD-M保证金/资金费、Stocks可卖份额/结算资产同时存在。",
+      "expected": "不套SPOT+USDT+24H常量，不把标的字符串当账户/产品唯一身份。",
+      "feature_ids": [
+        "USDM-REDUCTION",
+        "EQUITY-SESSIONS",
+        "SPOT-QTY"
+      ],
+      "source_refs": [
+        "C01",
+        "B09",
+        "B12"
+      ],
+      "work_package": "OP-C",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-50",
+      "title": "只用OHLCV的路径歧义",
+      "input_or_fault": "同一bar里高低价同时穿止盈止损，缺逐笔顺序。",
+      "expected": "细粒度回放或标记歧义并采用预声明保守假设；不能一律挑盈利退出。",
+      "feature_ids": [
+        "SPOT-TAKE_PROFIT",
+        "SPOT-STOP_LOSS"
+      ],
+      "source_refs": [
+        "C02"
+      ],
+      "work_package": "OP-D",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-51",
+      "title": "隔离PAPER合成证据",
+      "input_or_fault": "市场驱动模拟/手工事件回归产生SYNTHETIC状态。",
+      "expected": "统一领域摄取但证据来源保留；不能输出交易所已接受或已验证native protection。",
+      "feature_ids": [
+        "SPOT-MARKET"
+      ],
+      "source_refs": [
+        "C02"
+      ],
+      "work_package": "OP-G",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-52",
+      "title": "API测试端点不冒充撮合验收",
+      "input_or_fault": "调用/order/test得到成功或采用Mock校验。",
+      "expected": "只标参数验证，实际挂单/触发/撤销/恢复仍NOT_RUN，不自动解锁LIVE。",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY"
+      ],
+      "source_refs": [
+        "B01"
+      ],
+      "work_package": "OP-G",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-53",
+      "title": "未文档化字段和文档分歧",
+      "input_or_fault": "quoteNotionalLimit正文不可用，Stocks流出现未支持stop，native文档限制不一致。",
+      "expected": "保留DOC事项，不猜参数、不从读取类型推下单权限；查明且回归后再改目录。",
+      "feature_ids": [
+        "EQUITY-MARKET",
+        "USDM-TRAILING_STOP_MARKET"
+      ],
+      "source_refs": [
+        "B12",
+        "B14",
+        "B10",
+        "N01"
+      ],
+      "work_package": "OP-A",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-54",
+      "title": "短期模型指令不能越权",
+      "input_or_fault": "模型要求绕过unsupported、加杠杆、直接调用任意路径或全symbol撤单。",
+      "expected": "只产生typed Proposal；服务端权限和owner检查不因文字改变，所有真实写由同一受控客户端完成。",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY",
+        "USDM-CANCEL_QUERY"
+      ],
+      "source_refs": [
+        "C06",
+        "C07"
+      ],
+      "work_package": "OP-G",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-55",
+      "title": "完整目录防虚假缩范围",
+      "input_or_fault": "适配器只暴露MARKET，试图把LIMIT/OPO/VP等从最终需求删除。",
+      "expected": "46项target_required保持跟踪；未实现和未准入区分；不把限制AI词汇当成订单全覆盖。",
+      "feature_ids": [
+        "SPOT-MARKET",
+        "SPOT-LIMIT",
+        "SPOT-LIMIT_MAKER",
+        "SPOT-STOP_LOSS",
+        "SPOT-STOP_LOSS_LIMIT",
+        "SPOT-TAKE_PROFIT",
+        "SPOT-TAKE_PROFIT_LIMIT",
+        "SPOT-LIST-OCO",
+        "SPOT-LIST-OTO",
+        "SPOT-LIST-OTOCO",
+        "SPOT-LIST-OPO",
+        "SPOT-LIST-OPOCO",
+        "SPOT-TRAILING",
+        "SPOT-PEG",
+        "SPOT-ICEBERG",
+        "SPOT-SOR",
+        "SPOT-QTY",
+        "SPOT-TIF",
+        "SPOT-AMEND",
+        "SPOT-CANCEL_REPLACE",
+        "SPOT-STP",
+        "SPOT-CANCEL_QUERY",
+        "USDM-MARKET",
+        "USDM-LIMIT",
+        "USDM-STOP",
+        "USDM-STOP_MARKET",
+        "USDM-TAKE_PROFIT",
+        "USDM-TAKE_PROFIT_MARKET",
+        "USDM-TRAILING_STOP_MARKET",
+        "USDM-TIF",
+        "USDM-TRIGGER",
+        "USDM-REDUCTION",
+        "USDM-PRICE_MATCH",
+        "USDM-STP",
+        "USDM-AMEND",
+        "USDM-BATCH",
+        "USDM-CANCEL_QUERY",
+        "SPOT-EXEC-TWAP",
+        "SPOT-EXEC-VP",
+        "USD_M_PERP-EXEC-TWAP",
+        "USD_M_PERP-EXEC-VP",
+        "EQUITY-MARKET",
+        "EQUITY-LIMIT",
+        "EQUITY-SESSIONS",
+        "EQUITY-CANCEL_QUERY",
+        "SPOT-EXECUTION_RULES"
+      ],
+      "source_refs": [
+        "B01",
+        "B09",
+        "B12",
+        "B15",
+        "B16"
+      ],
+      "work_package": "OP-G",
+      "status": "NOT_RUN",
+      "evidence": null
+    },
+    {
+      "id": "ORD-56",
+      "title": "用户界面和API错误分类",
+      "input_or_fault": "执行能力不足、规则不合法、资金超限、数据不足、未成交挂单。",
+      "expected": "分别显示能力/数据/风险/执行阶段，展示原计划、受理与真实成交、父子单状态，保留具体未满足字段。",
+      "feature_ids": [
+        "SPOT-LIMIT"
+      ],
+      "source_refs": [
+        "C04"
+      ],
+      "work_package": "OP-F",
+      "status": "NOT_RUN",
+      "evidence": null
+    }
+  ]
+}

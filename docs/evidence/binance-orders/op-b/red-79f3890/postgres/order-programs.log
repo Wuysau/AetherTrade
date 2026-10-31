@@ -1,0 +1,16 @@
+F..........                                                              [100%]
+=================================== FAILURES ===================================
+________ test_migration_preserves_old_command_hash_and_unknown_recovery ________
+tests/integration/test_order_programs.py:53: in test_migration_preserves_old_command_hash_and_unknown_recovery
+    with s.uow.transaction(s.scope) as tx:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+src/trading_system/storage/uow.py:129: in transaction
+    tx._commit()
+src/trading_system/storage/uow.py:85: in _commit
+    raise RuntimeError('transaction is rollback-only')
+E   RuntimeError: transaction is rollback-only
+=========================== short test summary info ============================
+FAILED tests/integration/test_order_programs.py::test_migration_preserves_old_command_hash_and_unknown_recovery
+1 failed, 10 passed in 2.23s

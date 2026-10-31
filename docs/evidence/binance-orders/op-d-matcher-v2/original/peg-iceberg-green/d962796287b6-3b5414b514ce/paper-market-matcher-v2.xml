@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="7" time="74.586" timestamp="2026-10-29T16:29:45.137671+00:00" hostname="5b24092dcadb"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_actual_v2_base_market_uses_visible_opposing_quote_and_partial_expiry" time="9.945" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_stop_limit_waits_for_exact_last_source_then_keeps_native_limit" time="9.366" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_trailing_extrema_survive_recreated_worker_and_use_depth_not_trigger_price" time="9.169" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_v1_and_v2_competing_accounts_share_one_actual_depth_source" time="18.876" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_runtime_cannot_publish_price_sources_or_change_activation_progress" time="0.020" /><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_primary_peg_latches_placement_price_without_rewriting_native_spec" time="9.375"><failure message="ValueError: PAPER_CROSSED_SOURCE_BOOK">tests/integration/test_paper_market_matcher_v2.py:119: in test_primary_peg_latches_placement_price_without_rewriting_native_spec
+    moved=replace(event(c,sequence=2,ask='81488',quantity='.4'),bids=(DepthLevel(price='81487',quantity='1'),))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:73: in event
+    return PaperMarketEvent(contract_version='2026-10-29',event_id=event_id or uuid4().hex,stream_id=c.scope.instrument_uid,
+&lt;string&gt;:14: in __init__
+    ???
+src/trading_system/engine/paper_market.py:83: in __post_init__
+    require(max(number(l.price) for l in self.bids)&lt;min(number(l.price) for l in self.asks),'PAPER_CROSSED_SOURCE_BOOK')
+src/trading_system/engine/paper_market.py:32: in require
+    if not ok:raise ValueError(reason)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: PAPER_CROSSED_SOURCE_BOOK</failure></testcase><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_iceberg_hidden_quantity_keeps_budget_and_reveal_loses_queue_priority" time="17.134" /></testsuite></testsuites>

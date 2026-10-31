@@ -1,0 +1,28 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_ test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context[1.23456789] _
+tests\unit\test_program_continuation.py:75: in test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context
+    assert executable==qty and residual.value==0
+E   AssertionError: assert (Quantity(valu..., unit='BASE') == Quantity(valu..., unit='BASE')
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing attributes:
+E     ['value']
+E     
+E     Drill down into differing attribute value:
+E       value: Decimal('1.23000000') != Decimal('1.23456789'))
+_ test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context[-1.23456789] _
+tests\unit\test_program_continuation.py:75: in test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context
+    assert executable==qty and residual.value==0
+E   AssertionError: assert (Quantity(valu..., unit='BASE') == Quantity(valu..., unit='BASE')
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing attributes:
+E     ['value']
+E     
+E     Drill down into differing attribute value:
+E       value: Decimal('-1.23000000') != Decimal('-1.23456789'))
+=========================== short test summary info ===========================
+FAILED tests/unit/test_program_continuation.py::test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context[1.23456789]
+FAILED tests/unit/test_program_continuation.py::test_standalone_lot_residual_never_rounds_actual_quantity_before_exact_context[-1.23456789]
+2 failed, 10 deselected in 0.47s

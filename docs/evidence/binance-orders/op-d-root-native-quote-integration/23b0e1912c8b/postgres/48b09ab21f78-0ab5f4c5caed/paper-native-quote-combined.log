@@ -1,0 +1,68 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_actual_native_quote_and_v2_base_authenticate_one_shared_book[False] ___
+tests/integration/test_paper_native_quote_combined.py:36: in test_actual_native_quote_and_v2_base_authenticate_one_shared_book
+    n=advanced_case(database,combined_venue,tmp_path,market=q.scope.instrument_uid,
+tests/integration/test_paper_market_matcher_v2.py:21: in advanced_case
+    c=case(database,venue_v2,tmp_path,**options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:52: in case
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:79: in real_case
+    c=risk_module.risk_case(**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:74: in selected_plan
+    return compile_order_program(plan_proposal_transform(plan.original_proposal),r,c,**k),r
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_native_quote_combined.py:29: in lower_limit
+    n=replace(n,order=replace(n.order,price=replace(n.order.price,value='50000')))
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:8: in __init__
+    ???
+src/trading_system/contracts/order_program.py:53: in __post_init__
+    variant(self.kind,{'MARKET':(set(),set()),'FIXED_LIMIT':({'value'},set()),'PEG':({'peg_type','offset_levels'},set()),'PRICE_MATCH':({'price_match'},set())},dict(value=self.value,peg_type=self.peg_type,offset_levels=self.offset_levels,price_match=self.price_match))
+src/trading_system/contracts/order_program.py:33: in variant
+    raise ValueError('Variant fields conflict')
+E   ValueError: Variant fields conflict
+___ test_actual_native_quote_and_v2_base_authenticate_one_shared_book[True] ____
+tests/integration/test_paper_native_quote_combined.py:36: in test_actual_native_quote_and_v2_base_authenticate_one_shared_book
+    n=advanced_case(database,combined_venue,tmp_path,market=q.scope.instrument_uid,
+tests/integration/test_paper_market_matcher_v2.py:21: in advanced_case
+    c=case(database,venue_v2,tmp_path,**options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:52: in case
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:79: in real_case
+    c=risk_module.risk_case(**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:74: in selected_plan
+    return compile_order_program(plan_proposal_transform(plan.original_proposal),r,c,**k),r
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_native_quote_combined.py:29: in lower_limit
+    n=replace(n,order=replace(n.order,price=replace(n.order.price,value='50000')))
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:8: in __init__
+    ???
+src/trading_system/contracts/order_program.py:53: in __post_init__
+    variant(self.kind,{'MARKET':(set(),set()),'FIXED_LIMIT':({'value'},set()),'PEG':({'peg_type','offset_levels'},set()),'PRICE_MATCH':({'price_match'},set())},dict(value=self.value,peg_type=self.peg_type,offset_levels=self.offset_levels,price_match=self.price_match))
+src/trading_system/contracts/order_program.py:33: in variant
+    raise ValueError('Variant fields conflict')
+E   ValueError: Variant fields conflict
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_native_quote_combined.py::test_actual_native_quote_and_v2_base_authenticate_one_shared_book[False]
+FAILED tests/integration/test_paper_native_quote_combined.py::test_actual_native_quote_and_v2_base_authenticate_one_shared_book[True]
+2 failed in 9.41s

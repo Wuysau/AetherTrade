@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="14" skipped="0" tests="14" time="120.211" timestamp="2026-10-29T16:05:12.588511+00:00" hostname="cf988bed2a6f"><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_actual_committed_context_rechecks_without_historical_math_or_second_permit" time="9.419"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:32: in test_actual_committed_context_rechecks_without_historical_math_or_second_permit
+    result=check(c)
+           ^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[missing_consumption]" time="5.180"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[token]" time="8.021"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[request_hash]" time="8.335"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[binding_hash]" time="8.300"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[scope]" time="8.262"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[lease]" time="10.534"><failure message="psycopg.errors.CheckViolation: committed unused current permit required&#10;CONTEXT:  PL/pgSQL function consume_program_permit(text,text,text,jsonb,text) line 8 at RAISE">tests/integration/test_program_consumed_boundary_postgres.py:44: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    c=ready(database,consume=fault!='missing_consumption');permit=c.permit
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:19: in ready
+    if consume:c.gate.consume(c.permit,c.lease)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:425: in consume
+    request=ProgramCommandRepository(tx,**self.readers).consume(permit,lease)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/storage/models.py:37: in wrapped
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/program_commands.py:378: in consume
+    self.tx.execute('SELECT ledger.consume_program_permit(%s,%s,%s,%s::jsonb,%s)',
+src/trading_system/storage/uow.py:43: in execute
+    return self._connection.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:304: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: committed unused current permit required
+E   CONTEXT:  PL/pgSQL function consume_program_permit(text,text,text,jsonb,text) line 8 at RAISE</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[clock]" time="9.313"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[fence]" time="8.284"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[book]" time="9.156"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[lock]" time="8.616"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_post_consumption_changes_never_clear_a_new_side_effect[unknown]" time="9.192"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:69: in test_real_post_consumption_changes_never_clear_a_new_side_effect
+    with pytest.raises(ValueError):check(c,permit=permit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_real_sql_permit_expiry_cannot_be_hidden_by_frozen_fixture_clock" time="9.273"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:78: in test_real_sql_permit_expiry_cannot_be_hidden_by_frozen_fixture_clock
+    with pytest.raises(ValueError):check(c)
+                                   ^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase><testcase classname="tests.integration.test_program_consumed_boundary_postgres" name="test_uncommitted_actual_consumption_in_same_physical_transaction_is_rejected" time="6.994"><failure message="ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'">tests/integration/test_program_consumed_boundary_postgres.py:93: in test_uncommitted_actual_consumption_in_same_physical_transaction_is_rejected
+    with pytest.raises(ValueError):check(c)
+                                   ^^^^^^^^
+tests/integration/test_program_consumed_boundary_postgres.py:24: in check
+    from trading_system.execution.program_consumed_boundary import recheck_consumed
+E   ModuleNotFoundError: No module named 'trading_system.execution.program_consumed_boundary'</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,60 @@
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+___ test_actual_host_dispatch_observation_owned_posting_and_working_book[1] ____
+tests/integration/test_program_paper_host.py:62: in test_actual_host_dispatch_observation_owned_posting_and_working_book
+    empty_owner(c);runtime,codec=host(c,database,tmp_path/'host',version=version)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_paper_host.py:30: in host
+    from trading_system.runtime.program_paper_host import ProgramPaperHost
+E   ModuleNotFoundError: No module named 'trading_system.runtime.program_paper_host'
+___ test_actual_host_dispatch_observation_owned_posting_and_working_book[2] ____
+tests/integration/test_program_paper_host.py:62: in test_actual_host_dispatch_observation_owned_posting_and_working_book
+    empty_owner(c);runtime,codec=host(c,database,tmp_path/'host',version=version)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_paper_host.py:30: in host
+    from trading_system.runtime.program_paper_host import ProgramPaperHost
+E   ModuleNotFoundError: No module named 'trading_system.runtime.program_paper_host'
+_______ test_missing_owned_position_retains_raw_fill_and_financial_block _______
+tests/integration/test_program_paper_host.py:90: in test_missing_owned_position_retains_raw_fill_and_financial_block
+    c=case(database,host_venue,tmp_path,scoped_quantities=True);runtime,codec=host(c,database,tmp_path/'missing-owner')
+                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_paper_host.py:30: in host
+    from trading_system.runtime.program_paper_host import ProgramPaperHost
+E   ModuleNotFoundError: No module named 'trading_system.runtime.program_paper_host'
+_________ test_historical_gtc_query_does_not_renew_the_creation_permit _________
+tests/integration/test_program_paper_host.py:108: in test_historical_gtc_query_does_not_renew_the_creation_permit
+    c=case(database,host_venue,tmp_path,scoped_quantities=True);runtime,codec=host(c,database,tmp_path/'historical')
+                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_paper_host.py:30: in host
+    from trading_system.runtime.program_paper_host import ProgramPaperHost
+E   ModuleNotFoundError: No module named 'trading_system.runtime.program_paper_host'
+_ test_unqualified_execution_family_never_borrows_the_base_source_bridge[native] _
+tests/integration/test_program_paper_host.py:128: in test_unqualified_execution_family_never_borrows_the_base_source_bridge
+    runtime,codec=host(c,database,tmp_path/family)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_paper_host.py:30: in host
+    from trading_system.runtime.program_paper_host import ProgramPaperHost
+E   ModuleNotFoundError: No module named 'trading_system.runtime.program_paper_host'
+_ test_unqualified_execution_family_never_borrows_the_base_source_bridge[quote] _
+tests/integration/test_program_paper_host.py:128: in test_unqualified_execution_family_never_borrows_the_base_source_bridge
+    runtime,codec=host(c,database,tmp_path/family)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_paper_host.py:30: in host
+    from trading_system.runtime.program_paper_host import ProgramPaperHost
+E   ModuleNotFoundError: No module named 'trading_system.runtime.program_paper_host'
+______ test_unknown_source_retains_current_book_and_creates_no_new_token _______
+tests/integration/test_program_paper_host.py:138: in test_unknown_source_retains_current_book_and_creates_no_new_token
+    c=case(database,host_venue,tmp_path,scoped_quantities=True);runtime,codec=host(c,database,tmp_path/'unknown')
+                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_paper_host.py:30: in host
+    from trading_system.runtime.program_paper_host import ProgramPaperHost
+E   ModuleNotFoundError: No module named 'trading_system.runtime.program_paper_host'
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_paper_host.py::test_actual_host_dispatch_observation_owned_posting_and_working_book[1]
+FAILED tests/integration/test_program_paper_host.py::test_actual_host_dispatch_observation_owned_posting_and_working_book[2]
+FAILED tests/integration/test_program_paper_host.py::test_missing_owned_position_retains_raw_fill_and_financial_block
+FAILED tests/integration/test_program_paper_host.py::test_historical_gtc_query_does_not_renew_the_creation_permit
+FAILED tests/integration/test_program_paper_host.py::test_unqualified_execution_family_never_borrows_the_base_source_bridge[native]
+FAILED tests/integration/test_program_paper_host.py::test_unqualified_execution_family_never_borrows_the_base_source_bridge[quote]
+FAILED tests/integration/test_program_paper_host.py::test_unknown_source_retains_current_book_and_creates_no_new_token
+7 failed in 13.20s

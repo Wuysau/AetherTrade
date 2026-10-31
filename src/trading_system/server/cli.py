@@ -26,6 +26,14 @@ def main(argv: list[str] | None = None) -> int:
     provision.add_argument('--initial-cash', default='100000')
     provision.add_argument('--output', type=Path, required=True)
     commands.add_parser('paper-status', help='Read the same durable PAPER projection as the browser')
+    commands.add_parser('order-capabilities', help='Read capability vocabulary and qualification blockers; no execution')
+    program_list = commands.add_parser('paper-programs', help='Read scoped order program archives; no dispatch')
+    program_list.add_argument('--scope')
+    program_list.add_argument('--limit', type=int, choices=(10, 20, 50), default=10)
+    program_list.add_argument('--cursor')
+    program_detail = commands.add_parser('paper-program-detail', help='Read original plan and separate command/venue/duty evidence')
+    program_detail.add_argument('program_id')
+    program_detail.add_argument('--scope', required=True)
     daily = commands.add_parser('paper-daily-review', help='Explicit next-risk-day flat-account review')
     daily.add_argument('lock_id')
     daily.add_argument('--operator-review-id', required=True)
@@ -51,6 +59,10 @@ def main(argv: list[str] | None = None) -> int:
     event.add_argument('--price')
     args = parser.parse_args(argv)
     try:
+        if args.command == 'order-capabilities':
+            from .order_observation import capability_catalog
+            print(json.dumps(capability_catalog(), ensure_ascii=False, indent=2))
+            return 0
         if args.command == 'paper-provision':
             from .paper_provision import provision
             admin = os.environ.get('PAPER_RUNTIME_ADMIN_DSN')
@@ -102,6 +114,11 @@ def main(argv: list[str] | None = None) -> int:
                         operator_review_id=args.operator_review_id)
                 elif args.command == 'paper-status':
                     result = runtime.projection()
+                elif args.command in ('paper-programs', 'paper-program-detail'):
+                    from .order_observation import observer_for_runtime
+                    observer = observer_for_runtime(runtime)
+                    result = (observer.list(scope=args.scope, limit=args.limit, cursor=args.cursor)
+                              if args.command == 'paper-programs' else observer.detail(args.program_id, scope=args.scope))
                 elif args.command == 'paper-event':
                     result = runtime.inject(args.command_id, dict(event_id=args.event_id, status=args.status,
                         cumulative_quantity=args.cumulative, price=args.price))

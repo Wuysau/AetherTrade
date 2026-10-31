@@ -1,0 +1,73 @@
+FFFF..F.                                                                 [100%]
+================================== FAILURES ===================================
+____ test_effective_ttl_accepts_real_narrower_qualified_allocation[bridge] ____
+tests\unit\test_financial_archive_ttl.py:48: in test_effective_ttl_accepts_real_narrower_qualified_allocation
+    assert codec.decode(codec.encode(a))==a
+                        ^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:125: in encode
+    require(self.decode(payload)==archive,'FINANCIAL_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:119: in decode
+    validate_archive(archive)
+src\trading_system\intents\program_financial_records.py:85: in validate_archive
+    require(terms.action==original.action and terms.target_side==a.terms.target_side==original.target_side
+src\trading_system\contracts\program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH
+____ test_effective_ttl_accepts_real_narrower_qualified_allocation[rules] _____
+tests\unit\test_financial_archive_ttl.py:48: in test_effective_ttl_accepts_real_narrower_qualified_allocation
+    assert codec.decode(codec.encode(a))==a
+                        ^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:125: in encode
+    require(self.decode(payload)==archive,'FINANCIAL_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:119: in decode
+    validate_archive(archive)
+src\trading_system\intents\program_financial_records.py:85: in validate_archive
+    require(terms.action==original.action and terms.target_side==a.terms.target_side==original.target_side
+src\trading_system\contracts\program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH
+____ test_effective_ttl_accepts_real_narrower_qualified_allocation[facts] _____
+tests\unit\test_financial_archive_ttl.py:48: in test_effective_ttl_accepts_real_narrower_qualified_allocation
+    assert codec.decode(codec.encode(a))==a
+                        ^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:125: in encode
+    require(self.decode(payload)==archive,'FINANCIAL_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:119: in decode
+    validate_archive(archive)
+src\trading_system\intents\program_financial_records.py:85: in validate_archive
+    require(terms.action==original.action and terms.target_side==a.terms.target_side==original.target_side
+src\trading_system\contracts\program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH
+________ test_effective_ttl_may_be_stricter_than_qualified_allocation _________
+tests\unit\test_financial_archive_ttl.py:58: in test_effective_ttl_may_be_stricter_than_qualified_allocation
+    ProgramFinancialArchiveCodec().encode(a)
+src\trading_system\intents\program_financial_records.py:125: in encode
+    require(self.decode(payload)==archive,'FINANCIAL_ARCHIVE_TYPE_DOWNGRADE')
+            ^^^^^^^^^^^^^^^^^^^^
+src\trading_system\intents\program_financial_records.py:119: in decode
+    validate_archive(archive)
+src\trading_system\intents\program_financial_records.py:85: in validate_archive
+    require(terms.action==original.action and terms.target_side==a.terms.target_side==original.target_side
+src\trading_system\contracts\program_financial.py:13: in require
+    if not condition:raise ValueError(reason)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: FINANCIAL_ARCHIVE_SOURCE_TERMS_MISMATCH
+_____ test_even_consistent_rewritten_hashes_cannot_extend_allocation_ttl ______
+tests\unit\test_financial_archive_ttl.py:75: in test_even_consistent_rewritten_hashes_cannot_extend_allocation_ttl
+    with pytest.raises(ValueError):ProgramFinancialArchiveCodec().encode(a)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_financial_archive_ttl.py::test_effective_ttl_accepts_real_narrower_qualified_allocation[bridge]
+FAILED tests/unit/test_financial_archive_ttl.py::test_effective_ttl_accepts_real_narrower_qualified_allocation[rules]
+FAILED tests/unit/test_financial_archive_ttl.py::test_effective_ttl_accepts_real_narrower_qualified_allocation[facts]
+FAILED tests/unit/test_financial_archive_ttl.py::test_effective_ttl_may_be_stricter_than_qualified_allocation
+FAILED tests/unit/test_financial_archive_ttl.py::test_even_consistent_rewritten_hashes_cannot_extend_allocation_ttl
+5 failed, 3 passed in 1.21s

@@ -1,5 +1,1606 @@
 # Current task
 
+## CURRENT_HOST_IO_FIX_ROUND1_GREEN_REVIEW_PENDING — 2026-10-30
+
+Host ImportantP1 personally reproduced in real PG and implemented at exact
+1e8fd3748cea2b356d2ce94c55cdf27c95308716, fixBASE19548ce (mergeddae retained).
+PersonalRED56183381 host24=7pass17fail/0error/skip158.834s. Original7 unchanged;
+12first financialquery IOfailures retained staleAccepted,4laterquery failures
+swallowedOSError,1failedbarriercommit still allowedIO. These are actual prior
+V1/V2Accepted ledger scenarios with controlled transport exception injection,
+not the external pure AST probe or native exchange outage qualification.
+
+Fixedhost24GREEN202.688s, knownness8GREEN45.952s, working17GREEN110.422s,
+all0fail/error/skip at same1e8 source. Original45019/54656/68697/43603 TERMINAL;
+solequalifier slot explicitly RELEASED to cost_history_fresh. No own live job or
+new runner.24focusedunitGREEN4.33s. Fixed source extracts existing protected
+STARTED commit as begin_query before accounting's first sourceIO. A start alone
+is onlyUNKNOWN; the later independent observer restores currentknownness. Host
+observer raises original IOerror only after durableUNKNOWN, while default
+recovery callers retain old softUNKNOWN behavior. No schema, role, source payload/
+hash, funds, newrisk permission or TTL change. Book/hold/token/xmin, everAccepted
+and genuine later recovery are checked; barriercommit failure performs zeroIO.
+
+All64raw originals/copies/actual8bb150d committed Gitblobs independently match
+SHA,0mismatch under op-f-host-fix-round1/COMMITTED-BYTES.json. Four terminal newsource.bundle files,
+45124403bytes, copy/size/SHA-verified to approvedCbackup in separate round1map,
+original single files removed only after proof; evidence/env/old107map unchanged.
+DFree~2.42GB maintained, serial cached/offline only; no build/pull/reset/cleanup.
+Exact3changedpaths and testedheads: ROOT-HOST-FIX1-DEPENDENCY-1e8fd37.json.
+External PaperHostReview-a799f19/review.md retains finding and receives implementer
+round1report plus scopedfixpatch; originalreviewer verdict remains pending.
+
+Previous effective27/28/29 Root attempts remain infra0tests/NOTqualified; no
+full74gate/46_56 promotion or host/default/external activation.30reserved Cost,
+registry31+ coordinates. ROOT+D soleownership retained; parent controls next work.
+
+## CURRENT_HOST_FIX_ROUND1_FIXED_RUNNING — 2026-10-30
+
+PersonalRED56183381 actualhost24PG original45019/run48b61a7d5a9a TERMINAL1:
+7originalpass17coveringfail,0error/skip158.84s. Twelve first financial IO failures
+leave priorAccepted current; four later observer IO failures swallow OSError;
+failed barriercommit still allows a venuequery. All are behavioral failures after
+real priorAccepted with liveledger, not fixture/setup failures. REDsource.bundle
+11284465bytes hash-verified/Cbacked up per whitelist, evidence/env unchanged.
+
+Fixed1e8fd3748cea2b356d2ce94c55cdf27c95308716 extracts observer.begin_query from
+existing protectedSTARTED SQL and commits it before hostaccounting I/O. A start
+is only UNKNOWN, never acceptance; later independent orderobserver establishes
+current knownness. Hostobserver uses strict error propagation only AFTER durable
+UNKNOWN completion; default recovery observers retain prior return behavior.
+No schema/role/financialpolicy/sourcehash/permissions changed.24focusedunit pass
+4.33s. Original54656/rune6f267fb1d4c is soleactive host24PG, nootherqualifier.
+Only cached images/offline; no new build/pull. Dfree2.415GB, serialbudget/2GB floor.
+
+After fixedhost, only affectedknownness8 andworking17 serialactualPG are due.
+Then release solequalification slot to Cost; full74gate and earlierEffective
+0test attempts remain unqualified. Original reviewfile will receive exact tests,
+commands/results andBASE19548ce..fixedHEAD diff before scopedre-review request.
+ROOT+D ownership retained; no activation/account/model/native mode or newrisk.
+
+
+## CURRENT_HOST_REVIEW_FIX_ROUND1_RED_RUNNING — 2026-10-30
+
+Parent resumed ROOT solewriter from clean19548ce (productdae). Independent
+PaperHostReview-a799f19 reports ImportantP1: accounting sourcequery raises IO
+before any observer STARTED, leaving priorAccepted/currentworking. Original7
+only covered a normal None-return. Fresh fix round1/5 required, no host promotion.
+Original finding/report unchanged. Parent restored Desktop without reset; actual
+readonly29.7.2/linux and cached Postgres18cfe3/runner768aad images verified.
+Only ONE active qualifier permitted, no builds/pulls/fullgate. Dfree2.55GB.
+
+PersonalRED source56183381af99ae228f8b7ec0337012fa87d8597e has original7 plus
+16real-ledger V1/V2 exception variants (creation/market reads, OSError/Timeout/
+OperationalError, first accounting/later order reads) and a barrier-commit case.
+Actual priorAccepted/working is established, then controlled source IO fails
+while actual ledger remains available. CurrentUNKNOWN beforefault, same exception,
+no book/hold/token row/xmin change, everAccepted and genuine recovery are required.
+Original45019/run48b61a7d5a9a is RUNNING; no implementation fix until genuineRED.
+
+Planned narrow correction reuses existing observerSTARTED transaction before
+accounting IO and preserves original errors after durableUNKNOWN for later order
+queries. Default recovery observe semantics stay; no source-provenance/schema/
+permission weakening. After actualfixedhost, only affectedknownness/working PG
+serial checks, then solequalification slot returns Cost. Allnew terminal bundles
+hash-preserved to approvedCbackup; evidence/env unchanged. Effective earlier4
+infra0test attempts still unqualified; source30reservedCost,registry31+coord.
+
+
+## CURRENT_EFFECTIVE_SELECTED_INFRA_BLOCK — 2026-10-30
+
+ROOT productdae9863663383628099110bab7c371dfa0af81ce serialselects reviewed
+effective3103187469151572e5664bdd84281397009a51b7:12source/test/migration paths
+byte-identical, including27/28/29 independent source-attestation fix. All27Cash
+paths and newhost preserved; no oldneutral/component overwrite.89relatedunit
+GREEN12.43s. Two suites added (74total retaining72). ROOT-EFFECTIVE-DEPENDENCY-dae9863
+binds exact selected/preserved paths. No effective ROOTPG qualification exists yet.
+
+Four attempted fixeddae suites (effective21,sourceboundary4,management51,host7)
+all TERMINAL at bundle before any container/PG/test: fatalOutofdiskspace.
+Runs843043b9ab4b/2cbc42db4769/905edf29a660/cc1aa20a5e6c are INFRA0tests/noJUnit,
+not productRED/GREEN/skip qualification. Raw8files retained under
+op-e-root-effective-infra. No active qualifier or automatic retry remains.
+
+Parent explicitly authorized reversible single-file backup of terminal ROOT
+source.bundle only.107 finished-manifest+runner-stop0 bundles (995976264bytes)
+copied to C:/Users/Wuysa/AppData/Local/Temp/AetherTrade-root-bundle-backup-20261030,
+size/SHA verified before individual nonrecursive original removal; all107 backup
+hashes rechecked0mismatch. C migration-map records paths/size/hash/time/original
+terminal/sourcecommit and is copied into this proof directory. Unconfirmed
+f5be1013bf70 source.bundle remains in place. Evidence/env/gitobjects/main/archives/
+otherwriters unchanged. Only~1GB existed, so no scope expansion to reach10GB.
+DFree2.72GB after parentSDK also moved its own wheel. ReadonlyDocker version/ping
+returns "Docker Desktop is unable to start"; earlierinspect returnedAPI500.
+
+Infrastructure ruling forbids reset/restart/global cleanup and new qualification
+until daemon health plus explicit parent single-cohort budget. Do not rerun the
+four known failed attempts or claim combined qualification. Prior Cash032140PG
+and hosta7997PG51.117s remain independently source-bound, with240 actuale66Gitblob
+proof0mismatch at clean16fce88. Fresh hostreview packet PaperHostReview-a799f19.
+Current effective confirmation grants no funds/global duty release or financial
+tag registration; default host/router/scheduler/externalmodes stay off.30reserved
+independent cost/history, registry31+ must coordinate. Full46/56 remains ACTIVE.
+
+## CURRENT_CASH_HOST_GREEN_EFFECTIVE_NEXT — 2026-10-30
+
+Reviewed CASH933/805 selected at03298138287fd1e39fbac95b28629e6fe0dd9859;12affected
+actualPG cohorts all terminal0/zero fail/error/skip (140cases; not full72gate).
+Counts/times/source IDs are in op-f-root-cash-host-integration/runs.json. Nine
+5ef physical/currentguard paths and all25/26/22/23/sourceUNION preserved. Current
+cash/owned/observed-leaf/working routes now use reviewed strict components, including
+9f opening ambiguity and additive24. Only exactV1/V2 financial sources qualify.
+
+Explicit isolated ProgramPaperHost sourcea799f19a2b963d33f9d638ffdd08d68d8b183ee9
+actual7PG GREEN0fail/error/skip51.117s original23641/run2c7c5a2421cf TERMINAL0.
+Real V1/V2 original dispatch→nofill snapshot→finite.4 fill/.001fee→nativeRawLedger/
+owned.4/FEE32.596/working.6/fullbookvector+binding/replay pass. Missing owner keeps
+raw/unclaimed inventory; historical GTC query never renews oldpermit; quote/native
+fail before mark. Generic newwrite/cost POSITION_EVIDENCE remain unchanged.
+
+PersonalRED6a04 had7missinghost failures13.20s. Host788f had6pass1DIDNOTRAISE46.47s:
+blocked accounting query skipped current protectedUNKNOWN and oldAccepted could
+supplyworking. Fixa799 invokes existing source observer on SOURCE_BLOCKED. The
+new test requires currentUNKNOWN/workingdenial, unchangedbook/token and historical
+everaccepted. All originalhandles terminal; no restart or defaultactivation.
+24+15 focusedunit passed1.86s/0.46s. Qualifier only adds explicit historical fullSHA
+bundle transport for actual pre18 fixture; source16 exercised exact3d offline.
+
+All240raw originals/copies/actuale66edb1 committed Gitblobs independently
+match SHA,0mismatch (COMMITTED-BYTES.json). ROOT-CASH-HOST-DEPENDENCY-a799f19 binds27CASH and23preserved
+Root paths. Fresh independent host/composition review remains required before
+operational promotion. No consoleDB/router/scheduler/model/account/externalmode
+enabled. Effective31031874 reviewedclear27/28/29 is the next serial selection;
+newregistry migrations30+ coordinated. Full46/56 ACTIVE, onlyORD47 formally complete.
+
+## CURRENT_STRICT_CASH_MERGED_HOST_VERIFICATION — 2026-10-30
+
+Reviewed CASH933040b/runtime805aa53 integrated at exactROOT03298138287fd1e39fbac95b28629e6fe0dd9859.
+22CASH-owned product/test paths selected byte-identically. Existing9ROOT5ef physical/
+codec/reservation/current/afterwait files remain exact, as do Root25/26/22/23 and
+shared quote/native source UNION/capacity. Includes strict owned transition proof,
+allinstrument0018observed-leaf completeness, seq1working order source, readonly
+replay, allregisteredopening ambiguity denial and additive0024. No older neutral
+cash implementation remains on these routes. Only exactV1/V2 sources are funded;
+quote/native/managed remain separate unregistered bridges, no host activation.
+
+All12 fixed032 actualPG cohorts terminal0/zero fail/error/skip:owned11,working17,
+accountcash9,source16,firstcapital3,knownness8,physical16,oldexecution37,raw9,
+V2owned2,openinghistory/exclusivity9,bookcash3 (140actual component cases,NOTfull72).
+24focusedunit1.86s plus15source/math/offlineunit0.46s. Historical source3d is not
+Rootancestor; optional qualifier --historical-source-commit fullSHA explicitly
+carries exact3d in the offline bundle, recorded in manifest. Actual isolated
+bundle clone and final source16 prove availability; no rewrittenhistory or skip.
+
+New thin runtime/ProgramPaperHost has no route/startup/defaultactivation. It uses
+actual ExecutionOwner session and original mark/consume/submit once; existing raw/
+owned/order/book services and exact local opening reader. It rejects native/quote
+families before mark and pending managed sources, observes original IDs, and never
+invents intake/NO_ACTION or new permission. Existing cost/history POSITION_EVIDENCE
+and generic newwrite structural guard stay intact. Plan OP-F-PAPER-HOST-COMPOSITION-PLAN.
+
+Actual initialhost6a04 RED7missingmodule13.20s after real funded commands. New
+host788f actual6pass1DIDNOTRAISE46.47s exposed failure to persist currentUNKNOWN
+when accounting-source query failed: olderAccepted still suppliedworkinginputs.
+Fixa799 calls existing observer on SOURCE_BLOCKED, preserving book/oldacceptance/
+reserves/oldtoken while durably blocking currentworking. Original23641 is RUNNING
+at this checkpoint, no restart; all other ownhandles terminal. New effective
+management31031874 reviewedclear27/28/29 may be selected only after host proof;
+newmigration30+ coordinated withparent. CASH/SDK trees remain untouched here.
+
+
+## CURRENT_MANAGEMENT_ROOT_GREEN_CHECKPOINT — 2026-10-30
+
+Exact ROOT product2b94894f815b131c4e5f6be73f15ce5ce918f567 actual management51PG
+GREEN0fail/error/skip260.764s; original21158/run995fb20f8954 TERMINALexit0.
+Reviewed managementa6d7dddbc8f39d1d2648a71a2649a472a05834c4 supplied12 exact NEW
+runtime/schema blobs plus covering test (all test-function ASTs unchanged) and
+one additive suite (67total, prior66 retained). Positive fixture explicitly
+provisions/binds its declared opening BEFORE first financial admission, avoiding
+double initialization by currentreal_case. No strict capital guard is skipped.
+Related89unit GREEN12.72s. All16 existing native/quote/5ef/migration core hashes
+remain unchanged. ROOT-MANAGEMENT-DEPENDENCY-2b94894.json records the exact paths.
+
+Earlier9365/run a8ea2bfd0105 is retained SETUP failure: HEAD selected old3654
+before a test+commit shell finished, so no managementsuite/0tests/noJUnit/exit2.
+It is neither productRED nor qualification. The fixed run explicitly selects2b;
+no live job was restarted. All29safe raw originals/copies/actuale7c550b committed Gitblobs independently
+match SHA,0mismatch under op-e-root-management-integration/COMMITTED-BYTES.json.
+
+ROOT quote46bf has actual30+3+16+51 proof; combined native/quote9d8 has genuine
+sourceRED→GREEN2 plus27native/30quote/51source/23compat. Their original64 and160
+raw Gitblob proofs stay separate; no old full gate is reinterpreted. New native
+source-union/adapter fixed9d8 independent integration review remains pending.
+Management51 qualifies its cancel-only component, not amendments/replacements,
+neutral V4 group-hook integration, protectedaction or host/default qualification.
+Quote/native0021/static financial source/owned posting remain blocked. OnlyORD47
+formally complete; full46/56 remains active with all original cases/targets intact.
+
+Parent now requests this writer FINAL IDLE after docs/proof, RETAINING ROOT+D
+sole ownership. No own live jobs remain. Parent will branch fresh management from
+exact2b for effective terms/KEEP_PRIORITY on the26 core; no old14/26 rewrite and
+new migration numbers coordinated by parent. CASH owns its source-leaf/raw-ledger
+visibility and working-order source APIs; do not overwrite or race that tree.
+Actual pinnedSDK postqueue/build work is separately parent-coordinated, external
+modes remain disabled. This is no user pause, ownership release or goal completion.
+
+## CURRENT_MANAGEMENT_ROOT_INTEGRATION_RUNNING — 2026-10-30
+
+Exact functionalROOT2b94894f815b131c4e5f6be73f15ce5ce918f567 selects NEW12
+runtime/schema files byte-identical reviewed managementa6d7dddbc8f39d1d2648a71a2649a472a05834c4
+(runtimefc2/e248), plus its51-case test and one mandatory entry (67total).
+Public/package schema bytes match; every test-function AST is unchanged. Only
+positive fixture wrapper is adapted: currentreal_case provision_opening=False,
+then that wrapper explicitly provisions/binds declared assets BEFORE the first
+financial admission. It never avoids strict firstcapital/currentcash guards.
+All16 existing native/quote/financial/permit/migration files checked unchanged.
+Related89 unit tests GREEN12.72s. Exact manifest ROOT-MANAGEMENT-DEPENDENCY-2b94894.
+
+Original explicit2b51PG handle21158 is RUNNING. Earlier9365/a8ea2bfd0105 selected
+old3654 while a test+commit shell39874 was still running; oldsource has no suite,
+runner exit2/0tests/noJUnit. This is retained setup failure, not managementRED or
+qualification. The shell then finished89unit and committed2b; no live job was
+restarted. No outcome is inferred before original21158 terminal/JUnit.
+
+Native/quote checkpoint3654de9 is separately stable with actual2+27+30+51+23
+component suites and160 original/copy/actual06e75d2 Gitblob hashes independently
+verified0mismatch. Read-only new integration review packet is outsideROOT at
+TradingHandoff/NativeQuoteIntegrationReview-9d8dd5c. New source/adapter hunk still
+needs independent review; peer native/quote reviews retain their original scope.
+Management remains cancel-only/nohost; neutral creation/current/afterwait V4
+obligation hooks, protectedaction, effective terms and replacement remain due.
+CASH owns A+B/source/working/replan integration; no other tree writes here.
+
+
+## CURRENT_NATIVE_QUOTE_INTEGRATION_GREEN — 2026-10-30
+
+Exact ROOT9d8dd5c90ed1cade158bca0a825edac0890be4e9 actual combined2PG GREEN
+35.862s plus native27/128.351s, quote30/191.605s, V2source51/259.222s and V2compat23/
+120.737s, all0fail/error/skip. Every original handle71461/11501/41834/62776/99218
+is terminal0. No repeated jobs or broad old-source gate. Focused53unit GREEN2.33s.
+
+Both native-first and quote-first/reference-carried cases genuinely consume
+.2native+.08quote+.02BASE from shared.3 depth and verify every source; omitting
+or duplicating quote rivals BLOCKS native verification. Genuine combined RED236
+is2fail35.35s/PAPER_NATIVE_LIQUIDITY_CHANGED after actual fills. Only native
+independent manifest expanded to actual quote rivals; exact bounded complete-set
+comparison retained. Initial fix0657's ambiguous JOIN2fail35.67s was corrected
+with qualified ON, not relaxed checks. Three prior new-fixture failures are
+explicitly separated from productRED; final50000..60000 model is genuinely
+compiled and fully assessed before any write. Native stays MARKET, no fake LIMIT.
+
+Native0026 and five direct producer/test files match reviewedda12780 exactly.
+Adapter is a clean three-way merge preserving quote dispatch/query/all-rival
+UNION. Quote manifest/capacity helper, frozen0013/14/25 and all5ef cash/release/
+financial/current/afterwait/source-registry bytes are unchanged. Exact8path+13
+preserved hashes: ROOT-NATIVE-QUOTE-DEPENDENCY-9d8dd5c.json. Ten runs160safe raw
+originals/copies/actual06e75d2 Gitblobs independently match SHA,0mismatch under
+op-d-root-native-quote-integration (COMMITTED-BYTES.json).
+
+Source-native/quote0021/static financial registration and owned posting still
+BLOCKED; distinct native result cannot alias V1/V2 or clear nonempty-member21.
+No host/default qualification. Next reviewed management closeout is EXACT
+a6d7dddbc8f39d1d2648a71a2649a472a05834c4 (a6d7dd3 is not a revision); serialselect
+NEW0022/23 and contracts/services/tests, retaining this new matcher and5ef guards,
+then actual51PG. CASH solely owns A+B/orderprojection/newintake. All46/56 active.
+
+## CURRENT_NATIVE_COMBINED_GREEN_REGRESSIONS_RUNNING — 2026-10-30
+
+Exact ROOT9d8dd5c90ed1cade158bca0a825edac0890be4e9 passes genuine combined
+nativeTWAP/quote/V2BASE source2PG,0fail/error/skip35.862s; original71461 terminal0,
+run405ca12357c7. Both native-first and quote-first/reference-carried paths consume
+.2+.08+.02 from shared.3 depth and authenticate all three sources. Omitted or
+repeated quote rivals must BLOCK native verification and retain raw evidence.
+New native independent SQL manifest now includes actual quote allocations with
+original bounded complete-set comparison; no filtering or alternate authority.
+
+Actual product RED236af39 original46544/run3a7e3f9c539c:2fail35.35s, both
+PAPER_NATIVE_LIQUIDITY_CHANGED after genuine fills and successful quote/V2 checks.
+Initial fix0657 original28373/run58002a0250be failed2/35.67s on ambiguous SQL JOIN;
+9d8 qualifies the dependency join with ON. Prior48/2ea/5f runs are ONLY fixture
+precondition failures (MARKET variant, profile mismatch, full loss limit), not
+product/sourceRED. Final test explicitly compiles matching50000..60000 native
+model/risk bounds, retains nativeMARKET and genuine bounded funds/risk assessment.
+No policy/risk limit, opening, reservation, original IDs, permit or safety case
+was relaxed. Reviewed native27/source/runtime logic otherwise selected unchanged.
+
+Four affected fixed9d8 regressions now RUNNING on original11501(native27),
+41834(quote30),62776(V2source51),99218(V2compat23). Do not restart for timeout.
+Quote/shared-capacity/sourcemanifest and ROOT5ef guards/frozen13/14/25 unchanged.
+Static native-parent/quote registration and owned financial posting remain off;
+no host/default qualification. After these actual regressions, integrate reviewed
+management22/23 and51cases on this new core; CASH solewriter continues separately.
+
+
+## CURRENT_NATIVE_QUOTE_COMBINATION_WIP — 2026-10-30
+
+ROOT quote checkpointa741fe9 is clean/source46bf; all64new raw original/copy/
+actual731e1fc Gitblob hashes verified0mismatch. Native independent reviewed
+candidate da12780f358e666ec5035adec95c637ae74403ca is now selectively present:
+additive0026, distinct native terms/report/verifier, position event/adapter and
+covering tests. Adapter three-way merge preserves quote dispatch/query/complete
+allocation UNION. Quote source manifest/capacity helper, staticregistry, frozen
+0013/14, and all ROOT5ef financial/release/current/afterwait bytes are unchanged.
+
+Actual combined same-market test uses genuine nativeTWAP,quote4000 and BASE
+rivals consuming .3 total depth; both quote-first/reference-carried and native-
+first paths must authenticate all three reports. Native manifest originally reads
+only BASE consumptions, so combined source remains NOT qualified pending actual
+proof and correction. First48b09ab run55011/23b0e1912c8b failed2 beforeexecution:
+new fixture incorrectly applied fixed-limit value to nativeMARKET. Next2ea run
+81888/3cb1c826a6b7 failed2 beforeexecution: actual risk denied50000bound outside
+native compiled80000..90000 model profile. Neither is product/source RED. Current
+5f7c359 fixture declares model50000..90000 through genuine pre-intake profile
+compilation plus matching node bounds; maximum90000/fullreservation/risk guards
+remain. Original49939 is RUNNING at this checkpoint, no restarts. Focused53unit
+GREEN2.33s. All prior original handles terminal; no host/financial registration.
+
+After native/quote combined actualPG and relevant regressions pass, integrate
+reviewed management a6d7dd3/0022+0023 on this new core (never old0014replacement)
+and verify its51cases. CASH solely owns its A+B/working-source/newintake path;
+ROOT must not remove generic-newwrite guards to continue accepted GTC programs.
+All46/56 remains active; main/archives untouched; ROOT+D ownership retained.
+
+
+## CURRENT_ROOT_QUOTE_INTEGRATION_GREEN — 2026-10-30
+
+Reviewed quote candidate03646b5705a5cabbefafe608dee472a2cf0ba103 is selectively
+integrated at exact ROOT46bf284dbb2145287068d7f92761511ada3202c3. Nine selected
+producer/source/test files match the reviewed candidate exactly; two additive
+suites retain all62 original entries (64total). Shared allocations include quote
+rivals; independent V2 Counter and depth/reference/prevention capacity checks
+remain complete. Original quote budget, derived base, gross quote, unused quote
+and external quote fees stay distinct. Unsupported receipt/base/third fees deny.
+Frozen0013/14, ROOT5ef physical/shared preparation/current/afterwait guards and
+static source registration are byte unchanged. No host/default qualification edit.
+
+All actual fixed46bf jobs terminal exit0,0fail/error/skip:
+quote30/190.063s(original81556,run00bf6e19f413), mixed3/33.843s(12742,670e9670aab3),
+physical16/42.175s(43484,d0b39644c50e), V2source51/254.984s(98892,75478dae9853).
+Focused62unit GREEN3.03s. All64raw originals/copies/actual731e1fc committed
+Gitblobs independently match SHA,0mismatch (COMMITTED-BYTES.json). Exact selected/preserved manifest:
+docs/orders/ROOT-QUOTE-DEPENDENCY-46bf284.json. Evidence: op-d-root-quote-integration.
+
+Quote verification is a distinct tagged fact result, not registered source or
+owned financial posting. Its native raw-fill/economic bridge, fee families and
+full56 acceptance remain active. Physical review round1 independently PASS/P2
+addressed; CASH owns its actual A+B posting/new intake work separately. Native
+candidate da12780 has now independently cleared its disposition fix; next ROOT
+slice is serial additive0026 plus genuine same-market quote/native source PG.
+Separate quote/native component success never proves their combined behavior.
+ROOT+D sole ownership retained; onlyORD47 formally complete, all46/56 required.
+
+## CURRENT_PHYSICAL_RELEASE_FIX_ROUND1 — 2026-10-30
+
+Independent review of ef80 found one P2: bare scoped merge_holds discarded a
+genuine current ReleasedBalanceAttestation and re-held an older-watermark
+RELEASED reservation. Personal actual RED f6c10c2 has 12 pass / 4 fail, 28.188s;
+all original 11 cases passed. Shared prepare_collateral now contains the existing
+release verifier, with ReservationService delegating. Scoped reserve/current/
+afterwait independently rerun that verifier through a trusted local optional
+load_released_balances port. Caller zero holds never supply credit. Physical
+immutable checks, full foreign cash, original own-bundle exclusion, protected
+abort/terminal proof and parent-funding guards remain intact. No schema changes.
+
+Exact fixed source 5ef20a43d00f2d3ffc24361ffa1082f1ec12c9b5 actual 16PG GREEN,
+0 failures/errors/skips, 40.697s; original 21792/run0fe33ea10bcd TERMINAL exit0.
+Positive: real legacy admission -> protected unsent abort -> persisted reconcile
+-> newer balance re-attestation -> scoped admission/mark/consume/afterwait.
+Missing current proof independently blocks each boundary; no mark/consume write.
+First fixed 6707 had 14 pass / 2 assertion failures (40.865s): intended denials
+were MissingEvidence while tests expected ValueError. Exact assertions corrected;
+no product change. Same product bytes 6707 also passed the affected existing
+67PG reservation suite, 12.024s. Focused 35 unit tests passed 3.53s.
+
+All four new original job handles are terminal. Their 64 safe raw artifacts under
+op-c-physical-release-fix independently match originals, copies and actual
+55d7eb4 committed Git blobs,0 mismatches (COMMITTED-BYTES.json). Prior128 proof is
+unchanged. All9 dependency paths match exact tested5ef source and currentHEAD.
+Updated dependency ROOT-CASH-PHYSICAL-DEPENDENCY-5ef20a4.json replaces the ef80
+selection for Cash: previous8 paths PLUS shared reservations.py extraction (9).
+Preserve Cash's newer source/owned/book/readiness/origin-proof modules when merging.
+Independent scoped recheck is still required before Cash A+B promotion. No host
+is enabled; full46/56 ACTIVE, only ORD47 formally complete. ROOT+D sole ownership
+retained; other trees and original frozen migrations remain untouched.
+
+## CURRENT_PHYSICAL_SCOPE_GREEN — 2026-10-30
+
+Exact stable product ef80b58a3a003d5a5c0b8916fd5b95ad600e33e8 (not ef80b585)
+actual11PG GREEN0fail/error/skip24.81s, original52785/run56c2a02dfbcb TERMINALexit0.
+Genuine same-account/group AthenB both accepted-unfilled, tightcash once/localqty0,
+raw/financial hashes and real forged/omitted/scopemap/projection/immutable negatives
+passed. Focused67unit GREEN15.04s; purec9Scoped+archive50unit earlierGREEN7.02s.
+Exact8path/SHA manifest ROOT-CASH-PHYSICAL-DEPENDENCY-ef80b58.json sent CASH together
+with complete27path b7 baseline.16 raw scoped files/maps and112 prior source/capital
+RED/GREEN originals are published. All128 original/copy/actualCURRENTb0178597
+committed Git blobs independently SHA-verified0mismatch; recorded proof in
+op-c-physical-quantity-scope/COMMITTED-BYTES.json. No own jobs live or restarts due.
+
+Sourceb7actual8PG49.69s andfirst-capitala9actual3PG6.46s stay separate components.
+CASH85a919d has newer source/owned/book/readiness/historicalproof fixes and owns
+actual A/B posting integration; never overwrite those with older Root modules.
+No owned financial writer or executable host is enabled here. Root/Scope slice
+bounded review is parent-controlled; full62 PG+ordinary gate due after CASH chain.
+Official56 matrix still onlyORD47 complete; all46 targets remain required. Native
+quoteOrderQty remains actualproducer/source BLOCKED (new0025 parallel writer),
+not qualified by13quote-finance or BASE producer. Management0022/23 and D0026 are
+separate reviewed/unmerged work; frozen0013/14 hashes remain unchanged.
+
+Parent requested this writer idle after this checkpoint, RETAINING ROOT+D sole
+write ownership for followup. This is no user pause, goal completion or release.
+
+## CURRENT_PHYSICAL_SCOPE_CANDIDATE — 2026-10-30
+
+StableROOTb7f6d85 actual0021 source-knownness8PG GREEN0fail/error/skip49.69s;
+original10800 TERMINAL. Stablefirst-capitala9 actual3PG GREEN6.46s. Complete27path
+product/dependency manifest is committedd4db300 at
+docs/orders/ROOT-CASH-DEPENDENCY-b7f6d85.json and sent to CASH. Cash owns all its
+source513/initial/owned/book modules; no root financial writer/host promotion.
+
+Current physical-scope product candidate integrates ONLY reviewedc9 pure tagged
+facts/compiler/full-assessment+RiskFacts union hunks (oldbaseArchive/V1 unchanged).
+NEW program_quantity_scope rederives actual physicalscope/id/immutablecreation/
+latestprojection and contiguoushistory, permits legitimate state/reflected/
+watermark changes, checks fullfinancial projection payload, exact actualstored
+bundle exclusion only, and authenticates raw external legacy refs or rejects.
+reserve/_current/post-wait hooks preserve fullgroup cash and distinct raw/financial
+hashes. Trusted pytest scoped_quantities loader rederives actualdata eachcall.
+50focused typed/archive tests passed7.02s; physical11-case PG is prepared but NOT
+yet executed. It covers genuineA/Baccepted-unfilled, fullcashonce/localqty0,
+forged/omitted/scopemaps/financialvalue and5same-ID immutableprojection corruptions.
+No pure projection is authority; no62-suite/full46/56/owned/quote producer claim.
+
+Latest0021b188c87 actual5PG original62259/run9fae0de28dbd TERMINALexit1:
+4pass1fixturefail29.17s. Genuine V1/V2 accepted-unfilled/historicalTTL, true
+post-only rejection, and laterUNKNOWN preserving acceptance history passed.
+Remaining owner-audit negative used dict with domain-only _append and failed
+before the intended authority check; now uses a genuine ordinary SQL audit row.
+Added actual nofillvenue-ID reseal rejection, cross-command source-snapshot
+rejection and delayed actualquery completion versus newer queryfailure race.
+These make8 actualcases; no product logic changed beyond obligation doc wording.
+Fresh fixed8-case PG remains due. First-capital3PG remains sourcea9-only proof.
+
+## CURRENT_FIRST_CAPITAL_GREEN_SUBMISSION_REPAIR — 2026-10-30
+
+Fixeda9a076f actual first-capital3PG GREEN0fail/error/skip6.46s original59820,
+run9a5871a3ac78. Actualmissing-opening RED is denied, forgedbook remains denied,
+full first funded MAY/consume/venue chain stores opening_id/revision while no
+inventory/fill is created. Historical original hashes remain untouched.
+Parallel0021 actual5PG original40751/run7449935a3f97 TERMINALexit1,5fail20.89s:
+new obligation reader demanded consumed context for an own MAY before consume,
+despite no query probe existing yet. Minimal correction first checks protected
+STARTED rows; absent probe returnsNone/UNKNOWN and preserves pre-consume duties.
+Only existing probes rederive committed consumption context. No denial is waived;
+fresh actual0021 run is due after this candidate correction. All own jobs terminal.
+
+## CURRENT_SUBMISSION_OBSERVATION_IMPLEMENTATION — 2026-10-30
+
+Current parent ruling: FIRST generic financial entry, V3 mark/consume and final
+afterwait require nonNone actual protected opening; None compatibility belongs
+only to legacy/no-generic maintenance. A separate trusted generic helper will
+enforce this without model/DTO flags. New three-case actual PG covers missing
+opening with funded-looking book, owner-inflated book, and a fully provisioned
+MAY/consume/venue chain with protected opening/revision in consumed context.
+Positive real_case now explicitly initializes declared1,000,000quote+10base
+through separate provisioner BEFORE first financial intent and binds the initial
+raw book; it never derives capital from latestbook. Controlled negative fixtures
+opt out of provision only. Current positive business schemas are explicit/additive;
+old opening tests retain unprovisioned initialization scenarios, and anti-topup
+now checks immutable original proof after a genuinely funded admission. No
+original migration/role membership/sourcehash was changed. Inventory61 suites.
+
+Parent assigned the next actual ROOT slice: source-backed submission knownness,
+including genuine accepted-unfilled GTC, to unblock legitimate two-command
+composition without weakening UNKNOWN or any cash/working/ownership duties.
+Global0021 reserved. Plan is docs/orders/OP-C-SUBMISSION-OBSERVATION.md. Private
+STARTED/UNKNOWN probes precede closed-TX venue IO; COMPLETED known/unknown records
+append afterward. Latest started probe controls current uncertainty, preserving
+ever_accepted even after query failure and preventing delayed old completion from
+overriding newer UNKNOWN. No original write/hash/state/schema rewrite or resend.
+
+Selected reviewed31c7572 shared static V1/V2 source helper/tagged decoder and
+asset math only; parent/cash owner reported actual source16/raw9PG, independently
+checked XML16/0/0/0 74.032s and9/0/0/0 47.970s. Selected13 unit cases green0.40s.
+save_verification_snapshot(tx,verified) supports true zero-fill snapshots, keeps
+_source_context and old NO_FILLS behavior, uses existing unchanged0017/0018 SQL.
+V2 source approval/financial qualification still needs actual ROOT proof.
+
+New five-case genuine PG source/knownness RED is prepared; implementation0021
+and module are absent. Tests preserve actual original MAY/consume, V1/V2 venue
+orders/no fills, old TTL, real post-only rejection, later NOT_OBSERVED and direct
+owner audit/private-call denial. One new mandatory suite brings root inventory
+to60; no case/target was removed or promoted. Strict owned readiness remains
+blocked on the separate cash review (including marker transition reuse), with
+no atomic writer/host enabled. ROOT+D sole writer remains integration_fresh.
+
+First-capital bb7da71 actual3-case RED original75101/run784f1376cd47 TERMINAL:
+1pass2fail0error/skip8.03s. Genuine missing-opening financial admission DID NOT
+RAISE despite funded-looking book. Other failure was a new test's raw lifecycle
+NEW expectation; actual venue SUBMITTED is the existing unfilled accepted state.
+The test now preserves this actual state. Candidate strict generic helper rejects
+None at actual _reserve_program/rawbook, mark/consume _current and afterwait;
+legacy numerical/maintenance helper keeps None compatibility. New protected
+MAY/consume context records opening_id/cash_revision, final guard requires exact
+original values rather than upgrading old tokens. No old row/hash/schema changed.
+0021 candidate independently binds actual source command/order/accepted terms,
+persists STARTED/UNKNOWN before query and COMPLETE after source fsync; privileged
+table rows preserve acceptance history and never replace original write states.
+Focused170 reader/command/locked-action/version unit checks passed12.78s. Candidate
+actual first-capital/knownness PG remains due; no qualified source claim yet.
+
+Original61823 fixedfb8c62b first actual5-case run TERMINALexit1,5fail0error/skip
+9.72s, runede428e447d0. It stopped earlier than planned: the positive source
+fixture installed16–18 but not19, so the actual dispatch role lacked19's readonly
+source-table grant and no MAY/consume occurred. This is NOT a missing-module or
+knownness semantic RED. Current positive source fixture now explicitly installs
+19/20 too; wrapper fixtures check table existence before applying those same
+unchanged migrations. Historical schema/hash/privilege assertions stay intact.
+New0021 implementation/module remain uncommitted while a corrected prefeature
+RED is prepared from this fixture-only checkpoint. Global numbering21observation,
+22management business/23managementSIM,24cash opening exclusivity is reserved.
+
+Corrected prefeatureee3adf4 actual5-case run88325 TERMINALexit1,21.11s:
+four ModuleNotFoundError after genuine V1/V2 accepts/no fills and one crossed
+source-book fixture error before post-only rejection. The latter now uses a
+valid81489bid/81490ask source, preserving actual post-only rejection. New0021
+module/private probe SQL/obligation integration remain uncommitted WIP pending
+real PG. Focused51 reader/command/version unit cases passed6.67s. No new source
+or capital gate is claimed green before its actual fixed-source run.
+
+## CURRENT_STRICT_CASH_COMPONENT_CHECKPOINT — 2026-10-30
+
+ROOT+D sole writer remains integration_fresh. Root43ba29c neutral raw-book cash
+guards actual3PG GREEN12.46s; accountcash7PG and crossscopebookcash3PG each GREEN
+with0fail/error/skip. Parent independently reviewed the scoped hooks. Broad
+ordinary43ba source had1770pass26fail66.25s: all26 one legacy locked-action fake
+transaction lacking require_scope/new source-table absence. Only that fixture
+now declares the missing schema and checks scope; focused119GREEN4.12s. New
+complete ordinary rerun is due after this test-only commit. All original handles
+19864/25908/59401/46703/20629 are TERMINAL.83 raw files/maps preserve source51,
+cash3RED/3GREEN/account7/book3 and broadRED under
+docs/evidence/binance-orders/op-e-root-source-and-cash-guards.
+
+CRITICAL SCOPE: no executable host or owned financial writer is installed. Cash
+fresh review found forged owned replay markers and economic-marker-only neutral
+readiness defects; fixes/EventStore closure/two-scope preview are still peer
+work. Current root neutral readers are revision components, not ownership-ready
+promotion. Root must select reviewed strict readiness and tagged V2 source
+decoder before enabling financial integration. Neutral guards never use preview.
+Legacy host owner representation/whole vector refresh remains an actual PG gap.
+
+D6133034 actual34PG GREEN157.49s/d75cc14 evidence96 files; frozen root producer
+6adc exact0014df9e actual21+23PG and V2 verifierbc4 actual51PG stay separate.
+Original17776 fixed93efd36 complete unit/contracts/intents now TERMINALexit0:
+1796pass/0fail/error/skip61.87s. Three new original log/XML/manifest files bring
+the source/guard component map to86 raw files. D96 original/copy/CURRENTd75cc14
+Git blobs were independently reverified with0mismatch. All listed jobs terminal.
+No root/D testjob currently live. Full46/56 and OP-C→D/E/F→G remain ACTIVE; original
+fulla0ca gate and later13f exact-lot component keep their source identities.
+
+## CURRENT_FRESH_INTEGRATION_OWNER — 2026-10-30
+
+Parent explicitly assigned integration_fresh sole write ownership of
+binance-orders at clean8406650 and, after5531aae release, binance-opd-matcher.
+Parent coordinates read-only. cash_fresh owns the separate accounting tree;
+v2_source_fix owns the separate V2 verifier after fresh read-only review found
+unbound fill price_asset versus actual source price_currency. Registry stays
+uninstalled. All288 V2 original/copy/current committed artifacts were freshly
+SHA-verified with zero mismatch; source01e7af7 XML43/0fail/error/skip200.133s
+is a component result, never full46/56. Frozen1b12 producer remains unchanged.
+
+Root50-suite a0ca proof and later13f exact-lot component retain their separate
+source identities. No root livejobs. Fresh D fullca57 run reproduced28pass5fail:
+position projection1vs0.8 and four STP reported-column ambiguity regressions.
+Minimal D6543655 has a fresh34-case PG job in progress; no qualified source or
+root0014 promotion. Root cash hooks await actual neutral guard/opening0020 proof
+and review. No competing tree writes, old schema/hash changes or external calls.
+All46 capabilities/56 cases and OP-C→D/E/F→G remain ACTIVE and unfinished.
+
+Frozen producer integration candidate: selected seven source/fixture files from
+V2 checkpoint34e952c preserve exact1b12-compatible0014 SHA
+df9e0709b7ebb12006549c464251b29f1937aed2efd20182319e9d42a13dd565. Root's current
+consumed-permit guard/window and exact submit arithmetic are retained; no native
+adapter paths, old0013, V1 verifier, source registry or evolving D position/native
+parent files were copied. Two mandatory V2 producer/unchanged-V1-on0014 suites
+are added alongside all50 prior suites. Focused78 command/financial/report/
+liquidity unit tests passed8.63s. Fresh actual root PG cohorts are still due;
+peer source21/23 results do not establish a combined root pass.
+
+Fresh fixed6adc root component jobs41796/63862 now TERMINALexit0: actual V2
+producer21pass/0fail/error/skip123.971s; unchanged V1-on0014 compatibility23pass/
+0fail/error/skip126.102s.32 original raw files/maps retained at
+docs/evidence/binance-orders/op-d-root-frozen-components. Old178 producer raw
+files imported with source/checkpoint identity; all182 imported files independently
+match CURRENT committed Git blobs. These components do not upgrade olda0ca full
+gate, evolving D source, verifier registry or full46/56. No root livejobs.
+
+Parent accepted independent V2 repair review of34e952c..8a83a58/tested7925851:
+actual source ordercurrency/unit and eventquantity/price are independently bound
+before normalization. New genuine V2 economics/unit cases close the earlier
+currency/unknownfee/gross/fee-cap/nonidentity bridge gaps. All320 original/copy/
+CURRENT peer committed artifacts independently SHA-match, final XML51/0/0/0
+239.116s and original RED50/4fail250.270s preserved. This is source-domain proof.
+Selected three verifier modules and51-case test are now root integration
+candidate, with one additional mandatory suite; no registry yet. cash_fresh
+owns shared exacttype/result/taggeddecoder adaptation in its separate tree;
+root will serially select the reviewed shared file. Old V1/schema/hash/native-ID
+bindings remain, unknown kinds deny, evolving native-parent/execution stays
+blocked. Fresh root actual source cohort is due after this candidate commit.
+
+Rootbc4b3d6 actual51V2 PG now TERMINALexit0,238.15s, run7ebeaaf392a2/original92569.
+Its raw proof publication follows; this does not install a shared source registry.
+All prior imports/root component538 committed files freshly SHA-verified0mismatch.
+D6133034 actual34V2 PG GREEN0fail/error/skip157.49s, d75cc14 retains all96 raw
+RED/fixture/GREEN artifacts; this evolving producer remains outside frozenroot.
+
+Neutral cash integration candidate selects reviewed1de1e5c opening0019/legacy0020,
+exact reader identity fix, readonly asset reconstruction/book binding and richer
+historical source status/duties. Owned financial writer and preview are EXCLUDED.
+The new source registry/tagged V2 decoder remains cash_fresh-owned until review.
+Root fixture merges preserve order_transform/all current safety tests and add
+prepared_case with actual protected initial book binding before financial intake.
+New3-case actual cash-boundary cohort is RED-first pending: collateral requires
+binding, actual approved/recorded effects make mark/consume and post-wait guards
+stale. No hooks installed yet. Five neutral source suites added alongside every
+old mandatory suite; asset arithmetic/accounting12unitGREEN0.30s. Full46/56 ACTIVE.
+
+Fixed3533b98 actual cash guard RED original19864/run484bbef136c9 TERMINALexit1:
+3testfail/0error/skip13.10s. Collateral accepted an unbound actual protected
+opening; current/consumed paths reached old PROGRAM_ACTIVE_RISK_LOCK rather than
+independently rederiving changed account cash. The latter are missing specific
+cash checks, not claims that old risk locks allowed a send. Candidate adds one
+strict registered-local-reader adapter, called on raw book before hold subtraction
+in _prepare_collateral, _current(mark/consume) and consumed recheck after waits.
+No preview, new owner/cash posting, running balance or proposal renewal exists.
+Selected29 unit tests passed6.23s; fresh actual3-case proof is due after commit.
+
+## CURRENT_INTEGRATION_CHECKPOINT — 2026-10-30
+
+ROOT WRITE RELEASE: parent-approved checkpoint complete; integration_next now
+EXPLICITLY RELEASES binance-orders write ownership and will make no further
+root edits. Successor PENDING parent assignment. All root testjobs TERMINAL;
+original96697 complete exit0 as below, no restart.125 copied original fullgate
+files match CURRENT COMMITTED blobs with0mismatch. Parent coordinates freshROOT
+and separatefreshCASH(baa34ab), no doublewriters. FullgoalACTIVE/notcomplete.
+Start fresh continuation at docs/orders/OP-C-INTEGRATION-CURRENT-HANDOFF.md.
+
+FINAL PRE-RELEASE CHECKPOINT: original96697 TERMINALexit0, fixeda0ca274 full50
+mandatory PostgreSQL suites1167pass/0fail/error/skip. Ordinary3594pass721explicit
+environmentalskips96deselected1existingwarning96.40s. Complete launcher/XML and
+125 byteidentical originalfiles are preserved in
+docs/evidence/binance-orders/op-c-current-quote/root-full-a0ca-green.
+All ROOT testjobs TERMINAL, no restart. Later13f8914 exactlot precisionfix is
+outsidea0 source, separately12unitGREEN+parentindependentreview. No productWIP.
+Freshlead handoff: OP-C-INTEGRATION-CURRENT-HANDOFF.md. Fullgoal staysACTIVE.
+
+Historical: parent explicitly REASSIGNED root SOLE WRITE ownership to integration_next after
+fresh-agent creation was rejected by the platform thread limit; no successor was
+created. The prior release below is historical. Implement0015/currentquote now.
+Original57061 is INTERRUPTED (runner137 at2026-10-29T16:42:10Z, qualifier absent).
+Its42 PG suites completed successfully; ordinary log1048bytes, no Python XML or
+launcher manifest. Do not restart it or call the combined run green. Parent owns independent
+same-ledger accounting work; activation_fresh owns OP-D matcher; reports_fresh
+owns controlled native adapter/consumed-current guard. Main/archive untouched.
+Goal ACTIVE: all46 capabilities/56 cases, complete OP-C→D/E/F→G remain required.
+
+Latest complete fixed28af8b3 gate93372 is TERMINAL exit0:48mandatory PostgreSQL
+suites1155 passed/0fail/error/skip; ordinary3526passed709explicit environmental
+skips96deselected1existing warning95.54s. Complete launcher/XML at
+.runtime/paper-qualification-bebee97f3eb4/evidence. It does not cover later code.
+RootPAPER6b83371 separate23PG GREEN covers mutablepermitlabels, actualfuture
+sourceclock rejection and exact .1119 feebound copy underprec3. Native8c89490
+separate8PG GREEN/67pure preserves originalrequests afterqueue/recheck; all
+externalpaths remain disabled, oldglobalinventory unchanged/additiveofflineindex.
+
+Protectedsource migrations0016/17/18 and actualrawaccounting have been reviewed
+and integrated28af8b3 (parent289rawsource-specific artifacts preserved). No cash/
+ownership/position credit or release exists yet; parent owns actualasset/account
+cash/sharedopening work and0019. KnownSourceOnly/rawdata keepreconciliationlocks
+and legacycash/bookrefreshblocks, includinghistoricalmissingforeignbinding.
+
+Pending native-member perorder policy fixc85f53d is actual18PG GREEN after
+correctedrealOTO/OPO16pass2DIDNOTRAISE RED. It usesmaxeverymember includingfunded
+futurelegs, never cumulative turnover or extra cash. OldRiskMetrics planned_loss
+keepspost-full-fill semantics; newcontinuation record isseparate.
+
+NewProgramContinuationRiskV1 at2f69562 has10unitGREEN and actual3PG GREEN24717,
+after7missingmodule/3missingwriter RED (3priorfixtureERROR separately). It derives
+exactactual/NOFILL/partialquantity ranges, Fractionlotresidual, honestUNKNOWNhard
+loss/protection andseparatefee/fundingduties; actualfinancialtransientwitness
+required to persistSAMEphysicalTX withbundle/request. No newpermission/position
+assignment. Currentobservedpost-fill refresh stillparent-ownedpositionhook work.
+Independentreview requested. Broadcurrentcomponents92690 RUNNING; nootherownjobs.
+
+Subsequentcurrentcomponents92690 TERMINAL:1786pass81.20s. Source/native289+196
+imported artifact maps independently match485 CURRENT committed blobs. Current
+fixeda0ca274 full50mandatoryPG+ordinary gate96697 was started timeout5400, fresh
+private explicitoffline runner. Do not restart any earlier terminaljob. This
+gate includesoriginalwindow binding, currentquote13, nativeoffline8, exactPAPER23
+and newcontinuation3; authoritative successful terminal is recorded at top.
+
+Latest0015 actual current-quote cohort:58a36a1 fixed12 PG passed/0fail/error/skip
+after6 initial REDs and an actual SQL downgrade RED (10pass/1DID NOT RAISE).
+The new predicate binds current archive kind/version to immutable sequence1
+financial bundle, preserving0012 bytes/old V2 handler. Actual scalarV3 mark/
+consume/UNKNOWN also passes after0015. Quote real foreign funded READY request
+counts its cash once with tight group/strategy capacity while local quantity
+stays0. Raw source book and prepared financial book have separate bound hashes.
+Independent execution-bound loader remains required at mark and consume.
+
+Post-consumption quote guard extension0ea5d22 is in13-case actual PG56740 RUNNING;
+the preceding bbee3ae RED10pass/3fail exposed old-only typed restoration. It now
+statically restores known kinds without risk replay, reconciles actual own/other
+holds and rechecks current raw/prepared books/current execution proof. No result
+claimed yet. Mutable permit-label audit remains peer work, not waived.
+
+Standalone original0a55692 PG proof is published under op-c-expanded-checkpoint:
+42 suites1085 pass/0fail/error/skip;105 original bytes mapped/copied. The combined
+ordinary run stays INTERRUPTED. Fresh complete verification of later source is due.
+
+The explicit quote source/allocation now uses RiskEvaluator's same bindings,
+ExposureCalculator and policy core, full replay archive and a distinct2026-10-30
+financial intent/basis in the existing registry. Bounded intake and SAME
+ReservationService._reserve_program use original owner/collateral locks, capacity,
+holds and reservation writer. Independent current execution bounds are required.
+No scalar goal, hidden request resizing or second cash total exists.
+
+Fixed0cfc032 actual quote kernel6 PG passed. Corrected stable advancing-clock
+RED04482b1 gave7 pass/1 DID NOT RAISE; fixd6eaed0 gave8 actual PG passes, zero
+failures/errors/skips. Earlierf0/86 callable-replacement fixtures are separately
+retained; the book-change RED was genuine. Actual same-xmin intent/hold/bundle
+writes roll back if request attachment is missing. PUBLIC quote request/outbox/
+permit integration remains blocked and required. Equity wallet location stays
+explicitly unbound. See OP-C-QUOTE-FINANCIAL.md and original evidence maps.
+
+ProgramCommandDispatcher uses actual owner + protected committed MAY + engine
+single consumption. Fixedeb7c8f3 actual5 PG passed, zero failures/errors/skips:
+real partial fill, post-SIM lost ACK/UNKNOWN, SystemExit after committed MAY,
+absent shared revocation guard and foreign lease. Recovery queries original IDs;
+never new IDs/permit/retry. SystemExit is not a real kill/deployment proof.
+See OP-C-PROGRAM-DISPATCH.md. No receipt grants fills/protection/funds release.
+
+Reviewed OP-D9748 was integrated4843bff; that fixed source passed17 actual PG.
+Original report/economics verifier and read corrections were integrated45ea64f,
+with173 committed source artifacts independently SHA-verified. Its20 PG remain
+peer-source evidence until a root combined gate. WRITE precision fix7178 was
+integratedb83d5b7/986c6d0 preserving original test bytes; no0013 hash change.
+
+Reviewed OP-Fb0d5445 read-only scopes/API/CLI/UI and explicit model research are
+being committed from the reviewed paths only. Local server532 passed/56 mandatory
+environment cases deselected; web119 passed, typecheck/build exit0.3 mandatory
+PG suites added to root inventory. Default unqualified flow makes0 provider calls;
+rich-order HTTP/strategy admission is not registered. Old14 PG/browser evidence
+retains its source identity and does not qualify the new combined tree.
+
+Last root components before OP-F:1713 contracts/intents/unit pass. Per-leaf priced
+side binding13bf1e3 fixes genuine same-scope side swaps in both risk adapters;
+aggregate working net alone is insufficient. Fixed5866ddc full checkpoint remains
+35 mandatory PG suites/1020 pass/0fail/error/skip and ordinary3411 pass/574
+environmental skips/96deselected, all artifacts committed. It predates D/F/quote.
+All listed old handles are TERMINAL. New fixed0a55692 expanded full gate is RUNNING
+exec57061:42 mandatory PG suites plus ordinary Python, timeout5400, fresh private
+Docker with explicit immutable offline dependency image. Do not restart this
+handle on observation timeout. It remains source-specific and has no result yet.
+
+Subsequent root2dde8f6 serially integrated the independently reviewed consumed
+source guard/public boundary method; focused60 tests passed and own14-case PG
+diagnostic72303 is TERMINAL exit0:14passed/0fail/error/skip. Actual public
+quote attachment has3 true PG REDs at649dc24 for its missing reader port;
+candidate now uses exact static bundle dispatch and SAME V3 request/funding/ID/
+outbox plus old immutable original-ID reader. Focused44 tests passed; its fixed
+candidate1aab295 exec18864 is TERMINAL exit0:3 actual PG passed/0fail/error/skip.
+It commits actual quote request/outbox/funding links and original-ID replay,
+and rolls back after a genuine physical append failure. No quote MAY/consume or MARKET qualification is
+claimed; additive0015/current quote dispatch proof remains required. Later code
+does not upgrade the older fixed0a55692 full gate.
+
+Detailed fresh-context continuation is OP-C-INTEGRATION-NEXT-HANDOFF.md. Parent
+approved this WRITE RELEASE after the checkpoint. Goal remains ACTIVE; parent
+assigns a fresh root writer while integration_next owns only the original live
+57061 job. Root2dde/quote1aa diagnostic artifacts are committed and all192 quote/
+dispatcher/guard/matcher copy-map files match CURRENT git blobs. Late native-peer
+logical permit expiry/deadline mutation audit is RUNNING, not a confirmed result;
+fresh writer must review it before promoting consumed-guard protocol closure.
+
+Next: full expanded PG+Python gate; actual public interval durable attachment,
+trusted MARKET enforcement and fee/dust residual persistence. Parent implements
+same-ledger fills/postings/positions/book with explicit unit bridges and mixed
+legacy refresh guards. OP-D continues0014 advanced matching; OP-E consumed guard/
+controlled native and full OP-F host/cross/RULE/HYBRID/HTTP remain active. No
+LIVE/TESTNET/account/paid model calls, publication or qualification promotion.
+
+## OP_C_PRIOR_INTEGRATION_CHECKPOINT — 2026-10-29
+
+Sole binance-orders writer remains integration_next. Parent root coordinates and
+owns the separate OP-F tree; activation_fresh owns OP-D binance-opd-matcher;
+reports_fresh owns the separate OP-E report verifier. Main/archive are untouched. Goal
+stays ACTIVE, with all46 targets/56 cases and complete OP-C→D/E/F→G in scope.
+
+Fixed root checkpoint5866ddc includes full typed financial kernel, actual request/
+outbox/MAY/single-use consume, real internal TWAP/VP SUM activation, physical SQL
+bindings/funding links, cross-family identity serialization, read-only management/
+query/original-ID recovery, new explicit value-band source/compiler and shared
+scope/fee/position-envelope components. Interval facts/risk/archive/financial
+admission, full matcher/host accounting, management write outcomes and full API/UI
+integration remain unfinished. No production rich-order readers/transport or
+native/Testnet/LIVE qualification is registered.
+
+The genuine local-pool optimization bypass was reproduced on463c9b3:8 PG pass,
+2 DID NOT RAISE failures at mark and consume, with actual zero-asset shared-group
+local and external exits. Fix97b7710 restores a once-per-transaction local registry
+read; fixed diagnostic70545 is TERMINAL exit0,10 PG pass,0fail/error/skip. Earlier
+4e01 fixture RED stopped before that intended assertion and is retained separately.
+
+Full aff4aa8 job73508 is TERMINAL exit1:34 PG suites,958pass/0fail/1error/0skip;
+program-commands exceeded300s without complete JUnit. Ordinary Python3294pass/
+560 explicit environmental skips/96deselected. It predates current optimizations.
+All raw artifacts/maps are preserved; do not promote it to current green.
+
+Fixed5866ddc full combined PG+Python gate45760 is TERMINAL exit0:35 mandatory
+PostgreSQL suites,1020 passed,0 failed/errors/skips. Ordinary Python3411 passed,
+574 explicit environmental skips,96 deselected,1 existing warning. The95 original
+artifacts and SHA256 copy map are retained under op-c-generic-admission/586-full-green.
+This checkpoint predates new quote allocation and incoming OP-D/F; it is not full
+46/56 qualification. No root test jobs remain live; do not restart terminal handles.
+
+QuoteTargetFactsV1/QuoteTargetAllocationV1 now replay the real new compiler and
+reuse the same scope validator, TargetCompiler scope reader and fee/cash/band
+engines. Full financial book hash and explicit quantity-reservation subset stay
+separate; evidence identities alone grant no authority. Primary SET_TARGET
+reductions cannot undershoot their desired lower band including fees/old leaves;
+independent protective exits retain separately trusted contracts. Focused90 tests
+passed after the recorded REDs. Financial assessment/archive/kernel coupling and
+authentic current enforcement/source readers are still required next.
+
+Immutable metadata cache9928147 passed406 selected tests. Direct20-iteration bundle
+decode+canonical-equality microbenchmark improved0.502s→0.270s with both decoders
+using the current shared validator. Only code-owned metadata is cached; no current
+facts or authority. Raw profile/comparison artifacts are in op-c-metadata-performance.
+
+The new explicit-band current RiskEvaluator adapter and full replay archive now
+compute NOFILL and fee-adjusted endpoint portfolio/loss/protection/cash envelopes
+through the shared policy predicates and ExposureCalculator. The existing intent
+registry also restores a distinct2026-10-30 QUOTE_FINANCIAL_INTENT_V1 with the
+original native quote budget and band, never FinancialTarget scalar normalization.
+14 missing-module REDs and a genuine borrowed-context ALLOW RED preceded fixes;
+23 focused and1675 contracts/intents/unit tests passed. SAME financial writer,
+physical source/enforcement/current holdings and durable attachment integration
+remain required; these content/math records do not authorize admission or sends.
+
+OP-D frozen9748 interface/migration0013 was serial-reviewed/integrated4843bff,
+with current root collateral fixtures and all suites preserved. Fixed4843bff
+diagnostic83773 is TERMINAL exit0:17 actual matcher PG pass,0fail/error/skip,
+fresh499c757fc475 evidence. Read/source correction and later semantics/evidence
+cohorts remain peer-specific until serial integration and new verification.
+
+Next: finish authentic interval allocation/risk/financial pipeline using the
+qualified matcher's enforced internal execution envelope, without fake scalar
+goals or altering native quote amounts. Continue actual ProgramCommandDispatcher
+and same-ledger accounting; parent owns trusted PAPER report normalization in a
+new module, preserving native fills and explicit unit/multiplier bridge. OP-D
+must finish timestamp/hash/quote-normalization/SELL-bound/deadline review fixes
+and freeze0013 before serial integration. OP-F keeps qualified state separate
+from catalog vocabulary and receipt separate from executed fills.
+
+## OP_C_INTEGRATION_NEXT_SOLE_WRITER — 2026-10-29
+
+Parent root delegated sole write ownership of this binance-orders worktree to
+integration_next at clean5a3b7bc. Parent reads/reviews/coordinates only. The older
+handoff-to-parent below is historical and does not release this new delegation.
+Goal stays ACTIVE; all46 targets/56 cases and OP-D/E/F/G remain required.
+
+Command peer pin_native_build owns binance-opc-program-commands; local activation
+peer admission_review now owns binance-opc-local-activation basedbdbd9b0. No peer
+writes this integration tree. Integration_next implements actual public generic
+admission using the same ReservationService financial transaction, real V3
+request/outbox or internal activation, and commit-before-permit dispatch/recovery.
+Then native quote intervals, fee/dust residual contracts and OP-D/E/F/G continue.
+No LIVE/TESTNET/account/model calls, public merge/push, or main/archive edits.
+
+Root gate81820/86745/80618 are TERMINAL, never restart them. Prior evidence is
+source-specific; a fresh complete combined gate remains due after integrations.
+
+Root integrated command DTO93aecdc as2dfd952 (full versioned request/financial
+hash fields, old version map retained). Public generic admission composition now
+uses exact controlled intake + existing financial transaction, deterministic
+original-index IDs, real attachment APIs and after-attachment clock/fence/book
+checks, returning a durable nonpermit receipt only after commit.11 new unit probes
+and combined76 checks pass; four actual PG negative cases added, NOT_RUN yet.
+Actual command repository/0012 and local activation are still peer WIP; positive
+public attachment/replay/dispatch remain NOT_RUN. Current composition references
+their agreed APIs and does not fabricate successful attachment implementations.
+Staged local lists remain an explicit active integration gap; scope is retained.
+
+Fixedb7e0dd5 freshPGdiagnostic41678 is TERMINALexit0:16passed,0failure/error/skip
+(12priorfinancial +4publicnegativecomposition). Originalartifacts preserved
+byte-identically in docs/evidence/binance-orders/op-c-generic-admission/b7e,
+withSHA256copymap. Positivepublicattachment/outbox/activation/dispatch still
+NOT_RUN. Commandfresh nowowns SAMEbinance-opc-program-commandstree at5405b0e,
+oldpin_native_buildreleased it; actualrepo/0012was honestlynotyetimplemented.
+Activationpeercontinues own local-activationtree. Rootsolewriter unchanged.
+
+Nativequoteinterval actualsemantics draft is OP-C-QUOTE-INTERVAL-PLAN.md, awaiting
+parentreview;9puremathREDcases observedmissingintervalmodule. Newsource semantics
+must distinguish absolutequotegoal, remainingquoteusage andimmutable request,
+unconditionalnofill/partialinterval plusqualifiedprice/fee/lot/overshootproofs.
+No scalarquantityorcurrentpubliccontracts have been silently reinterpreted.
+
+Parentapprovedintervalplanruling: NEWsource explicitABSOLUTE_POSITION_VALUE_BAND
+anddeclaredvaluationbasis; SET_TARGETretained, noimplicitturnover/cumulativegoal
+oroldscalarreinterpretation. Nofill/partialunmetgoal+dutyremain. PureFraction
+outwardquantityenclosure9cases nowGREEN afterRED, notfinancial/nativequalification.
+Actualnewsource/facts/allocation/risk/financial/PGintegration stillrequired.
+
+Rootfinaladmissionclosure nowverifies actualSAMEfinancialattachmentclaim,
+wholephysicalwrite set/currentrequestbinding orauthenticinternalactivation,
+originalSQLtransaction andexactbundle. A newqualification-expiry regression
+observedREDthenGREEN: afterattachment finalwindowmustinclude livefinancial
+witness.expires_at (qualification/actionproof mayexpirebeforeintent).13public
+unitcases +2attachment +9math passed24. PositiveSQLattachments stillpendingpeers.
+
+Actualcommandpeer c3bcf28+9e36c8f nowintegrated b45fbfb+3b61240: SAME financial
+request/binding/identity/outbox append, additive0012 private verifier boundary,
+currenttyped rechecks/MAY/oneuseconsume/originalIDs. Rootfocused62checks passed.
+NewpublicactualSQL5cases registered (generic-program-admission), including real
+append/outbox/replay andafterappend/commit/book/proof failure rollback. Shared
+attachment3-case module nowalso registeredinrequired gate. TheirfreshrootPG
+positive diagnostic remains NOT_RUN untilitsfixedsourcejob completes.
+Native/localactivation stillpendingfreshactivationpeer, fullcombinedgate due.
+
+RootintegratedcommandUNKNOWN/CAS+physicalSQLfix2991 as6e8a767; activationactual
+6a32515..56f7cbb as18eee4a..8555201. Mergesretained BOTH currentprogram exclusions
+and localUNKNOWNobligations andallrequiredPGsuite entries. Peerfinalclock/wallet
+followups remainpending; nofinalcombinedgreenclaim. Publicfixed681 diagnostic
+62953TERMINALTLSsetupfailure0tests; freshretry78704TERMINALexit0,5actualPGpassed
+0failure/error/skip. Bothrawsources copiedunderop-c-generic-admission; public
+current8-caseexternal+local/rollback andphysicalxminclosurefreshgate due.
+
+Newquote sourceversion2026-10-30 explicitband+basis andlosslessnewcompiledtype
+areimplemented; SpotMARKETquoteBUY/SELL andEquityBUYnotional preserve original
+body; invalidEquitySELLnotional denies. Oldscalar/readers/schemas untouched.
+Source7+compiler3 observedRED, currentselected55/59checksGREEN. This isonlysource/
+compiler/math, notintervalallocation/risk/financialadmission/nativequalification.
+Actualnewintervalfinancialpipeline/walletlocation/fee-dust andOP-D/E/F/G continue.
+
+Rootactualcode nowincludescommandsemanticuniqueindex+externalSAMEtxFundingLink
+andphysicalSQLhold/intent/program guards (0abd→fbe9d2d,5a75→96a9610), wallet
+independentreader/defaultfunding-location blocker, oldV2/UNKNOWN regressions.
+47f06 timingfixturefix integrated4eed5e4 keepsfulldiagnosticassertions AFTER
+shortpermitconsume; noTTLwidening. Latestpeer52PGstillpending; olderPGresults
+stay source-specific. Sourcebeforethesefixesaff4full73508 stillRUNNING through
+runtime/regression suites; public8+attachment3 alreadyactualGREEN, nofullclaim.
+
+SharedTargetCompiler nowhas pureTargetScopeTerms/read_scope_terms withoutfake
+scalar target. Existing scalarcompilecalls SAME extracted validation/position/
+working/pending reader; oldnormalization/conflict/grid stages remainunchanged.
+Exactactualfee dust andeachsigned/UNKNOWN obligation preserved. FiveRED tests→
+133focusedGREEN; currentcombinedcontracts/intents/unit1528passed0skip exit0.
+Details OP-C-SHARED-TARGET-SCOPE.md. Newintervalallocation/risk/financial source
+facts, authenticexecution-bound proof andfee/dust duties remainnextactualwork.
+
+ParentownsOP-E management/query adapter in separatebinance-ope-management tree;
+activation_fresh nowownsOP-D newbinance-opd-matcher basedaff4aa8. Reserved0013
+PAPER_SIM-only market matcher migration; no sharedledgerDDL allocatedtoit.
+Rootintegration_nextstillsolebinance-orders writer; all46/56/OP-D/E/F/G active.
+
+Fixedaff4 fullgate73508 nowTERMINALexit1:34PGsuites,958passed/0failed/1error/
+0skip; program-commands hit300s timeout124 after47progressdots, soitsJUnitcount
+is unknown andnotpromoted. Ordinary3294passed/560envskips/96deselected. Rawproof
+source-copiedunderop-c-generic-admission/aff4-full-timeout. This isolderthanpeer
+6e8 performance/identity/funding followups. Peerfixed6e8actual56PGgreen evidence
+integratedd9a39d9+6cbdf7e. Current combined source has no full green gate yet.
+
+RootintegratedOP-E reviewed unsignedmanagement/query code496/2f/08 as4e37c8c/
+b026b60/1374e6a; exactoriginalIDs/archivepages/completecollection/positionleg,
+no transport/writeauthority/release/nativequalification. SelectedOP-E evidence
+staysseparatefromparentcheckpoint; rootcheckpoint ispreserved.
+
+Importantmerged-Cfollowup:6e8optimization privatelegacyhelpers bypassactual
+localprogram registry checks in_current. RootgenuinePGnegative candidate4e01
+ran8passed/2failed, stoppedatfixture TARGET_BOOK_OR_COMPILATION_CHANGED before
+intendedMAY assertions (sharedforeignhold facts wereincomplete; guardunchanged).
+463c9b3 usesactualzero-assetsharedgroup exits; freshdiagnostic94422 RUNNING.
+After genuineRED restoreonce-per-TX local snapshot checks beforeprivatehelpers.
+No optimisticMAY/consume/fullgateclaim untilthatfixandactualPGproof.
+
+Newpurequotecash+bandcomponents now161focused/shared/legacytargetchecks GREEN
+after9+9+1observedREDs. Details OP-C-QUOTE-CASH-AND-BAND.md. These areperasset
+fee/receipt andownedpositioncontainment components, notintervalfinancialALLOW.
+Actualenforcedfacts/archive/SAMEkernel/wallet/protection/residualduties continue.
+
+## OP_C_IMPLEMENTATION_COHORT_HANDOFF_TO_PARENT — 2026-10-29
+
+integration_lead completed its concrete root implementation cohort and now
+relinquishes sole write ownership BACK TO parent root after this handoff commit.
+Lead performs no further root writes unless re-delegated. Parent may resume
+sole writing/integration; command and activation peers retain their OWN trees.
+Goal remains ACTIVE, not paused, blocked or complete; full46/56 and OP-D/E/F/G
+remain mandatory. This handoff frees an agent slot for the next actual work.
+
+Root code throughbdbd9b0, evidence/docs through9ad7cbe; clean verified before
+this handoff. Implemented full typed intake, SAME-kernel current financial
+bundle, independent current bounded-exit verification/persisted residual duties,
+native OCO target allocation and no-fill/alternative risk scenarios, structural
+request route/local-algorithm guards. Public generic success/commands/permits
+remain pending actual command/internal-activation integration.
+
+All root tests are terminal: fixedb6b2dbb924PG/30suites0skip/fail/error plus ordinary
+3231pass/478environmental skips/96deselected; newer sourcebdbd9b0 PG12 diagnostic
+0skip/fail/error. Current contracts/intents/unit1468 passed, latest input/proof21
+passed; final full combined gate remains due after pending integrations. Original
+299 qualification-fixture RED retained and corrected without guard relaxation.
+All117 copied artifact files verified against COMMITTED Git blob bytes and source
+SHA256 maps in docs/evidence/binance-orders/op-c-fin-kernel. No live root jobs.
+
+Immediate next implementation: receive/review command peer V3/0012 actual typed
+request/outbox/MAY/commit-before-single-use-permit; receive activation peer actual
+SAME-bundle local TWAP/VP/SUM activation with no fake native mother, persistent
+pool/quantity/UNKNOWN duties. Plans approved; no routine user permission needed.
+Then wire public generic admission and continue actual native quote interval,
+fee/dust contracts plus market-driven matcher/native extension/API/UI/full OPG.
+
+## OP_C_CURRENT_DIAGNOSTIC_GREEN — 2026-10-29
+
+Current sourcebdbd9b0 fixed diagnostic80618 TERMINAL exit0:12 actual isolated PG
+passes, zero failures/errors/skips. Exact artifact, qualification claims, healthy
+clock, final fence, capacity, expiry and injected real PostgreSQL commit-failure
+checks passed. Evidence44f0fa4238bc; byte-identical copies/logs/JUnit/manifests and
+verified SHA256 maps in docs/evidence/binance-orders/op-c-fin-kernel/bdb.
+All root gate handles81820/86745/80618 are TERMINAL; nothing needs restart.
+Full fixedb6b2dbb gate remains924PG/30suites and3231ordinary passes, source-specific
+before latest followups; current full combined after command/activation remains due.
+
+Source root is clean except current evidence/docs cohort until its commit.
+integration_lead still sole root writer, parent only reads/coordinates.
+Command peer independently owns V3/0012; local activation peer's plan approved
+and implementing SAME-bundle/internal SUM activation/source-derived proofs/held
+pool+unknown obligations with no fabricated venue mother. Integrate their actual
+tested commits before public generic admission and fresh full gate. No pause or
+completion: goal remains ACTIVE and full46/56 plus OP-D/E/F/G retained.
+
+## OP_C_FINANCIAL_FIXED_SOURCE_GATE_AND_CURRENT_DIAGNOSTIC — 2026-10-29
+
+Root sourcebdbd9b0, docs latesta4f4bb4. Sole writer integration_lead remains
+active; parent reads/coordinates only. Full fixedb6b2dbb job81820 is TERMINAL
+exit0:924 actual PG passes/30 suites, zero errors/failures/skips; ordinary3231
+passed/478 environmental skips/96 deselected, one existing deprecation warning.
+It predates52ecf8e query-age,41867ce OCO,299f9db/bdbd9b0 qualification corrections.
+Never reuse its result as proof of later source or native qualification.
+
+Fixed299f9db diagnostic86745 TERMINAL RED:1 pass/11 failures, all qualified-cap
+fixtures rejected by existing Qualification evidence missing guard. No guard
+was relaxed. Sourcebdbd9b0 supplies explicit synthetic qualification artifact and
+requires the independent proof's exact artifact references; latest21 focused
+input/proof cases passed. Fresh fixedbdbd9b0 PG12 diagnostic is RUNNING exec80618,
+.runtime/paper-qualification-44f0fa4238bc/evidence. Poll this exact handle; do not
+restart terminal81820/86745. Fullb6/299RED raw artifacts and SHA256 maps copied
+byte-for-byte under docs/evidence/binance-orders/op-c-fin-kernel (b6/299-red).
+
+Parent reviewed native OCO41867ce read-only with no confirmed new defect. Actual
+combined contracts/intents/unit1468 passed, native OCO7 passed. No public generic
+admission success/command/permit is opened. Command peer owns V3/0012 and local
+activation peer's concrete plan is approved: actual same-tx financial bundle,
+ParentAuthorityV3/LOCAL_PROGRAM_ACTIVATION/SUM pool, no fictitious mother IDs,
+existing program/audit/funding-link tables, source-derived proofs, default-deny
+new-target guard for active pool and group uncertainty obligations. Both peers
+continue real implementation in their own trees. Full46/56 plusOP-D/E/F/G remain
+active; native quote target interval and fee/dust contracts remain unfinished.
+
+## OP_C_CURRENT_PROGRAM_FINANCIAL_KERNEL — 2026-10-29
+
+Sole root writer remains integration_lead; parent reads/coordinates only.
+Root299f9db includes complete assessment archive52c55a6, structural request guards
+4b2fb7d, actual same-core full-source intake/financial writerb6b2dbb, current query
+age correction52ecf8e and native OCO allocation/risk41867ce. GenericProgramIngress
+writes original typed proposal/context through existing ledger_intake table;
+source hashes bind the actual immutable SQL row/transaction. Financial IDs bind
+physical scope. No fabricated legacy TradeIntent or new cash ledger exists.
+
+ReservationService._reserve_program is PRIVATE SAME-transaction attachment API:
+real current typed archive/auth/owner/fence/clock/book/quantity/group-holds,
+actual risk replay, independent current qualification plus PAPER_VERIFIED claims,
+same capacity/reconciled holds, LockedActionVerifier program branch and real
+intent/basis/decision/reservation persistence. Bounded residual EXIT_ONLY locks
+and MANAGE_UNTIL_FLAT data are written atomically. It issues no standalone public
+success or permit; actual external writes or typed internal activation must be
+attached in the enclosing transaction. Those integrations remain underway.
+
+Native OCO now keeps each exact full-delta leg, requires matching atomic group
+proof for mathematical ALLOW and evaluates alternative legs plus NO-FILL using
+the SAME exposure calculator. Conditional FLAT retains current position loss,
+stop/holding/protection duties. Local OCO remains explicitly SUM/race-unresolved.
+Native quote target intervals and fee/dust residual contracts still require real
+implementation; all46targets/56cases and OP-D/E/F/G remain in scope.
+
+Validation: new fixedb6b2dbb isolated PG8 passed, zero skips/errors/failures;
+.runtime/paper-qualification-328ab6397f7f/evidence. Broader contracts/intents/unit
+1468 passed after OCO/query-age code (before last tiny financial fence checks).
+Current final21 input/proof unit cases passed. New fixed299f9db diagnostic PG12
+RUNNING exec86745; full fixedb6b2dbb gate30suites+ordinaryPython RUNNING exec81820,
+.runtime/paper-qualification-92e9bd588799/evidence. Poll existing jobs; no restarts
+on observation timeout. b6 full gate predates later guards/OCO; do not promote it
+to current source or native qualification.
+
+Peer pin_native_build owns program-commands/0012; full V3 request/bundle bindings,
+original identities, single-use commit-before-permit, current server proofs.
+Dedicated NOLOGIN ledger_program_dispatch_verifier approved, no owner/control
+memberships/grants, same business execution owner/lease and no second keyholder.
+Peer admission_review owns financial-records, now planning real internal local
+TWAP/VP activation from existing ParentAuthorityV3/LOCAL_PROGRAM_ACTIVATION,
+without fictitious native parent or control_commands grants. Root receives tested
+commits; neither peer writes this worktree. Goal ACTIVE, PAPER only.
+
+## OP_C_INTEGRATION_LEAD_SOLE_WRITER — 2026-10-29
+
+Root delegated sole write ownership of this binance-orders worktree to
+integration_lead at HEAD830dcca. Parent root reads/coordinates only while this
+cohort is active; do not edit/commit this worktree concurrently. Native peer owns
+binance-opc-program-commands; financial peer owns binance-opc-financial-records.
+V3 command plan approved within ADR: full typed request/private identities,
+same owner/UoW/outbox, current typed proofs/default-deny, commit-before-single-use
+permit, old V2 bytes/recovery retained. No production reader/transport enabled.
+Lead implements actual same-core program financial admission/intake and internal
+local activation, integrates tested archive/command commits, then continues full
+OP-D/E/F/G. All46targets/56cases retained; goal ACTIVE, no new permissions needed.
+Latest full gate remains historical0bd6932; current integration needs a fresh gate.
+
+## OP_C_STRUCTURAL_REQUEST_GUARDS_AND_COMMAND_WORK — 2026-10-29
+
+Rootd4f3cf5 fixes two additional independently reproduced unsignedrequestdefects:
+Spot→Futures namespace/endpoint substitution andnativeOCOchild rewrittenasordinary
+standalonesubmit. _selected nowrequiresproduct/servicecompatibility andcomplete
+nativeparent/list/algorithm request+originalnodes/origins. RED2→GREEN31request/
+quotecases, no nativechildrenlocalsends. Rootcleanthrough0fcc446 (artifacts).
+
+Fullroot0bd6932 run39647 isTERMINALexit0, notlive:915PG/28suites0fail/error/skip;
+ordinary3097pass/469envskip/96deselected, oneexistingdeprecationwarning. Evidence
+.runtime/paper-qualification-e307c57518a1/evidence (BEFOREsubsequentV3/reduction/
+requestguardmerges). Latestcombinedroot1400contract/intents/unitpassed; latest
+requeststructuralfollowup31passed. Neednewfullcurrentcohortgate afterpending
+assessmentarchive/commandintegration, neverreuseoldsourceascurrentproof.
+Peerfinalriskd92 actual905PG/27suites0skip plus264focused/1273unit; artifacts
+05ce45e→7b7ded3,cc4fe89→0fcc446 integrated. These are riskmath/storageproof,
+notnativequalification, financialapproval or permits.
+
+Active work:
+- pin_native_build NEWsole-owned binance-opc-program-commands branchsameprefix,
+  basedd4f3cf5. Task: sendrootactualV3applicationwrite/requestbinding/0012migration/
+  role/idempotency/oldV2compat plan BEFOREedits, thenrealcode/TDD/PG. Reuse
+  ledger.order_writes_v2/owner/UoW/outbox; completeFinancialIntent/Basis/Decision+
+  actualtypedVenueCreationRequest bound; no fakelegacycommand orsecondcore.
+  OldV2markdeny/UNKNOWNoriginalIDs retained. NewMAY requirescurrentowner/lease/
+  source/actualrisk/qualification, commitbeforesingle-usepermit, defaultsdeny.
+  Localalgoactivationisinternal(nofakevenuemother/noownercontrol_commandsgrant),
+  venuechildrenobserveonly. No productionreader/transport/LIVE/TESTNETopening.
+- admission_review/binance-opc-financial-records: actualnewassessmentarchiveWIP,
+  integratead0+d92 subtype+residualproof andgenuineALLO/DENY/replay/forgedproof/
+  erasedEXIT_ONLYobligation tests. Oldkind/hash/blockedconverterunchanged. Actual
+  currentLockedActionVerifier/lockwrites/intake/sourceapprovalremainouterbundle.
+- exposure_review/binance-opc-program-risk: codingcohortdone/cleanatd92+artifacts;
+  nowREAD-ONLY independent review rootV3lifecycle authority/reducers/funding/
+  SUM-exclusive/dualfills/receiptfees/watermark/sourceproof. No rootedits or
+  Nativewriteredits. Thenremaininggroup-target/quote/dustcontracts stillneeded.
+
+Nextrootsmallstep: reviewcommandplan, finishassessmentarchive→SAME-core generic
+atomic financialbundle andrequest/outbox/permit/recovery wiring. Preserve46/56
+fullgoal plusOP-D/E/F/G. Allold rootjobs39647/63956/79224/71345terminal; no restart.
+PAPERonly, no account/Testnet/live/productmodel/configactions. GoalACTIVE.
+
+## OP_C_RISK_LIFECYCLE_COHORT_INTEGRATED — 2026-10-29
+
+Root0765f27 nowintegrates actual program risk assessment+normalstop/retainedloss
+fixes (a055→ae3f985,3aa→0bd6932), V3 lifecycle contracts/reducers
+(1443→2160d06,8bec→04569ee), boundedemergency reduction metrics/proof
+(ad0→b86aedf,d92→0765f27). Lifecycle order_codec merge preserved BOTH financial
+kind registrations AND allnewV3lifecycle kinds, oldV2map unchanged.
+Rootcombinedcontracts/intents/unit1400passed. No new native/financial permits,
+transport or automatic source verifiers are registered by these component merges.
+
+Creationreview3realdefects fixedandretained asREDregressions:
+wirequoteAsset mustmatchnode/wallet independently; frozenclientIDs cannot be
+rebound to another durablecommand (d2a7aab); false/0 andtrue/1 dataclass equality
+cannot hide different canonicalpayload/wirebytes (9a9e985 canonicaltypedhash).
+Focusedrequest/lifecycle/registry76passed. Verify fullrequest beforebinding;
+unsignedmaterializerstillisnotfinancialauthority. Nativepeerreadreview pending.
+
+Root fullgate CURRENTLYLIVE, exactsource0bd6932 (BEFORElaterV3/reduction merges):
+exec39647, .runtime/paper-qualification-e307c57518a1/evidence. Lastconfirmedpoll
+setup/deps/markerall exit0, mandatoryPGexecuting. Poll samehandle/logs; do not
+restart on observation timeout. Need finalcurrentcohortfullgate after review.
+All olderroot fullhandles63956/79224/71345 are terminalgreen historicalevidence.
+
+Active agent next actions:
+- exposure_review/binance-opc-program-risk: d92latesttargeted264passed and
+  previousbroad1271pass; fullPGd92 runningfixedsource plusfinalartifactbroad.
+  Rootreviewofboundedproof readsource: exactsource/book/ownedqty/currentknown
+  EXITlocks/report/emergency/slippage/type/price/deadlines, no unknown/recovery,
+  no contingent/pending/newrisk, residualFalseprotection+unknownhardloss explicit.
+  Await actualPGterminal/evidence before claiming integrated qualification.
+- admission_review/binance-opc-financial-records: newcompleteassessmentarchive
+  ownWIP; resumead0+d92 dependencies/subtype restore andgenuineunknownresidual
+  EXIT/forgedproof/erasedobligations negatives viaREALevaluate_program. Oldknown
+  archivefrozen+blocked; no suppliedALLOW/stub; freeze/commitnewkindonlywhenfull
+  actualshape/replay/basis/obligations tests green. Creationreviewdone, no editsroot.
+- pin_native_build/binance-opc-lifecycle-v3: stagecohort complete/clean integrated
+  above, actual50focused+1095related inownedsource; nowread-onlycreationrequest
+  review. No productionverifier/normalizer/nativeDBbinding yet; rootcurrent
+  order_programs existing V3productioncontainment/senddenial remains unchanged.
+
+Nextrootimportantwork: completeassessmentarchive→actualSAME-core generic atomic
+financialintent/riskbasis/reservation/binding/outbox transaction; explicit new
+versionedapplicationwrite/fullrequest/permit/MAY/UNKNOWN andlocalactivation
+(no fictitious native mother). OCO target grouping/nativequote/fee-dust and
+allOP-D/E/F/G remainunfinished,46targets/56cases never shrunk or promoted by
+componentgreen. PAPERonly, no realaccount/Testnet/live/productmodel/configcalls.
+Goal ACTIVE; currentcheckpoint isnotpause/completion.
+
+## OP_C_REQUEST_MATERIALIZATION_AND_RISK_REVIEW — 2026-10-29
+
+Root f66a584 adds actual unsigned creation-request materialization and original
+client-ID assignment (no transport/signature/permit). Exact compiler/profile/
+request index/source fields are retained; ordinary/SOR, lists, conditionalalgo,
+TWAP/VP and batch use documentedidentitynames, no fake batchvenueparent. Equity
+BUY requires fresh explicit wallet routing; verify uses independently supplied
+expected wallet, not stored request's choice. Nativechilds never extra sends.
+Root958dc30 fixes missing EquityquoteAsset from rule snapshot; official interface
+defaultsUSDC, so omission could debit a differentcurrency. No FX/eligibility
+inference.26request+quotecases and broadcontracts/intents/unit1258passed.
+Independentcreationbinding review assignedpin_native_build; not yetcomplete.
+
+Root independent actual assessorevidence in peer tree (a055f2c, NOTrootpicked):
+partialactual2→target1SELL1 reportsALLOW/loss0; invalidremaininglongstop90000
+alsoALLOW; increasingofftick81330.005ALLOW; coherentSPOT/NATIVE_REQUIRED unified
+MARK sourceALLOW. Negativeexecutionprice wasconstructor-rejected (not abug).
+Peerfix3aa2ad9 normalstops/residualloss ready,68generic tests reported; do NOT
+merge/qualify olda055 withoutfollowup. Protectedpartial retained1 nowloss16458,
+offtick/native-product stop mismatchesdeny, fullflatfees-only. Approvedexplicit
+versioned ReductionRiskMetrics+ResidualRiskState+BoundedReductionProof extension
+preserves existing authorizedboundedemergencyEXIT withtruthfulunprotected/unknown
+residual and sticky EXIT_ONLY management/risk-lock obligations. No false normal
+protection_completeTrue/zero loss, no bypassUNKNOWN/RECOVERY/owner/qty/price.
+
+Active agents:
+- exposure_review/binance-opc-program-risk: a055f2c actualevaluate_program,
+  3aa2ad9 normalfixes, emergency subtype inprogress; root has only8972+679 from
+  this branch. Needswholederivedmetrics/source/cost/protection/currentproof tests
+  and actualPGregressions beforefullsourceeligibility. Coordinate new metric/fact
+  union with assessmentarchive; baseRiskMetrics/oldarchivehash stayunchanged.
+- admission_review/binance-opc-financial-records: NEWcompleteassessmentkind/
+  archive_revision1 WIP,27realassessor/archivecasesgreenafter3aa owncherry;
+  waitingstablesubtype beforefreezingnestedshape, no oldarchive edits. Actual
+  replay/assessment mandatory, no providedALLOW/stub. No basis/intent converter
+  proofqualification or financialbundle enabled; oldkind staysblocked.
+- pin_native_build/binance-opc-lifecycle-v3: contracts/reducers lateproof/native
+  pair bootstrap/localSUM/realoverfill/algopool/nanosecondwatermarks/receipt+fees/
+  qualifiedzero-asset reduce draft49focused/1094relatedpass; finalfundingproof
+  sourceartifact tightening+commit pending.1443 firstcontracts stillnotpicked.
+
+No new fullPG since7d9deb7 (915/28zero skips; ordinary2974/469skip/96deselected).
+All earlierrootprocesshandles areterminal, no jobrestartneeded. Nextroot must
+review/integrate actualassessor+fixes/completearchive/lifecycle and creation
+review, then SAME-core generic financial bundle +versionedapplicationwrite/
+fullrequest/MAY/permit/UNKNOWN and localactivation (no fake native mother).
+OCO target grouping/nativequote/fee-dust contracts andfullOP-D/E/F/G remain.
+All46/56 retained. PAPERonly; no account/Testnet/live/productmodel/configactions.
+GoalACTIVE; this is a continuation checkpoint, not pause/completion.
+
+## OP_C_SCOPE_SAFE_EXPOSURE_INTEGRATED — 2026-10-29
+
+Root8fdfcf6 integrates8972f4e as412e21a and6791518 as8fdfcf6: SAME exposure
+calculator now supports typed pending/proposed quantities with physicalscope/
+sourcefamily/service-namespace identity, no dummy orders/intents; fullflat0 and
+retainedpartialinventory tests. ExistingRiskEvaluator uses shared ordered
+source/basis/evidence/instrument predicates. Rootcontracts/intents/unit1232pass
+exit0. This extends code after the latest full7d9deb7 gate915/28; a further full
+gate is due after semanticrisk/lifecycle integration, no nativequalification.
+
+Active owners/dependencies:
+
+- exposure_review / binance-opc-program-risk: actual ProgramRiskFacts and
+  ProgramRiskDecision classes in risk/program_assessment.py; evaluate_program
+  derivation WIP (29 positive/negative cases reported, not complete). Handles
+  atomic/conditional/partial/flat/native+localalgo/BATCH/fullfill+receipt stages;
+  adds holding-price scenarios, independentcost/horizon/count/protection proof.
+  Keep fixedBUY principal atlimit, SELL independentceiling, proper net/groups,
+  retainedinventory and pending effects; no cumulativebudget→portfolio shortcut.
+- admission_review / binance-opc-financial-records: cleanpublicrecords+TTLfix
+  alreadyrootintegrated. OWNdependencies now8972=dbf073f,79=e3a14d4,c71=2fd6893,
+  679=3095b75. NEW ProgramFinancialAssessmentArchive kind witharchive_revision1
+  beingimplemented separately; actual ProgramRiskFacts+Decision (DENYmetricsNone
+  legal), oldknown-contentarchive shape/hash/blockedconverter unchanged. New
+  codec replayscompile/target/exposure and onlyREALevaluate_program; missingmethod
+  returnsPROGRAM_RISK_ASSESSMENT_NOT_AVAILABLE, no callbackstub or claimedALLOW.
+  Scope/type source refinements may occur inassessor peer; coordinate API/commits.
+- pin_native_build / binance-opc-lifecycle-v3: additive1443f6c stillNOTrootpicked;
+  reducers/proofs/nativepairbootstrap/late-proof reconciliation/membership exact
+  mapping/fees and zero-asset OWNED_POSITION fundingbasis inprogress. Emptyasset
+  refs onlywithqualifiedclosingposition+explicitzerofees, no dummyreserve. No
+  state/reducer grant, release, extra nativechildsend or productioncontainment
+  removal. Preserve allV2bytes and originals/native namespaces.
+
+Rootnextactualintegration remains SAME-core generic financial bundle, new typed
+durable application writes/request bindings/permits/UNKNOWN recovery, localalgo
+activation (no fake native mother), then OP-D/E/F/G. CurrentOCO target grouping,
+nativequote quantity and positionfee/dust residual contracts remain true work,
+not removedtargets. All46/56scope stays. No liveprocessneedsrestart:63956,79224,
+71345 are TERMINALgreen historicalruns. No account/Testnet/live/productmodelcall.
+Goal ACTIVE, not complete or paused.
+
+## OP_C_REGISTRY_FULL_GATE_GREEN — 2026-10-29
+
+Fullfixed7d9deb7 gate TERMINALexit0:915mandatoryPG/28suites,zero fail/error/skip;
+ordinary2974pass/469envskip/96deselected. Rootsession63956 completed, ignored
+.runtime/paper-qualification-12c067c04b95/evidence; do NOTrestart oldhandle.
+Published byte-identical logs/JUnit/manifests/maps under
+docs/evidence/binance-orders/op-c-financial-registry-integrated.
+LaterTTLfixd13a9f2 integrated5f4e7eb; root32financial+8TTL focusedpassed,
+agentPG10passed. Fullgate is BEFOREthatfollowup, notcurrentfutureproof.
+
+Active next work (goalstillactive/no pause):
+
+- exposure_review/binance-opc-program-risk:8972f4e+6791518 stillNOTrootpicked.
+  SameExposureCalculator pending/proposed source refs nowphysicalscope/family/
+  namespace-aware; fullflat physical0 tested. StaticProgramRiskFacts definitions
+  in risk/program_assessment.py are actual code; semanticderivation and
+  RiskEvaluator.evaluate_program stillbeingimplemented. Preservelegacygoldens,
+  properportfolio/loss/horizon/fee/protection/count proof, no fakeTradeIntent.
+- admission_review/binance-opc-financial-records: TTLfixdone. Nextapprovedtask
+  NEWcomplete-assessmentarchivekind/revision withactualProgramRiskFacts+Decision,
+  preservingoldPROGRAM_FINANCIAL_ARCHIVE fields/hashes/blockedconversion. May
+  cherryactual8972+679dependencies inown tree; no dummyRiskFacts or budgethash
+  alias. Fullconversion waitsforactualrecomputedprogramassessment, notprovided
+  ALLOW/booleans. Actualsemanticadapter sourcehash/codeAPI coordinatedwithpeer.
+- pin_native_build/binance-opc-lifecycle-v3:1443f6c schemas firstslice NOTpicked;
+  reducers/zero-asset OWNED_POSITION proof/pairbootstrap/native membership
+  mapping/receipt-vs-ownedposition fee correctness inprogress. Existing V2 bytes
+  and rootV3production/sendcontainment retained. Rootapprovedplan alreadycovers
+  these; no routineuserapproval needed.
+
+Rootmust review/integrate these commits, then actual same-core generic financial
+bundle+new command/request/permit/UNKNOWN adapters and OP-D/E/F/G. All46targets/
+56cases retained, componentgreen nevermeansnativequalified. PAPERonly, no real
+account, TESTNET/LIVE, productmodel or operationalconfig calls were made.
+
+## OP_C_FINANCIAL_REGISTRY_INTEGRATED — 2026-10-29
+
+Root through0f18598 now has real versioned financial DTO/codec/common identity
+and SAME ledger.intents/reservations registry hooks. Legacy commands explicitly
+require legacy intents before append/binding/permit. Actual newrecordsPG10,
+oldledgerPG30/reservationPG67 passed in agent source; root combinedcontracts/
+intents/unit1203 passed. CI change registers separate program-financial-ledger
+IP03 suite (28total). Generic archive conversion is still honestly denied with
+PROGRAM_RISK_FACTS_ARCHIVE_REQUIRED; metadata/record persistence is no ALLOW.
+
+Root full08718fc run is TERMINAL exit0:905mandatoryPG/27suites,zero failures/
+errors/skips; ordinary2942pass/459envskip/96deselected. Session79224 completed,
+.runtime/paper-qualification-dd956ae3b762/evidence. Earlier71345 alsoTERMINAL
+exit0 at58327f6:905PG/27suites,ordinary2842pass/459skip/96deselected. Current
+policy/collateral/window code+new strict capacity assertion fullyverified at
+08718fc; it PRECEDES financial registry. Byte-identical artifacts+maps committed
+under docs/evidence/binance-orders/op-c-common-financial-context (c5a5ba2).
+Risk peer c71a540 alsopassed904PG/26suites; artifacts548b440.
+
+Active owned work:
+
+- admission_review in binance-opc-financial-records: a9ff18f integrated; now
+  RED/fix effective archive TTL narrowing. RiskTerms.valid_until can be shorter
+  than original proposal due to target facts/unit/rules expiry; source/hash and
+  submission deadline remain original, no extension. Publicfinancialintent
+  already supports narrowed validity. Actualtyped ProgramRiskFacts archive
+  extension follows TaskB; do not alias budget facts to complete risk proof.
+- exposure_review in binance-opc-program-risk: planapproved. First8972f4e adds
+  typed pending/proposed inputs to SAME ExposureCalculator and static
+  risk/program_assessment.py ProgramRiskFacts/NodeRiskBound/ProtectionCoverage/
+  ProgramRiskDecision. NOT yetrootpicked: pending raw command IDs need scoped
+  dedup review/fix and fullflat proof. Actualsemantic derivation/evaluate_program
+  stillinprogress; currentOCO/quote/residual blockers stayuntilpropercontracts.
+  FixedBUY limit costs use limit; portfolio scenarios/retained inventory are
+  separate. No dummy orders, fake TradeIntent or second risk calculator.
+- pin_native_build in binance-opc-lifecycle-v3: approvedplan and1443f6c first
+  schemas NOTyetpicked. Pure unit/group reducers inprogress, including qualified
+  zero-asset OWNED_POSITION reduction (no dummy reserve), native OCO pairproof
+  bootstrap, explicit membership mapping, receipt-vs-position fee attribution.
+  Existing V2 bytes and rootV3production containment/senddenial must remain.
+
+Next root: integrate reviewed TTL/lifecycle/risk increments, finish real archive
+RiskFacts bindings and generic financial bundle/command/permit wiring through
+shared core, then OP-D/E/F/G. Never claim all46/56complete from thesecomponent
+passes. No account/native/model/operational config or TESTNET/LIVE actions.
+
+## OP_C_SHARED_CAPACITY_INTEGRATED_GATE_RUNNING — 2026-10-29
+
+Root source58327f6 includes shared exact per-asset capacity (556ec29), preserving
+old amounts alias/formula/call ordering. Actual agent PG107 and unit1021 passed;
+genuine old precision failure retained, no risk stub/fills. Mandatory IP07
+capacity-precision now registered (27total PG suites). New full fixed-source
+gate is LIVE: exec session71345, ignored
+.runtime/paper-qualification-e618764c8527/evidence, source58327f6. Last poll
+confirmed dependency/marker steps exit0, postgres suites running. Poll same
+handle/logs; never restart solely because observation times out. Earlier root
+full46441 is terminal exit0 at4b6b941; do not confuse it with current run.
+
+exposure_review remains sole writer in binance-opc-risk-core: neutral shared
+risk first slice, legacy parity and actual80digit spendable precision RED. Its
+exact math may correctly deny capacity stress earlier as INSUFFICIENT_SPENDABLE;
+retain actual no-financial-bundle assertion and direct capacity tests rather
+than forcing later-stage reason with stubs. Await reviewed commits/PG evidence.
+
+pin_native_build lifecycle-v3 plan was reviewed and APPROVED by root within ADR:
+pre-ACK authority/funding vs later exact venue binding; explicit authenticated
+membership; native exclusive proof vs local SUM; unit/multiplier/SELL ceilings;
+separate receipt-net vs position/external fee debits; raw evidence/reconciliation
+on unknown/overfill; no writes/permits/releases. It now implements additive
+contracts/codecs/reducers in binance-opc-lifecycle-v3. Keep existing V2 bytes and
+V3 production containment until qualified financial/native binding exists.
+
+All agents' former worktrees/commits are retained. Goal remains active, not
+paused or complete. No production/account/config/model operation was performed.
+
+## OP_C_COMMON_FINANCIAL_CORE_ACTIVE — 2026-10-29
+
+Root HEADbe72cab: generic target allocation, exact numeric LIMIT equivalence,
+and explicit unaccounted residual blocking integrated. Contracts/intents/unit
+1045 passed, zero failures/skips. This is offline evidence; full current-source
+PG gate remains due. Earlier fixed-source4b6b941 mandatory873/ordinary2650 green
+is historical baseline, not proof for these later changes. Root46441 completed
+exit0; do not restart its old handle. Full56acceptance statuses remain honest.
+
+Root also integrated new/old command obligation readers and READY-regression
+defense (9b28899). Two separate IP03 suites are registered. Old database absence
+is supported; raw terminal/READY labels never clear prior UNKNOWN obligations.
+
+Active delegated owners, one writer each:
+
+- admission_review: binance-opc-financial-core / codex/binance-opc-financial-core,
+  based9b28899. Extracts amounts/capacity into SAME shared financial path, retains
+  old publicalias and call ordering. Genuine old-PG precision RED: free10**80+70,
+  other holds1+10**80 wrongly admitted70 when69 remained, no RiskEvaluator stub
+  or fills. Candidate256digit trapped math denies correctly; PG regressions and
+  full unit runs are ongoing. Review+integrate actual committed result next.
+- exposure_review: binance-opc-risk-core / codex/binance-opc-risk-core,
+  based9b28899. Implements typed neutral risk terms/metrics and shared policy/
+  mode/spendable checks, retaining old diagnostic ordering/normalcase hashes.
+  It is independently probing RiskEvaluator80digit rounding. Scope/freshness/
+  price/stop extraction is staged, not silently declared complete. Generic
+  metrics must cover net/groups/protection/loss/horizon/counts; ProgramExposure
+  is insufficient alone. No generic financial permission has been enabled.
+- pin_native_build: binance-opc-lifecycle-v3 / codex/binance-opc-lifecycle-v3,
+  basedbe72cab. First researches native group/unit semantics and RED probes,
+  must send root explicit additive authority/binding/state contract plan before
+  implementing new codecs/reducers. Root reviews architecture, no routine user
+  approval question. Preserve V2 schemas/history and existing V3 containment.
+
+Next root actions: review lifecycle plan, integrate reviewed shared finance/risk
+commits and run fresh fixed-commit mandatory PG+Python gate. Then finish actual
+versioned generic financial intent/admission/bundle/command/permit adapters using
+the SAME ledger/risk/reservations, not fake legacy projections. Residual dust,
+native OCO target grouping, quote-quantity allocation and management remain
+explicit unresolved contracts in addition to full OP-D/E/F/G scope. No LIVE,
+TESTNET, real accounts, product model calls or operational profile changes.
+Persistent goal remains active; this checkpoint is not a pause/completion.
+
+## OP_C_INTEGRATING_GENERIC_TARGETS — 2026-10-29
+
+Root integrated throughd7c761d: explicit version/legacy lifecycle containment,
+shared new/old command obligation hooks, exact program exposure including SELL
+ceiling correction, shared TargetTerms using original TargetCompiler arithmetic.
+Current contracts/intents/unit989 passed. Isolated fixed-source4b6b941 full gate
+also passed873 mandatory PG cases (24suites,zero skip), ordinary2650pass/427envskip/
+96deselected; it PRECEDES later generic changes and is not current-tree proof.
+Evidence: docs/evidence/binance-orders/op-c-integrated-baseline.
+
+Remaining root CI change registers two separate fresh-IP03 obligation suites.
+Next full integrated gate must include latest branch, not reuse baseline result.
+pin_native_build owns actual ProgramTargetAllocation after common terms5abfff5
+in binance-opc-exposure. admission_review owns read-side READY regression guard
+after2e6f844 in binance-opc-obligations. Source/version storage agent completed,
+ownPG32passed and integrated; no duplicate task needed. Common financial risk/
+bundle/dispatch and explicit unit/group lifecycle remain real implementation
+work per orders/OP-C-REMAINING-INTEGRATION.md. Goal remains active throughOP-G;
+no runtime/account/model calls or TESTNET/LIVE activation. Full46/56scope retained.
+
+## OP_C_ROLE_BOUNDARY_FIX — 2026-10-29
+
+Active checkout binance-orders/codex/binance-order-capabilities, persistent goal
+continues OP-C through OP-G. Generic lossless creation/management compilers,
+explicit futures quantity units/multipliers, v3 VP contracts and reviewed closure
+were integrated through3f9fdfd. These plans do not authorize execution.
+
+Actual PG admission probe ca3984c failed5/5 because execution owner cannot write
+proposals. Root now owns correction: separate bounded intake commit, additive0010
+source table, fresh owner revalidation+atomic existing IP07 financial bundle.
+Independent review reproduced owner-side intent rebinding and source-only legacy
+dispatch fallback; retained RED regressions and fixed both. Unit regression876
+passed. Fresh real PostgreSQL admission at3fd6011 passed10/0failed/0skipped;
+role failure and command-history-count RED evidence retained in
+docs/evidence/binance-orders/op-c-admission. No venue qualification claim.
+See orders/OP-C-INTAKE-MIGRATION.md for recovery and compatibility.
+
+Parallel ownership: pin_native_build owns pure program exposure in binance-opc-exposure;
+admission_review took over closure-credit additive0011/test evidence in
+binance-opc-programs after prior agent capacity error. Root owns integration and
+actual combined PAPER/PG gate. Do not duplicate their work or modify main checkout.
+Full46 capabilities retained; full56-case matrix remains honest, not promoted by
+compiler/unit tests. No runtime scheduler, account or paid model calls performed.
+
+## CONTINUOUS_GOAL_ACTIVE — 2026-10-29
+
+User asked that subsequent tasks proceed automatically. A persistent thread goal
+now tracks OP-C through OP-G, with approved ADR, all46 targets and56 cases.
+Continue without routine stage approvals; keep PAPER-only/no paid product model
+calls/no real accounts/LIVE/Testnet disabled and honest evidence boundaries.
+
+Latest OP-C change fixes the existing IntentCompiler binding path: quote-notional
+LIMIT targets now normalize with their declared limit price rather than market
+ask/bid. Red regression reproduced0.080 vs expected0.049 with synthetic step0.001
+for4000/81490/81330. Target/compiler/wire regressions294 passed. Original stored
+intents/UNKNOWN payloads are never re-normalized or rewritten. Risk/reservation
+and dispatcher integration remains the next step, with full native capabilities
+still not qualified. The thread goal, not the PAPER strategy scheduler, drives
+automatic engineering continuation.
+
+
+## OP_B_VERIFIED_OP_C_STARTED — 2026-10-29
+
+Worktree binance-orders / codex/binance-order-capabilities. OP-B source d5074c9
+passed828 mandatory Linux/PG tests (21 suites, zero failures/skips) and2499 ordinary
+Python tests (382 environment skips,96 deselected). Native Windows target1.231.0
+is pinned; Linux/native qualification remains blocked. Review findings corrected.
+[OP-B report](orders/OP-B-REPORT.md) and [migration/recovery](orders/OP-B-MIGRATION.md).
+ORD-47 PAPER migration PASS; remaining55 full cases NOT_RUN; all46 targets retained.
+
+OP-C first slice added: non-authorizing atomic Spot LIMIT target normalization
+with exact field/rule/capability bindings, existing decimal/grid helpers, and
+4000/81490/81330 preservation.40 targeted contract/compiler tests pass. This is
+not yet integrated with locked target delta/risk/reservations/permit dispatch.
+Continue [OP-C progress](orders/OP-C-PROGRESS.md); no additional approval needed.
+New parent funding remains conservatively held pending reviewed closure support.
+No operational services/accounts/model calls changed; no TESTNET/LIVE activation.
+Previous pause markers are historical; user resumed work.
+
+
+## OP_B_ACTIVE — resumed 2026-10-29
+
+User resumed the paused OP-B implementation. Work continues in binance-orders
+worktree on codex/binance-order-capabilities. Approved ADR unchanged. Native target
+Windows1.231.0 pinned; new versioned contracts/storage are being verified. Initial
+PG diagnostic10 passed/1 failed (fixture expected rollback-only context incorrectly);
+fixture corrected without weakening assertions. Final integrated verification pending.
+The pause checkpoint below and OP-B-PAUSE.md are historical.
+
+
+## PAUSED_BY_USER — OP-B — 2026-10-28
+
+User explicitly requested: save task state after the current tool call and pause.
+Implementation worktree remains `TradingHandoff/AutoDispatchWorktrees/binance-orders`
+on `codex/binance-order-capabilities`, HEAD `e8cb1d1`. All uncommitted source,
+new schemas, migration and tests are preserved in place. See the authoritative
+[OP-B pause checkpoint](orders/OP-B-PAUSE.md) for completed work, actual tests,
+review findings and unverified code. No further work/tests/OP-C until resumed.
+The ADR is approved; this is a user-requested pause, not an approval blocker.
+
+
+## BINANCE_ORDERS_OP_A_REVIEWED — 2026-10-28
+
+Worktree: TradingHandoff/AutoDispatchWorktrees/binance-orders; branch
+codex/binance-order-capabilities; baseline b168966d, no initial tracked delta.
+All11 handoff files copied/hash-recorded. Native not installed in actual venv;
+lock deployment/wheel/container unresolved. Official46-feature catalog retained;
+DOC01–03 reconfirmed, DOC04 retrieval unresolved; latest Nautilus docs2.x differ
+from stable1.x installation. See [OP-A review](orders/OP-A-REVIEW.md).
+
+Material contract conflict: old native ALGORITHM_CHILD inventory requires an
+independent command, new design requires venue child observation only. Concrete
+[ADR-ORDER-001](orders/ADR-ORDER-001.md) proposes preserving per-local-write
+durable/permit checks and parent-authorized native child ingestion. Await this
+contract decision per user conflict gate before OP-B; do not silently rewrite
+old schemas/UNKNOWN records. OP-B boundaries and migration/rollback are in ADR.
+
+Executable OP-A tool and regressions406 passed; original metadata24/24. All56
+ORD scenarios NOT_RUN, no DB/native/paid-model/account tests and no runtime
+configuration changes. OP-B–G and full functional goal remain unfinished.
+Main branch untracked evidence/worktrees-archive preserved untouched.
+
+
 ## STRUCTURED_MODEL_VERIFIED — 2026-10-28 17:13 +08:00
 
 Actual scheduled model response diagnosed as wrong outer schema_revision, not

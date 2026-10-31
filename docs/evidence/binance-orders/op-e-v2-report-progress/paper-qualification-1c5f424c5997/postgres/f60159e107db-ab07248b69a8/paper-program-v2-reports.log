@@ -1,0 +1,10 @@
+......F                                                                  [100%]
+=================================== FAILURES ===================================
+_ test_complete_causal_graph_is_stored_once_not_copied_into_every_fill_provenance _
+tests/integration/test_paper_program_v2_reports_postgres.py:149: in test_complete_causal_graph_is_stored_once_not_copied_into_every_fill_provenance
+    assert len(result.causal_dependencies)==10 and result.causal_graph_hash
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'PaperProgramVerificationV2' object has no attribute 'causal_dependencies'
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_complete_causal_graph_is_stored_once_not_copied_into_every_fill_provenance
+1 failed, 6 passed in 38.02s

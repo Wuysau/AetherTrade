@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="8.030" timestamp="2026-10-30T06:48:48.665875+00:00" hostname="0d67a621df16"><testcase classname="tests.integration.test_program_first_capital" name="test_first_generic_intent_cannot_spend_a_book_without_actual_initial_capital" time="1.686"><failure message="Failed: DID NOT RAISE any of (MissingEvidence, ValueError)">tests/integration/test_program_first_capital.py:22: in test_first_generic_intent_cannot_spend_a_book_without_actual_initial_capital
+    with pytest.raises((MissingEvidence,ValueError),match='ACCOUNT_OPENING_REQUIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE any of (MissingEvidence, ValueError)</failure></testcase><testcase classname="tests.integration.test_program_first_capital" name="test_first_generic_intent_cannot_credit_owner_authored_inflated_book" time="0.304" /><testcase classname="tests.integration.test_program_first_capital" name="test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory" time="5.167"><failure message="AssertionError: assert ('SUBMITTED' == 'NEW'&#10;  &#10;  - NEW&#10;  + SUBMITTED)">tests/integration/test_program_first_capital.py:49: in test_provisioned_first_generic_full_chain_binds_capital_without_creating_inventory
+    assert raw.status=='NEW' and not raw.fills and raw.remaining_quantity==1
+E   AssertionError: assert ('SUBMITTED' == 'NEW'
+E     
+E     - NEW
+E     + SUBMITTED)</failure></testcase></testsuite></testsuites>

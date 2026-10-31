@@ -1,0 +1,23 @@
+..........F...                                                           [100%]
+================================== FAILURES ===================================
+_ test_default_unqualified_program_context_stops_before_provider_and_payload_flag_is_not_authority[consensus-evidence_review-ids1] _
+tests\server\test_program_model_context.py:142: in test_default_unqualified_program_context_stops_before_provider_and_payload_flag_is_not_authority
+    result=asyncio.run(service.analyze('BTCUSDT',mode,ids,{p:0 for p in ids},'program-blocked-1',frame,decision_policy=policy))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\CodingTools\python\Lib\asyncio\runners.py:204: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+D:\CodingTools\python\Lib\asyncio\runners.py:127: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\CodingTools\python\Lib\asyncio\base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src\trading_system\server\model_service.py:333: in analyze
+    return await assess_program(self, symbol, analysis_mode, list(profile_ids), dict(expected_revisions),
+src\trading_system\server\program_model_service.py:60: in assess_program
+    raise ApiError('PROGRAM_REVIEW_PROTOCOL_NOT_IMPLEMENTED','���������ƻ��ĸ���Э����δ���롣',409)
+E   trading_system.server.errors.ApiError: PROGRAM_REVIEW_PROTOCOL_NOT_IMPLEMENTED
+=========================== short test summary info ===========================
+FAILED tests/server/test_program_model_context.py::test_default_unqualified_program_context_stops_before_provider_and_payload_flag_is_not_authority[consensus-evidence_review-ids1]
+1 failed, 13 passed in 1.53s

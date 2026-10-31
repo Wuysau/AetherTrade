@@ -1,0 +1,48 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_actual_v2_market_partial_preserves_native_economics_and_explicit_v2_provenance _
+tests/integration/test_paper_program_v2_reports_postgres.py:45: in test_actual_v2_market_partial_preserves_native_economics_and_explicit_v2_provenance
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:24: in observe
+    service,codec=verifier(c,path)
+                  ^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:18: in verifier
+    from trading_system.execution.paper_program_v2_reports import PaperProgramV2ReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_program_v2_reports'
+_ test_actual_trailing_observation_survives_creation_window_and_keeps_every_causal_input _
+tests/integration/test_paper_program_v2_reports_postgres.py:61: in test_actual_trailing_observation_survives_creation_window_and_keeps_every_causal_input
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:24: in observe
+    service,codec=verifier(c,path)
+                  ^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:18: in verifier
+    from trading_system.execution.paper_program_v2_reports import PaperProgramV2ReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_program_v2_reports'
+__ test_missing_nonfinal_trailing_dependency_is_archived_but_never_qualified ___
+tests/integration/test_paper_program_v2_reports_postgres.py:78: in test_missing_nonfinal_trailing_dependency_is_archived_but_never_qualified
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:24: in observe
+    service,codec=verifier(c,path)
+                  ^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:18: in verifier
+    from trading_system.execution.paper_program_v2_reports import PaperProgramV2ReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_program_v2_reports'
+_ test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_command _
+tests/integration/test_paper_program_v2_reports_postgres.py:90: in test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_command
+    result=observe(c,tmp_path/'raw')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:24: in observe
+    service,codec=verifier(c,path)
+                  ^^^^^^^^^^^^^^^^
+tests/integration/test_paper_program_v2_reports_postgres.py:18: in verifier
+    from trading_system.execution.paper_program_v2_reports import PaperProgramV2ReportVerifier
+E   ModuleNotFoundError: No module named 'trading_system.execution.paper_program_v2_reports'
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_v2_market_partial_preserves_native_economics_and_explicit_v2_provenance
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_trailing_observation_survives_creation_window_and_keeps_every_causal_input
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_missing_nonfinal_trailing_dependency_is_archived_but_never_qualified
+FAILED tests/integration/test_paper_program_v2_reports_postgres.py::test_actual_native_oco_uses_real_parent_members_and_no_fictitious_child_command
+4 failed in 19.32s

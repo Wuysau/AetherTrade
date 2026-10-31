@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_one_financial_plan_request_cannot_be_appended_twice_under_distinct_command_ids _
+tests/integration/test_program_commands_postgres.py:347: in test_one_financial_plan_request_cannot_be_appended_twice_under_distinct_command_ids
+    with pytest.raises(psycopg.errors.UniqueViolation):c.service._transaction(operation)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE UniqueViolation
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_commands_postgres.py::test_one_financial_plan_request_cannot_be_appended_twice_under_distinct_command_ids
+1 failed in 3.24s

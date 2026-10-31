@@ -1,0 +1,27 @@
+{
+  "record_kind": "ORDER_ADAPTER_WRITE_PATH_INVENTORY_V1",
+  "contract_version": "2026-10-30",
+  "scope": "OFFLINE_PROBE_ONLY_NOT_NATIVE_QUALIFICATION",
+  "legacy_inventory": "qualification/nautilus/write-path-inventory.json",
+  "external_activation_allowed": false,
+  "paths": [
+    {
+      "path": "NautilusEngine.submit_creation",
+      "implementation": "src/trading_system/engine/nautilus/native_program_adapter.py:submit_creation_probe",
+      "default_client": null,
+      "enabled_external_modes": [],
+      "owner_probe_environment": "PAPER",
+      "creation_routes": 15,
+      "boundary": "ExecutionOwner.session/guard -> committed MAY -> one consume -> bounded offline queue -> recheck original consumed window/source -> fixed offline probe",
+      "allowed_probe_types": ["OfflineNativeCreationProbe", "PinnedSdkOfflineCreationProbe"],
+      "arbitrary_client_url_or_secret_allowed": false,
+      "result": "UNKNOWN_WITH_RAW_ARCHIVE_AND_RECONCILIATION_DUTIES",
+      "native_order_qualified": false,
+      "last_queued_sdk_send": "BLOCKED_NOT_QUALIFIED",
+      "funds_release_authorized": false
+    }
+  ],
+  "unsigned_only": ["native_creation.creation_call", "native_management.management_call"],
+  "management_sender": null,
+  "management_independent_durable_boundary": "REQUIRED_NOT_IMPLEMENTED"
+}

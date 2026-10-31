@@ -1,0 +1,68 @@
+{
+  "commit": "3981d48e917c7c6b0db80fb30ce3460675cbffec",
+  "scope": "FIXED_SOURCE_FRESH_TEST_DATABASE_EXISTING_OWN_ISOLATED_CLUSTER",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opd-matcher\\.runtime\\paper-qualification-2a1fe1d2f68b\\source-3981d48.bundle",
+        "HEAD",
+        "3981d48e917c7c6b0db80fb30ce3460675cbffec"
+      ],
+      "exit_code": 0,
+      "log": "3981d48-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-3981d48.bundle",
+        "3981d48e917c7c6b0db80fb30ce3460675cbffec"
+      ],
+      "exit_code": 0,
+      "log": "3981d48-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "3981d48e917c7c6b0db80fb30ce3460675cbffec"
+      ],
+      "exit_code": 0,
+      "log": "3981d48-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=3981d48e917c7c6b0db80fb30ce3460675cbffec",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-2a1fe1d2f68b",
+        "python",
+        "-c",
+        "import tools.ci_paper_postgres as c; c.SUITES=(('terminal-v2','03','tests/integration/test_paper_market_matcher_v2.py::test_terminal_v2_order_is_not_reactivated_by_later_reference_or_depth'),); raise SystemExit(c.main())",
+        "--suite",
+        "terminal-v2",
+        "--evidence-dir",
+        "/handoff/evidence/v2-conditional-terminal-red"
+      ],
+      "exit_code": 1,
+      "log": "3981d48-terminal-v2.txt"
+    }
+  ]
+}

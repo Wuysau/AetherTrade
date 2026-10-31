@@ -1,0 +1,20 @@
+.......FF                                                                [100%]
+================================== FAILURES ===================================
+_ test_v3_nonunit_multiplier_uses_exact_native_quantity_times_price_times_multiplier _
+tests\contracts\test_order_lifecycle_v3.py:160: in test_v3_nonunit_multiplier_uses_exact_native_quantity_times_price_times_multiplier
+    result,archive=ready(a);assert not result.restrictions
+                   ^^^^^^^^
+tests\contracts\test_order_lifecycle_v3.py:111: in ready
+    from trading_system.contracts.order_lifecycle_v3_reducer import (
+E   ModuleNotFoundError: No module named 'trading_system.contracts.order_lifecycle_v3_reducer'
+_ test_v3_native_oco_two_quantity_one_legs_share_proven_one_quantity_capacity _
+tests\contracts\test_order_lifecycle_v3.py:168: in test_v3_native_oco_two_quantity_one_legs_share_proven_one_quantity_capacity
+    a=authority(exclusive=True);result,archive=ready(a,native_proof=True);assert not result.restrictions
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\contracts\test_order_lifecycle_v3.py:111: in ready
+    from trading_system.contracts.order_lifecycle_v3_reducer import (
+E   ModuleNotFoundError: No module named 'trading_system.contracts.order_lifecycle_v3_reducer'
+=========================== short test summary info ===========================
+FAILED tests/contracts/test_order_lifecycle_v3.py::test_v3_nonunit_multiplier_uses_exact_native_quantity_times_price_times_multiplier
+FAILED tests/contracts/test_order_lifecycle_v3.py::test_v3_native_oco_two_quantity_one_legs_share_proven_one_quantity_capacity
+2 failed, 7 passed in 0.32s

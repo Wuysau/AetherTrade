@@ -1,0 +1,45 @@
+......F..FF.F.F...F                                                      [100%]
+=================================== FAILURES ===================================
+______ test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified _______
+tests/integration/test_paper_program_reports_postgres.py:156: in test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified
+    assert result.fills[0].fill.price.value==D('81489.5')
+           ^^^^^^^^^^^^^^^
+E   IndexError: tuple index out of range
+_ test_observed_economic_discrepancies_preserve_uncapped_native_facts[cumulative] _
+tests/integration/test_paper_program_reports_postgres.py:188: in test_observed_economic_discrepancies_preserve_uncapped_native_facts
+    assert result.source_verified and result.status=='DISCREPANCY',result.discrepancies
+E   AssertionError: ('PAPER_CUMULATIVE_FILL_SOURCE_CHANGED',)
+E   assert (False)
+E    +  where False = PaperProgramVerification(command_id='isolated-command-3938ffcdf538425eadc9c9508681fd6b', status='BLOCKED', source_veri... environment=<Environment.PAPER: 'PAPER'>, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))).source_verified
+_ test_observed_economic_discrepancies_preserve_uncapped_native_facts[remaining] _
+tests/integration/test_paper_program_reports_postgres.py:188: in test_observed_economic_discrepancies_preserve_uncapped_native_facts
+    assert result.source_verified and result.status=='DISCREPANCY',result.discrepancies
+E   AssertionError: ('PAPER_REMAINING_SOURCE_CHANGED',)
+E   assert (False)
+E    +  where False = PaperProgramVerification(command_id='isolated-command-d6e21dcebd61414f8ba9c8edf2865374', status='BLOCKED', source_veri... environment=<Environment.PAPER: 'PAPER'>, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))).source_verified
+_ test_observed_economic_discrepancies_preserve_uncapped_native_facts[missing_fees] _
+tests/integration/test_paper_program_reports_postgres.py:189: in test_observed_economic_discrepancies_preserve_uncapped_native_facts
+    assert expected in result.discrepancies
+E   AssertionError: assert 'FILL_FEES_UNKNOWN' in ('FILL_FEE_MODEL_DISCREPANCY',)
+E    +  where ('FILL_FEE_MODEL_DISCREPANCY',) = PaperProgramVerification(command_id='isolated-command-a7b550f3142d44e18a28458df0be7f49', status='DISCREPANCY', source_... environment=<Environment.PAPER: 'PAPER'>, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))).discrepancies
+_ test_real_source_substitution_is_blocked_with_raw_observations_retained[raw_type] _
+tests/integration/test_paper_program_reports_postgres.py:214: in test_real_source_substitution_is_blocked_with_raw_observations_retained
+    try:result=observer.verify(c.write.command_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/execution/paper_program_reports.py:205: in verify
+    refs.append(self._archive(item.raw_payload_json.encode('utf-8'),clock))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'NoneType' object has no attribute 'encode'
+_ test_real_source_substitution_is_blocked_with_raw_observations_retained[unhealthy_read_clock] _
+tests/integration/test_paper_program_reports_postgres.py:217: in test_real_source_substitution_is_blocked_with_raw_observations_retained
+    assert result.raw_refs and all(Path(ref.id).is_file() for ref in result.raw_refs)
+E   AssertionError: assert (())
+E    +  where () = PaperProgramVerification(command_id='isolated-command-35e49a672f974745b46b6b1c9735b42e', status='BLOCKED', source_veri... environment=<Environment.PAPER: 'PAPER'>, source='PAPER_MARKET_REPLAY_SYNTHETIC', visible_at='2026-10-28T10:00:00Z'))).raw_refs
+=========================== short test summary info ============================
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_fractional_nonfill_price_retains_sql_raw_and_can_be_verified
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_observed_economic_discrepancies_preserve_uncapped_native_facts[cumulative]
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_observed_economic_discrepancies_preserve_uncapped_native_facts[remaining]
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_observed_economic_discrepancies_preserve_uncapped_native_facts[missing_fees]
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_real_source_substitution_is_blocked_with_raw_observations_retained[raw_type]
+FAILED tests/integration/test_paper_program_reports_postgres.py::test_real_source_substitution_is_blocked_with_raw_observations_retained[unhealthy_read_clock]
+6 failed, 13 passed in 150.74s (0:02:30)

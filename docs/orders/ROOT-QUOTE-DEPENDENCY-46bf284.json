@@ -1,0 +1,172 @@
+{
+  "root_base": "b5d7357407db6d412619016aa57ecc53ceaba1fb",
+  "root_test_source": "46bf284dbb2145287068d7f92761511ada3202c3",
+  "reviewed_candidate": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+  "reviewed_test_source": "13c52d319eb572c12da7f81049db14ff6b267dbd",
+  "review": "D:/Projects/Python/AetherTrade/TradingHandoff/QuoteBudgetReview-f31784c/review.md",
+  "selected_paths": [
+    {
+      "path": "migrations/0025_paper_quote_budget.sql",
+      "source_commit": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+      "sha256": "b9e22f954fc1b36bbace6da86cfaa6035cd94a58a011f31a3dd27fdc0a9340a7",
+      "byte_identical": true
+    },
+    {
+      "path": "src/trading_system/engine/paper_market.py",
+      "source_commit": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+      "sha256": "d1e35dd8f5efc21575611516db75a861288cc0811ba62ae3f5c2baeeea2af3de",
+      "byte_identical": true
+    },
+    {
+      "path": "src/trading_system/engine/paper_market_quote.py",
+      "source_commit": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+      "sha256": "67120df3134c8a7dfe1aa92581f7ad8d33ae65678b51ed693e155c0c4de3879e",
+      "byte_identical": true
+    },
+    {
+      "path": "src/trading_system/execution/paper_program_v2_liquidity.py",
+      "source_commit": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+      "sha256": "276d29e29dd052b729fe2609b02644a7a7110ea04f5ea202a6fd6cf0b4672ff9",
+      "byte_identical": true
+    },
+    {
+      "path": "src/trading_system/execution/paper_program_v2_reports.py",
+      "source_commit": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+      "sha256": "d8e8652b366e9db4a558ea459bb1ea6cb97b6de2e85e178fb42ecbbb879be776",
+      "byte_identical": true
+    },
+    {
+      "path": "src/trading_system/execution/paper_quote_reports.py",
+      "source_commit": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+      "sha256": "ee5d5cf13df137dfecf44ec3523e5437058b1f72e199026670992d72287c1e8c",
+      "byte_identical": true
+    },
+    {
+      "path": "tests/integration/test_paper_quote_budget_postgres.py",
+      "source_commit": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+      "sha256": "ab7ff24346b729c2ea3fc4ab837871af76b9658e7ca4dce8eecc02347799873b",
+      "byte_identical": true
+    },
+    {
+      "path": "tests/integration/test_quote_review_mixed.py",
+      "source_commit": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+      "sha256": "7d928c497219c27aa40ccc42dd87a467d4c46901f716d5f293ca7a4c3f512e1f",
+      "byte_identical": true
+    },
+    {
+      "path": "tests/integration/test_quote_financial_kernel_postgres.py",
+      "source_commit": "03646b5705a5cabbefafe608dee472a2cf0ba103",
+      "sha256": "7e74bcd9066aadf88b06389107999fca7ae968e7b8ecafa6a029f1974c32ed6b",
+      "byte_identical": true
+    }
+  ],
+  "preserved_paths": [
+    {
+      "path": "migrations/0013_paper_market_matcher.sql",
+      "sha256": "efd0a3a2edc1cca12de47baa60be5e7ec90abae155f7a014404a3aadc14f80d2"
+    },
+    {
+      "path": "migrations/0014_paper_market_matcher_v2.sql",
+      "sha256": "df9e0709b7ebb12006549c464251b29f1937aed2efd20182319e9d42a13dd565"
+    },
+    {
+      "path": "src/trading_system/execution/program_fill_source.py",
+      "sha256": "4b44bc69e5f8ad4b4e46453a098498e27baf406ac62ffce715a7eec9f8d5fd62"
+    },
+    {
+      "path": "src/trading_system/risk/reservations.py",
+      "sha256": "48510f84309ca0c1b0f00fb6743737d484ca7854ec5ad5e8306c65cdcffc34c3"
+    },
+    {
+      "path": "src/trading_system/risk/program_quantity_scope.py",
+      "sha256": "8809abd33ca8b18bd3c0b5e4b355e5fe934aae7a55dd34991cec604bcb94869b"
+    },
+    {
+      "path": "src/trading_system/risk/program_financial_admission.py",
+      "sha256": "ecf82ea48832319b94ae09e84883ef88e36a99b315a617d52cb7b89ca2a89876"
+    },
+    {
+      "path": "src/trading_system/execution/program_commands.py",
+      "sha256": "34107f2ae08711d3200f36a795644bd6c6241752b59ec829557165b57cc5391f"
+    },
+    {
+      "path": "src/trading_system/execution/program_consumed_boundary.py",
+      "sha256": "e1111249f06401de09441b24f1db36a9b5bf346445eb9d734a6cb0a6bbe375ef"
+    }
+  ],
+  "registry_hunk": "Only add quote-review-mixed and paper-quote-budget; 62 original suites retained,64 total.",
+  "interfaces": {
+    "public_submit": "PaperEngine.submit_creation(...); original one-use consume and owner guard retained",
+    "provision": "engine.paper_market_quote.provision_paper_quote(admin_dsn,roles); explicit0025SIM, noauto-provision",
+    "query": "query_quote_creation(engine,command_id)->PaperQuoteReportV1|None; originalIDs",
+    "verify": "verify_quote_report(engine,report,*,boundary)->VerifiedPaperQuoteReportV1; no source registry or financial authority"
+  },
+  "blocked": [
+    "static quote source registration",
+    "native raw fill/economic bridge",
+    "cash/inventory owned posting",
+    "receipt/base/third-asset fees",
+    "native0026 combined producer/source",
+    "host/frontend/defaultqualification enablement",
+    "full46/56 acceptance"
+  ],
+  "root_postmerge_evidence": [
+    {
+      "run": "00bf6e19f413",
+      "original_handle": 81556,
+      "suite": "paper-quote-budget",
+      "source_commit": "46bf284dbb2145287068d7f92761511ada3202c3",
+      "tests": "30",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "190.063",
+      "terminal": true,
+      "exit_code": 0
+    },
+    {
+      "run": "670e9670aab3",
+      "original_handle": 12742,
+      "suite": "quote-review-mixed",
+      "source_commit": "46bf284dbb2145287068d7f92761511ada3202c3",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "33.843",
+      "terminal": true,
+      "exit_code": 0
+    },
+    {
+      "run": "d0b39644c50e",
+      "original_handle": 43484,
+      "suite": "program-scoped-financial",
+      "source_commit": "46bf284dbb2145287068d7f92761511ada3202c3",
+      "tests": "16",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "42.175",
+      "terminal": true,
+      "exit_code": 0
+    },
+    {
+      "run": "75478dae9853",
+      "original_handle": 98892,
+      "suite": "paper-program-v2-reports",
+      "source_commit": "46bf284dbb2145287068d7f92761511ada3202c3",
+      "tests": "51",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "254.984",
+      "terminal": true,
+      "exit_code": 0
+    }
+  ],
+  "unit_evidence": {
+    "passed": 62,
+    "seconds": 3.03,
+    "scope": "focused only"
+  }
+}

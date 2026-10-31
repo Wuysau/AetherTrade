@@ -1,0 +1,16 @@
+.....FF                                                                  [100%]
+=================================== FAILURES ===================================
+__ test_legacy_refresh_cannot_ignore_source_approved_generic_execution[cash] ___
+tests/integration/test_program_accounting_postgres.py:150: in test_legacy_refresh_cannot_ignore_source_approved_generic_execution
+    with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ApiError
+__ test_legacy_refresh_cannot_ignore_source_approved_generic_execution[book] ___
+tests/integration/test_program_accounting_postgres.py:150: in test_legacy_refresh_cannot_ignore_source_approved_generic_execution
+    with pytest.raises(ApiError,match='PROGRAM_ACCOUNTING_RECONCILIATION_REQUIRED'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ApiError
+=========================== short test summary info ============================
+FAILED tests/integration/test_program_accounting_postgres.py::test_legacy_refresh_cannot_ignore_source_approved_generic_execution[cash]
+FAILED tests/integration/test_program_accounting_postgres.py::test_legacy_refresh_cannot_ignore_source_approved_generic_execution[book]
+2 failed, 5 passed in 41.94s

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="4" time="22.868" timestamp="2026-10-29T10:03:19.653038+00:00" hostname="2aca1ea9d500"><testcase classname="tests.integration.test_original_creation_recovery_postgres" name="test_original_ready_identity_read_does_not_create_a_case_command_or_permit" time="1.960"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">tests/integration/test_original_creation_recovery_postgres.py:21: in test_original_ready_identity_read_does_not_create_a_case_command_or_permit
+    recovered=read(c,w.command_id)
+              ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_original_creation_recovery_postgres.py:14: in read
+    from trading_system.recovery.original_creation import read_original_creation
+E   ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'</failure></testcase><testcase classname="tests.integration.test_original_creation_recovery_postgres" name="test_original_may_and_unknown_survive_later_reservation_version[False]" time="5.385"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">tests/integration/test_original_creation_recovery_postgres.py:46: in test_original_may_and_unknown_survive_later_reservation_version
+    recovered=read(c,w.command_id)
+              ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_original_creation_recovery_postgres.py:14: in read
+    from trading_system.recovery.original_creation import read_original_creation
+E   ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'</failure></testcase><testcase classname="tests.integration.test_original_creation_recovery_postgres" name="test_original_may_and_unknown_survive_later_reservation_version[True]" time="12.004"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">tests/integration/test_original_creation_recovery_postgres.py:46: in test_original_may_and_unknown_survive_later_reservation_version
+    recovered=read(c,w.command_id)
+              ^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_original_creation_recovery_postgres.py:14: in read
+    from trading_system.recovery.original_creation import read_original_creation
+E   ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'</failure></testcase><testcase classname="tests.integration.test_original_creation_recovery_postgres" name="test_reader_never_falls_back_to_another_scope_or_mints_a_new_id" time="3.047"><failure message="ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'">tests/integration/test_original_creation_recovery_postgres.py:61: in test_reader_never_falls_back_to_another_scope_or_mints_a_new_id
+    assert read(other,w.command_id) is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_original_creation_recovery_postgres.py:14: in read
+    from trading_system.recovery.original_creation import read_original_creation
+E   ModuleNotFoundError: No module named 'trading_system.recovery.original_creation'</failure></testcase></testsuite></testsuites>

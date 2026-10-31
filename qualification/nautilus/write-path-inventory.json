@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "status": "NOT_RUN",
   "live_enabled": false,
   "coverage": "REQUIRED_PATHS_ONLY_NOT_NATIVE_EXHAUSTIVENESS_PROOF",
@@ -74,14 +74,15 @@
     },
     {
       "path": "ALGORITHM_CHILD",
-      "description": "native algorithm child submission",
+      "description": "Legacy local child write path; retained compatibility alias, never used for venue-created observations",
       "enabled": false,
       "gate_hook": null,
       "required_gate": "execution-owner -> durable command -> controlled bridge",
       "independent_command_required": true,
       "evidence": [],
       "status": "NOT_RUN",
-      "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+      "disabled_reason": "No locked native build or observed durable-before-side-effect interception",
+      "child_origin": "APPLICATION_GENERATED_CHILD"
     },
     {
       "path": "ALGORITHM_CANCEL",
@@ -181,6 +182,36 @@
       "evidence": [],
       "status": "NOT_RUN",
       "disabled_reason": "No locked native build or observed durable-before-side-effect interception"
+    },
+    {
+      "path": "APPLICATION_GENERATED_CHILD",
+      "description": "Every application-generated child submit/cancel/amend remains an independent external write",
+      "enabled": false,
+      "gate_hook": null,
+      "required_gate": "execution-owner -> independent durable command -> permit -> controlled bridge",
+      "independent_command_required": true,
+      "evidence": [],
+      "status": "NOT_RUN",
+      "disabled_reason": "OP-C/E integration not qualified"
+    }
+  ],
+  "approved_adr": "docs/orders/ADR-ORDER-001.md",
+  "historical_version": "history/write-path-inventory.v1.json",
+  "observations": [
+    {
+      "path": "VENUE_GENERATED_CHILD",
+      "external_write": false,
+      "independent_send_command": false,
+      "required_checks": [
+        "trusted_source",
+        "parent_scope_identity",
+        "parent_authority",
+        "cumulative_plus_remaining_exposure",
+        "deduplication",
+        "fees_and_protection"
+      ],
+      "unknown_policy": "PRESERVE_IDS_AND_RECONCILE",
+      "resubmit_allowed": false
     }
   ]
 }

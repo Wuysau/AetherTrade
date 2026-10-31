@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="11.705" timestamp="2026-10-30T02:27:30.758360+00:00" hostname="1af1818654f2"><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill[EXPIRE_TAKER-True-1-1]" time="0.516"><failure message="trading_system.intents.semantic_validation.ProposalRejected: STP_MODE_UNAVAILABLE">tests/integration/test_paper_market_matcher_v2.py:255: in test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,stp=mode))
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher_v2.py:21: in advanced_case
+    c=case(database,venue_v2,tmp_path,**options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:43: in case
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:74: in real_case
+    c=risk_module.risk_case(**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:65: in selected_plan
+    plan,r=original_plan_for(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:36: in plan_for
+    return compile_order_program(p,r,c,**k),r
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_compilation.py:670: in compile_order_program
+    compiled = _compile_node(candidate, program, rules, profile, allow_round_down, now)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_compilation.py:373: in _compile_node
+    _spot_fields(o, quantity, order_type, profile, rules, parameters)
+src/trading_system/intents/program_compilation.py:422: in _spot_fields
+    require(o.stp in s.allowed_stp, 'STP_MODE_UNAVAILABLE')
+src/trading_system/intents/semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: STP_MODE_UNAVAILABLE</failure></testcase><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill[EXPIRE_MAKER-False-0-0]" time="0.031"><failure message="trading_system.intents.semantic_validation.ProposalRejected: STP_MODE_UNAVAILABLE">tests/integration/test_paper_market_matcher_v2.py:255: in test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill
+    c=advanced_case(database,venue_v2,tmp_path,order_transform=lambda o:replace(o,stp=mode))
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher_v2.py:21: in advanced_case
+    c=case(database,venue_v2,tmp_path,**options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_paper_market_matcher.py:43: in case
+    c=real_case(database,proposal_transform=transform,instrument_uid=market or 'isolated-market-'+uuid4().hex,node_fees=node_fees,**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:74: in real_case
+    c=risk_module.risk_case(**risk_options)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_risk_assessment.py:33: in risk_case
+    plan,rules=plan_for(template=template,mode=mode,product=product,quantity=quantity,target=target,side=side)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_program_financial_admission.py:65: in selected_plan
+    plan,r=original_plan_for(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/intents/test_program_target_allocation.py:36: in plan_for
+    return compile_order_program(p,r,c,**k),r
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_compilation.py:670: in compile_order_program
+    compiled = _compile_node(candidate, program, rules, profile, allow_round_down, now)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/trading_system/intents/program_compilation.py:373: in _compile_node
+    _spot_fields(o, quantity, order_type, profile, rules, parameters)
+src/trading_system/intents/program_compilation.py:422: in _spot_fields
+    require(o.stp in s.allowed_stp, 'STP_MODE_UNAVAILABLE')
+src/trading_system/intents/semantic_validation.py:22: in require
+    raise ProposalRejected(reason)
+E   trading_system.intents.semantic_validation.ProposalRejected: STP_MODE_UNAVAILABLE</failure></testcase><testcase classname="tests.integration.test_paper_market_matcher_v2" name="test_stp_uses_explicit_current_liquidity_owner_and_never_turns_prevention_into_fill[EXPIRE_BOTH-True-0-1]" time="10.703" /></testsuite></testsuites>

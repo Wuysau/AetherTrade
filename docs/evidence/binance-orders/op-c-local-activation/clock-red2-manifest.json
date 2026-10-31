@@ -1,0 +1,66 @@
+{
+  "commit": "7a7f3c28b5200d81c53e6b65cea146850d5a9338",
+  "steps": [
+    {
+      "argv": [
+        "git",
+        "bundle",
+        "create",
+        "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-opc-local-activation\\.runtime\\paper-qualification-e2f3364172f6\\source-red-clock2.bundle",
+        "HEAD",
+        "7a7f3c28b5200d81c53e6b65cea146850d5a9338"
+      ],
+      "exit_code": 0,
+      "log": "clock-red2-bundle.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "fetch",
+        "/handoff/source-red-clock2.bundle",
+        "7a7f3c28b5200d81c53e6b65cea146850d5a9338"
+      ],
+      "exit_code": 0,
+      "log": "clock-red2-fetch.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "git",
+        "-C",
+        "/tmp/source",
+        "checkout",
+        "--detach",
+        "7a7f3c28b5200d81c53e6b65cea146850d5a9338"
+      ],
+      "exit_code": 0,
+      "log": "clock-red2-source.txt"
+    },
+    {
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "GITHUB_SHA=7a7f3c28b5200d81c53e6b65cea146850d5a9338",
+        "-w",
+        "/tmp/source",
+        "aethertrade-qualification-runner-e2f3364172f6",
+        "python",
+        "tools/ci_paper_postgres.py",
+        "--suite",
+        "local-program-activation",
+        "--evidence-dir",
+        "/handoff/evidence/clock-red2"
+      ],
+      "exit_code": 1,
+      "log": "clock-red2-pg.txt"
+    }
+  ]
+}

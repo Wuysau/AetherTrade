@@ -1,0 +1,9 @@
+.......F                                                                 [100%]
+================================== FAILURES ===================================
+_ test_provider_explicit_program_context_uses_full_v3_schema_without_upgrading_old_prompt _
+tests\server\test_program_model_context.py:74: in test_provider_explicit_program_context_uses_full_v3_schema_without_upgrading_old_prompt
+    assert 'program_assessment_v1' in instructions and '2026-10-29' in instructions
+E   assert ('program_assessment_v1' in 'Return only assessment_v1 JSON with exactly schema_revision, summary, proposal (approved DecisionProposal or null), e..."action", "target", "entry", "exit_plan", "evidence_refs", "rationale", "valid_until"], "additionalProperties": false}')
+=========================== short test summary info ===========================
+FAILED tests/server/test_program_model_context.py::test_provider_explicit_program_context_uses_full_v3_schema_without_upgrading_old_prompt
+1 failed, 7 passed in 0.50s

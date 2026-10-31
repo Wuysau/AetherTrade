@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.858" timestamp="2026-10-29T15:37:03.294342+08:00" hostname="LAPTOP-4MVBUJGM"><testcase classname="tests.unit.test_assessment_archive" name="test_semantically_equal_decimal_cannot_change_recomputed_assessment_bytes" time="0.316"><failure message="Failed: DID NOT RAISE ValueError">tests\unit\test_assessment_archive.py:337: in test_semantically_equal_decimal_cannot_change_recomputed_assessment_bytes
+    with pytest.raises(ValueError,match='ASSESSMENT_ARCHIVE_'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.unit.test_assessment_archive" name="test_false_and_zero_cannot_change_compiled_parameter_wire_bytes" time="0.221"><failure message="Failed: DID NOT RAISE ValueError">tests\unit\test_assessment_archive.py:351: in test_false_and_zero_cannot_change_compiled_parameter_wire_bytes
+    with pytest.raises(ValueError,match='ASSESSMENT_ARCHIVE_COMPILATION_REPLAY_MISMATCH'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase></testsuite></testsuites>
