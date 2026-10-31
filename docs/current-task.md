@@ -1,5 +1,18 @@
 # Current task
 
+## LOCAL_CHILD_COMMITMENT_READER — 2026-10-31
+
+Read-only recovery reader reuses read_local_activation for parent provenance,
+checks physical scope/activation/command, stored/canonical typed hashes, exact
+parent compilation, original requests, duplicate IDs and total quantity.
+Missing schema is an error, never an empty available pool; SQL errors propagate.
+Result explicitly remains source_verified=False and execution_authorized=False
+until a protected child admission writer and source proofs are implemented.
+25 synthetic-row/quantity/request cases pass; real PostgreSQL NOT_RUN. Evidence:
+docs/evidence/binance-orders/local-child-reader. No migration applied or runtime
+SELECT/INSERT grant added. Atomic pool+command writer and permit still pending.
+
+
 ## LOCAL_CHILD_STORAGE_CANDIDATE — 2026-10-31
 
 Source d32da5e adds dormant migration0030 and five actual PostgreSQL test cases.

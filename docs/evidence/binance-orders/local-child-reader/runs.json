@@ -1,0 +1,29 @@
+{
+  "source": "ae845e4808710b93f47a6530358d938333e34508",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_local_child_commitment_reader.py",
+    "tests/intents/test_local_child_quantity.py",
+    "tests/intents/test_local_child_request.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\local-child-reader\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "b7eca4f",
+    "result": "missing storage.local_child_commitments; collection error"
+  },
+  "scope": "TASK_LIGHT synthetic reader rows and pure identity/quantity behavior",
+  "postgres": "NOT_RUN",
+  "source_authentication_and_admission": "NOT_IMPLEMENTED",
+  "sha256": {
+    "green.txt": "c4ffc80caecac2b8e050f131af780ac1deeaf544c59f0d242ee5505c284ea84e",
+    "green.xml": "0c1ccc0cdb88d1b7ece0a0cc071b0a6dbb818f479fbcb80d2410d4fda93ead0e"
+  }
+}
