@@ -30,6 +30,12 @@ def materialize_local_child_request(child,activation_id,command_id,rules,capabil
     identifier(activation_id);identifier(command_id)
     expected=compile_local_child(child.parent,child.node.quantity.value,rules,capabilities,**context)
     require(digest(expected)==digest(child),'LOCAL_CHILD_COMPILATION_CHANGED')
+    return _encode_child_request(child,activation_id,command_id)
+
+
+def _encode_child_request(child,activation_id,command_id):
+    require(type(child) is LocalChildCompilation,'LOCAL_CHILD_COMPILATION_REQUIRED')
+    identifier(activation_id);identifier(command_id)
     route=child.request
     require(route.namespace in (Namespace.SPOT_ORDINARY,Namespace.USD_M_ORDINARY),
         'LOCAL_CHILD_ADDITIONAL_ROUTE_BINDING_REQUIRED')
@@ -54,3 +60,17 @@ def verify_local_child_request(record,child,rules,capabilities,**context):
         rules,capabilities,**context)
     require(digest(record)==digest(expected),'LOCAL_CHILD_REQUEST_CHANGED')
     return digest(expected)
+
+
+
+def restore_local_child_request(record,child,*,activation_id,command_id):
+    """Read-only original binding, independent of current expiry/rules.
+
+    Inputs must come from the protected persisted admission source. Matching
+    bytes alone do not authenticate that source, establish submission outcome,
+    discharge obligations or authorize a resend. No IDs are changed on restore.
+    """
+    require(type(record) is LocalChildRequest,'LOCAL_CHILD_REQUEST_REQUIRED')
+    expected=_encode_child_request(child,activation_id,command_id)
+    require(digest(record)==digest(expected),'LOCAL_CHILD_ORIGINAL_BINDING_CHANGED')
+    return record
