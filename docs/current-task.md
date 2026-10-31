@@ -1,5 +1,24 @@
 # Current task
 
+## LOCAL_CHILD_PRE_ACK_QUANTITY — 2026-10-31
+
+Source f6e187d validates immutable original request/compilation pairs against
+the same parent and activation, then sums committed quantities with existing
+exact-risk arithmetic. Identical proposed command replay adds no quantity;
+conflicting command payload, duplicate historical set, foreign activation or
+parent, request quantity mismatch and parent-pool excess reject. No synthetic
+venue ID or ACK is required to retain a pre-ACK obligation.
+23 focused quantity/request/funding tests pass in 2.34s. Evidence including the
+intermediate serialization failure summary is under
+docs/evidence/binance-orders/local-child-quantity.
+The result is a pure preview. Complete-set SQL provenance, atomic concurrent
+allocation, schedules/current risk, funding binding and permits remain pending.
+Original commitments do not auto-release on status labels. Reusing verified
+canceled unused quantity requires a separately protected disposition path still
+to implement; this restriction is not final ORD-33/44 completion. No database
+or venue qualification performed.
+
+
 ## LOCAL_CHILD_PURE_SLICE_REVIEW_COMPLETE — 2026-10-31
 
 Independent review of e353888..3aa4acb found no concrete Critical/Important/Minor

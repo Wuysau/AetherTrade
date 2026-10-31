@@ -1,0 +1,30 @@
+{
+  "source": "f6e187d5332c1dc2a254a4c2bed6b44d0723dd3b",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_local_child_quantity.py",
+    "tests/intents/test_local_child_request.py",
+    "tests/intents/test_local_child_funding.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\local-child-quantity\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "d16bb99",
+    "result": "missing local_child_quantity module; collection error"
+  },
+  "intermediate": "1 failed, 6 passed: tuple passed to domain-record hash; fixed with explicit canonical commitment list",
+  "scope": "TASK_LIGHT pre-ACK quantity/request/funding arithmetic only",
+  "postgres": "NOT_RUN",
+  "atomic_allocation_writer": "NOT_IMPLEMENTED",
+  "sha256": {
+    "green.txt": "a43d91756157db7bd5f3bb1cf244bbe09c2e7b9366192c0f8ba12ee5bc01e723",
+    "green.xml": "ddbe7957b147d6e9ed0560ced6ae0eb9b378fa357494c631e43aa19bd9008918"
+  }
+}
