@@ -9,7 +9,8 @@ NOT_RUN. Independent review found missing fixture import and final-count 4097
 vs4096 inconsistency; both fixed at baba55f. Bound RED: 1 DID NOT RAISE; GREEN:
 23 selected lightweight cases PASS in 3.84s. Six PostgreSQL cases collect in
 1.08s, no fixtures/SQL executed. Review record:
-docs/evidence/binance-orders/local-child-storage-review.json; re-review pending.
+docs/evidence/binance-orders/local-child-storage-review.json; original reviewer
+confirmed both fixes at baba55f with no new findings (source review only).
 Migration still unapplied, no runtime write/permit installed. Original full
 funding/quantity/owner/command atomic admission and all database qualification
 remain unfinished. No global cleanup, Docker or replacement environment used.
