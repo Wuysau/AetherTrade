@@ -1,0 +1,50 @@
+{
+  "results": [
+    {
+      "case": "positive",
+      "elapsed": 0.9933479440001065,
+      "writes": 1
+    },
+    {
+      "case": "expiry",
+      "elapsed": 1.0004416369999944,
+      "writes": 0
+    },
+    {
+      "case": "revoked",
+      "elapsed": 0.9999114889999419,
+      "writes": 0
+    },
+    {
+      "case": "callback_failure",
+      "elapsed": 0.9976699860000053,
+      "writes": 0
+    },
+    {
+      "case": "reset",
+      "writes": 1,
+      "status": "UNKNOWN",
+      "recovery": "QUERY_ORIGINAL_IDS"
+    },
+    {
+      "case": "redirect",
+      "writes": 1,
+      "status": "UNKNOWN",
+      "recovery": "QUERY_ORIGINAL_IDS"
+    }
+  ],
+  "wire_paths": [
+    "/warm",
+    "/api/v3/order?newClientOrderId=original&quantity=1",
+    "/warm",
+    "/warm",
+    "/warm",
+    "/reset",
+    "/redirect",
+    "/outer",
+    "/existing-loop"
+  ],
+  "external_activation_allowed": false,
+  "venue_evidence": false,
+  "actual_sdk_rate_limiter": true
+}

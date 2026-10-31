@@ -1,0 +1,29 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_________________ test_unmeasured_guarded_build_fails_closed __________________
+
+    def test_unmeasured_guarded_build_fails_closed():
+>       from trading_system.engine.nautilus.guarded_sdk_build import inspect_guarded_sdk
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.guarded_sdk_build'
+
+tests\intents\test_guarded_sdk_build.py:5: ModuleNotFoundError
+________ test_guarded_factory_has_no_transport_or_callback_parameters _________
+
+    def test_guarded_factory_has_no_transport_or_callback_parameters():
+        from inspect import signature
+>       from trading_system.engine.nautilus.guarded_creation import submit_guarded_creation_probe
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.guarded_creation'
+
+tests\intents\test_guarded_sdk_build.py:12: ModuleNotFoundError
+____________ test_guarded_factory_rejects_untyped_caller_before_io ____________
+
+    def test_guarded_factory_rejects_untyped_caller_before_io():
+>       from trading_system.engine.nautilus.guarded_creation import submit_guarded_creation_probe
+E       ModuleNotFoundError: No module named 'trading_system.engine.nautilus.guarded_creation'
+
+tests\intents\test_guarded_sdk_build.py:18: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tests/intents/test_guarded_sdk_build.py::test_unmeasured_guarded_build_fails_closed
+FAILED tests/intents/test_guarded_sdk_build.py::test_guarded_factory_has_no_transport_or_callback_parameters
+FAILED tests/intents/test_guarded_sdk_build.py::test_guarded_factory_rejects_untyped_caller_before_io
+3 failed in 0.10s
