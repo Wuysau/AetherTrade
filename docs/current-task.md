@@ -1,5 +1,46 @@
 # Current task
 
+## ENVIRONMENT_GOVERNANCE_AND_LOCAL_CHILD_ADMISSION — 2026-10-31
+
+Source `0ab47c1` on codex/binance-orders-resume. This round implemented the
+missing offline environment governance and the protected local-child admission
+writer; it did not run Docker, PostgreSQL, a migration, TEST or any venue call.
+
+Environment governance (new `trading_system/environment`): fixed, disjoint
+DEV/TEST identities with explicit service/compose/database/port/network/volume/
+credential identity and PAPER-only mode; isolation verdict; read-only Docker
+operation allowlist denying prune/rm/volume/system/build/pull/run/exec/VHDX/
+migrate/unknown operations; finite budgets; persistent bounded test queue with
+deduplicated idempotency, one heavy run, explicit heavy authorization, no
+automatic retry and no silent expired-lease takeover; temp-database leases keyed
+by fixed instance + name + OID + role + lease with refusal on active/foreign/
+expired/unknown resources; diagnostics-only resource monitor; offline
+`tools/environment_status.py` (exit 0 declarations-only, 78 blocked).
+
+Local child (ORD-33/44): `execution/local_child_admission.py` requires active
+transaction, exact scope, existing collateral mutex, activation source,
+materialized request, cumulative quantity preview and a trusted current-facts
+port (healthy clock, current lease, active owner/epoch/policy, target slice,
+funding without blockers, authorization identity, risk clearance). It persists
+an independent DURABLE_READY command, allocation, client identity and outbox in
+one transaction; replay never allocates twice; the permit is hash-bound and
+single-use; UNKNOWN keeps the original command and cannot be re-marked. Additive
+dormant candidate `migrations/0031_local_child_admission.sql` supplies the
+append-only command/mark/consumption storage, deferred completeness, quantity/
+unit pool guard and owner-only INSERT. It is NOT_APPLIED and not runtime-wired.
+
+Evidence: focused 104 passed (exit 0, 1.22s) and broader local-child/ops 291
+passed + 10 dormant PostgreSQL skips (exit 0, 6.02s); compile exit 0; retired
+launcher exit 78. Raw logs/JUnit/hashes are under
+`docs/evidence/binance-orders/environment-governance/` and
+`docs/evidence/binance-orders/local-child-admission/`. Current acceptance is
+still 46 capabilities / 56 cases NOT_RUN; ORD-47 is only historical component
+PASS. No database concurrency/rollback/crash/UNKNOWN recovery, real loader,
+adapter send, API/UI state, OP-D/E/F closeout or OP-G batch ran. Shared DEV
+recovery/isolation/scheduler enforcement remains BLOCKED, so the goal is
+incomplete and the worktree/branch remain retained.
+
+
 ## PUBLIC_CHECKPOINT_INTEGRATED — 2026-10-31
 
 User explicitly selected public-snapshot for checkpoint integration; dev has

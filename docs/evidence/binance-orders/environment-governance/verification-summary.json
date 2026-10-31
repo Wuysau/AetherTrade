@@ -1,0 +1,76 @@
+{
+  "status": "OFFLINE_IMPLEMENTED_VERIFIED / RUNTIME_BLOCKED",
+  "source_commit": "0ab47c1dde3aaab491df7e9de306f95512ca322a",
+  "source_branch": "codex/binance-orders-resume",
+  "source_files": "source-files.sha256",
+  "environment": {
+    "platform": "win32",
+    "python": "3.14 (project .venv)",
+    "pytest_plugin_autoload": "disabled",
+    "docker": "NOT_RUN",
+    "postgresql": "NOT_RUN",
+    "network": "NOT_RUN",
+    "test_environment": "NOT_ACCESSED",
+    "trading_mode": "PAPER"
+  },
+  "tests": [
+    {
+      "command": "python -X utf8 -m pytest tests/ops -q -p no:cacheprovider",
+      "exit_code": 0,
+      "passed": 171,
+      "skipped": 4,
+      "seconds": 1.29,
+      "scope": "environment identity/isolation, Docker allowlist, budgets, scheduler, temp DB leases, resource monitor, CLI, migration candidates",
+      "note": "The four skips are existing deployment/container probes requiring explicit infrastructure; they are NOT_RUN, not PASS."
+    },
+    {
+      "command": "python -X utf8 -m pytest tests/ops/test_environment_governance.py tests/ops/test_test_scheduler.py tests/ops/test_environment_status_cli.py tests/ops/test_local_child_migration_candidate.py tests/intents/test_local_child_admission.py -q",
+      "exit_code": 0,
+      "passed": 104,
+      "skipped": 0,
+      "seconds": 1.22,
+      "evidence": "docs/evidence/binance-orders/local-child-admission/focused-pytest.txt",
+      "junit": "docs/evidence/binance-orders/local-child-admission/focused-junit.xml"
+    },
+    {
+      "command": "python -X utf8 -m compileall -q src/trading_system/environment src/trading_system/execution/local_child_admission.py tools/environment_status.py",
+      "exit_code": 0,
+      "log": "docs/evidence/binance-orders/environment-governance/compile.txt"
+    },
+    {
+      "command": "python -X utf8 tools/environment_status.py --json",
+      "exit_code": 0,
+      "log": "docs/evidence/binance-orders/environment-governance/status-cli.txt",
+      "meaning": "Declarations are internally consistent; DEV service and OS permission isolation are explicitly NOT_PROBED/NOT_VERIFIED."
+    },
+    {
+      "command": "python -X utf8 tools/qualify_paper_docker.py --commit 0ab47c1",
+      "exit_code": 78,
+      "log": "docs/evidence/binance-orders/environment-governance/retired-qualifier.txt",
+      "meaning": "Retired per-task launcher remains BLOCKED/NOT_RUN and creates no container, database, volume or credential."
+    }
+  ],
+  "implemented": [
+    "Fixed DEV/TEST identities with explicit service, compose, database, port, network, volume and credential separation and PAPER-only mode.",
+    "Offline isolation verifier rejects shared resources, non-PAPER modes, unpinned TEST deployment and invalid roles.",
+    "Docker operation allowlist permits only version/info/ps/inspect/logs; denies prune, rm, volume, system, build/pull/run/exec, VHDX, migrate and unknown operations.",
+    "Finite budgets for worktrees, concurrency, runtime, run count, temp databases, containers, disk, artifacts and leases; zero/infinite values rejected.",
+    "Persistent bounded test queue with deduplicated idempotency keys, single heavy concurrency, explicit heavy authorization, honest PASS/FAIL/BLOCKED/NOT_RUN, no automatic retry and no silent lease takeover.",
+    "Temporary database lease manager verifies fixed DEV instance, database name, OID, connection role and lease; precise reclamation refuses active connections, expiry, foreign/unknown resources.",
+    "Resource monitor reports unregistered/legacy resources and disk thresholds with no delete/cleanup entrypoint.",
+    "Offline status CLI exits 0 only for internally consistent declarations; it never claims OS isolation or a probed DEV service."
+  ],
+  "not_run": [
+    "Actual DEV and TEST service provisioning/health inspection.",
+    "DEV/TEST data, credential, port, network and volume isolation on the host.",
+    "Docker daemon/socket/named-pipe permission denial and allowlist enforcement by the OS.",
+    "PostgreSQL temporary database creation, OID verification, role grants and precise drop.",
+    "Scheduler execution of real subprocesses, leases under crashes, disk telemetry and queue concurrency.",
+    "Container/disk/legacy-resource monitoring against the real host."
+  ],
+  "blockers": [
+    "Shared DEV recovery, isolation and unified scheduler evidence remains absent; user-confirmed on 2026-10-31.",
+    "No Docker build, database qualification, migration application, TEST deployment or TEST data access was performed."
+  ],
+  "scope_note": "This evidence proves offline policy logic only. It does not establish operational environment enforcement."
+}

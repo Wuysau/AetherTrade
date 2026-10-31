@@ -1,0 +1,1385 @@
+{
+  "as_of": "2026-10-31",
+  "reference_commit": "b168966d350ed60fe8a92792f9519f4227054bc5",
+  "source_commit": "0ab47c1dde3aaab491df7e9de306f95512ca322a",
+  "source_branch": "codex/binance-orders-resume",
+  "scope_preserved": {
+    "capabilities": 46,
+    "acceptance_cases": 56
+  },
+  "overall_current_source": "NOT_RUN",
+  "summary": {
+    "capabilities_total": 46,
+    "capabilities_current_source_pass": 0,
+    "capabilities_not_run": 46,
+    "cases_total": 56,
+    "cases_current_source_pass": 0,
+    "cases_not_run_current_source": 56,
+    "cases_historical_pass": 1,
+    "cases_historical_pass_ids": [
+      "ORD-47"
+    ]
+  },
+  "capabilities": [
+    {
+      "id": "SPOT-MARKET",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "MARKET",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "SYNTHETIC_SUBMISSION_AND_CONTROLLED_EVENT_INJECTION_ONLY",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-LIMIT",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "LIMIT",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "EXPLICITLY_REJECTED_BY_ACCEPT_PROPOSAL",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-LIMIT_MAKER",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "LIMIT_MAKER",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-STOP_LOSS",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "STOP_LOSS",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-STOP_LOSS_LIMIT",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "STOP_LOSS_LIMIT",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-TAKE_PROFIT",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "TAKE_PROFIT",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-TAKE_PROFIT_LIMIT",
+      "product": "SPOT",
+      "family": "ATOMIC",
+      "feature": "TAKE_PROFIT_LIMIT",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-LIST-OCO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OCO",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-LIST-OTO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OTO",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-LIST-OTOCO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OTOCO",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-LIST-OPO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OPO",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-LIST-OPOCO",
+      "product": "SPOT",
+      "family": "ORDER_LIST",
+      "feature": "OPOCO",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-TRAILING",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "trailingDelta",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-PEG",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "PRIMARY_PEG / MARKET_PEG",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-ICEBERG",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "icebergQty",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-SOR",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Smart Order Routing",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-QTY",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "quantity / quoteOrderQty",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-TIF",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "GTC / IOC / FOK",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-AMEND",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Order Amend Keep Priority",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-CANCEL_REPLACE",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Cancel Replace",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-STP",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "selfTradePreventionMode",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-CANCEL_QUERY",
+      "product": "SPOT",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Cancel / query / user events",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-MARKET",
+      "product": "USD_M_PERP",
+      "family": "ATOMIC",
+      "feature": "MARKET",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-LIMIT",
+      "product": "USD_M_PERP",
+      "family": "ATOMIC",
+      "feature": "LIMIT",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-STOP",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "STOP",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-STOP_MARKET",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "STOP_MARKET",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-TAKE_PROFIT",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "TAKE_PROFIT",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-TAKE_PROFIT_MARKET",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "TAKE_PROFIT_MARKET",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-TRAILING_STOP_MARKET",
+      "product": "USD_M_PERP",
+      "family": "CONDITIONAL",
+      "feature": "TRAILING_STOP_MARKET",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-TIF",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "GTC / IOC / FOK / GTX / GTD / RPI",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-TRIGGER",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "CONTRACT_PRICE / MARK_PRICE + priceProtect",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-REDUCTION",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "positionSide / reduceOnly / closePosition",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-PRICE_MATCH",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "priceMatch",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-STP",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "selfTradePreventionMode",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-AMEND",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "LIMIT modify / batch modify",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-BATCH",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "batch submit / cancel",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USDM-CANCEL_QUERY",
+      "product": "USD_M_PERP",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "ordinary / algo query-cancel and user events",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-EXEC-TWAP",
+      "product": "SPOT",
+      "family": "VENUE_EXECUTION_ALGORITHM",
+      "feature": "TWAP",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-EXEC-VP",
+      "product": "SPOT",
+      "family": "VENUE_EXECUTION_ALGORITHM",
+      "feature": "VP",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USD_M_PERP-EXEC-TWAP",
+      "product": "USD_M_PERP",
+      "family": "VENUE_EXECUTION_ALGORITHM",
+      "feature": "TWAP",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "USD_M_PERP-EXEC-VP",
+      "product": "USD_M_PERP",
+      "family": "VENUE_EXECUTION_ALGORITHM",
+      "feature": "VP",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "EQUITY-MARKET",
+      "product": "US_EQUITY",
+      "family": "ATOMIC",
+      "feature": "MARKET",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_THE_CURRENT_SPOT_ONLY_CONSOLE_COMPOSITION",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "EQUITY-LIMIT",
+      "product": "US_EQUITY",
+      "family": "ATOMIC",
+      "feature": "LIMIT",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_THE_CURRENT_SPOT_ONLY_CONSOLE_COMPOSITION",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "EQUITY-SESSIONS",
+      "product": "US_EQUITY",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "DAY / GTC; RTH / EXTENDED / 24H",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_THE_CURRENT_SPOT_ONLY_CONSOLE_COMPOSITION",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "EQUITY-CANCEL_QUERY",
+      "product": "US_EQUITY",
+      "family": "MODIFIER_OR_LIFECYCLE",
+      "feature": "Cancel / query / private orderReport",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_THE_CURRENT_SPOT_ONLY_CONSOLE_COMPOSITION",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    },
+    {
+      "id": "SPOT-EXECUTION_RULES",
+      "product": "SPOT",
+      "family": "EXECUTION_RULE",
+      "feature": "Dynamic price-range execution rules / expiryReason",
+      "target_required": true,
+      "expression_status": "EXPRESSED_IN_REFERENCE_CATALOG",
+      "implementation_status": "NOT_VERIFIED_IN_REVIEW",
+      "paper_semantic_status": "NOT_RUN",
+      "venue_status": "NOT_RUN",
+      "current_source_acceptance": "NOT_RUN",
+      "historical_acceptance": "NOT_RUN"
+    }
+  ],
+  "cases": [
+    {
+      "id": "ORD-01",
+      "title": "原提案限价不被改写",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "SPOT-LIMIT",
+        "SPOT-STOP_LOSS"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-02",
+      "title": "普通市价与限价双产品路由",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "SPOT-MARKET",
+        "SPOT-LIMIT",
+        "USDM-MARKET",
+        "USDM-LIMIT"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-03",
+      "title": "现货post-only不吃单",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-LIMIT_MAKER"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-04",
+      "title": "现货条件单四种映射",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "SPOT-STOP_LOSS",
+        "SPOT-STOP_LOSS_LIMIT",
+        "SPOT-TAKE_PROFIT",
+        "SPOT-TAKE_PROFIT_LIMIT"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-05",
+      "title": "USD-M条件类型走algo端点",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "USDM-STOP",
+        "USDM-STOP_MARKET",
+        "USDM-TAKE_PROFIT",
+        "USDM-TAKE_PROFIT_MARKET",
+        "USDM-TRAILING_STOP_MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-06",
+      "title": "Spot追踪止损激活与单位",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-TRAILING"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-07",
+      "title": "Futures跟踪止损上限差异",
+      "work_package": "OP-A",
+      "feature_ids": [
+        "USDM-TRAILING_STOP_MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-08",
+      "title": "触发源与priceProtect",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "USDM-TRIGGER",
+        "USDM-STOP_MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-09",
+      "title": "Spot GTC/IOC/FOK",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-TIF"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-10",
+      "title": "USD-M GTX/GTD/RPI",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "USDM-TIF"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-11",
+      "title": "数量与quoteOrderQty",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "SPOT-QTY",
+        "SPOT-MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-12",
+      "title": "真实深度与单次流动性消耗",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-MARKET",
+        "USDM-MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-13",
+      "title": "挂钩价格与偏移限制",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-PEG"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-14",
+      "title": "冰山展示与预算",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-ICEBERG"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-15",
+      "title": "SOR路由与allocation",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "SPOT-SOR"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-16",
+      "title": "OCO互斥与部分成交语义",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-LIST-OCO"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-17",
+      "title": "OTO等待工作单全成",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-LIST-OTO"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-18",
+      "title": "OTOCO部分仓位保护冲突",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "SPOT-LIST-OTOCO"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-19",
+      "title": "OPO净到账、费用与锁币",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-LIST-OPO"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-20",
+      "title": "OPOCO取消与动态数量",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-LIST-OPOCO"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-21",
+      "title": "Spot keep-priority改量",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "SPOT-AMEND"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-22",
+      "title": "cancel-replace的部分成功",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "SPOT-CANCEL_REPLACE"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-23",
+      "title": "STP非成交失效",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-STP",
+        "USDM-STP"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-24",
+      "title": "动态执行价格区间",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-EXECUTION_RULES"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-25",
+      "title": "USD-M减仓与hedge字段",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "USDM-REDUCTION"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-26",
+      "title": "priceMatch与固定价互斥",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "USDM-PRICE_MATCH"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-27",
+      "title": "USD-M LIMIT modify与条件单未触发",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "USDM-AMEND"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-28",
+      "title": "USD-M批量部分成功",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "USDM-BATCH"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-29",
+      "title": "Spot原生TWAP",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "SPOT-EXEC-TWAP"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-30",
+      "title": "Spot原生VP",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "SPOT-EXEC-VP"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-31",
+      "title": "USD-M原生TWAP",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "USD_M_PERP-EXEC-TWAP"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-32",
+      "title": "USD-M原生VP",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "USD_M_PERP-EXEC-VP"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-33",
+      "title": "本地算法子单授权",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "SPOT-EXEC-TWAP",
+        "USD_M_PERP-EXEC-TWAP"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-34",
+      "title": "Stocks MARKET不对称字段",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "EQUITY-MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-35",
+      "title": "Stocks LIMIT与份额",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "EQUITY-LIMIT"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-36",
+      "title": "Stocks DAY/GTC与交易会话",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "EQUITY-SESSIONS"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-37",
+      "title": "Stocks普通/全部撤销与查询",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "EQUITY-CANCEL_QUERY"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-38",
+      "title": "订单/列表/算法身份与查询",
+      "work_package": "OP-E",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY",
+        "USDM-CANCEL_QUERY"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-39",
+      "title": "未知结果跨传输禁止重试",
+      "work_package": "OP-G",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY",
+        "USDM-CANCEL_QUERY",
+        "EQUITY-CANCEL_QUERY"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-40",
+      "title": "部分成交后保护与减仓竞争",
+      "work_package": "OP-G",
+      "feature_ids": [
+        "SPOT-STOP_LOSS",
+        "USDM-STOP_MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-41",
+      "title": "保护失败且紧急退出失败",
+      "work_package": "OP-G",
+      "feature_ids": [
+        "SPOT-STOP_LOSS",
+        "USDM-STOP_MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-42",
+      "title": "普通GTC与短期提案TTL",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "SPOT-TIF",
+        "USDM-TIF"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-43",
+      "title": "滚动限价预算和重叠委托",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "SPOT-LIMIT",
+        "SPOT-QTY"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-44",
+      "title": "原生与软件OCO差异",
+      "work_package": "OP-G",
+      "feature_ids": [
+        "SPOT-LIST-OCO",
+        "SPOT-LIST-OTOCO"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-45",
+      "title": "能力向模型与执行同步",
+      "work_package": "OP-F",
+      "feature_ids": [
+        "SPOT-LIMIT"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-46",
+      "title": "字段丢失的编译回归",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "USDM-TRIGGER",
+        "SPOT-TRAILING",
+        "SPOT-PEG",
+        "SPOT-ICEBERG",
+        "EQUITY-SESSIONS"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-47",
+      "title": "旧schema与UNKNOWN迁移",
+      "work_package": "OP-B",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY",
+        "USDM-CANCEL_QUERY"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "PASS",
+      "historical_note": "local PAPER migration component only; not current integration",
+      "evidence": null
+    },
+    {
+      "id": "ORD-48",
+      "title": "重启恢复列表和追踪状态",
+      "work_package": "OP-G",
+      "feature_ids": [
+        "SPOT-LIST-OPOCO",
+        "SPOT-TRAILING",
+        "USDM-TRAILING_STOP_MARKET",
+        "SPOT-EXEC-TWAP"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-49",
+      "title": "不同产品账户语义",
+      "work_package": "OP-C",
+      "feature_ids": [
+        "USDM-REDUCTION",
+        "EQUITY-SESSIONS",
+        "SPOT-QTY"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-50",
+      "title": "只用OHLCV的路径歧义",
+      "work_package": "OP-D",
+      "feature_ids": [
+        "SPOT-TAKE_PROFIT",
+        "SPOT-STOP_LOSS"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-51",
+      "title": "隔离PAPER合成证据",
+      "work_package": "OP-G",
+      "feature_ids": [
+        "SPOT-MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-52",
+      "title": "API测试端点不冒充撮合验收",
+      "work_package": "OP-G",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-53",
+      "title": "未文档化字段和文档分歧",
+      "work_package": "OP-A",
+      "feature_ids": [
+        "EQUITY-MARKET",
+        "USDM-TRAILING_STOP_MARKET"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-54",
+      "title": "短期模型指令不能越权",
+      "work_package": "OP-G",
+      "feature_ids": [
+        "SPOT-CANCEL_QUERY",
+        "USDM-CANCEL_QUERY"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-55",
+      "title": "完整目录防虚假缩范围",
+      "work_package": "OP-G",
+      "feature_ids": [
+        "SPOT-MARKET",
+        "SPOT-LIMIT",
+        "SPOT-LIMIT_MAKER",
+        "SPOT-STOP_LOSS",
+        "SPOT-STOP_LOSS_LIMIT",
+        "SPOT-TAKE_PROFIT",
+        "SPOT-TAKE_PROFIT_LIMIT",
+        "SPOT-LIST-OCO",
+        "SPOT-LIST-OTO",
+        "SPOT-LIST-OTOCO",
+        "SPOT-LIST-OPO",
+        "SPOT-LIST-OPOCO",
+        "SPOT-TRAILING",
+        "SPOT-PEG",
+        "SPOT-ICEBERG",
+        "SPOT-SOR",
+        "SPOT-QTY",
+        "SPOT-TIF",
+        "SPOT-AMEND",
+        "SPOT-CANCEL_REPLACE",
+        "SPOT-STP",
+        "SPOT-CANCEL_QUERY",
+        "USDM-MARKET",
+        "USDM-LIMIT",
+        "USDM-STOP",
+        "USDM-STOP_MARKET",
+        "USDM-TAKE_PROFIT",
+        "USDM-TAKE_PROFIT_MARKET",
+        "USDM-TRAILING_STOP_MARKET",
+        "USDM-TIF",
+        "USDM-TRIGGER",
+        "USDM-REDUCTION",
+        "USDM-PRICE_MATCH",
+        "USDM-STP",
+        "USDM-AMEND",
+        "USDM-BATCH",
+        "USDM-CANCEL_QUERY",
+        "SPOT-EXEC-TWAP",
+        "SPOT-EXEC-VP",
+        "USD_M_PERP-EXEC-TWAP",
+        "USD_M_PERP-EXEC-VP",
+        "EQUITY-MARKET",
+        "EQUITY-LIMIT",
+        "EQUITY-SESSIONS",
+        "EQUITY-CANCEL_QUERY",
+        "SPOT-EXECUTION_RULES"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    },
+    {
+      "id": "ORD-56",
+      "title": "用户界面和API错误分类",
+      "work_package": "OP-F",
+      "feature_ids": [
+        "SPOT-LIMIT"
+      ],
+      "current_source_status": "NOT_RUN",
+      "historical_status": "NOT_RUN",
+      "historical_note": null,
+      "evidence": null
+    }
+  ],
+  "notes": [
+    "Historical ORD-47 PASS is retained only as local PAPER migration component evidence.",
+    "No current-source database, lifecycle, concurrency, fault, recovery or venue case ran.",
+    "Component unit/contract PASS in this session does not promote any capability or case.",
+    "TESTNET/LIVE, real accounts and paid model calls remain disabled."
+  ]
+}

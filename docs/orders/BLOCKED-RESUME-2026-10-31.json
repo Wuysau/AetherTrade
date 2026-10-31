@@ -1,14 +1,17 @@
 {
   "status": "BLOCKED",
-  "reason": "SHARED_DEV_RECOVERY_ISOLATION_AND_SCHEDULER_NOT_READY",
-  "source_commit": "d25c8869cf0287ad32dc98eec01e4d158a81892f",
+  "reason": "SHARED_DEV_RECOVERY_ISOLATION_AND_SCHEDULER_ENFORCEMENT_NOT_READY",
+  "source_commit": "0ab47c1dde3aaab491df7e9de306f95512ca322a",
   "user_confirmation": "User explicitly answered no readiness/configuration evidence exists on 2026-10-31",
   "current_evidence": {
     "isolated_database_opt_in": false,
     "database_dsn_present": false,
-    "harness_enforcement": "IMPLEMENTATION_PENDING",
-    "retired_launcher": "BLOCKED/NOT_RUN; no per-run provisioning",
-    "migration_0030": "NOT_APPLIED; no application writer/permit installed"
+    "harness_enforcement": "OFFLINE_POLICY_IMPLEMENTED / OS_AND_SERVICE_ENFORCEMENT_NOT_VERIFIED",
+    "scheduler": "OFFLINE_QUEUE_LEASE_BUDGET_IMPLEMENTED / REAL_EXECUTOR_NOT_RUN",
+    "retired_launcher": "BLOCKED/NOT_RUN; no per-run provisioning; exit 78 verified",
+    "migration_0030": "NOT_APPLIED; read-only storage candidate",
+    "migration_0031": "NOT_APPLIED; admission writer candidate, PostgreSQL NOT_RUN",
+    "local_child_admission": "CODE_IMPLEMENTED_OFFLINE_TESTS_PASS / NOT_RUNTIME_WIRED / NO DB PROOF"
   },
   "repeated_checkpoints": [
     "8bb23bf",
@@ -43,5 +46,10 @@
     "Preserve shared dependency junction target; remove only link when later cleanup is eligible",
     "No LIVE/TESTNET/accounts/paid models/forced fills/risk weakening"
   ],
-  "next_execution_step": "Use restored shared service for six dormant-storage cases, then source/quantity/funding concurrency and guarded writer TDD; never invoke the retired per-task Docker launcher"
+  "next_execution_step": "Use restored shared service for six dormant-storage cases plus the new 0031 trigger/role/concurrency cohort, then real current-facts loader composition, UNKNOWN recovery and guarded adapter TDD; never invoke the retired per-task Docker launcher",
+  "progress_since_block": [
+    "Offline DEV/TEST identity, Docker allowlist, budgets, scheduler, temp-database and resource-monitor code with 171 passing ops cases.",
+    "Protected local-child admission writer with independent durable command, replay, quantity pool, permit and UNKNOWN retention; 104 focused and 291 broader cases pass.",
+    "Dormant additive migration 0031 candidate; no migration applied and no runtime wiring."
+  ]
 }

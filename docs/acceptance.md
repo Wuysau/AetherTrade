@@ -1,5 +1,13 @@
 # 统一 PAPER：证据索引与未完成项
 
+2026-10-31 更新（source `0ab47c1`）：环境治理与本地子单准入写入器已实现并通过
+离线单元/契约验证（focused 104、broader 291 通过；10 个 PostgreSQL 案例 NOT_RUN）。
+0030/0031 均未应用、未接线；真实数据库并发/回滚/崩溃/UNKNOWN 恢复、真实事实加载器、
+适配器发送、OP-D/E/F 收尾与 OP-G 批次均未运行。46 能力/56 场景仍为当前源码
+NOT_RUN；仅 ORD-47 保留历史组件 PASS。详见
+`evidence/binance-orders/current-acceptance-matrix.json` 与
+`evidence/binance-orders/local-child-admission/`。这不是完整验收或场所资格。
+
 当前新增工程（2026-10-29）仍ACTIVE：Binance46项能力/56项场景，OP-C→D/E/F→G未完成。
 以 docs/current-task.md 顶部、docs/orders/OP-C-GENERIC-ADMISSION.md 和
 OP-C-QUOTE-INTERVAL-PLAN.md 为最新实施索引。固定b7e0dd5真实PG16例通过，固定681329a

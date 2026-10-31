@@ -63,3 +63,19 @@ this record. Existing V3 writer paths still reject it. Old schemas remain intact
 
 Database migration and recovery integration are pending. Do not insert this
 kind into existing V3 tables or let historical UNKNOWN rows be recoded as it.
+
+## Admission writer checkpoint (2026-10-31)
+
+`execution/local_child_admission.py` now implements the protected writer path
+described above, against an additive dormant candidate `migrations/0031`.
+It persists the child's own DURABLE_READY command, allocation, client identity
+and outbox in one transaction under `tx.require_scope`; replay returns the
+original command, and the permit is bound and single-use. A trusted
+`LocalChildCurrentFacts` port supplies clock, lease, owner, target, funding,
+authorization and risk; the writer rejects expired or changed facts before
+returning. Unit/contract tests pass offline.
+
+Still absent: the real loader composition (owner/risk/target/funding), SQL role,
+trigger, concurrency, rollback, crash and UNKNOWN recovery execution, runtime
+wiring, adapter send and API/UI state. 0030/0031 are NOT_APPLIED and all
+PostgreSQL cases remain NOT_RUN. No capability or acceptance case is promoted.

@@ -1,5 +1,19 @@
 # Project state
 
+Latest engineering 2026-10-31 (`0ab47c1`, codex/binance-orders-resume): ACTIVE
+full Binance 46-target/56-case OP-C->D/E/F->G continuation. This round added
+offline environment governance (identity/isolation, Docker allowlist, budgets,
+bounded scheduler, temp-DB leases, resource monitor) and the protected local
+child admission writer with an unapplied additive 0031 candidate. Focused 104
+and broader 291 selected cases pass; 10 dormant PostgreSQL cases are NOT_RUN.
+No Docker, PostgreSQL, migration, TEST, venue or model call ran. Shared DEV
+recovery/isolation/scheduler enforcement, real current-facts composition,
+adapter send, OP-D/E/F closeout and OP-G batch remain incomplete. Current
+acceptance remains 46/56 NOT_RUN; only ORD-47 has historical component PASS.
+See `docs/evidence/binance-orders/current-acceptance-matrix.json`.
+
+## Earlier state
+
 Latest engineering2026-10-29: ACTIVE full Binance46-target/56-case OP-C→D/E/F→G
 continuation. Implementation tree is TradingHandoff/AutoDispatchWorktrees/binance-orders;
 root write ownership is now EXPLICITLY RELEASED by integration_next after the

@@ -1,0 +1,25 @@
+Source: 0ab47c1dde3aaab491df7e9de306f95512ca322a
+Worktree: D:\Projects\Python\AetherTrade\TradingHandoff\AutoDispatchWorktrees\binance-orders-resume
+Python: D:\Projects\Python\AetherTrade\AetherTrade\.venv\Scripts\python.exe (3.14)
+Environment: Windows, PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, PYTHONDONTWRITEBYTECODE=1
+No Docker, PostgreSQL, network, TEST, account or model access.
+
+1) python -X utf8 -m pytest tests/ops -q -p no:cacheprovider
+   exit 0; 171 passed, 4 skipped (existing infrastructure probes NOT_RUN); 1.29s
+
+2) python -X utf8 -m pytest tests/ops/test_environment_governance.py tests/ops/test_test_scheduler.py tests/ops/test_environment_status_cli.py tests/ops/test_local_child_migration_candidate.py tests/intents/test_local_child_admission.py -q -p no:cacheprovider
+   exit 0; 104 passed; 1.22s
+   raw: docs/evidence/binance-orders/local-child-admission/focused-pytest.txt
+   junit: docs/evidence/binance-orders/local-child-admission/focused-junit.xml
+
+3) python -X utf8 -m compileall -q src/trading_system/environment src/trading_system/execution/local_child_admission.py tools/environment_status.py
+   exit 0
+   raw: compile.txt
+
+4) python -X utf8 tools/environment_status.py --json
+   exit 0; declarations PASS; os_permission_isolation NOT_VERIFIED; dev_service NOT_PROBED
+   raw: status-cli.txt
+
+5) python -X utf8 tools/qualify_paper_docker.py --commit 0ab47c1
+   exit 78; BLOCKED/NOT_RUN; no environment created
+   raw: retired-qualifier.txt

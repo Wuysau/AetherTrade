@@ -14,6 +14,7 @@
     "Unified heavy-test scheduler before PostgreSQL qualification"
   ],
   "state": "BLOCKED",
+  "state_reason": "SHARED_DEV_RECOVERY_ISOLATION_AND_SCHEDULER_ENFORCEMENT_NOT_READY; DATABASE QUALIFICATION NOT_RUN",
   "scope": [
     "src/trading_system",
     "tests",
@@ -33,14 +34,26 @@
   },
   "validation": {
     "level": "TASK_LIGHT",
-    "source_commit": "1fffa681197b1139bbb53da7ed828495c4b1d692",
-    "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 python -X utf8 -m pytest tests/test_program_cost_math.py -q -p no:cacheprovider",
+    "source_commit": "0ab47c1dde3aaab491df7e9de306f95512ca322a",
+    "command": "python -X utf8 -m pytest tests/intents/test_local_child_admission.py tests/intents/test_local_child_commitment_reader.py tests/intents/test_local_child_compilation.py tests/intents/test_local_child_funding.py tests/intents/test_local_child_obligations.py tests/intents/test_local_child_quantity.py tests/intents/test_local_child_request.py tests/intents/test_local_child_schedule.py tests/intents/test_local_child_target.py tests/contracts/test_local_child_write.py tests/integration/test_local_child_storage.py tests/ops tests/server/test_order_observation.py -q -p no:cacheprovider",
     "exit_code": 0,
-    "passed": 5,
-    "seconds": 0.22,
-    "scope": "pure cost arithmetic only",
+    "passed": 291,
+    "skipped": 10,
+    "seconds": 6.02,
+    "scope": "local child admission, quantity, request, schedule, target, funding, obligations, read-only archive, environment governance, scheduler, CLI",
+    "focused_command": "python -X utf8 -m pytest tests/ops/test_environment_governance.py tests/ops/test_test_scheduler.py tests/ops/test_environment_status_cli.py tests/ops/test_local_child_migration_candidate.py tests/intents/test_local_child_admission.py -q",
+    "focused_exit_code": 0,
+    "focused_passed": 104,
+    "focused_seconds": 1.22,
+    "compile_exit_code": 0,
     "postgres": "NOT_RUN",
-    "full_acceptance": "NOT_RUN"
+    "docker": "NOT_RUN",
+    "full_acceptance": "NOT_RUN",
+    "evidence": [
+      "docs/evidence/binance-orders/environment-governance/verification-summary.json",
+      "docs/evidence/binance-orders/local-child-admission/verification-summary.json",
+      "docs/evidence/binance-orders/current-acceptance-matrix.json"
+    ]
   },
   "integration": {
     "target": "public-snapshot",

@@ -1,0 +1,55 @@
+{
+  "status": "CODE_IMPLEMENTED / POSTGRESQL_NOT_RUN",
+  "source_commit": "0ab47c1dde3aaab491df7e9de306f95512ca322a",
+  "source_branch": "codex/binance-orders-resume",
+  "source_files": "source-files.sha256",
+  "focused_tests": {
+    "command": "python -X utf8 -m pytest tests/ops/test_environment_governance.py tests/ops/test_test_scheduler.py tests/ops/test_environment_status_cli.py tests/ops/test_local_child_migration_candidate.py tests/intents/test_local_child_admission.py -q",
+    "exit_code": 0,
+    "passed": 104,
+    "seconds": 1.22,
+    "raw": "focused-pytest.txt",
+    "junit": "focused-junit.xml"
+  },
+  "regression_tests": {
+    "command": "python -X utf8 -m pytest tests/intents/test_local_child_admission.py tests/intents/test_local_child_commitment_reader.py tests/intents/test_local_child_compilation.py tests/intents/test_local_child_funding.py tests/intents/test_local_child_obligations.py tests/intents/test_local_child_quantity.py tests/intents/test_local_child_request.py tests/intents/test_local_child_schedule.py tests/intents/test_local_child_target.py tests/contracts/test_local_child_write.py tests/integration/test_local_child_storage.py tests/ops tests/server/test_order_observation.py -q",
+    "exit_code": 0,
+    "passed": 291,
+    "skipped": 10,
+    "seconds": 6.02,
+    "raw": "regression-pytest.txt",
+    "junit": "regression-junit.xml",
+    "skip_meaning": "All ten skips are dormant PostgreSQL cases without the approved isolated DEV database; they are NOT_RUN."
+  },
+  "implemented": [
+    "Execution/local_child_admission.py protects admission with tx.active, exact scope, existing collateral mutex (tx.require_scope), activation source, materialized original request and cumulative quantity preview.",
+    "Admission requires a trusted LocalChildCurrentFacts port covering healthy clock, current owner lease, exact active owner/epoch/policy revision, current target slice, funding preview with no blockers, authorization identity and risk clearance.",
+    "Child command is independent (no native parent command/client/venue ID) and persists command state, allocation and outbox in one transaction; replay returns the original command without a second allocation.",
+    "Quantity pool is never oversubscribed; expired lease/authority, owner change, target/funding/risk/authorization change and final-clock regression abort before returning.",
+    "Permit issuance revalidates target/funding/risk hashes against the durable command; token hash is bound, permit is single-use, and UNKNOWN retains the original command identity and blocks re-marking.",
+    "Migration 0031 is an additive dormant candidate: write history, dispatch marks, permit consumptions, unsent-abort storage, deferred completeness, quantity/unit pool guard, activation-source guard and outbox kind extension.",
+    "Migration candidate grants INSERT only to the existing ledger_owner identity; no PUBLIC/ALL grant, no transport, no runtime composition wiring."
+  ],
+  "migrations": {
+    "0030_local_child_commitments.sql": "DORMANT / NOT_APPLIED / PostgreSQL NOT_RUN",
+    "0031_local_child_admission.sql": "DORMANT CANDIDATE / NOT_APPLIED / PostgreSQL NOT_RUN"
+  },
+  "not_run": [
+    "Applying 0030/0031 to real PostgreSQL and validating triggers, FKs, grants and default privileges.",
+    "Concurrent admission under the same collateral group and no double funding/quantity allocation.",
+    "Transaction rollback after activation/command/commitment/outbox failures and process crash recovery.",
+    "Actual owner/lease/clock/risk/target/funding loader composition for local children.",
+    "UNKNOWN original-ID query/reconciliation, cancel/partial-fill races and trusted unused-allocation release.",
+    "Routing an admitted local child through the real execution owner and PAPER adapter.",
+    "API/frontend presentation of the new command state beyond the existing read-only archive view.",
+    "Any 46-capability/56-case promotion; all current-source cases remain NOT_RUN."
+  ],
+  "residual_risks": [
+    "The SQL candidate is reviewed statically, not executed; trigger syntax and role semantics are unverified.",
+    "LocalChildCurrentFacts is a trusted composition port; a weak loader could still supply false facts.",
+    "The writer is intentionally not wired into server/paper runtime, so no production or PAPER order can use it yet.",
+    "No UNKNOWN recovery execution or funds release path is enabled.",
+    "Both migrations remain unapplied; deploying either requires the approved shared DEV process and a pinned TEST approval."
+  ],
+  "scope_note": "Unit/contract evidence only; no database, venue, TESTNET/LIVE, real account or model call occurred."
+}
