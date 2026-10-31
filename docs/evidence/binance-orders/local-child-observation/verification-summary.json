@@ -1,0 +1,29 @@
+{
+  "committed_tested_content": "b475583cd810680b5d204bed768b35cd2f41dff6",
+  "execution_timing": "Tests against identical working-tree code before commit",
+  "backend_red": {
+    "source": "0250a5e",
+    "result": "1 failed missing _local_children; initial invalid empty-scope fixture corrected before this RED"
+  },
+  "backend_green": {
+    "command": "python -X utf8 -m pytest tests/server/test_order_observation.py -q -p no:cacheprovider",
+    "passed": 7,
+    "seconds": 1.03,
+    "exit_code": 0
+  },
+  "frontend_green": {
+    "command": "npm --prefix web test -- tests/order-observation.test.tsx --maxWorkers=1 --no-file-parallelism",
+    "passed": 5,
+    "seconds": 6.93,
+    "exit_code": 0,
+    "red": "NOT_RUN before implementation; dependency link was established afterward"
+  },
+  "typecheck": {
+    "command": "npm --prefix web run typecheck",
+    "exit_code": 0
+  },
+  "postgres": "NOT_RUN",
+  "browser_e2e": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "dependency_source": "Existing DEV web/node_modules via same-drive junction; no install"
+}

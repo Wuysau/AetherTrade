@@ -1,5 +1,19 @@
 # Current task
 
+## LOCAL_CHILD_READ_ONLY_OBSERVATION — 2026-10-31
+
+Authenticated detail now reads local child commitment archives by exact scope
+and parent activation FK, caps at500+truncation, and retains raw payload/hash.
+UI exposes a collapsed local commitment section explicitly labeled non-fill;
+no lifecycle, venue acceptance or release is inferred. Old missing schema works.
+7 backend projection tests and5 frontend observation tests pass; tsc passes.
+Frontend RED not run before implementation; this limitation is recorded.
+Evidence: docs/evidence/binance-orders/local-child-observation. Real PG/browser
+E2E/deployment remain NOT_RUN. Worktree web/node_modules is a same-D-drive
+junction to existing DEV dependencies, recorded in the task registry; later
+cleanup must remove only the link, never the shared dependency directory.
+
+
 ## RETIRED_PER_TASK_QUALIFIER — 2026-10-31
 
 Source 9e895ee removes per-run Docker/PostgreSQL/Runner provisioning from the
