@@ -40,3 +40,12 @@ def test_invalid_clock_grid_or_budget_never_yields_a_slice(change):
 def test_vp_missing_or_unbound_volume_is_not_assumed_zero(volume,unit):
     with pytest.raises(ValueError):preview_local_schedule(make_plan('VP','LOCAL_SYNTHETIC'),activated_at=START,
         now=START,interval_seconds=60,committed_quantity='0',quantity_step='0.001',observed_volume=volume,volume_unit=unit)
+
+
+@pytest.mark.parametrize('now,expected',[('2026-10-28T10:00:59.999999999Z','0.2'),
+    ('2026-10-28T10:01:00Z','0.4'),('2026-10-28T10:04:40Z','1')])
+def test_exact_slot_boundaries_and_short_final_window(now,expected):
+    interval=70 if now.endswith('04:40Z') else 60
+    result=preview_local_schedule(make_plan('TWAP','LOCAL_SYNTHETIC'),activated_at=START,now=now,
+        interval_seconds=interval,committed_quantity='0',quantity_step='0.001')
+    assert D(result.scheduled_quantity)==D(expected)
