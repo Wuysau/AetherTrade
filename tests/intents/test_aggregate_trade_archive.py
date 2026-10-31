@@ -52,3 +52,22 @@ def test_untrusted_receipt_cannot_select_a_filesystem_path(tmp_path,monkeypatch)
     def forbidden(key):raise AssertionError('invalid receipt reached backend read')
     monkeypatch.setattr(archive.backend,'read',forbidden)
     with pytest.raises(ValueError):archive.read_payload(r,replace(receipt,manifest_hash='../private'))
+
+
+@pytest.mark.parametrize('operation',['read','record'])
+def test_oversized_archive_is_rejected_without_unbounded_backend_read(tmp_path,monkeypatch,operation):
+    backend=LocalSnapshotBackend(tmp_path);archive=AggregateTradeArchive(backend);r=request()
+    receipt=archive.record(r,PAYLOAD,received_at=STAMP)
+    (tmp_path/receipt.payload_hash).write_bytes(b'x'*(1_048_576+1))
+    def forbidden(key):raise AssertionError('unbounded backend read used')
+    monkeypatch.setattr(backend,'read',forbidden)
+    with pytest.raises(ValueError):
+        if operation=='read':archive.read_payload(r,receipt)
+        else:archive.record(r,PAYLOAD,received_at=STAMP)
+
+
+def test_oversized_metadata_never_publishes_a_receipt_or_raw_object(tmp_path):
+    archive=AggregateTradeArchive(LocalSnapshotBackend(tmp_path))
+    with pytest.raises(ValueError):archive.record(request(),PAYLOAD,
+        received_at='2026-10-31T00:00:00.'+'1'*70000+'Z')
+    assert list(tmp_path.iterdir())==[]
