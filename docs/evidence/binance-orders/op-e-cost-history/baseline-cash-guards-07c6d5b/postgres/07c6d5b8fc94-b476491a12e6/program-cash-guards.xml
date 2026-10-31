@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="15.683" timestamp="2026-10-30T13:31:43.813354+00:00" hostname="f217d1c2d9e9"><testcase classname="tests.integration.test_program_cash_guards" name="test_collateral_preparation_requires_an_actual_current_account_binding" time="0.815" /><testcase classname="tests.integration.test_program_cash_guards" name="test_actual_recorded_native_economics_invalidate_all_current_send_boundaries[mark_consume_current]" time="7.646"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'STALE_BOOK_ACCOUNT_CASH'&#10;  Actual message: 'UNPOSTED_PROGRAM_OWNED_EFFECTS'">tests/integration/test_program_cash_guards.py:30: in test_actual_recorded_native_economics_invalidate_all_current_send_boundaries
+    with pytest.raises(MissingEvidence,match='STALE_BOOK_ACCOUNT_CASH'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'STALE_BOOK_ACCOUNT_CASH'
+E     Actual message: 'UNPOSTED_PROGRAM_OWNED_EFFECTS'</failure></testcase><testcase classname="tests.integration.test_program_cash_guards" name="test_actual_recorded_native_economics_invalidate_all_current_send_boundaries[consumed_after_wait]" time="6.238"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'STALE_BOOK_ACCOUNT_CASH'&#10;  Actual message: 'UNPOSTED_PROGRAM_OWNED_EFFECTS'">tests/integration/test_program_cash_guards.py:30: in test_actual_recorded_native_economics_invalidate_all_current_send_boundaries
+    with pytest.raises(MissingEvidence,match='STALE_BOOK_ACCOUNT_CASH'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'STALE_BOOK_ACCOUNT_CASH'
+E     Actual message: 'UNPOSTED_PROGRAM_OWNED_EFFECTS'</failure></testcase></testsuite></testsuites>

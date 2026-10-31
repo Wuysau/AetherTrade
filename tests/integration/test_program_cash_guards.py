@@ -24,10 +24,10 @@ def test_actual_recorded_native_economics_invalidate_all_current_send_boundaries
     from trading_system.execution.program_commands import ProgramCommandRepository
     c,service,codec,approval=matched(database,venue,tmp_path)
     try:
-        # An authenticated same-ledger economic marker changes the shared account
-        # revision. It grants no ownership; the original raw book stays unchanged.
+        # Authenticated asset deltas alone cannot establish ownership. The
+        # existing native-to-owner guard rejects before comparing cash revisions.
         with c.service.uow.transaction(c.scope) as tx:economic_marker(tx,service,approval)
-        with pytest.raises(MissingEvidence,match='STALE_BOOK_ACCOUNT_CASH'):
+        with pytest.raises(MissingEvidence,match='UNPOSTED_PROGRAM_OWNED_EFFECTS'):
             if boundary=='consumed_after_wait':
                 c.gate.recheck_consumed(c.permit,c.lease)
             else:

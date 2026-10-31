@@ -1,6 +1,6 @@
 # OP-E: Fresh Spot owner cost/history
 
-Status: implementation checkpoint; PostgreSQL qualification pending infrastructure recovery. No default host activation.
+Status: cost-history PostgreSQL cohort passed at e1e4a8e (11 passed, 0 failed/errors/skipped). Affected cohorts are being verified serially. No default host activation.
 
 ## Interfaces
 
@@ -31,4 +31,10 @@ Pure arithmetic: `python -X utf8 -m pytest tests/test_program_cost_math.py -q`: 
 
 First fixed-source PG attempt: `a2dd0a1`, suite `program-cost-history`, requested immutable runner `sha256:768aad7887ee385c55b82ac30b6d7b1d403d25f62aca8d0bc8cae0939fb9a9b7`, timeout 1200, offline dependencies. Launcher `3ff7b768ae4d` exited 1 during postgres-start with Docker Desktop LinuxEngine /_ping HTTP 500. Zero tests ran. This is infrastructure evidence, not genuine RED or qualification.
 
-Pending: actual native source reconciliation PG RED/GREEN; affected owned, working, source, cash cohorts; authentic SELL native cycle execution (OTO tests authored); base-fee native producer unavailable; restart/peer nonmutation execution (tests authored). No LIVE, TESTNET, derivative, historical migration, external-FX or protection qualification is claimed.
+Actual RED: test-only a2dd0a1, run 78391355f3d5, 1 failure / 0 errors/skips, 6.591s. The funded V2 source/owned chain succeeded before the expected missing-module failure.
+
+Intermediate bc7ef48, run e7f0ef63672c: 9 passed / 2 failed, 0 errors/skips, 83.690s. Both failures occurred before trading because the newer-book fixture reused risk book_sequence 1. The fixture reader was corrected to bind actual current book evidence; no risk verdict or product guard was bypassed.
+
+GREEN e1e4a8e, run 39cb6ea8e603: 11 passed / 0 failures/errors/skips, 95.440s. Covers actual quote-fee BUY, genuine native OTO BUY .4+.6 then SELL .4+.6 to exact flat, both later and equal timestamps with protected stream order, replay, rollback, forked process restart, same-account peer payload/xmin nonmutation, forged COMPLETE/PnL/cost records, later pretrade book revision and earlier nonzero history rejection, and the existing core's .4 owned + .6 authentic working -> NONE with duties retained.
+
+Pending: affected ownership/working/source/cash cohorts. Authentic base/third-asset fee producer is unavailable (existing native model exposes quote_fee_rate only); these variants have exact arithmetic checks but no native-source PG qualification. No LIVE, TESTNET, derivative, historical migration, external-FX, unknown mixed-order or protection qualification is claimed.
