@@ -1,5 +1,16 @@
 # Current task
 
+## BATCH_RESPONSE_CONFLICT_FIXED — 2026-10-31
+
+Source f715d64 preserves CONFLICT when a later batch item carries an error.
+RED 74ebe82: 3 failed / 3 passed across six valid/foreign/error permutations.
+GREEN: 75 related parser/guard tests passed in 2.00s. Commands, raw logs, JUnit
+and hashes: docs/evidence/binance-orders/resume-batch-conflict (019d088).
+No Docker, database or venue operation. Original-ID reconciliation and raw
+archive duties retained; no execution authority added. Review/integration pending,
+worktree retained. Full 46-feature/56-case goal remains incomplete.
+
+
 ## RESUMED_UNDER_LIGHT_BATCH_HARNESS — 2026-10-31
 
 User authorized this task to branch from public-snapshot instead of dev. Old
