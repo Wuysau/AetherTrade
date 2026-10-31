@@ -1,5 +1,28 @@
 # Current task
 
+## RESUMED_UNDER_LIGHT_BATCH_HARNESS — 2026-10-31
+
+User authorized this task to branch from public-snapshot instead of dev. Old
+binance-orders checkout was deleted; current checkout is binance-orders-resume,
+branch codex/binance-orders-resume, base 1fffa68. Historical main checkout archive
+files remain untouched. paper-risk-gates remains registered and is not removed.
+
+All 29 historical task tips were previously integrated into public-snapshot;
+this does not qualify the integrated source. dev remains a divergent older
+baseline; integration back to dev requires the serialized manager flow and
+explicit conflict reconciliation, never a deployment of TEST.
+
+Fresh lightweight baseline: cost arithmetic, 5 passed in 0.22s, exit 0. Exact
+selection and task budgets are in docs/harness/tasks/BINANCE-RESUME-20261031.json.
+No Docker, database, full suite, venue, account or model operation ran.
+
+Next: reconcile cost-history knownness changes and host source boundaries with
+focused unit/contract evidence; preserve pending database qualification and
+46-feature/56-case scope. Heavy verification remains blocked until shared DEV
+recovery, isolation and scheduler exist. Historical tests below retain their
+original source attribution; previous cross-drive/runner procedures are retired.
+
+
 ## CURRENT_HOST_IO_FIX_ROUND1_GREEN_REVIEW_PENDING — 2026-10-30
 
 Host ImportantP1 personally reproduced in real PG and implemented at exact

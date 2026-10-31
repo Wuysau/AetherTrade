@@ -1,0 +1,47 @@
+{
+  "version": 3,
+  "workflow": "task-light-batch-full",
+  "task_id": "BINANCE-RESUME-20261031",
+  "batch_id": "BINANCE-ORDER-CAPABILITIES",
+  "owner": "root",
+  "base_commit": "1fffa681197b1139bbb53da7ed828495c4b1d692",
+  "base_branch": "public-snapshot",
+  "base_exception": "User explicitly allowed this task to start from public-snapshot on 2026-10-31",
+  "branch": "codex/binance-orders-resume",
+  "path": "D:\\Projects\\Python\\AetherTrade\\TradingHandoff\\AutoDispatchWorktrees\\binance-orders-resume",
+  "dependencies": [
+    "DEV environment recovery and resource isolation before heavy tests",
+    "Unified heavy-test scheduler before PostgreSQL qualification"
+  ],
+  "state": "ACTIVE",
+  "scope": [
+    "src/trading_system",
+    "tests",
+    "docs/orders",
+    "docs/evidence/binance-orders",
+    "qualification/binance_orders",
+    "docs/current-task.md"
+  ],
+  "budget": {
+    "active_worktree_limit": 4,
+    "heavy_test_concurrency": 1,
+    "heavy_runs_this_stage": 0,
+    "automatic_test_retries": 0,
+    "light_run_timeout_seconds": 120,
+    "new_artifact_budget_bytes": 104857600,
+    "task_disk_budget_bytes": 2147483648
+  },
+  "validation": {
+    "level": "TASK_LIGHT",
+    "source_commit": "1fffa681197b1139bbb53da7ed828495c4b1d692",
+    "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 python -X utf8 -m pytest tests/test_program_cost_math.py -q -p no:cacheprovider",
+    "exit_code": 0,
+    "passed": 5,
+    "seconds": 0.22,
+    "scope": "pure cost arithmetic only",
+    "postgres": "NOT_RUN",
+    "full_acceptance": "NOT_RUN"
+  },
+  "integration": "NOT_RUN",
+  "cleanup": "NOT_ELIGIBLE"
+}
