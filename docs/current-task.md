@@ -1,5 +1,22 @@
 # Current task
 
+## LOCAL_CHILD_COMPILER_IMPLEMENTED — 2026-10-31
+
+Source f4a3638 adds pure local child order compilation using the existing parent
+compiler and product node compiler. Exact parent revalidation, positive bounded
+BASE quantity, no rounding, original order fields and independent-command duty
+are retained. Native mother plans cannot enter this application child path.
+RED ee8a643: missing module collection error. GREEN: 88 relevant compiler and
+contract cases pass in 1.00s. Raw/JUnit/hash evidence retained under
+docs/evidence/binance-orders/local-child-compilation.
+No schedule fact authentication, cumulative pool allocation, child financial
+admission, SQL writer, permit or transport is supplied by this pure result.
+Conditional/local-trigger request composition needs its corresponding versioned
+write route; current LocalChildWriteV1 allows ordinary namespaces only.
+Those gaps remain explicit; no unsupported field is silently removed.
+Full PostgreSQL and native qualification remain NOT_RUN.
+
+
 ## LOCAL_CHILD_WRITE_CONTRACT_V1 — 2026-10-31
 
 Added separate 2026-10-31 local-child-write codec/schema and strict dataclass.

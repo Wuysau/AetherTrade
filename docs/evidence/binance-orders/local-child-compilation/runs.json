@@ -1,0 +1,30 @@
+{
+  "source": "f4a3638beb8b2cca73e1d9e95baed6331c21bb54",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/intents/test_local_child_compilation.py",
+    "tests/intents/test_program_compilation.py",
+    "tests/contracts/test_local_child_write.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\local-child-compilation\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "ee8a643",
+    "result": "missing local_child_compilation module; collection error",
+    "shell_exit_code": 1
+  },
+  "scope": "TASK_LIGHT compiler and contracts only",
+  "postgres": "NOT_RUN",
+  "qualification": "NOT_RUN",
+  "sha256": {
+    "green.txt": "33639b63b03caf919dfd51819f709463611bfca9b389d2c716f81cdf8ed4fcb0",
+    "green.xml": "90d01b9666e94fa353f187e66bd60477d6c78d20fe40fd82b1ef1c3dc1ce05ba"
+  }
+}
