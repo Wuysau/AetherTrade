@@ -71,3 +71,19 @@ def test_boolean_code_is_not_an_integer_success_code(tmp_path,namespace):
     result=observe(tmp_path,namespace,ManagementKind.CANCEL,
         dict(algoId=123,clientAlgoId='original-client',success=True,code=False,msg='ambiguous'))
     assert result.status=='ERROR'
+
+
+@pytest.mark.parametrize('fault',['venue','client'])
+@pytest.mark.parametrize('outcome',[None,'MAYBE','MISSING'])
+def test_cancel_conflict_survives_unknown_replacement_result(tmp_path,fault,outcome):
+    cancel=dict(orderId=777 if fault=='venue' else 123,
+        origClientOrderId='foreign' if fault=='client' else 'original-client')
+    body=dict(cancelResult='SUCCESS',cancelResponse=cancel,newOrderResponse={'msg':'unknown'})
+    if outcome!='MISSING':body['newOrderResult']=outcome
+    result=observe(tmp_path,Namespace.SPOT_ORDINARY,ManagementKind.CANCEL_REPLACE,body)
+    assert result.status=='CONFLICT'
+    assert 'NATIVE_CANCEL_TARGET_CHANGED' in result.discrepancies
+    assert 'NATIVE_MANAGEMENT_RESULT_UNKNOWN' in result.discrepancies
+    assert result.operations[0].payload==cancel
+    assert result.operations[1].payload==body['newOrderResponse']
+    assert 'CANCEL_AND_REPLACEMENT_RECONCILIATION_REQUIRED' in result.retained_duties
