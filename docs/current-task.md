@@ -1,5 +1,19 @@
 # Current task
 
+## LOCAL_CHILD_DIAGNOSTICS_AND_REVIEW — 2026-10-31
+
+Classifies specific local child capability/rule/risk/data/execution blockers
+without broad prefix inference. Unknown future codes remain UNKNOWN. Invalid
+archived code entries or non-list restriction collections become renderable DATA
+diagnostics retaining raw values. Source acaaa1a; 10 projection tests pass in
+1.04s, preceded by actual failures. Evidence: local-child-diagnostics.
+Independent review of 4f32671..01ea681 found no concrete issues in retired
+launcher, conditional request, shared target and scoped archive changes; record
+resume-target-observation-review.json. This review does not cover later
+diagnostics or establish PostgreSQL/venue/permission qualification.
+Atomic local-child admission remains unfinished; shared DEV still unavailable.
+
+
 ## LOCAL_CHILD_CURRENT_TARGET — 2026-10-31
 
 Source f377d1d extracts the existing target normalization/TargetCompiler call

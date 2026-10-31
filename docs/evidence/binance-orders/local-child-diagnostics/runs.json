@@ -1,0 +1,29 @@
+{
+  "source": "24c8f337ce18f830443d0282fb894f60161223c1",
+  "command": [
+    "D:\\Projects\\Python\\AetherTrade\\AetherTrade\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/server/test_order_observation.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=docs\\evidence\\binance-orders\\local-child-diagnostics\\green.xml"
+  ],
+  "exit_code": 0,
+  "red": {
+    "source": "405bd7a",
+    "result": "2 failed: all new codes UNKNOWN and malformed code not renderable diagnostic"
+  },
+  "scope": "TASK_LIGHT read-only projection and classification",
+  "postgres": "NOT_RUN",
+  "qualification": "NOT_RUN",
+  "followup": {
+    "source": "acaaa1a",
+    "red": "1 missing classify_rejections import failure",
+    "green": "10 passed in 1.04s, exit0",
+    "command": "python -X utf8 -m pytest tests/server/test_order_observation.py -q -p no:cacheprovider"
+  }
+}
