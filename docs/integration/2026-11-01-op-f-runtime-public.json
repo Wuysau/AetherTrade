@@ -1,0 +1,32 @@
+{
+  "target": "public-snapshot",
+  "source_branch": "codex/binance-orders-resume",
+  "source_commit": "1bf4f654e45a61b5130808148a9cde6f2e502df6",
+  "code_commit": "dad5c185879b35a624d378d741fcfdc488129ba7",
+  "previous_target": "7d3b348ed656aba7ed5c75127196128b67828582",
+  "method": "MERGE_NO_FF (histories diverged by a docs-only integration commit; no force/reset)",
+  "candidate_checks": [
+    {"command": "python -X utf8 -m pytest <selected 371-case suite> -q", "exit_code": 0, "passed": 371, "skipped": 4, "seconds": 3.67},
+    {"command": "npm --prefix web run typecheck", "exit_code": 0}
+  ],
+  "post_integration_quick_checks": [
+    {"command": "python -X utf8 -m pytest tests/server/test_program_automation_wiring.py tests/ops/test_local_child_migration_candidate.py -q", "exit_code": 0, "passed": 8, "seconds": 0.61}
+  ],
+  "full_integration": "NOT_RUN",
+  "database": "NOT_RUN",
+  "docker": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "test_environment": "UNCHANGED",
+  "remote_push": "NOT_RUN",
+  "goal_status": "BLOCKED",
+  "acceptance": "46 capabilities / 56 cases remain NOT_RUN; ORD-47 historical component PASS only",
+  "remaining_code": [
+    "Production ProgramAutomationHost readers: capability/rule/financial frame, rule proposal and hybrid gate",
+    "Management SQL admission/reducer for MODIFY_LIMIT/CANCEL_REPLACE and effective price/queue overlay",
+    "PostgreSQL application of 0030/0031 and adapter SQL, concurrency/rollback/UNKNOWN recovery",
+    "Real TLS aggregate verifier and complete-window VP admission",
+    "Browser E2E and full 46/56 acceptance"
+  ],
+  "cleanup": "NOT_ELIGIBLE: task remains incomplete; worktree and branch retained",
+  "dev_branch": "UNCHANGED"
+}
