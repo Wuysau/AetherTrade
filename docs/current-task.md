@@ -1,5 +1,27 @@
 # Current task
 
+## OP_F_RUNTIME_WIRING — 2026-11-01
+
+Source `dad5c18`. Wired the existing OP-F components into the server runtime:
+`create_app` accepts an explicit `program_automation` and `local_child_host`,
+`AutomationService` supports `decision_schema=program_v1`, builds a frozen frame,
+routes AI/RULE/HYBRID through `ProgramAutomationHost`, and stores only the
+current job's decision/frame in memory for the program admission branch. Program
+decisions no longer call legacy `accept_proposal`; a missing host/frame blocks.
+A read-only `/api/program-automation/status` reports registration and explicitly
+says there is no HTTP send endpoint. Defaults remain NOT_REGISTERED.
+
+Verification: 371 Python cases passed + 4 infrastructure skips (exit 0, 3.67s);
+TypeScript exit 0. Evidence under
+`docs/evidence/binance-orders/op-f-runtime-wiring/`.
+
+Still NOT_RUN/remaining code: production frame-builder/admission/rule/hybrid
+readers, management SQL reducer/admission for MODIFY_LIMIT/CANCEL_REPLACE,
+0030/0031 and adapter SQL application, real PostgreSQL concurrency/rollback/
+UNKNOWN recovery, real TLS verifier, browser E2E and full 46/56 acceptance.
+No capability or acceptance case is promoted.
+
+
 ## FINAL_OFFLINE_CODE_SLICE — 2026-10-31
 
 Source `9bb3039`. Added the remaining offline code slices: a PAPER local-child
