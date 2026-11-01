@@ -32,7 +32,8 @@ log = logging.getLogger(__name__)
 VERSION = "0.1.0"
 
 
-def create_app(settings: Settings | None = None, *, quote_provider=None, model_client=None, order_observer=None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, quote_provider=None, model_client=None, order_observer=None,
+               program_automation=None, local_child_host=None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = Store(settings.database_url)
     market_config = MarketConfigService(store, settings.model_key_path)
@@ -59,7 +60,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
             venue_dsn=settings.paper_venue_dsn, event_dsn=settings.paper_event_dsn,
             journal_directory=settings.paper_journal_directory), market_snapshot)
 
-    automation = AutomationService(store, models, market_snapshot, settings)
+    automation = AutomationService(store, models, market_snapshot, settings,
+                                   program_automation=program_automation)
     from .analysis_snapshot import AnalysisFeed
     analysis_feed = AnalysisFeed(feed, market_snapshot, lambda: settings.market_enabled or quote_provider is not None)
     automation.feed = analysis_feed
@@ -131,6 +133,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     app.state.models = models
     app.state.automation = automation
     app.state.market_config = market_config
+    app.state.program_automation = program_automation
+    app.state.local_child_host = local_child_host
 
     @app.exception_handler(ApiError)
     async def expected_error(request, exc):
@@ -214,6 +218,21 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     @app.get("/api/health")
     def health():
         return {"status": "ok", "version": VERSION, "environment": "PAPER", "database": store.healthy()}
+
+    @app.get("/api/program-automation/status")
+    def program_automation_status(session=Depends(authenticated)):
+        host = app.state.program_automation
+        if host is None:
+            return {"status": "NOT_REGISTERED", "configured": False,
+                    "execution_authorized": False,
+                    "reason": "HOST_ADMISSION_NOT_REGISTERED"}
+        status = host.status()
+        return {"status": "REGISTERED", "configured": status.configured,
+                "frame_builder": status.frame_builder, "admission": status.admission,
+                "rule_proposal": status.rule_proposal, "hybrid_gate": status.hybrid_gate,
+                "local_child_host": status.local_child_host,
+                "execution_authorized": False,
+                "notice": "REGISTERED_IS_NOT_QUALIFIED; NO_HTTP_SEND_ENDPOINT"}
 
     @app.get("/api/bootstrap")
     def bootstrap():
