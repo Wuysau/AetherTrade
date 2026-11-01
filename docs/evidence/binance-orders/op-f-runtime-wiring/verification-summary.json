@@ -1,0 +1,35 @@
+{
+  "status": "OP_F_RUNTIME_WIRING_IMPLEMENTED / DATABASE_NOT_RUN",
+  "source_commit": "dad5c185879b35a624d378d741fcfdc488129ba7",
+  "source_branch": "codex/binance-orders-resume",
+  "tests": {
+    "exit_code": 0,
+    "passed": 371,
+    "skipped": 4,
+    "seconds": 3.67,
+    "raw": "regression-pytest.txt",
+    "junit": "regression-junit.xml"
+  },
+  "typecheck": {"exit_code": 0, "raw": "typecheck.txt"},
+  "implemented": [
+    "ProgramAutomationHost with explicit frame builder, admission, rule proposal, hybrid gate and local-child host status.",
+    "ProgramAutomationHost.run for AI/RULE/HYBRID; RULE never calls a model; AI/HYBRID converge on ProgramDecision.",
+    "AutomationService accepts an optional program_automation host, supports decision_schema=program_v1, builds a frozen frame, and stores in-memory pending decision/frame only for the current job.",
+    "AutomationService._execute_program_decision admits through the host and refuses missing host/frame; it does not call legacy accept_proposal for program decisions.",
+    "create_app accepts program_automation/local_child_host, passes them to AutomationService, stores them on app.state, and exposes read-only /api/program-automation/status.",
+    "Default app remains NOT_REGISTERED with no HTTP send endpoint and execution_authorized=false."
+  ],
+  "not_run": [
+    "Real PostgreSQL admission and local-child send/observe.",
+    "A production implementation of frame_builder/admission/rule_proposal/hybrid_gate readers.",
+    "0030/0031 and adapter SQL application, concurrency, rollback, crash and UNKNOWN recovery.",
+    "Management SQL reducer for MODIFY_LIMIT/CANCEL_REPLACE and effective price/queue overlay.",
+    "Real model calls, TEST deployment, browser E2E and full 46/56 acceptance."
+  ],
+  "residual_code": [
+    "Management SQL admission/reducer and effective price/queue migration.",
+    "Production readers for ProgramAutomationHost (capability/rule/financial frame, rule proposal, hybrid gate).",
+    "Real aggregate TLS verifier and VP admission against data."
+  ],
+  "scope_note": "Offline component/runtime-composition verification only; no capability or acceptance case promoted."
+}

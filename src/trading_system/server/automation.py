@@ -37,9 +37,11 @@ def put(connection, table, identifier, data):
 
 
 class AutomationService:
-    def __init__(self, store, models, quote_snapshot, settings, feed=None):
+    def __init__(self, store, models, quote_snapshot, settings, feed=None, program_automation=None):
         self.store, self.models, self.quote_snapshot, self.settings = store, models, quote_snapshot, settings
         self.feed = feed
+        self.program_automation = program_automation
+        self._program_pending = {}
         self.worker_id = str(uuid4())
 
     @staticmethod
@@ -224,6 +226,11 @@ class AutomationService:
         return None
 
     def _execute(self, connection, job, strategy, decision, market):
+        pending = self._program_pending.pop(job['id'], None)
+        if pending is not None:
+            decision['program_decision'], decision['program_frame'] = pending
+        if decision.get("program_decision") is not None:
+            return self._execute_program_decision(job, strategy, decision)
         if decision.get("schema_revision") == "assessment_v1":
             return self._execute_assessment(connection, job, strategy, decision, market)
         if strategy['mode'] != 'RULE':
@@ -307,6 +314,21 @@ class AutomationService:
             return 'NO_ACTION', '已达到提案目标；未重复下单。'
         decision.update(order_id=result['id'], command_id=result['command_id'], risk_status='PAPER_PASSED')
         return 'PENDING', '目标提案已进入统一 PAPER 风控与持久命令链。'
+
+    def _execute_program_decision(self, job, strategy, decision):
+        if self.program_automation is None:
+            raise ApiError('HOST_ADMISSION_NOT_REGISTERED',
+                           '完整订单自动化宿主未注册；未创建命令。', 409)
+        frame = decision.get('program_frame')
+        if frame is None:
+            raise ApiError('PROGRAM_FRAME_REQUIRED', '缺少冻结的能力/规则/资金上下文。', 409)
+        from trading_system.contracts.canonical import canonical_hash, domain_payload
+        receipt = self.program_automation.admit(decision['program_decision'], frame)
+        decision.update(program_receipt_hash=canonical_hash(domain_payload(receipt)),
+                        program_receipt_status=getattr(receipt, 'status', 'COMMITTED'),
+                        execution_status='PENDING_PROGRAM_ADMISSION',
+                        risk_status='PROGRAM_ADMITTED')
+        return 'PENDING', '完整订单计划已通过统一准入；回执不代表成交。'
 
     def _assessment_guard(self, job, decision):
         mode, identifiers, revisions = self._job_binding(job)
@@ -431,6 +453,7 @@ class AutomationService:
                     status, reason = "BLOCKED", exc.message
                     decision.update(risk_status="PAPER_REJECTED", order_id=None)
             self._complete(connection, job, decision, status, reason)
+            self._program_pending.pop(job["id"], None)
 
     async def _wake_bar_watches(self):
         """Refresh data only; an unchanged/missing bar never consumes model budget."""
@@ -507,6 +530,38 @@ class AutomationService:
             if not await run_in_threadpool(self._before_dispatch, job):
                 await run_in_threadpool(self._finish, job)
                 return job["id"]
+            if job.get('decision_schema') == 'program_v1':
+                if self.program_automation is None:
+                    raise ApiError('HOST_ADMISSION_NOT_REGISTERED',
+                                   '完整订单自动化宿主未注册；未调用模型。', 409)
+                if self.feed is None:
+                    raise ApiError('ANALYSIS_FEED_REQUIRED', '分析行情服务不可用。', 409)
+                from .analysis_snapshot import build_analysis_context
+                context = await build_analysis_context(self.store, self.feed, job['symbol'],
+                    self.settings.quote_max_age_seconds,
+                    task_profile={**(job.get('task_profile') or {}),
+                                  'strategy_revision': job['strategy_revision']})
+                with self.store.transaction() as connection:
+                    strategy = read(connection, strategies, job['strategy_id'])
+                if not strategy:
+                    raise ApiError('STRATEGY_NOT_FOUND', '策略不存在或已删除。', 409)
+                mode, identifiers, revisions = self._job_binding(job)
+                host = self.program_automation
+
+                async def analyze(frame):
+                    return await self.models.analyze(
+                        job['symbol'], mode, identifiers, revisions, job['model_key'], frame,
+                        decision_policy=job.get('decision_policy', 'unanimous'),
+                        research_request=(host.research_request(strategy, frame)
+                                          if host.research_request else None))
+
+                run = await host.run(strategy, context, analyze)
+                self._program_pending[job['id']] = (run.decision, run.frame)
+                payload = dict(run.result['decision'])
+                payload['program_pending_id'] = job['id']
+                payload['execution_authorized'] = False
+                await run_in_threadpool(self._finish, job, {**run.result, 'decision': payload})
+                return job['id']
             mode, identifiers, revisions = self._job_binding(job)
             if job.get('decision_mode') == 'RULE':
                 price = self.store._price(self.quote_snapshot(), job['symbol'], self.settings.quote_max_age_seconds)
