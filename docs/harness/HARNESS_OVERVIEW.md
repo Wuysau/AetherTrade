@@ -9,7 +9,7 @@
 - [Worktree 生命周期与串行集成](WORKTREE_PROTOCOL.md)
 - [状态、证据与恢复](TASK_LIFECYCLE.md)
 
-本补充取代旧 Harness 中逐任务启动独立测试环境、逐次合并运行完整回归的调度要求，以及仅保留工作树而无安全回收的生命周期要求。交易 SPEC、安全约束、历史证据和历史生命周期记录不因此改写。dev 分支上的旧文档尚需在治理实现集成时同步；不能认为本次文档提交已经部署了权限控制或调度服务。
+本补充取代旧 Harness 中逐任务启动独立测试环境、逐次合并运行完整回归的调度要求，以及仅保留工作树而无安全回收的生命周期要求。交易 SPEC、安全约束、历史证据和历史生命周期记录不因此改写。2026-11-01 分支治理更新：public-snapshot 为唯一活动集成线；本地 dev 已删除并归档为 tag archive/dev-before-delete-20261101；origin/dev 仅保留为远端历史；TEST 暂无活动分支。历史 dev 文档不能作为当前集成、部署或清理依据。不能认为本次文档提交已经部署了权限控制或调度服务。
 
 当前执行状态：POLICY_APPROVED / ENFORCEMENT_IMPLEMENTATION_PENDING。Docker 数据盘曾不可恢复丢失，恢复和隔离准入未完成；初期仅允许代码修改及不需要 Docker 的安全验证。本任务分支中的 qualify_paper_docker.py 已退役为 BLOCKED/NOT_RUN 兼容入口，不再创建容器；统一调度器仍未实现，其他分支旧脚本不得执行。禁止把文档要求当作已实现功能。
 

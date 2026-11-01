@@ -5,9 +5,9 @@
 | 环境 | 发布分支 | 用途 | 修改权限 |
 | --- | --- | --- | --- |
 | DEV | public-snapshot（用户称 public） | 全部 Agent 开发和自动测试唯一运行环境 | 经受控入口操作 |
-| TEST | dev | 用户操作和独立验收 | Agent 禁止直接修改数据；部署须用户批准 |
+| TEST | 无活动分支（历史 dev 已归档） | 用户操作和独立验收 | Agent 禁止直接修改数据；部署须用户批准 |
 
-任务分支从最新 dev 创建，Integration Manager 串行集成到 dev。环境发布分支与集成分支职责不同：dev 更新不得自动部署 TEST。TEST 必须固定已批准的提交和镜像摘要，批准需绑定候选 SHA、迁移与回退说明。DEV 测试可运行任务/集成候选的确切源码快照，不能为此创建第三套环境或自动更新公共服务。禁止隐式交换分支映射。
+自 2026-11-01 起，public-snapshot 是唯一活动集成线：任务分支从最新 public-snapshot 创建，Integration Manager 串行集成到 public-snapshot。历史本地 dev 已删除并归档为 tag archive/dev-before-delete-20261101；origin/dev 仅作为远端历史保留，不参与新任务、自动测试或清理追溯。TEST 暂无活动分支，不能把归档 dev 当作可部署 TEST。环境发布分支与集成分支职责不同：public-snapshot 更新不得自动部署 TEST。TEST 必须固定已批准的提交和镜像摘要，批准需绑定候选 SHA、迁移与回退说明。DEV 测试可运行任务/集成候选的确切源码快照，不能为此创建第三套环境或自动更新公共服务。禁止隐式交换分支映射。
 
 项目只有 DEV 和 TEST 两套长期环境。两者的数据、数据库身份、凭据、端口、网络、持久卷及部署版本均隔离；测试进程不得获得 TEST 连接能力。两者交易模式均保持 PAPER，TEST 不等于 TESTNET。不得启用 TESTNET/LIVE、访问真实交易账户或自动发起付费模型调用。
 
