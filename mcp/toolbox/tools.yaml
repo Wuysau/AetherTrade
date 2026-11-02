@@ -1,0 +1,153 @@
+kind: source
+name: aether-ledger-readonly
+type: postgres
+host: 127.0.0.1
+port: 55432
+database: paper_runtime_dev
+user: aether_mcp_readonly
+password: ${AETHER_MCP_DB_PASSWORD}
+---
+kind: source
+name: aether-venue-readonly
+type: postgres
+host: 127.0.0.1
+port: 55432
+database: paper_engine_dev
+user: aether_mcp_readonly
+password: ${AETHER_MCP_DB_PASSWORD}
+---
+kind: tool
+name: aether-ledger-health
+type: postgres-sql
+source: aether-ledger-readonly
+description: Read-only ledger database health.
+statement: SELECT current_database() AS database, current_user AS role, now() AS observed_at;
+---
+kind: tool
+name: aether-ledger-table-inventory
+type: postgres-sql
+source: aether-ledger-readonly
+description: List ledger tables and columns. Read-only metadata.
+statement: |
+  SELECT table_schema, table_name, column_name, data_type, is_nullable
+  FROM information_schema.columns
+  WHERE table_schema IN ('ledger', 'public')
+  ORDER BY table_schema, table_name, ordinal_position;
+---
+kind: tool
+name: aether-ledger-recent-audit
+type: postgres-sql
+source: aether-ledger-readonly
+description: Recent ledger audit events, newest first. Direct base-table read.
+parameters:
+  - name: limit
+    type: integer
+    description: Maximum rows, 1..100.
+statement: |
+  SELECT scope_id, record_id, sequence,
+         payload->>'record_kind' AS record_kind,
+         transaction_id, processed_at
+  FROM ledger.audit_events
+  ORDER BY processed_at DESC
+  LIMIT LEAST(GREATEST($1, 1), 100);
+---
+kind: tool
+name: aether-ledger-program-command
+type: postgres-sql
+source: aether-ledger-readonly
+description: Latest state for one program command ID. Direct base-table read.
+parameters:
+  - name: command_id
+    type: string
+    description: Exact command ID.
+statement: |
+  SELECT DISTINCT ON (scope_id, record_id)
+         scope_id, record_id AS command_id, sequence,
+         payload->>'state' AS state,
+         payload->>'request_hash' AS request_hash,
+         payload->>'commitment_hash' AS commitment_hash,
+         payload->>'intent_id' AS intent_id,
+         processed_at
+  FROM ledger.order_writes_v2
+  WHERE record_id = $1
+  ORDER BY scope_id, record_id, sequence DESC;
+---
+kind: tool
+name: aether-ledger-reservations
+type: postgres-sql
+source: aether-ledger-readonly
+description: Reservations for one intent ID. Direct base-table read.
+parameters:
+  - name: intent_id
+    type: string
+    description: Exact intent ID.
+statement: |
+  SELECT record_id AS reservation_id, sequence, payload, transaction_id
+  FROM ledger.reservations
+  WHERE payload->>'intent_id' = $1
+  ORDER BY record_id, sequence;
+---
+kind: tool
+name: aether-venue-table-inventory
+type: postgres-sql
+source: aether-venue-readonly
+description: List PAPER venue tables and columns. Read-only metadata.
+statement: |
+  SELECT table_schema, table_name, column_name, data_type, is_nullable
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+  ORDER BY table_name, ordinal_position;
+---
+kind: tool
+name: aether-venue-order
+type: postgres-sql
+source: aether-venue-readonly
+description: One PAPER venue order by scope and client ID. Direct base-table read.
+parameters:
+  - name: scope_key
+    type: string
+    description: Exact scope key.
+  - name: client_id
+    type: string
+    description: Exact client order ID.
+statement: |
+  SELECT scope_key, client_id, order_id, logical_id, owner_strategy_id,
+         ownership_epoch, quantity_unit, price_currency, quantity, filled,
+         lifecycle, pending, pending_command_id, certainty, revision
+  FROM public.paper_engine_orders
+  WHERE scope_key = $1 AND client_id = $2;
+---
+kind: tool
+name: aether-venue-events
+type: postgres-sql
+source: aether-venue-readonly
+description: Recent PAPER venue events for one order. Direct base-table read.
+parameters:
+  - name: scope_key
+    type: string
+    description: Exact scope key.
+  - name: client_id
+    type: string
+    description: Exact client order ID.
+  - name: limit
+    type: integer
+    description: Maximum rows, 1..100.
+statement: |
+  SELECT scope_key, event_id, client_id, payload_hash, payload,
+         fill_delta, price, occurred_at
+  FROM public.paper_engine_events
+  WHERE scope_key = $1 AND client_id = $2
+  ORDER BY occurred_at DESC
+  LIMIT LEAST(GREATEST($3, 1), 100);
+---
+kind: toolset
+name: aether-db
+tools:
+  - aether-ledger-health
+  - aether-ledger-table-inventory
+  - aether-ledger-recent-audit
+  - aether-ledger-program-command
+  - aether-ledger-reservations
+  - aether-venue-table-inventory
+  - aether-venue-order
+  - aether-venue-events
