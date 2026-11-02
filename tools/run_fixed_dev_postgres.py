@@ -54,7 +54,38 @@ def main():
         for index,(name,number,testfile) in enumerate(selected):
             entry = {'suite':name,'testfile':testfile,'status':'RUNNING'}
             report['suites'].append(entry)
-            if number in ('PAPER_RUNTIME','CONSOLE'):
+            if number == 'PAPER_RUNTIME':
+                env=child_environment(os.environ)
+                env.update(AETHER_FIXED_DEV_DATABASE_TESTS='YES',PAPER_RUNTIME_ISOLATED_DATABASE='YES',
+                    PAPER_RUNTIME_ADMIN_DSN=make_conninfo(**base,dbname='postgres'),
+                    AETHER_FIXED_DEV_RESOURCE_JOURNAL=str(args.evidence_dir/(name+'-resources.jsonl')),
+                    PAPER_RUNTIME_EVIDENCE_DIR=str(args.evidence_dir/(name+'-states')))
+                xml=args.evidence_dir/(name+'.xml');log=args.evidence_dir/(name+'.log')
+                target=testfile+'::'+args.case_name if args.case_name else testfile
+                command=[sys.executable,'-m','pytest','-p','tools.fixed_dev_runtime_resources','-q','--tb=short',
+                    '-o','faulthandler_timeout=45',f'--junitxml={xml}',target]
+                if name=='console-contract': command+=['-m','paper_runtime']
+                entry['command']=command
+                save()
+                with log.open('wb') as output:
+                    try:
+                        code=subprocess.run(command,cwd=ROOT,env=env,stdout=output,
+                            stderr=subprocess.STDOUT,timeout=1800).returncode
+                    except subprocess.TimeoutExpired:
+                        entry.update(status='BLOCKED',reason='TIMEOUT: retained resources')
+                        report['status']='BLOCKED';save();return 78
+                entry['exit_code']=code
+                try:
+                    entry['results']=result_counts(xml,code)
+                    entry['status']='PASS' if entry['results']['accepted'] else 'FAIL'
+                except Exception:
+                    entry.update(status='FAIL',reason='Missing or malformed JUnit')
+                report['new_roles_retained']=sorted({r[0] for r in admin.execute('SELECT rolname FROM pg_roles')}-roles_before)
+                save();print(name+': '+entry['status'],flush=True)
+                if code==78:
+                    report['status']='BLOCKED';save();return 78
+                continue
+            if number == 'CONSOLE':
                 entry.update(status='NOT_RUN',reason='Per-case database provisioning needs bounded registration/cleanup adaptation')
                 save()
                 continue
