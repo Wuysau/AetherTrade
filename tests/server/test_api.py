@@ -23,7 +23,9 @@ def client(tmp_path, request):
     runtime_options = {'database_url': f"sqlite:///{tmp_path / 'api.sqlite3'}"}
     if request.node.get_closest_marker('paper_runtime'):
         from support.unified_console import provision_console
-        runtime_options = provision_console(tmp_path, setup=False).settings_kwargs
+        harness = provision_console(tmp_path, setup=False)
+        request.addfinalizer(harness.close)
+        runtime_options = harness.settings_kwargs
     settings = Settings(**runtime_options, market_enabled=False, testing=True,
                         allowed_origins=("http://testserver",), web_dist=tmp_path / "dist")
     app = create_app(settings, quote_provider=Feed())

@@ -28,7 +28,7 @@ class RecordingConnection(psycopg.Connection):
         match = re.fullmatch(r'CREATE DATABASE "([a-z0-9_]+)"',text.strip(),re.I) if isinstance(text,str) else None
         if match:
             name=match[1]
-            if not re.fullmatch(r'paper_(?:runtime|engine|control)_[a-z0-9_]+',name) or name.endswith('_dev'):
+            if not re.fullmatch(r'paper_(?:runtime|engine|control|console_guard)_[a-z0-9_]+',name) or name.endswith('_dev'):
                 raise RuntimeError('unregistered database namespace')
             if super().execute('SELECT oid FROM pg_database WHERE datname=%s',(name,)).fetchone():
                 raise RuntimeError('database already exists')
