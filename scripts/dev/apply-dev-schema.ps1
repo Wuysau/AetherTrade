@@ -39,7 +39,7 @@ try {
     function Ensure-Database([string]$Database) {
         $exists = docker exec $Container psql -U $AdminUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$Database';" 2>$null
         if ($LASTEXITCODE -ne 0) { throw "Cannot inspect cluster databases." }
-        if (-not $exists.Trim()) {
+        if ([string]::IsNullOrWhiteSpace([string]$exists)) {
             if (-not $CreateDatabases) {
                 throw "Database $Database is missing. Re-run with -CreateDatabases or create it explicitly."
             }
@@ -62,11 +62,11 @@ try {
 
     $ledgerExists = docker exec $Container psql -U $AdminUser -d $LedgerDatabase -tAc "SELECT to_regnamespace('ledger');" 2>$null
     if ($LASTEXITCODE -ne 0) { throw "Cannot inspect ledger database." }
-    if ($ledgerExists.Trim()) { throw "ledger schema already exists in $LedgerDatabase; refusing to reapply." }
+    if (-not [string]::IsNullOrWhiteSpace([string]$ledgerExists)) { throw "ledger schema already exists in $LedgerDatabase; refusing to reapply." }
 
     $venueExists = docker exec $Container psql -U $AdminUser -d $VenueDatabase -tAc "SELECT to_regclass('public.paper_engine_orders');" 2>$null
     if ($LASTEXITCODE -ne 0) { throw "Cannot inspect venue database." }
-    if ($venueExists.Trim()) { throw "paper_engine_orders already exists in $VenueDatabase; refusing to reapply." }
+    if (-not [string]::IsNullOrWhiteSpace([string]$venueExists)) { throw "paper_engine_orders already exists in $VenueDatabase; refusing to reapply." }
 
     Apply-Sql $LedgerDatabase "migrations/0001_business_ledger.sql"
     Apply-Sql $LedgerDatabase "deploy/db/roles.sql"
