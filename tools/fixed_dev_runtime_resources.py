@@ -15,6 +15,13 @@ import pytest
 
 _connect = psycopg.connect
 _created = {}
+_harnesses = []
+_original_provision = None
+
+
+def close_harnesses():
+    while _harnesses:
+        _harnesses.pop().close()
 
 
 def record(event):
@@ -57,17 +64,26 @@ def cleanup():
 
 
 def pytest_configure(config):
+    global _original_provision
     if os.environ.get('AETHER_FIXED_DEV_DATABASE_TESTS')!='YES':
         raise RuntimeError('fixed DEV opt-in missing')
     if not os.environ.get('AETHER_FIXED_DEV_RESOURCE_JOURNAL'):
         raise RuntimeError('resource journal required')
     psycopg.connect=RecordingConnection.connect
+    from support import unified_console
+    _original_provision=unified_console.provision_console
+    def tracked_console(*args,**kwargs):
+        harness=_original_provision(*args,**kwargs)
+        _harnesses.append(harness)
+        return harness
+    unified_console.provision_console=tracked_console
 
 
 @pytest.hookimpl(hookwrapper=True,tryfirst=True)
 def pytest_runtest_teardown(item,nextitem):
     yield
     try:
+        close_harnesses()
         cleanup()
     except Exception as exc:
         record({'action':'CLEANUP_BLOCKED','error_type':type(exc).__name__})
@@ -76,3 +92,6 @@ def pytest_runtest_teardown(item,nextitem):
 
 def pytest_unconfigure(config):
     psycopg.connect=_connect
+    if _original_provision is not None:
+        from support import unified_console
+        unified_console.provision_console=_original_provision

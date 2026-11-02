@@ -46,3 +46,14 @@ def test_exact_receipt_removed_only_after_physical_verification(monkeypatch,reco
     resources.cleanup()
     assert admin.dropped and resources._created=={}
     assert recorded==[{'action':'REMOVED','name':'paper_runtime_fixture','oid':42}]
+
+
+def test_every_registered_console_harness_is_closed_once(monkeypatch):
+    calls=[]
+    class Harness:
+        def close(self):calls.append(self)
+    first,second=Harness(),Harness()
+    monkeypatch.setattr(resources,'_harnesses',[first,second])
+    resources.close_harnesses()
+    resources.close_harnesses()
+    assert calls==[second,first]
