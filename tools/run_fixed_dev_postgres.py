@@ -25,10 +25,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence-dir', type=Path, required=True)
     parser.add_argument('--suite', action='append')
+    parser.add_argument('--case-name', help='One exact test function for failure diagnosis')
     args = parser.parse_args()
     catalog = list(SUITES) + [('local-child-storage', '03', 'tests/integration/test_local_child_storage.py')]
     if args.suite and set(args.suite) - {s[0] for s in catalog}:
         parser.error('unknown suite')
+    if args.case_name:
+        import re
+        if not args.suite or len(args.suite)!=1 or not re.fullmatch(r'test_[A-Za-z0-9_]+',args.case_name):
+            parser.error('case-name requires one suite and an exact test function')
     selected = [s for s in catalog if not args.suite or s[0] in args.suite]
     args.evidence_dir.mkdir(parents=True, exist_ok=False)
     report = {'source_sha': subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
@@ -64,7 +69,8 @@ def main():
             env[prefix+'_ISOLATED_DATABASE']='YES'
             env[prefix+'_DATABASE_DSN']=make_conninfo(**base,dbname=dbname)
             xml=args.evidence_dir/(name+'.xml'); log=args.evidence_dir/(name+'.log')
-            command=[sys.executable,'-m','pytest','-q','--tb=short','-p','no:cacheprovider',f'--junitxml={xml}',testfile]
+            target = testfile+'::'+args.case_name if args.case_name else testfile
+            command=[sys.executable,'-m','pytest','-q','--tb=short','-p','no:cacheprovider','-o','faulthandler_timeout=45',f'--junitxml={xml}',target]
             entry['command']=command
             with log.open('wb') as output:
                 try:
