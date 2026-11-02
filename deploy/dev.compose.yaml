@@ -36,7 +36,7 @@ volumes:
 networks:
   aether-dev-net:
     name: aether-dev-net
-    internal: true
+    driver: bridge
 
 secrets:
   dev_admin_password:

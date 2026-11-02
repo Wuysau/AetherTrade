@@ -50,6 +50,9 @@ if ($health -ne "healthy") {
 $id = docker inspect --format '{{.Id}}' aether-dev-postgres
 $image = docker inspect --format '{{.Config.Image}}' aether-dev-postgres
 $port = docker port aether-dev-postgres 5432/tcp
+if (-not $port) {
+    throw "DEV PostgreSQL is healthy inside the container but has no published host port. Recreate the project after checking deploy/dev.compose.yaml networks/ports."
+}
 $volume = docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/lib/postgresql/data"}}{{.Name}}{{end}}{{end}}' aether-dev-postgres
 $network = docker inspect --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' aether-dev-postgres
 
