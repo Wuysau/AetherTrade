@@ -41,11 +41,9 @@ def execution_case(database, venue, tmp_path, *, side='BUY', fees=(), rate='0'):
         matching_model=PaperMatchingModel(model_id='ISOLATED_QUOTE_DEPTH_V1',quote_fee_rate=rate))
     @contextmanager
     def claim(shard):
-        import fcntl
-        with (tmp_path/(c.scope.venue_account_id+'.lock')).open('a') as f:
-            fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)
-            try:yield
-            finally:fcntl.flock(f,fcntl.LOCK_UN)
+        from integration.portable_owner_lock import exclusive_file_lock
+        with exclusive_file_lock(tmp_path/(c.scope.venue_account_id+'.lock')):
+            yield
     c.owner=ExecutionOwner(c.lease,journal_path=tmp_path/'quote.ndjson',engine=c.engine,
         claim=claim,clock=lambda:c.c.facts.inputs.clock)
     return c

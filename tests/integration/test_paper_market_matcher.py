@@ -59,13 +59,11 @@ def case(database,venue,tmp_path,*,tif='GTC',post_only=False,market=None,quote_f
         matching_model=PaperMatchingModel(model_id='ISOLATED_DEPTH_FIFO_EXPLICIT_FEE_FIXTURE',quote_fee_rate=quote_fee_rate))
     @contextmanager
     def claim(shard):
-        # Real Linux file exclusion; fixture proves execution logic, not dedicated
+        # Real local-process file exclusion; fixture proves execution logic, not dedicated
         # deployment UID/container qualification.
-        import fcntl
-        with (tmp_path/(c.scope.venue_account_id+'.lock')).open('a') as f:
-            fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)
-            try:yield
-            finally:fcntl.flock(f,fcntl.LOCK_UN)
+        from integration.portable_owner_lock import exclusive_file_lock
+        with exclusive_file_lock(tmp_path/(c.scope.venue_account_id+'.lock')):
+            yield
     c.owner=ExecutionOwner(c.lease,journal_path=tmp_path/(c.scope.venue_account_id+'.ndjson'),engine=c.engine,
         claim=claim,clock=lambda:c.c.facts.inputs.clock)
     return c

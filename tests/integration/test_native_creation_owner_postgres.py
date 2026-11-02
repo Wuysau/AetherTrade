@@ -27,11 +27,9 @@ def prepared(database,tmp_path,*,blocked=False,installed=True):
         uncovered_paths=('NATIVE_LAST_SEND_NOT_QUALIFIED',)),creation_probe=c.probe if installed else None)
     @contextmanager
     def claim(shard):
-        import fcntl
-        with (tmp_path/'owner.lock').open('a') as stream:
-            fcntl.flock(stream,fcntl.LOCK_EX|fcntl.LOCK_NB)
-            try:yield
-            finally:fcntl.flock(stream,fcntl.LOCK_UN)
+        from integration.portable_owner_lock import exclusive_file_lock
+        with exclusive_file_lock(tmp_path/'owner.lock'):
+            yield
     c.exec_owner=ExecutionOwner(c.lease,journal_path=tmp_path/'owner.ndjson',engine=c.engine,
         claim=claim,clock=lambda:c.c.facts.inputs.clock)
     return c
