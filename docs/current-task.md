@@ -1,3 +1,33 @@
+# FIXED_DEV_OP_G_EXECUTION — 2026-11-02 (ACTIVE)
+
+User explicitly waived runner-hardening prerequisites and requested tests on
+current Windows + fixed DEV PostgreSQL. No production/TEST/venue/model calls.
+Trading source is public-snapshot ba737e0 plus task-scoped fixture/runner changes
+on codex/dev-runner-enforcement; no Integration Manager merge has occurred.
+
+Real DEV connected at 127.0.0.1:55432, PostgreSQL 170011. Protected database OIDs:
+paper_control_dev=17208, paper_engine_dev=17207, paper_runtime_dev=17206.
+Initial database tests: paper-engine 59 PASS, local-child-storage 6 PASS.
+Windows fixture file-lock replacement uses real msvcrt process exclusion;
+process exclusion/release and resource-cleanup refusal unit checks passed.
+Subsequent sdk guard 1 PASS, cost history 11 PASS / 1 FAIL (os.fork unavailable).
+Full continuation is ACTIVE, logs/summary under root checkout:
+agent-output/evidence/op-g-fixed-dev-remaining/ (execution source 20b314c).
+Do not launch a concurrent database batch; fixed advisory lock is held.
+
+Remaining after current batch: runtime per-case provision/cleanup plugin smoke,
+all PAPER_RUNTIME suites, 0031 actual SQL probes, daily-loss-monitor and
+native-query-origins (two suites omitted by the old CI catalog).
+Latest runner source includes these selections. Runtime plugin not yet live-tested.
+New fixture-created venue databases/roles without ownership receipts are retained;
+only registered database identities with zero connections are removed.
+
+Earlier offline full regression: 4071 PASS, 29 FAIL, 151 ERROR, 1151 SKIP;
+all failures/errors were missing DB configuration; web 121 PASS, typecheck PASS.
+Those results are not substituted for current real PostgreSQL results.
+OP-G full 46/56 acceptance remains INCOMPLETE. Linux-specific failures retain
+their real result; no native qualification or scenario PASS is inferred.
+
 # DEV_RUNNER_ENFORCEMENT — 2026-11-02
 
 Active task branch codex/dev-runner-enforcement from ba737e0; no integration.
