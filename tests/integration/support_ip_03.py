@@ -29,7 +29,7 @@ STAMP = '2026-10-20T06:39:03Z'
 def isolated_postgres():
     if os.environ.get('IP03_ISOLATED_DATABASE') != 'YES' or not os.environ.get('IP03_DATABASE_DSN'):
         pytest.skip('NOT_RUN: explicitly isolated PostgreSQL not supplied')
-    if sys.platform != 'linux':
+    if sys.platform != 'linux' and os.environ.get('AETHER_FIXED_DEV_DATABASE_TESTS') != 'YES':
         pytest.skip('NOT_RUN: native transaction/role/crash verification requires isolated Linux')
     # Once opted in, missing driver or failed connection is an error, not a skip.
     import psycopg

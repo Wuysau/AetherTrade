@@ -29,7 +29,7 @@ from trading_system.intents.ingress import IngressRevision, revision_key
 def ip07_database():
     if os.environ.get('IP07_ISOLATED_DATABASE') != 'YES' or not os.environ.get('IP07_DATABASE_DSN'):
         pytest.skip('NOT_RUN: IP07 isolated PostgreSQL not provisioned')
-    if sys.platform != 'linux':
+    if sys.platform != 'linux' and os.environ.get('AETHER_FIXED_DEV_DATABASE_TESTS') != 'YES':
         pytest.skip('NOT_RUN: isolated Linux required for database probes')
     import psycopg
     dsn = os.environ['IP07_DATABASE_DSN']

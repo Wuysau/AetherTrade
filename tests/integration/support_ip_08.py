@@ -52,7 +52,7 @@ def pnl_case():
 def ip08_postgres():
     if os.environ.get('IP08_ISOLATED_DATABASE') != 'YES' or not os.environ.get('IP08_DATABASE_DSN'):
         pytest.skip('NOT_RUN: explicitly isolated IP08 PostgreSQL not supplied')
-    if sys.platform != 'linux':
+    if sys.platform != 'linux' and os.environ.get('AETHER_FIXED_DEV_DATABASE_TESTS') != 'YES':
         pytest.skip('NOT_RUN: process/database probes require isolated Linux')
     import psycopg
     dsn = os.environ['IP08_DATABASE_DSN']

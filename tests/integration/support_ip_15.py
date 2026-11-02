@@ -301,7 +301,7 @@ def protection_case():
 def ip15_database():
     if os.environ.get('IP15_ISOLATED_DATABASE') != 'YES' or not os.environ.get('IP15_DATABASE_DSN'):
         pytest.skip('NOT_RUN: explicitly isolated IP15 PostgreSQL not supplied')
-    if sys.platform != 'linux':
+    if sys.platform != 'linux' and os.environ.get('AETHER_FIXED_DEV_DATABASE_TESTS') != 'YES':
         pytest.skip('NOT_RUN: PostgreSQL probes require isolated Linux')
     import psycopg
     dsn = os.environ['IP15_DATABASE_DSN']

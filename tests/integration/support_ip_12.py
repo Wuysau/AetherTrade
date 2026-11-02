@@ -30,7 +30,7 @@ AUTO_NATIVE_ID = object()
 def ip12_database():
     if os.environ.get('IP12_ISOLATED_DATABASE') != 'YES' or not os.environ.get('IP12_DATABASE_DSN'):
         pytest.skip('NOT_RUN: explicit isolated IP12 PostgreSQL not supplied')
-    if sys.platform != 'linux':
+    if sys.platform != 'linux' and os.environ.get('AETHER_FIXED_DEV_DATABASE_TESTS') != 'YES':
         pytest.skip('NOT_RUN: PostgreSQL probes require isolated Linux')
     import psycopg
     dsn = os.environ['IP12_DATABASE_DSN']

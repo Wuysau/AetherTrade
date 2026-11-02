@@ -34,7 +34,7 @@ from trading_system.storage.uow import UnitOfWork
 def ip10_database():
     if os.environ.get('IP10_ISOLATED_DATABASE') != 'YES' or not os.environ.get('IP10_DATABASE_DSN'):
         pytest.skip('NOT_RUN: explicitly isolated IP10 PostgreSQL not supplied')
-    if sys.platform != 'linux':
+    if sys.platform != 'linux' and os.environ.get('AETHER_FIXED_DEV_DATABASE_TESTS') != 'YES':
         pytest.skip('NOT_RUN: database/process probes require isolated Linux')
     import psycopg
     dsn = os.environ['IP10_DATABASE_DSN']
