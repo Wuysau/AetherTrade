@@ -972,6 +972,11 @@ def test_postgres_restricted_login_controller_boundary(ip16_database, attack):
     """A real restricted session can complete CAS but cannot add DDL or elevate."""
     import psycopg
     from trading_system.storage.uow import UnitOfWork
+    if attack and 'paper_admin' in attack:
+        from psycopg.conninfo import conninfo_to_dict
+        from psycopg import sql
+        actual_admin = conninfo_to_dict(ip16_database)['user']
+        attack = attack.replace('paper_admin', sql.Identifier(actual_admin).as_string())
     c, scenario = ready_postgres_cas(ip16_database)
     attest_cas(c, ip16_database)
     before = crash_ledger_json(c)

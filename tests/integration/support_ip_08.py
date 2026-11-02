@@ -108,6 +108,6 @@ def crash_child(suffix):
 
 
 if __name__ == '__main__':
-    if os.environ.get('IP08_ISOLATED_DATABASE') != 'YES' or sys.platform != 'linux':
+    if os.environ.get('IP08_ISOLATED_DATABASE') != 'YES' or (sys.platform != 'linux' and os.environ.get('AETHER_FIXED_DEV_DATABASE_TESTS') != 'YES'):
         raise SystemExit('isolated Linux database required')
     crash_child(sys.argv[1])
