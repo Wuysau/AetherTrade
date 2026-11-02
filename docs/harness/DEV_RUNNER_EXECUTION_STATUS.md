@@ -45,3 +45,19 @@ NOT_RUN by Agent. Executor, resource broker, live budget enforcement, migration
 and OP-G all NOT_RUN / incomplete. No integrated acceptance claim.
 
 Validation: both PowerShell files parsed without errors; actual wrong-runner and non-admin invocations each exited 1 at their identity guards before file access. git diff --check passed.
+
+## Control backup failure follow-up
+
+User's elevated invocation failed writing the ACL backup under control, before
+Set-Acl on the secret; the runner probe was then run as Wuysa and correctly
+refused. Original setup removed inherited SYSTEM/Administrators grants from
+control with /inheritance:r without restoring explicit grants. Actual control
+ACL cannot be read by the current non-elevated Agent.
+
+Added opt-in -RepairControlAcl: validates fixed root/control are ordinary
+existing directories, grants only SYSTEM and Administrators explicit full
+control on control with inheritable entries, checks icacls exit, then resumes
+backup-before-secret-change. No recursion, reset, ownership takeover or runner
+access grant. Syntax PASS and actual non-admin invocation with this switch
+refused (exit 1). Elevated repair and actual runner secret denial NOT_RUN.
+After administrator repair, recheck runner control access is still denied.
