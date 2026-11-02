@@ -1,3 +1,16 @@
+# DEV_RUNNER_ENFORCEMENT — 2026-11-02
+
+Active task branch codex/dev-runner-enforcement from ba737e0; no integration.
+Found inherited Users/Authenticated Users read permission on the existing DEV
+admin secret (metadata/ACL only; no secret bytes read). Prepared administrator
+single-file ACL backup/runner-deny script and runner read-handle denial probe.
+PowerShell parse checks PASS (2 scripts); actual wrong-identity and non-admin
+execution refused with exit 1 before touching the secret. Baseline scheduler
+unit tests: 24 PASS. Administrator ACL deployment and runner probe NOT_RUN.
+User reports TEST undeployed. Current Agent remains wuysa, not runner.
+See docs/harness/DEV_RUNNER_EXECUTION_STATUS.md for remaining executor,
+resource broker, identity and budget work. Live admission remains BLOCKED.
+
 # Current task
 
 ## OP_F_RUNTIME_WIRING — 2026-11-01
