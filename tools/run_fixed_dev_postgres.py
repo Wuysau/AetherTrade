@@ -27,7 +27,8 @@ def main():
     parser.add_argument('--suite', action='append')
     parser.add_argument('--case-name', help='One exact test function for failure diagnosis')
     args = parser.parse_args()
-    catalog = list(SUITES) + [('local-child-storage', '03', 'tests/integration/test_local_child_storage.py')]
+    catalog = list(SUITES) + [('local-child-storage', '03', 'tests/integration/test_local_child_storage.py'),
+        ('local-child-admission-storage','03','tests/integration/test_local_child_admission_storage.py')]
     if args.suite and set(args.suite) - {s[0] for s in catalog}:
         parser.error('unknown suite')
     if args.case_name:
