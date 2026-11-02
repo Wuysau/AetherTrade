@@ -95,10 +95,10 @@ def test_decision_or_intake_role_cannot_write_generic_financial_intent(case,role
     with c.uow.transaction(c.intent.scope) as tx:assert tx.intents.get(c.intent.intent_id) is None
 
 
-def test_same_id_cannot_change_kind_or_payload(case):
+def test_same_id_cannot_change_kind_or_payload(case, financial_database):
     c=case
     with c.uow.transaction(c.intent.scope) as tx:tx.intents.append(c.intent)
-    with c.connect_admin() as db:dsn=db.info.dsn
+    dsn=financial_database  # ConnectionInfo.dsn deliberately omits the password.
     legacy=LedgerScenario(dsn).intent
     legacy=replace(legacy,intent_id=c.intent.intent_id,venue_account_id=c.intent.scope.venue_account_id,
         collateral_group_id=c.intent.collateral_group_id,instrument_uid=c.intent.scope.instrument_uid)
@@ -107,10 +107,10 @@ def test_same_id_cannot_change_kind_or_payload(case):
     with c.uow.transaction(c.intent.scope) as tx:assert tx.intents.get(c.intent.intent_id)==c.intent
 
 
-def test_generic_intent_cannot_back_legacy_command_or_permit(case):
+def test_generic_intent_cannot_back_legacy_command_or_permit(case, financial_database):
     c=case
     with c.uow.transaction(c.intent.scope) as tx:tx.intents.append(c.intent)
-    with c.connect_admin() as db:dsn=db.info.dsn
+    dsn=financial_database  # Reuse the explicitly provisioned fixture connection.
     legacy=LedgerScenario(dsn)
     command=replace(legacy.command,intent_id=c.intent.intent_id,
         venue_account_id=c.intent.scope.venue_account_id,product=c.intent.scope.product.value,
