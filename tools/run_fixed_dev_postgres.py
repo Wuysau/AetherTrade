@@ -21,6 +21,15 @@ from ci_paper_postgres import SUITES, child_environment, result_counts
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def fixed_dev_environment(profile):
+    profile.mkdir(exist_ok=True)
+    env = child_environment(os.environ)
+    # libpq ConnectionInfo builds its default passfile path via Path.home().
+    # Give Windows children an empty profile, never the operator's credentials.
+    env['USERPROFILE'] = str(profile.resolve())
+    return env
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence-dir', type=Path, required=True)
@@ -58,7 +67,7 @@ def main():
             entry = {'suite':name,'testfile':testfile,'status':'RUNNING'}
             report['suites'].append(entry)
             if number == 'PAPER_RUNTIME':
-                env=child_environment(os.environ)
+                env=fixed_dev_environment(args.evidence_dir/'empty-profile')
                 env.update(AETHER_FIXED_DEV_DATABASE_TESTS='YES',PAPER_RUNTIME_ISOLATED_DATABASE='YES',
                     PAPER_RUNTIME_ADMIN_DSN=make_conninfo(**base,dbname='postgres'),
                     AETHER_FIXED_DEV_RESOURCE_JOURNAL=str(args.evidence_dir/(name+'-resources.jsonl')),
@@ -97,7 +106,7 @@ def main():
             oid = admin.execute('SELECT oid FROM pg_database WHERE datname=%s',(dbname,)).fetchone()[0]
             entry.update(database=dbname, database_oid=oid)
             save()
-            env = child_environment(os.environ)
+            env = fixed_dev_environment(args.evidence_dir/'empty-profile')
             env['AETHER_FIXED_DEV_DATABASE_TESTS']='YES'
             prefix = 'PAPER_ENGINE' if number=='PAPER_ENGINE' else 'IP'+number
             env[prefix+'_ISOLATED_DATABASE']='YES'
