@@ -1,0 +1,43 @@
+name: aether-dev
+
+services:
+  dev-postgres-aether:
+    image: ${DEV_POSTGRES_IMAGE:?set a pinned postgres image digest}
+    container_name: aether-dev-postgres
+    environment:
+      POSTGRES_DB: aether_dev
+      POSTGRES_USER: aether_dev_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/dev_admin_password
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - aether-dev-data:/var/lib/postgresql/data
+    networks:
+      - aether-dev-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aether_dev_admin -d aether_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: "1.0"
+    shm_size: 256m
+    security_opt:
+      - no-new-privileges:true
+    secrets:
+      - dev_admin_password
+
+volumes:
+  aether-dev-data:
+    name: aether-dev-data
+
+networks:
+  aether-dev-net:
+    name: aether-dev-net
+    internal: true
+
+secrets:
+  dev_admin_password:
+    file: ${DEV_ADMIN_PASSWORD_FILE:?set an absolute controlled secret file path}
