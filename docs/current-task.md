@@ -1,3 +1,37 @@
+# CURRENT_ENVIRONMENT_TEST_ATTEMPT_FINISHED — 2026-11-02
+
+OP-G NOT_ACCEPTED. All launched batches have ended; no test batch lock remains.
+Latest-per-testcase diagnostic aggregate (not a single frozen-SHA qualification):
+5354 passed, 43 failed, 14 skipped. Frontend 121 passed; TypeScript passed.
+Additional fixture/resource unit checks: 6 passed. Real 0030 storage: 6 passed;
+0031 application/unauthorized-write/immutable-history probes: 9 passed.
+
+43 failures: 20 local activation None subscripting; 8 exception-contract
+mismatches (5 permit CheckViolation, 3 BOOK_CASH_BINDING_REQUIRED); 15 Windows/
+historical Linux dependencies (fork, SIGKILL, Linux-only worker, old fcntl).
+The 14 skips require Linux isolation/process fixtures or workload observations.
+No trading code was changed. Test-only compatibility corrections were made for
+Windows file locks, abrupt os._exit workers, actual admin role, authenticated
+fixture DSNs, API fixture connection closure and exact database cleanup.
+
+Authoritative evidence (outside task worktree, retained):
+D:/Projects/Python/AetherTrade/AetherTrade/agent-output/evidence/op-g-current-environment-final/summary.json
+Sibling all-latest-cases.json, hashes.json, resource-inventory.json and
+registered-resource-check.json retain individual source/evidence attribution.
+Original failed/interrupted logs remain in op-g-fixed-dev-* directories.
+
+Protected DEV database OIDs remain 17206/17207/17208; business 74 tables and
+venue 31 tables. 0030/0031 were exercised in temporary test databases only.
+Runtime database creation receipts are all reconciled with removal receipts.
+Legacy fixture venue databases/roles lacking creation receipts were retained;
+observed cluster database total was 588577318 bytes. No unknown-resource cleanup.
+
+Task branch codex/dev-runner-enforcement is retained and unmerged. Trading
+baseline public-snapshot remains ba737e0. Full 46/56 acceptance is not promoted.
+Next engineering work: fix activation null handling and review exception
+contracts; separately port/provide actual process-fault tests for the target OS,
+then freeze an integrated source for final regression. No automatic rerun.
+
 # FIXED_DEV_OP_G_EXECUTION — 2026-11-02 (ACTIVE)
 
 User explicitly waived runner-hardening prerequisites and requested tests on

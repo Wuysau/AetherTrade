@@ -61,3 +61,14 @@ backup-before-secret-change. No recursion, reset, ownership takeover or runner
 access grant. Syntax PASS and actual non-admin invocation with this switch
 refused (exit 1). Elevated repair and actual runner secret denial NOT_RUN.
 After administrator repair, recheck runner control access is still denied.
+
+## Superseding execution outcome — 2026-11-02
+
+User waived runner-hardening prerequisites and requested direct current DEV
+verification. The original hardening plan was not deployed. Real Windows + DEV
+PostgreSQL diagnostic runs completed, with latest-per-case totals 5354 PASS,
+43 FAIL, 14 SKIP; no full OP-G promotion. See current-task.md first section and
+the final evidence directory for source attribution, failure classes and retained
+resources. All registered runtime temporary databases have removal receipts;
+legacy fixture resources without such receipts are retained. Public integration
+was not performed; the task branch remains available for review.
