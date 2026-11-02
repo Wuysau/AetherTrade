@@ -37,4 +37,6 @@ def test_decision_role_cannot_insert_admission_rows(admission_storage,table):
 def test_admin_cannot_erase_admission_history(admission_storage,table):
     with psycopg.connect(admission_storage) as conn:
         with pytest.raises(psycopg.errors.CheckViolation):
-            conn.execute(sql.SQL('TRUNCATE ledger.{}').format(sql.Identifier(table)))
+            # DELETE reaches the immutable statement trigger even when another
+            # admission table references this one (TRUNCATE fails earlier on FK).
+            conn.execute(sql.SQL('DELETE FROM ledger.{}').format(sql.Identifier(table)))
