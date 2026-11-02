@@ -28,7 +28,9 @@ def main():
     parser.add_argument('--case-name', help='One exact test function for failure diagnosis')
     args = parser.parse_args()
     catalog = list(SUITES) + [('local-child-storage', '03', 'tests/integration/test_local_child_storage.py'),
-        ('local-child-admission-storage','03','tests/integration/test_local_child_admission_storage.py')]
+        ('local-child-admission-storage','03','tests/integration/test_local_child_admission_storage.py'),
+        ('daily-loss-monitor','08','tests/integration/test_daily_loss_monitor.py'),
+        ('native-query-origins','03','tests/integration/test_native_query_origins_postgres.py')]
     if args.suite and set(args.suite) - {s[0] for s in catalog}:
         parser.error('unknown suite')
     if args.case_name:
