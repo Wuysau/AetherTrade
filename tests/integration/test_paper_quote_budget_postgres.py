@@ -105,11 +105,18 @@ def test_partial_and_out_of_band_liquidity_remain_terminal_with_unused_budget(da
     before=state()
     with c.engine._connect() as db:
         venue_commands=db.execute('SELECT count(*) AS total FROM public.paper_engine_commands').fetchone()['total']
-    # The committed original permit is single-use. The database rejects the
-    # second consume with its exact constraint, before any second send or
+    # The committed original permit is single-use. Depending on whether the
+    # bounded test work crosses the permit TTL, PostgreSQL rejects the second
+    # consume either at the current-permit guard or at the single-use primary
+    # key. Both are the existing database constraint, before any second send or
     # posting can occur.
-    with pytest.raises(psycopg.errors.CheckViolation,match='committed unused current permit required'):
+    with pytest.raises((psycopg.errors.CheckViolation,psycopg.errors.UniqueViolation)) as denied:
         submit(c)
+    message=str(denied.value)
+    if isinstance(denied.value,psycopg.errors.CheckViolation):
+        assert 'committed unused current permit required' in message
+    else:
+        assert 'program_permit_consumptions_pkey' in message
     assert before[0]==1
     assert state()==before
     with c.engine._connect() as db:
