@@ -1,14 +1,14 @@
 {
-  "status": "PARTIAL_FIX_VERIFIED_NON_DB; DATABASE_TARGETED_NOT_RUN",
-  "recorded_at": "2026-11-03T00:00:00+08:00",
-  "baseline_source_sha": "611f30a68723088de0e26d67cc7784a25ffb271e",
+  "status": "TARGETED_FIXES_PASS_NOT_FULL_OP_G",
+  "recorded_at": "2026-11-03T15:00:00+08:00",
+  "frozen_source_sha": "7b2947c14446200c2fc9c79aa6a2772ac5b9ae2d",
   "task_branch": "codex/dev-runner-enforcement",
-  "scope": "Targeted repair of the 43 current-environment failures; not full OP-G acceptance",
+  "scope": "Targeted repair and rerun of the 43 current-environment failures; not full OP-G acceptance",
   "fixes": {
     "local_activation_null_read": {
       "file": "src/trading_system/execution/local_program_activation.py",
       "change": "read_local_activation returns None when the underlying activation read returns None; otherwise it returns the first source element and retains all existing source validation",
-      "expected_failure_count_addressed": 20
+      "addressed_failure_count": 20
     },
     "book_change_exception_contract": {
       "files": [
@@ -16,100 +16,128 @@
         "tests/integration/test_program_model_handoff_postgres.py",
         "tests/integration/test_quote_current_boundary_postgres.py"
       ],
-      "change": "Only the book parameter expects MissingEvidence: BOOK_CASH_BINDING_REQUIRED. The underlying cash-binding guard and database constraints are unchanged; no public API boundary conversion was added because the affected host call is not an HTTP endpoint.",
-      "expected_failure_count_addressed": 3
+      "change": "Only the book parameter expects MissingEvidence: BOOK_CASH_BINDING_REQUIRED. The underlying cash-binding guard and database constraints are unchanged. No public API boundary conversion was added because the affected host call is not an HTTP endpoint.",
+      "addressed_failure_count": 3
     },
     "duplicate_permit_rejection": {
       "file": "tests/integration/test_paper_quote_budget_postgres.py",
-      "change": "The five duplicate-permit cases now expect the actual psycopg CheckViolation 'committed unused current permit required' and assert that permit consumption, ledger fills, order writes, venue commands and the returned quote report remain unchanged after the rejected second submit",
-      "expected_failure_count_addressed": 5
+      "change": "The five cases accept and verify both existing single-use database rejections: CheckViolation 'committed unused current permit required' when the bounded permit window expires, or UniqueViolation on program_permit_consumptions_pkey when the duplicate key is reached first. After rejection, permit consumption, fills, order writes, venue commands and the returned quote report remain unchanged.",
+      "addressed_failure_count": 5
     }
   },
-  "non_db_verification": {
-    "unit_suite": {
-      "command": "python -m pytest -q tests/unit",
-      "result": "935 passed",
-      "exit_code": 0
-    },
-    "activation_null_regression": {
-      "command": "python -m pytest -q tests/unit/test_local_activation_null_read.py",
-      "result": "1 passed",
-      "exit_code": 0
-    },
-    "modified_integration_collection": {
-      "command": "python -m pytest -q --collect-only on the four modified integration files",
-      "result": "69 tests collected",
-      "exit_code": 0
-    },
-    "compile": {
-      "command": "python -m py_compile on changed source and test files",
-      "result": "exit 0"
-    },
-    "git_diff_check": "exit 0"
+  "windows_targeted_rerun": {
+    "command": "tools/run_fixed_dev_postgres.py --suite generic-program-admission --suite local-program-activation --suite order-observation-admission --suite program-consumed-boundary --suite program-model-handoff --suite quote-current-boundary --suite paper-quote-budget",
+    "evidence_dir": "D:/Projects/Python/AetherTrade/AetherTrade/agent-output/evidence/op-g-fixes-20261103-windows-final",
+    "source_sha": "7b2947c14446200c2fc9c79aa6a2772ac5b9ae2d",
+    "platform": "win32",
+    "server_version": "170011",
+    "result": "PASS",
+    "suites": [
+      {"suite": "paper-quote-budget", "passed": 30, "failed": 0, "errors": 0, "skipped": 0, "cleanup": "REMOVED"},
+      {"suite": "quote-current-boundary", "passed": 13, "failed": 0, "errors": 0, "skipped": 0, "cleanup": "REMOVED"},
+      {"suite": "program-consumed-boundary", "passed": 20, "failed": 0, "errors": 0, "skipped": 0, "cleanup": "REMOVED"},
+      {"suite": "order-observation-admission", "passed": 4, "failed": 0, "errors": 0, "skipped": 0, "cleanup": "REMOVED"},
+      {"suite": "program-model-handoff", "passed": 6, "failed": 0, "errors": 0, "skipped": 0, "cleanup": "REMOVED"},
+      {"suite": "generic-program-admission", "passed": 10, "failed": 0, "errors": 0, "skipped": 0, "cleanup": "REMOVED"},
+      {"suite": "local-program-activation", "passed": 15, "failed": 0, "errors": 0, "skipped": 0, "cleanup": "REMOVED"}
+    ],
+    "total_passed": 98,
+    "databases_created_and_removed": 7,
+    "roles_retained": [
+      "paper_engine_events_81c585b5aef3",
+      "paper_engine_runtime_81c585b5aef3"
+    ]
   },
-  "wsl_linux_verification": {
+  "wsl_linux_rerun": {
     "distribution": "Ubuntu (WSL2 mirrored networking, non-root user)",
     "python": "3.14.4",
-    "venv": "~/.venvs/aethertrade",
-    "installed": [
-      "pytest 9.1.1",
-      "psycopg 3.3.6",
-      "jsonschema 4.26.0",
-      "fastapi 0.162.0",
-      "sqlalchemy 2.1.6",
-      "httpx 0.28.1",
-      "cryptography 50.0.2",
-      "websockets 17.2"
-    ],
+    "venv": "/home/wuysa/.venvs/aethertrade",
+    "native_worktree": "/home/wuysa/aethertrade-native",
+    "native_worktree_source_sha": "7b2947c14446200c2fc9c79aa6a2772ac5b9ae2d",
+    "native_worktree_reason": "The /mnt/d DrvFs mount made Path.resolve() in contract loading take roughly 17 seconds, exceeding the 5 second real permit window. A native ext4 clone at the same frozen SHA removed only that filesystem-latency artifact; source bytes, tests and fixed historical source were unchanged.",
+    "fixed_historical_source": "unchanged VINTAGE 3d13721cbcdc2e35cdd347c610372f13fee03b4f, executed natively",
     "process_capability_probe": {
       "fork": "PASS",
       "SIGKILL_child_exit": "PASS (WIFSIGNALED true, signal 9)"
     },
-    "linux_lock_tests": [
-      {
-        "node": "tests.faults.test_owner_and_storage_failures::test_linux_flock_excludes_second_process_and_releases_on_close",
-        "result": "PASS",
-        "note": "Real Linux fcntl process exclusion and release"
-      },
-      {
-        "node": "tests.ops.test_deployment_isolation::test_application_shard_lock_excludes_second_process",
-        "result": "PASS",
-        "note": "Run in WSL with IP32_RUN_CONTAINERS=1; no container was started"
-      }
+    "process_failure_rerun": {
+      "evidence_dir": "D:/Projects/Python/AetherTrade/AetherTrade/agent-output/evidence/op-g-fixes-20261103-wsl-process",
+      "status": "PASS",
+      "nodes": 12,
+      "covered_cases": 15,
+      "cases": [
+        "test_crash_before_wire_unknown",
+        "paper_market_matcher concurrent duplicate + fork restart",
+        "paper_market_matcher_v2_compat concurrent duplicate + fork restart",
+        "paper_program_reports verifier process restart",
+        "paper_program_v2_reports forked process restart",
+        "program_cost_history process restart + same-account peer",
+        "program_fill_source 0018 historical runtime",
+        "program_owned_posting process restart",
+        "program_working_orders process restart",
+        "runtime_faults process kill [durable,before-venue,after-venue,after-ack]",
+        "runtime_faults protection projection rollback",
+        "runtime_faults restart ready identity query before submit"
+      ],
+      "database_cleanup": "All recorded main databases REMOVED. Plugin-tracked venue/runtime databases REMOVED. The non-plugin historical run removed its recorded leftovers ip03_test_source_upgrade_9b7e06be7233 and paper_engine_market_327067c7592d.",
+      "roles_retained": "Unique paper_engine_* and paper_console_* roles retained for audit, matching existing runner policy; no role was deleted."
+    },
+    "program_command_skip_rerun": {
+      "evidence_dir": "D:/Projects/Python/AetherTrade/AetherTrade/agent-output/evidence/op-g-fixes-20261103-wsl-commands",
+      "source_sha": "7b2947c14446200c2fc9c79aa6a2772ac5b9ae2d",
+      "node": "tests/integration/test_program_commands_postgres.py::test_process_exit_at_actual_may_commit_boundary_preserves_original_identity",
+      "covered_cases": 2,
+      "status": "PASS",
+      "cleanup": "REMOVED"
+    },
+    "linux_lock_rerun": {
+      "source_sha": "7b2947c14446200c2fc9c79aa6a2772ac5b9ae2d",
+      "nodes": [
+        "tests/faults/test_owner_and_storage_failures.py::test_linux_flock_excludes_second_process_and_releases_on_close",
+        "tests/ops/test_deployment_isolation.py::test_application_shard_lock_excludes_second_process"
+      ],
+      "status": "2 passed",
+      "condition": "IP32_RUN_CONTAINERS=1 is the existing opt-in for the shard-lock probe; no container was started"
+    },
+    "journal_evidence": "D:/Projects/Python/AetherTrade/AetherTrade/agent-output/evidence/op-g-fixes-20261103-wsl-process/journal-wsl*.jsonl and states-wsl*; each contains CREATE_REQUEST, CREATED and REMOVED with the exact OID for plugin-tracked databases."
+  },
+  "previously_failing_nodes": {
+    "total": 43,
+    "passed_in_targeted_rerun": 43,
+    "failed": 0,
+    "blocked": 0
+  },
+  "previously_skipped_nodes": {
+    "total": 14,
+    "now_passed": 4,
+    "still_not_run": 10,
+    "now_passed_nodes": [
+      "test_linux_flock_excludes_second_process_and_releases_on_close",
+      "test_application_shard_lock_excludes_second_process",
+      "test_process_exit_at_actual_may_commit_boundary_preserves_original_identity[before]",
+      "test_process_exit_at_actual_may_commit_boundary_preserves_original_identity[after]"
+    ],
+    "still_not_run_reasons": {
+      "metrics_targets": "requires registered 50/5/10 workload endpoint observations",
+      "privilege_matrix_in_real_containers": "requires explicitly provisioned containers",
+      "owner_process_and_backing": "requires explicitly provisioned containers",
+      "strategy_sandbox": "7 cases require an explicitly provisioned isolated Linux IP21_NATIVE_ROOTFS"
+    }
+  },
+  "resource_notes": {
+    "recorded_temporary_databases": "All created database identities were verified by OID and removed after confirming zero active connections.",
+    "unrecorded_diagnostic_databases_retained": [
+      {"datname": "paper_engine_market_be3e7205d223", "oid": 238110, "created_utc": "2026-11-03T05:45:07Z"},
+      {"datname": "paper_engine_market_400e147fd95d", "oid": 239025, "created_utc": "2026-11-03T05:45:48Z"},
+      {"datname": "paper_engine_market_4927cfe9093b", "oid": 239942, "created_utc": "2026-11-03T05:47:13Z"},
+      {"datname": "paper_engine_market_e80fed5d5f26", "oid": 254395, "created_utc": "2026-11-03T05:50:02Z"}
+    ],
+    "unrecorded_diagnostic_note": "These four venue databases were created during failed diagnostic attempts before the final recorder was active. They have no creation receipt in the final evidence, so they are retained rather than deleted under the unknown-ownership rule.",
+    "protected_databases_unchanged": [
+      {"datname": "paper_control_dev", "oid": 17208},
+      {"datname": "paper_engine_dev", "oid": 17207},
+      {"datname": "paper_runtime_dev", "oid": 17206}
     ]
   },
-  "database_blocker": {
-    "fixed_dev_port": 55432,
-    "listener_present": false,
-    "docker_cli": "29.7.2 desktop-linux context present",
-    "docker_daemon": "unavailable",
-    "docker_desktop_distro": "Stopped",
-    "native_postgres_service": "none",
-    "container": "aether-dev-postgres",
-    "compose": "deploy/dev.compose.yaml",
-    "volume": "aether-dev-data",
-    "published_port": "127.0.0.1:55432",
-    "reason": "The fixed DEV PostgreSQL is a Docker container. Without Docker Desktop running, the container cannot run and nothing listens on 55432. A native WSL PostgreSQL would be a different instance and is not the same fixed DEV database.",
-    "policy": "AGENTS.md and docs/harness/ENVIRONMENT_POLICY.md prohibit Agent Docker startup and database provisioning without explicit authorization.",
-    "action_taken": "No Docker or database operation was performed."
-  },
-  "not_run_due_to_database_blocker": {
-    "local_activation_cases": 20,
-    "book_change_cases": 3,
-    "duplicate_permit_cases": 5,
-    "process_fault_cases": 15,
-    "definition": "NOT_RUN; not PASS and not acceptance"
-  },
-  "skipped_case_status": {
-    "previously_skipped_total": 14,
-    "now_passed_in_wsl": 2,
-    "still_not_run": 12,
-    "still_not_run_reasons": [
-      "2 program-commands fork cases require the fixed DEV PostgreSQL",
-      "1 metrics target case requires registered 50/5/10 workload observations",
-      "2 deployment container cases require explicitly provisioned containers",
-      "7 strategy sandbox cases require an explicitly provisioned isolated Linux rootfs"
-    ]
-  },
-  "full_op_g_acceptance": "NOT_ACCEPTED; no capability or scenario promoted"
+  "full_op_g_acceptance": "NOT_ACCEPTED; this is a targeted repair rerun, not a single frozen full-suite 46/56 qualification"
 }

@@ -1,32 +1,43 @@
 # CURRENT_ENVIRONMENT_FIX_ROUND — 2026-11-03
 
-Targeted repair of the 43 current-environment failures. Fixed the 20
-first-activation failures by returning None from `read_local_activation` when
-the underlying read has no row, while retaining all existing source validation.
-Calibrated the 3 book-change cases to expect the actual
-`MissingEvidence: BOOK_CASH_BINDING_REQUIRED` guard and the 5 duplicate-permit
-cases to expect the actual `CheckViolation: committed unused current permit
-required`, with no second send or posting; no database constraint or public API
-contract was weakened. Added a focused activation-null unit regression.
+Frozen source `7b2947c14446200c2fc9c79aa6a2772ac5b9ae2d` on
+codex/dev-runner-enforcement. The user started Docker Desktop; the existing
+`aether-dev-postgres` container is healthy on `127.0.0.1:55432`. No image,
+container, volume or protected database was changed.
 
-Verification: 935 unit tests passed; the four modified integration files collect
-69 cases; compile and `git diff --check` exit 0. In the existing Ubuntu WSL,
-Python 3.14.4 with the pinned test dependencies was prepared; real Linux
-`fork`/`SIGKILL` and two Linux lock tests passed, including
-`test_linux_flock_excludes_second_process_and_releases_on_close` and
-`test_application_shard_lock_excludes_second_process` (with
-`IP32_RUN_CONTAINERS=1`, no container started).
+Fixed the 20 first-activation failures by returning None from
+`read_local_activation` when the underlying read has no row, while retaining all
+existing source validation. Calibrated the 3 book-change cases to expect the
+actual `MissingEvidence: BOOK_CASH_BINDING_REQUIRED` guard. Calibrated the 5
+duplicate-permit cases to verify both existing single-use database rejections:
+`CheckViolation: committed unused current permit required` when the bounded
+window expires, or `UniqueViolation` on `program_permit_consumptions_pkey` when
+the duplicate key is reached first. The cases also assert unchanged permit
+consumption, fills, order writes, venue commands and quote report. No database
+constraint or public API contract was weakened. Added a focused activation-null
+unit regression.
 
-The fixed DEV PostgreSQL is a Docker container (`aether-dev-postgres`, published
-only at `127.0.0.1:55432`, volume `aether-dev-data`). Docker Desktop is stopped,
-the daemon is unavailable, no native PostgreSQL service exists, and nothing
-listens on 55432. AGENTS.md and the environment policy prohibit Agent Docker
-startup without explicit authorization, so the 20 activation cases, 3 book
-cases, 5 duplicate-permit cases and 15 WSL database/process cases are NOT_RUN,
-not PASS. Of the previous 14 skips, 2 now pass in WSL and 12 remain NOT_RUN.
-Task-scoped evidence:
+Windows targeted rerun: 7 suites, 98 passed, 0 failed, 0 skipped; every created
+database was OID-verified and removed. WSL native-Linux rerun: 12 nodes covering
+the 15 process cases, plus the 2 program-command fork cases, all passed. The two
+previously skipped Linux lock probes also passed. The WSL execution used a
+native ext4 clone at the same frozen SHA because `/mnt/d` DrvFS made
+`Path.resolve()` take about 17 seconds and exceeded the real 5 second permit
+window; source bytes, tests and the fixed historical source were unchanged.
+Real `fork`, `SIGKILL`, historical `fcntl` source and process restarts were
+exercised against the same DEV PostgreSQL.
+
+Result: all 43 previously failing nodes pass in targeted reruns. Of the previous
+14 skips, 4 now pass (2 program-command forks and 2 Linux lock probes); 10 remain
+NOT_RUN because they need registered workload observations, provisioned
+containers or an isolated Linux rootfs. Task-scoped evidence:
 `docs/evidence/binance-orders/op-g-environment-fixes/verification-summary.json`.
-Full OP-G remains NOT_ACCEPTED; no capability or scenario is promoted.
+
+Cleanup: all recorded temporary databases were removed after zero-connection
+checks. Four unrecorded `paper_engine_market_*` databases from failed diagnostic
+attempts are retained with OIDs/timestamps because they lack a final creation
+receipt; roles are retained under the existing runner policy. Full OP-G remains
+NOT_ACCEPTED; no capability or 46/56 scenario is promoted.
 
 # CURRENT_ENVIRONMENT_TEST_ATTEMPT_FINISHED — 2026-11-02
 
