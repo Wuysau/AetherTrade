@@ -14,7 +14,7 @@ from trading_system.server.model_service import ModelService
 from trading_system.server.model_api import ProfileAnalysis
 from trading_system.server.store import Store
 from trading_system.server import model_repository,model_client,model_service,program_model_context,market_parse
-from trading_system.storage.models import scope_id
+from trading_system.storage.models import MissingEvidence,scope_id
 
 
 def linked_case(database,monkeypatch):
@@ -127,8 +127,16 @@ def test_changed_current_model_facts_replan_without_new_financial_bundle(databas
             market=replace(market,ref=replace(market.ref,hash=snapshot_content_hash(market)))
             return replace(facts,archive=replace(facts.archive,risk_facts=replace(facts.archive.risk_facts,market=market)))
         service.load_inputs=altered
-    with pytest.raises(ApiError,match='REPLAN_REQUIRED'):
-        admit_program_assessment(assessment,frame,admission_service=service)
+    if changed=='book':
+        # The changed book has no current account-cash binding, so the
+        # underlying guard rejects it before the host handoff can map the
+        # change to its REPLAN diagnostic. The host function is not an HTTP
+        # endpoint and promises no unified public exception type.
+        with pytest.raises(MissingEvidence,match='BOOK_CASH_BINDING_REQUIRED'):
+            admit_program_assessment(assessment,frame,admission_service=service)
+    else:
+        with pytest.raises(ApiError,match='REPLAN_REQUIRED'):
+            admit_program_assessment(assessment,frame,admission_service=service)
     with c.owner.transaction(c.scope) as tx:
         assert tx.intents.get(c.record.intent_id) is None
         assert tx.reservations.for_intent(c.record.intent_id)==()

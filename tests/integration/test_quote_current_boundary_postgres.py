@@ -12,7 +12,7 @@ from trading_system.contracts import types as t
 from trading_system.contracts.canonical import canonical_hash
 from trading_system.execution.program_commands import ProgramCommandBoundary
 from trading_system.storage.uow import UnitOfWork
-from trading_system.storage.models import scope_id
+from trading_system.storage.models import MissingEvidence,scope_id
 
 
 @pytest.fixture(scope='module')
@@ -119,7 +119,13 @@ def test_quote_current_gaps_never_renew_or_consume_the_marked_request(database,f
         else:
             with c.owner.transaction(c.scope) as tx:
                 book=tx.projections.book(c.scope);tx.projections.save_book(replace(book,sequence=book.sequence+1),book.sequence)
-        with pytest.raises(ValueError):g.consume(permit,lease(c))
+        if fault=='changed_raw_book':
+            # A book change has no current account-cash binding; the guard
+            # rejects that exact lower-level condition before the quote
+            # boundary compares the marked request.
+            with pytest.raises(MissingEvidence,match='BOOK_CASH_BINDING_REQUIRED'):g.consume(permit,lease(c))
+        else:
+            with pytest.raises(ValueError):g.consume(permit,lease(c))
     with c.owner.transaction(c.scope) as tx:
         assert tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE scope_id=%s',
             (scope_id(c.scope),)).fetchone()==(0,)

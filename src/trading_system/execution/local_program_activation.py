@@ -201,7 +201,8 @@ def activate_local_program(tx,bundle,*,load_clock=None):
 
 
 def read_local_activation(tx,activation_id):
-    return _read_local_activation_source(tx,activation_id)[0]
+    source=_read_local_activation_source(tx,activation_id)
+    return None if source is None else source[0]
 
 
 def read_local_activation_source(tx,activation_id):

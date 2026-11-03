@@ -82,6 +82,7 @@ def test_native_quote_request_executes_actual_depth_without_original_base_quanti
 def test_partial_and_out_of_band_liquidity_remain_terminal_with_unused_budget(database,quote_venue,tmp_path,side,price,quantity,base):
     from trading_system.engine.paper_market import PaperMatcher,DepthLevel
     from trading_system.execution.paper_quote_reports import verify_quote_report
+    from trading_system.storage.models import scope_id
     c=execution_case(database,quote_venue,tmp_path,side=side)
     snapshot=replace(event(c),asks=(DepthLevel(price=price if side=='BUY' else '70000',quantity=quantity),),
         bids=(DepthLevel(price=price if side=='SELL' else '40000',quantity=quantity),))
@@ -93,7 +94,27 @@ def test_partial_and_out_of_band_liquidity_remain_terminal_with_unused_budget(da
     assert c.engine.query_creation(c.cid)==report
     assert verify_quote_report(c.engine,report,boundary=c.gate).discrepancies==()
     import psycopg
-    with pytest.raises((ValueError,psycopg.errors.UniqueViolation)):submit(c)
+    def state():
+        with c.gate.uow.transaction(c.scope) as tx:
+            return (tx.execute('SELECT count(*) FROM ledger.program_permit_consumptions WHERE command_id=%s',
+                        (c.cid,)).fetchone()[0],
+                    tx.execute('SELECT count(*) FROM ledger.fills WHERE scope_id=%s',
+                        (scope_id(c.scope),)).fetchone()[0],
+                    tx.execute('SELECT count(*) FROM ledger.order_writes_v2 WHERE scope_id=%s',
+                        (scope_id(c.scope),)).fetchone()[0])
+    before=state()
+    with c.engine._connect() as db:
+        venue_commands=db.execute('SELECT count(*) AS total FROM public.paper_engine_commands').fetchone()['total']
+    # The committed original permit is single-use. The database rejects the
+    # second consume with its exact constraint, before any second send or
+    # posting can occur.
+    with pytest.raises(psycopg.errors.CheckViolation,match='committed unused current permit required'):
+        submit(c)
+    assert before[0]==1
+    assert state()==before
+    with c.engine._connect() as db:
+        assert db.execute('SELECT count(*) AS total FROM public.paper_engine_commands').fetchone()['total']==venue_commands
+    assert c.engine.query_creation(c.cid)==report
 
 
 def test_quote_reducer_tables_and_function_are_private(quote_venue):

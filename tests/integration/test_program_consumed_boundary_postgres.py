@@ -10,7 +10,7 @@ from integration.test_program_commands_postgres import isolated_postgres,databas
 from integration.test_program_financial_admission import real_case
 from trading_system.contracts import types as t
 from trading_system.contracts.canonical import utc_timestamp,canonical_hash,domain_payload
-from trading_system.storage.models import scope_id
+from trading_system.storage.models import MissingEvidence,scope_id
 
 
 def ready(database,*,consume=True,ttl_ms=5000):
@@ -72,7 +72,13 @@ def test_real_post_consumption_changes_never_clear_a_new_side_effect(database,fa
     if fault=='unknown':
         from trading_system.execution.program_commands import ProgramCommandRepository
         with c.owner.transaction(c.scope) as tx:ProgramCommandRepository(tx).record_unknown(c.write.command_id)
-    with pytest.raises(ValueError):check(c,permit=permit)
+    if fault=='book':
+        # A book change invalidates the account-cash binding before the
+        # consumed-boundary comparison. This is the underlying guard's exact
+        # rejection, not a public API exception contract.
+        with pytest.raises(MissingEvidence,match='BOOK_CASH_BINDING_REQUIRED'):check(c,permit=permit)
+    else:
+        with pytest.raises(ValueError):check(c,permit=permit)
 
 
 def test_real_sql_permit_expiry_cannot_be_hidden_by_frozen_fixture_clock(database):

@@ -1,3 +1,33 @@
+# CURRENT_ENVIRONMENT_FIX_ROUND — 2026-11-03
+
+Targeted repair of the 43 current-environment failures. Fixed the 20
+first-activation failures by returning None from `read_local_activation` when
+the underlying read has no row, while retaining all existing source validation.
+Calibrated the 3 book-change cases to expect the actual
+`MissingEvidence: BOOK_CASH_BINDING_REQUIRED` guard and the 5 duplicate-permit
+cases to expect the actual `CheckViolation: committed unused current permit
+required`, with no second send or posting; no database constraint or public API
+contract was weakened. Added a focused activation-null unit regression.
+
+Verification: 935 unit tests passed; the four modified integration files collect
+69 cases; compile and `git diff --check` exit 0. In the existing Ubuntu WSL,
+Python 3.14.4 with the pinned test dependencies was prepared; real Linux
+`fork`/`SIGKILL` and two Linux lock tests passed, including
+`test_linux_flock_excludes_second_process_and_releases_on_close` and
+`test_application_shard_lock_excludes_second_process` (with
+`IP32_RUN_CONTAINERS=1`, no container started).
+
+The fixed DEV PostgreSQL is a Docker container (`aether-dev-postgres`, published
+only at `127.0.0.1:55432`, volume `aether-dev-data`). Docker Desktop is stopped,
+the daemon is unavailable, no native PostgreSQL service exists, and nothing
+listens on 55432. AGENTS.md and the environment policy prohibit Agent Docker
+startup without explicit authorization, so the 20 activation cases, 3 book
+cases, 5 duplicate-permit cases and 15 WSL database/process cases are NOT_RUN,
+not PASS. Of the previous 14 skips, 2 now pass in WSL and 12 remain NOT_RUN.
+Task-scoped evidence:
+`docs/evidence/binance-orders/op-g-environment-fixes/verification-summary.json`.
+Full OP-G remains NOT_ACCEPTED; no capability or scenario is promoted.
+
 # CURRENT_ENVIRONMENT_TEST_ATTEMPT_FINISHED — 2026-11-02
 
 OP-G NOT_ACCEPTED. All launched batches have ended; no test batch lock remains.

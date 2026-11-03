@@ -1,0 +1,115 @@
+{
+  "status": "PARTIAL_FIX_VERIFIED_NON_DB; DATABASE_TARGETED_NOT_RUN",
+  "recorded_at": "2026-11-03T00:00:00+08:00",
+  "baseline_source_sha": "611f30a68723088de0e26d67cc7784a25ffb271e",
+  "task_branch": "codex/dev-runner-enforcement",
+  "scope": "Targeted repair of the 43 current-environment failures; not full OP-G acceptance",
+  "fixes": {
+    "local_activation_null_read": {
+      "file": "src/trading_system/execution/local_program_activation.py",
+      "change": "read_local_activation returns None when the underlying activation read returns None; otherwise it returns the first source element and retains all existing source validation",
+      "expected_failure_count_addressed": 20
+    },
+    "book_change_exception_contract": {
+      "files": [
+        "tests/integration/test_program_consumed_boundary_postgres.py",
+        "tests/integration/test_program_model_handoff_postgres.py",
+        "tests/integration/test_quote_current_boundary_postgres.py"
+      ],
+      "change": "Only the book parameter expects MissingEvidence: BOOK_CASH_BINDING_REQUIRED. The underlying cash-binding guard and database constraints are unchanged; no public API boundary conversion was added because the affected host call is not an HTTP endpoint.",
+      "expected_failure_count_addressed": 3
+    },
+    "duplicate_permit_rejection": {
+      "file": "tests/integration/test_paper_quote_budget_postgres.py",
+      "change": "The five duplicate-permit cases now expect the actual psycopg CheckViolation 'committed unused current permit required' and assert that permit consumption, ledger fills, order writes, venue commands and the returned quote report remain unchanged after the rejected second submit",
+      "expected_failure_count_addressed": 5
+    }
+  },
+  "non_db_verification": {
+    "unit_suite": {
+      "command": "python -m pytest -q tests/unit",
+      "result": "935 passed",
+      "exit_code": 0
+    },
+    "activation_null_regression": {
+      "command": "python -m pytest -q tests/unit/test_local_activation_null_read.py",
+      "result": "1 passed",
+      "exit_code": 0
+    },
+    "modified_integration_collection": {
+      "command": "python -m pytest -q --collect-only on the four modified integration files",
+      "result": "69 tests collected",
+      "exit_code": 0
+    },
+    "compile": {
+      "command": "python -m py_compile on changed source and test files",
+      "result": "exit 0"
+    },
+    "git_diff_check": "exit 0"
+  },
+  "wsl_linux_verification": {
+    "distribution": "Ubuntu (WSL2 mirrored networking, non-root user)",
+    "python": "3.14.4",
+    "venv": "~/.venvs/aethertrade",
+    "installed": [
+      "pytest 9.1.1",
+      "psycopg 3.3.6",
+      "jsonschema 4.26.0",
+      "fastapi 0.162.0",
+      "sqlalchemy 2.1.6",
+      "httpx 0.28.1",
+      "cryptography 50.0.2",
+      "websockets 17.2"
+    ],
+    "process_capability_probe": {
+      "fork": "PASS",
+      "SIGKILL_child_exit": "PASS (WIFSIGNALED true, signal 9)"
+    },
+    "linux_lock_tests": [
+      {
+        "node": "tests.faults.test_owner_and_storage_failures::test_linux_flock_excludes_second_process_and_releases_on_close",
+        "result": "PASS",
+        "note": "Real Linux fcntl process exclusion and release"
+      },
+      {
+        "node": "tests.ops.test_deployment_isolation::test_application_shard_lock_excludes_second_process",
+        "result": "PASS",
+        "note": "Run in WSL with IP32_RUN_CONTAINERS=1; no container was started"
+      }
+    ]
+  },
+  "database_blocker": {
+    "fixed_dev_port": 55432,
+    "listener_present": false,
+    "docker_cli": "29.7.2 desktop-linux context present",
+    "docker_daemon": "unavailable",
+    "docker_desktop_distro": "Stopped",
+    "native_postgres_service": "none",
+    "container": "aether-dev-postgres",
+    "compose": "deploy/dev.compose.yaml",
+    "volume": "aether-dev-data",
+    "published_port": "127.0.0.1:55432",
+    "reason": "The fixed DEV PostgreSQL is a Docker container. Without Docker Desktop running, the container cannot run and nothing listens on 55432. A native WSL PostgreSQL would be a different instance and is not the same fixed DEV database.",
+    "policy": "AGENTS.md and docs/harness/ENVIRONMENT_POLICY.md prohibit Agent Docker startup and database provisioning without explicit authorization.",
+    "action_taken": "No Docker or database operation was performed."
+  },
+  "not_run_due_to_database_blocker": {
+    "local_activation_cases": 20,
+    "book_change_cases": 3,
+    "duplicate_permit_cases": 5,
+    "process_fault_cases": 15,
+    "definition": "NOT_RUN; not PASS and not acceptance"
+  },
+  "skipped_case_status": {
+    "previously_skipped_total": 14,
+    "now_passed_in_wsl": 2,
+    "still_not_run": 12,
+    "still_not_run_reasons": [
+      "2 program-commands fork cases require the fixed DEV PostgreSQL",
+      "1 metrics target case requires registered 50/5/10 workload observations",
+      "2 deployment container cases require explicitly provisioned containers",
+      "7 strategy sandbox cases require an explicitly provisioned isolated Linux rootfs"
+    ]
+  },
+  "full_op_g_acceptance": "NOT_ACCEPTED; no capability or scenario promoted"
+}
