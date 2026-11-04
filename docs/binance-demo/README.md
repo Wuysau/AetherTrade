@@ -140,3 +140,9 @@ PostgreSQL 跨进程凭据重绑定仍因缺少经过证明的 stream fencing �
 - `-m pytest -q tests/binance_demo/test_usdm_account.py tests/demo/test_transport.py tests/intents/test_order_features.py`：73 passed，覆盖新投影和相关现货/能力目录回归。
 - `-m compileall -q src/trading_system/engine/binance_demo/usdm_account.py tests/binance_demo/test_usdm_account.py`：通过；`git diff --check`：通过。
 - 未运行 Docker、全量集成、PostgreSQL 或实际场所验收。
+
+### USDⓈ-M 端点文档与环境命名冲突
+
+截至本次查阅，Binance 官方文档列出的只读契约为：`GET /fapi/v1/time`（公开）、`GET /fapi/v3/account`、`GET /fapi/v1/positionSide/dual`、`GET /fapi/v1/symbolConfig` 和 `GET /fapi/v3/positionRisk`（后四项为签名接口）。参考官方 [市场数据](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data)、[账户](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/account) 和 [交易查询](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/trade)文档。这里只记录协议参考，不开放调用。
+
+**阻断：** Binance [USDⓈ-M General Info](https://developers.binance.com/en/docs/products/derivatives-trading-usds-futures/general-info) 当前将 `https://demo-fapi.binance.com` 明确标为 Testnet REST 地址；与此同时，其[支持文档](https://www.binance.com/en-IA/support/faq/detail/ab78f9a1b8824cf0a106b4229c76496d)使用 Futures Demo Trading 名称。由于本仓库明确禁止启用 TESTNET，不能仅凭主机名把该地址判定为与 Testnet 不同的环境。待环境身份及用户批准的治理范围澄清前，不新增可访问该主机的传输、调用或资格启用；本次没有向该主机发送请求。
