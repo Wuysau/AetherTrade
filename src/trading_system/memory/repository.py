@@ -280,6 +280,13 @@ class MemoryRepository:
                 checkpoints.c.checkpoint_id == checkpoint_id)).scalar_one_or_none()
         return None if row is None else checkpoint_from_payload(row)
 
+    def find_checkpoint_by_run(self, run_id: str) -> DecisionContextCheckpoint | None:
+        with self.store.transaction() as connection:
+            row = connection.execute(select(checkpoints.c.data).where(
+                checkpoints.c.run_id == run_id).order_by(checkpoints.c.created_at.desc()).limit(1)
+            ).scalar_one_or_none()
+        return None if row is None else checkpoint_from_payload(row)
+
     def list_checkpoints(self, scope: StrategyMemoryScope, *, limit: int = 20, since: str | None = None):
         statement = select(checkpoints.c.data).where(checkpoints.c.scope_id == scope.scope_id)
         if since:

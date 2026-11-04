@@ -37,10 +37,16 @@ def put(connection, table, identifier, data):
 
 
 class AutomationService:
-    def __init__(self, store, models, quote_snapshot, settings, feed=None, program_automation=None):
+    def __init__(self, store, models, quote_snapshot, settings, feed=None, program_automation=None,
+                 memory=None, assembler=None):
         self.store, self.models, self.quote_snapshot, self.settings = store, models, quote_snapshot, settings
         self.feed = feed
         self.program_automation = program_automation
+        self.memory = memory
+        if assembler is None and memory is not None:
+            from trading_system.memory.assembler import DecisionContextAssembler
+            assembler = DecisionContextAssembler(memory)
+        self.assembler = assembler
         self._program_pending = {}
         self.worker_id = str(uuid4())
 
@@ -81,6 +87,147 @@ class AutomationService:
 
     def _configs(self):
         return self.models.list_configs() if hasattr(self.models, "list_configs") else self.models.get_config()
+
+    @staticmethod
+    def _trigger_key(kind, conditions, observation):
+        import hashlib
+        import json
+        payload = {"kind": kind, "conditions": conditions, "observation": observation}
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str, separators=(",", ":")).encode()).hexdigest()
+
+    def _review_triggers(self):
+        """Schedule a review only for new execution/protection/expiry facts."""
+        if self.memory is None:
+            return
+        from trading_system.contracts.canonical import utc_timestamp
+        from trading_system.memory.assembler import scope_for_strategy
+        with self.store.transaction() as connection:
+            active = [strategy for strategy in rows(connection, strategies) if self._active(strategy)]
+            saved = {row.id: row.data for row in connection.execute(select(schedules))}
+        for strategy in active:
+            schedule = saved.get(strategy["id"]) or {}
+            if schedule.get("job_id"):
+                continue
+            try:
+                scope = scope_for_strategy(strategy)
+                state = self.memory.get_state(scope)
+                if state.state_revision == 0:
+                    continue
+                facts = self.memory.get_execution_facts(scope)
+                fact_ids = sorted({str(fact.get("source_id")) for fact in facts.get("facts", [])
+                                   if isinstance(fact, dict) and fact.get("fact_type") in
+                                   ("ORDER", "FILL", "PROTECTION", "COMMAND")})
+                previous = list(schedule.get("last_execution_fact_ids") or [])
+                changed = [fact_id for fact_id in fact_ids if fact_id not in previous]
+                unknown = list(facts.get("unknown") or [])
+                plan = state.active_plan
+                thesis = state.active_thesis
+                expired = bool(plan and plan.valid_until and utc_timestamp(plan.valid_until) <= now())
+                thesis_expired = bool(thesis and thesis.expires_at and utc_timestamp(thesis.expires_at) <= now())
+                if not (changed or unknown or expired or thesis_expired):
+                    continue
+                key = self._trigger_key("EXECUTION_REVIEW", sorted(set(changed + unknown)),
+                                        {"plan": plan.plan_id if plan else None,
+                                         "expired": expired, "thesis_expired": thesis_expired})
+                if schedule.get("last_trigger_key") == key:
+                    continue
+                schedule.update(next_analysis_at=stamp(), review_kind="EXECUTION_REVIEW",
+                                review_trigger_key=key, last_trigger_key=key,
+                                last_execution_fact_ids=fact_ids,
+                                last_processed_event_cursor=state.event_cursor)
+                with self.store.transaction() as connection:
+                    latest = read(connection, schedules, strategy["id"]) or {}
+                    if latest == (saved.get(strategy["id"]) or {}):
+                        put(connection, schedules, strategy["id"], schedule)
+            except Exception:
+                continue
+
+    def _memory_context(self, job, strategy, context, *, decision_mode=None, include_model_memory=True):
+        if self.assembler is None:
+            return context
+        checkpoint = self.assembler.build_from_market_context(
+            strategy, job["id"], context, decision_mode=decision_mode or job.get("analysis_mode", "single"),
+            model_versions=job.get("profile_revisions") or {})
+        prompt = self.assembler.prompt_for(
+            checkpoint, output_schema="assessment_v1"
+            if job.get("decision_schema") == "assessment_v1" else "legacy")
+        validation = checkpoint.context.sections.get("validation") or {}
+        binding = {
+            "checkpoint_id": checkpoint.checkpoint_id, "run_id": job["id"],
+            "scope": checkpoint.context.scope.as_payload(),
+            "state_revision": checkpoint.context.state_revision,
+            "prompt_version": prompt["version"], "prompt_hash": prompt["hash"],
+            "completeness": checkpoint.context.completeness.value,
+            "block_new_risk": bool(validation.get("block_new_risk")),
+        }
+        job.update(memory_checkpoint_id=checkpoint.checkpoint_id,
+                   memory_state_revision=checkpoint.context.state_revision,
+                   memory_completeness=checkpoint.context.completeness.value,
+                   memory_block_new_risk=binding["block_new_risk"])
+        if not include_model_memory:
+            return context
+        result = dict(context)
+        result["strategy_memory"] = checkpoint.context.sections
+        result["strategy_prompt"] = prompt["text"]
+        result["memory_binding"] = binding
+        result["memory_record_decision"] = False
+        return result
+
+    @staticmethod
+    def _apply_memory_flags(job, decision):
+        if not isinstance(decision, dict):
+            return
+        if job.get("memory_checkpoint_id"):
+            decision.setdefault("memory_checkpoint_id", job["memory_checkpoint_id"])
+        if job.get("memory_state_revision") is not None:
+            decision.setdefault("memory_state_revision", job["memory_state_revision"])
+        if job.get("memory_completeness"):
+            decision.setdefault("memory_completeness", job["memory_completeness"])
+        if job.get("memory_block_new_risk"):
+            decision["memory_block_new_risk"] = True
+
+    def _record_memory(self, job, decision, status):
+        if self.memory is None or not isinstance(decision, dict):
+            return
+        checkpoint_id = job.get("memory_checkpoint_id") or decision.get("memory_checkpoint_id")
+        if not checkpoint_id:
+            return
+        checkpoint = self.memory.get_checkpoint(checkpoint_id)
+        if checkpoint is None:
+            decision["memory_checkpoint_missing"] = True
+            return
+        state = self.memory.record_decision(
+            checkpoint, decision, model_provider=decision.get("source"),
+            model_name=decision.get("model"), prompt_revision=decision.get("prompt_revision"),
+            schema_revision=decision.get("schema_revision"),
+            policy_revision=decision.get("decision_policy_revision"))
+        validation = checkpoint.context.sections.get("validation") or {}
+        decision.update(memory_checkpoint_id=checkpoint.checkpoint_id,
+                        memory_state_revision=state.state_revision,
+                        memory_completeness=checkpoint.context.completeness.value,
+                        memory_block_new_risk=bool(validation.get("block_new_risk")))
+        plan_id = next((plan.plan_id for plan in state.plans
+                        if plan.plan_id.startswith("plan:" + job["id"] + ":")), None)
+        if plan_id:
+            decision["memory_plan_id"] = plan_id
+        if plan_id and status in ("PENDING", "PENDING_PROGRAM_ADMISSION", "BLOCKED"):
+            mapped = "PENDING" if status.startswith("PENDING") else "BLOCKED"
+            self.memory.record_execution_outcome(
+                checkpoint.context.scope, plan_id, mapped, order_id=decision.get("order_id"),
+                command_id=decision.get("command_id"), run_id=job["id"])
+
+    def _persist_memory_job(self, job):
+        if not job.get("memory_checkpoint_id"):
+            return
+        with self.store.transaction() as connection:
+            saved = read(connection, jobs, job["id"])
+            if saved is None:
+                return
+            saved.update(memory_checkpoint_id=job.get("memory_checkpoint_id"),
+                         memory_state_revision=job.get("memory_state_revision"),
+                         memory_completeness=job.get("memory_completeness"),
+                         memory_block_new_risk=job.get("memory_block_new_risk"))
+            put(connection, jobs, job["id"], saved)
 
     def _notify(self, connection, job, decision, status, reason):
         # Job ID is a uniqueness constraint, including recovery after restart.
@@ -142,6 +289,9 @@ class AutomationService:
         schedule = read(connection, schedules, job["strategy_id"]) or {}
         schedule.update(job_id=None, last_analysis_at=stamp(), last_analysis_error=reason if status in ("ERROR", "BLOCKED") else None,
                         runtime_status="ERROR" if status == "ERROR" else "READY",
+                        last_trigger_key=job.get("review_trigger_key"),
+                        last_review_kind=job.get("review_kind"),
+                        last_processed_event_cursor=job.get("memory_state_revision"),
                         next_analysis_at=(now() + timedelta(seconds=job["interval"])).isoformat())
         if decision and decision.get('schema_revision') == 'assessment_v1':
             schedule.update(watch_conditions=decision.get('watch_conditions', []),
@@ -184,7 +334,12 @@ class AutomationService:
                     try:
                         price = self.store._price(market, strategy['symbol'], self.settings.quote_max_age_seconds)
                         if watch_triggered(schedule['watch_conditions'], schedule['watch_baseline'], {'price': str(price)}):
-                            schedule['next_analysis_at'] = current_time
+                            key = self._trigger_key('PRICE_WATCH', schedule['watch_conditions'], {'price': str(price)})
+                            if schedule.get('last_trigger_key') != key:
+                                schedule['next_analysis_at'] = current_time
+                                schedule['review_kind'] = 'HYPOTHESIS_REVIEW'
+                                schedule['review_trigger_key'] = key
+                                schedule['last_trigger_key'] = key
                     except ApiError:
                         pass
                 if schedule.get("activated_at") == strategy.get("_activated_at") and schedule.get("next_analysis_at") and schedule["next_analysis_at"] > current_time:
@@ -216,6 +371,8 @@ class AutomationService:
                            symbol=strategy["symbol"], auto_execute=strategy.get("auto_execute", False),
                            interval=strategy.get("analysis_interval_seconds", 300),
                            model_key="auto-analysis:" + identifier, worker_id=self.worker_id,
+                           review_trigger_key=schedule.get("review_trigger_key"),
+                           review_kind=schedule.get("review_kind"),
                            created_at=current_time, lease_until=(now() + timedelta(seconds=max(180, max((item.get("timeout_seconds", 120) for item in current), default=120) + 60))).isoformat(), status="RUNNING")
                 if identifiers == [repository.DEFAULT_PROFILE_ID]:
                     job["model_revision"] = current[0]["revision"]
@@ -238,6 +395,8 @@ class AutomationService:
         action = decision.get("action")
         if decision.get("symbol") != job["symbol"] or action not in ("BUY", "SELL", "HOLD"):
             raise ApiError("INVALID_MODEL_ADVICE", "模型建议标的或方向无效。")
+        if decision.get("memory_block_new_risk") and action == "BUY":
+            raise ApiError("MEMORY_CONTEXT_INCOMPLETE", "策略记忆不完整或执行状态未知；禁止新增风险。", 409)
         if action == "HOLD":
             return "NO_ACTION", "模型建议观望；未下单。"
         account = self.store._state(connection)["account"]
@@ -305,6 +464,8 @@ class AutomationService:
         target = proposal_target(proposal['target'], current)
         held = next((p for p in self.store.execution.account_view()['positions'] if p['symbol'] == job['symbol']), None)
         actual = Decimal(held['quantity']) if held else Decimal(0)
+        if decision.get('memory_block_new_risk') and target > actual:
+            raise ApiError('MEMORY_CONTEXT_INCOMPLETE', '策略记忆不完整或执行状态未知；禁止新增风险。', 409)
         if target > actual:
             self.store._check_buy(connection, self.store._state(connection), job['symbol'], target-actual,
                 current, market, self.settings.quote_max_age_seconds, strategy)
@@ -322,6 +483,12 @@ class AutomationService:
         frame = decision.get('program_frame')
         if frame is None:
             raise ApiError('PROGRAM_FRAME_REQUIRED', '缺少冻结的能力/规则/资金上下文。', 409)
+        if decision.get('memory_block_new_risk'):
+            program = decision.get('program_decision')
+            proposal = getattr(program, 'proposal', None)
+            action = getattr(proposal, 'action', None) or decision.get('action')
+            if action not in ('HOLD', 'UPDATE_EXIT', 'SELL', 'EXIT', 'REDUCE'):
+                raise ApiError('MEMORY_CONTEXT_INCOMPLETE', '策略记忆不完整或执行状态未知；禁止新增风险。', 409)
         from trading_system.contracts.canonical import canonical_hash, domain_payload
         receipt = self.program_automation.admit(decision['program_decision'], frame)
         decision.update(program_receipt_hash=canonical_hash(domain_payload(receipt)),
@@ -429,6 +596,7 @@ class AutomationService:
                 self._attach_late_result(connection, job)
                 return
             decision = dict(result["decision"]) if result else None
+            self._apply_memory_flags(job, decision)
             strategy = self._authorized(connection, job)
             consensus_guard = self._consensus_guard(job, decision) if decision else None
             if not strategy:
@@ -454,6 +622,11 @@ class AutomationService:
                     decision.update(risk_status="PAPER_REJECTED", order_id=None)
             self._complete(connection, job, decision, status, reason)
             self._program_pending.pop(job["id"], None)
+        if decision is not None:
+            try:
+                self._record_memory(job, decision, status)
+            except Exception:
+                log.warning("strategy memory decision record unavailable; execution state unchanged")
 
     async def _wake_bar_watches(self):
         """Refresh data only; an unchanged/missing bar never consumes model budget."""
@@ -479,10 +652,16 @@ class AutomationService:
                     continue
                 closed = [v['closed_until'] for v in snapshot['market']['features'].values() if v.get('closed_until')]
                 if closed and watch_triggered(conditions, schedule['watch_baseline'], {'closed_until': max(closed), 'closed_by_interval': {k:v['closed_until'] for k,v in snapshot['market']['features'].items()}}):
+                    key = self._trigger_key('NEW_BAR', conditions, {
+                        'closed_until': max(closed),
+                        'closed_by_interval': {k: v['closed_until'] for k, v in snapshot['market']['features'].items()}})
+                    if schedule.get('last_trigger_key') == key:
+                        continue
                     with self.store.transaction() as connection:
                         latest = read(connection, schedules, strategy['id']) or {}
                         if latest == schedule:
-                            latest['next_analysis_at'] = stamp()
+                            latest.update(next_analysis_at=stamp(), review_kind='HYPOTHESIS_REVIEW',
+                                          review_trigger_key=key, last_trigger_key=key)
                             put(connection, schedules, strategy['id'], latest)
             except ApiError:
                 continue
@@ -491,6 +670,7 @@ class AutomationService:
         if not self.settings.automation_enabled:
             return None
         await self._wake_bar_watches()
+        await run_in_threadpool(self._review_triggers)
         config = await run_in_threadpool(self._configs)
         job = await run_in_threadpool(self._claim, config, self.quote_snapshot())
         if not job:
@@ -514,9 +694,17 @@ class AutomationService:
                 quote = context.get('quote', {})
                 closed = [v.get('closed_until') for v in snapshot.get('market', {}).get('features', {}).values() if v.get('closed_until')]
                 observation = {'price': quote.get('price'), 'closed_until': max(closed) if closed else None, 'closed_by_interval':{k:v['closed_until'] for k,v in snapshot['market']['features'].items()}}
+                if self.assembler is not None and current_strategy is not None:
+                    context = self._memory_context(job, current_strategy, context,
+                                                   decision_mode=job.get('analysis_mode', 'single'))
                 with self.store.transaction() as connection:
                     saved = read(connection, jobs, job['id'])
-                    saved.update(snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'], analysis_snapshot=snapshot, watch_observation=observation)
+                    saved.update(snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'],
+                                 analysis_snapshot=snapshot, watch_observation=observation,
+                                 memory_checkpoint_id=job.get('memory_checkpoint_id'),
+                                 memory_state_revision=job.get('memory_state_revision'),
+                                 memory_completeness=job.get('memory_completeness'),
+                                 memory_block_new_risk=job.get('memory_block_new_risk'))
                     put(connection, jobs, job['id'], saved)
                 job.update(snapshot_id=snapshot['snapshot_id'], snapshot_hash=snapshot['snapshot_hash'])
                 if snapshot['quality']['status'] != 'READY':
@@ -527,6 +715,14 @@ class AutomationService:
                     return job['id']
             else:
                 context = await run_in_threadpool(self.store.analysis_context, job["symbol"], self.quote_snapshot(), self.settings.quote_max_age_seconds)
+                if self.assembler is not None:
+                    with self.store.transaction() as connection:
+                        legacy_strategy = read(connection, strategies, job['strategy_id'])
+                    if legacy_strategy is not None:
+                        context = self._memory_context(job, legacy_strategy, context,
+                                                       decision_mode=job.get('analysis_mode', 'single'),
+                                                       include_model_memory=False)
+                        self._persist_memory_job(job)
             if not await run_in_threadpool(self._before_dispatch, job):
                 await run_in_threadpool(self._finish, job)
                 return job["id"]
@@ -545,6 +741,10 @@ class AutomationService:
                     strategy = read(connection, strategies, job['strategy_id'])
                 if not strategy:
                     raise ApiError('STRATEGY_NOT_FOUND', '策略不存在或已删除。', 409)
+                if self.assembler is not None:
+                    context = self._memory_context(job, strategy, context,
+                                                   decision_mode=job.get('analysis_mode', 'single'))
+                    self._persist_memory_job(job)
                 mode, identifiers, revisions = self._job_binding(job)
                 host = self.program_automation
 
@@ -555,7 +755,10 @@ class AutomationService:
                         research_request=(host.research_request(strategy, frame)
                                           if host.research_request else None))
 
-                run = await host.run(strategy, context, analyze)
+                run = await host.run(strategy, context, analyze,
+                                     memory_context=context.get('strategy_memory'),
+                                     memory_binding=context.get('memory_binding'),
+                                     strategy_prompt=context.get('strategy_prompt'))
                 self._program_pending[job['id']] = (run.decision, run.frame)
                 payload = dict(run.result['decision'])
                 payload['program_pending_id'] = job['id']
@@ -567,7 +770,10 @@ class AutomationService:
                 price = self.store._price(self.quote_snapshot(), job['symbol'], self.settings.quote_max_age_seconds)
                 action = 'BUY' if self._rule_matches(job['rule'], price) else 'HOLD'
                 result = {'decision': dict(id='rule:' + job['id'], symbol=job['symbol'], action=action,
+                    assessment_status='DECIDED', schema_revision='legacy', source='RULE',
                     summary=f"价格 {price} {job['rule']['operator']} {job['rule']['price']}；服务端规则计算。",
+                    evidence_claims=[{'evidence_ref': 'quote', 'conclusion': '服务端规则价格条件'}],
+                    invalidation='服务端规则价格条件不再成立。',
                     risk_status='NOT_EVALUATED', created_at=stamp(), data_as_of=context['quote']['as_of'])}
             elif hasattr(self.models, "analyze"):
                 options = {'decision_policy': job.get('decision_policy', 'unanimous')} if job.get('decision_schema') == 'assessment_v1' else {}

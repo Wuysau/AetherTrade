@@ -37,6 +37,9 @@ class FrozenProgramContext:
     capability_decision:t.CapabilityDecision|None=None
     financial_market_snapshot:t.SnapshotPacket|None=None
     financial_book:t.BookSnapshot|None=None
+    memory_context:dict|None=None
+    memory_binding:dict|None=None
+    strategy_prompt:str|None=None
     @property
     def payload(self):return json.loads(self._json)
     @property
@@ -57,7 +60,8 @@ class ProgramModelAssessment:
 
 
 def build_program_context(analysis_snapshot,*,decision_context,capabilities,rules,strategy_revision,
-                          expected_build_digest,capability_decision=None,financial_market_snapshot=None,financial_book=None):
+                          expected_build_digest,capability_decision=None,financial_market_snapshot=None,
+                          financial_book=None,memory_context=None,memory_binding=None,strategy_prompt=None):
     require(type(decision_context) is t.DecisionContext,'PROGRAM_DECISION_CONTEXT_REQUIRED')
     require(type(capabilities) is OrderCapabilitySnapshot and type(rules) is OrderRuleSnapshot,
             'PROGRAM_TYPED_SNAPSHOTS_REQUIRED')
@@ -124,7 +128,8 @@ def build_program_context(analysis_snapshot,*,decision_context,capabilities,rule
     return FrozenProgramContext(_json=canonical_json(payload),decision_context=decision_context,
         capabilities=capabilities,rules=rules,expected_build_digest=expected_build_digest,
         capability_decision=capability_decision,financial_market_snapshot=financial_market_snapshot,
-        financial_book=financial_book)
+        financial_book=financial_book,memory_context=memory_context,memory_binding=memory_binding,
+        strategy_prompt=strategy_prompt)
 
 
 def validate_program_context(frame):
@@ -133,7 +138,8 @@ def validate_program_context(frame):
         capabilities=frame.capabilities,rules=frame.rules,
         strategy_revision=frame.decision_context.strategy_revision,expected_build_digest=frame.expected_build_digest,
         capability_decision=frame.capability_decision,financial_market_snapshot=frame.financial_market_snapshot,
-        financial_book=frame.financial_book)
+        financial_book=frame.financial_book,memory_context=frame.memory_context,
+        memory_binding=frame.memory_binding,strategy_prompt=frame.strategy_prompt)
     require(rebuilt._json==frame._json,'PROGRAM_CONTEXT_CHANGED')
     return frame.payload
 

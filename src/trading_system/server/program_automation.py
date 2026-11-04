@@ -6,7 +6,7 @@ The local-child host is exposed for status/observation only; no HTTP write path.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from types import SimpleNamespace
 from typing import Callable, Literal
 
@@ -78,8 +78,12 @@ class ProgramAutomationHost:
     def admit(self, decision: ProgramDecision, frame):
         return admit_decision(decision, frame, admission=self.admission)
 
-    async def run(self, strategy, context, analyze):
+    async def run(self, strategy, context, analyze, *, memory_context=None, memory_binding=None,
+                  strategy_prompt=None):
         frame = self.build_frame(strategy, context)
+        if any(value is not None for value in (memory_context, memory_binding, strategy_prompt)):
+            frame = replace(frame, memory_context=memory_context, memory_binding=memory_binding,
+                            strategy_prompt=strategy_prompt)
         mode = strategy.get('mode')
         if mode == 'RULE':
             decision = self.rule_decision(strategy, frame)

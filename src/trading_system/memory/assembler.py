@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 
-from trading_system.contracts.canonical import utc_timestamp
+from trading_system.contracts.canonical import canonical_hash, utc_timestamp
 
 from .contracts import (
     CHECKPOINT_SCHEMA_REVISION, CONTEXT_SCHEMA_REVISION, MEMORY_SCHEMA_REVISION,
@@ -244,6 +244,8 @@ class DecisionContextAssembler:
                                   decision_mode: str = "single",
                                   model_versions: dict | None = None) -> DecisionContextCheckpoint:
         snapshot = context.get("analysis_snapshot")
+        if snapshot is None:
+            snapshot = self._legacy_snapshot(context)
         as_of = (snapshot or {}).get("evidence_cutoff") or self.clock()
         account_revision = 0
         if isinstance(snapshot, dict):
@@ -256,6 +258,36 @@ class DecisionContextAssembler:
                           strategy=strategy, snapshot=snapshot, account_revision=account_revision,
                           model_versions=model_versions, previous_proposal=previous_proposal,
                           decision_mode=decision_mode)
+
+    def _legacy_snapshot(self, context: dict) -> dict:
+        quote = context.get("quote") if isinstance(context.get("quote"), dict) else {}
+        as_of = quote.get("as_of") or self.clock()
+        maximum_age = context.get("quote_max_age_seconds") or 90
+        try:
+            age = max(0.0, (utc_timestamp(self.clock()) - utc_timestamp(as_of)).total_seconds())
+        except (ValueError, TypeError):
+            age = float(maximum_age) + 1
+        ready = bool(quote) and quote.get("stale") is False and age <= float(maximum_age) \
+            and context.get("market_status") in ("CONNECTED", "PARTIAL")
+        snapshot = {
+            "schema_revision": "legacy-context-v1",
+            "evidence_cutoff": as_of,
+            "market": {"quote": quote or None},
+            "portfolio": {"account": context.get("account"),
+                          "position": context.get("position"),
+                          "active_orders": None, "reserved_funds": None,
+                          "protection_status": "UNKNOWN"},
+            "constraints": context.get("risk") or {},
+            "costs": {"complete": False},
+            "quality": {"status": "READY" if ready else "DATA_BLOCKED",
+                        "missing_required": [] if ready else ["quote"],
+                        "quote_check": {"age_seconds": str(age),
+                                        "maximum_age_seconds": str(maximum_age)}},
+        }
+        digest = canonical_hash(snapshot)
+        snapshot["snapshot_hash"] = digest
+        snapshot["snapshot_id"] = "legacy:" + digest[:32]
+        return snapshot
 
     def prompt_for(self, checkpoint: DecisionContextCheckpoint, *, role: str = "decision",
                    output_schema: str = "assessment_v1") -> dict:

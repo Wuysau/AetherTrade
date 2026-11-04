@@ -130,6 +130,7 @@ REVIEW_INSTRUCTIONS = ('Return only review_v1 JSON with schema_revision and issu
 
 def payload(config, context):
     text = json.dumps(context, ensure_ascii=False, allow_nan=False)
+    memory_prompt = context.get('strategy_prompt') if isinstance(context, dict) else None
     instructions = INSTRUCTIONS
     if context.get('model_schema_revision') == 'program_assessment_v1':
         from ..contracts.resources import contract_path
@@ -150,6 +151,12 @@ def payload(config, context):
     elif 'analysis_snapshot' in context:
         from ..contracts.wire import ContractCodec
         instructions = REVIEW_INSTRUCTIONS if context.get('role') == 'review' else ASSESSMENT_INSTRUCTIONS + 'The following JSON Schema applies ONLY to the nested proposal, not the outer assessment envelope: ' + json.dumps(ContractCodec()._schemas['decision-proposal'])
+    if memory_prompt:
+        if not isinstance(memory_prompt, str) or len(memory_prompt) > 12000:
+            raise invalid()
+        instructions = memory_prompt + '\n\n' + instructions
+    if len(instructions) > 16000:
+        raise invalid()
     common = {'model': config['model']}
     if config['protocol'] == 'openai_responses':
         return '/responses', dict(common, input=text, instructions=instructions, store=False, **({'max_output_tokens': config['max_output_tokens']} if config['max_output_tokens'] is not None else {}))

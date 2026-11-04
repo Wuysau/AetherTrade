@@ -7,6 +7,7 @@ import inspect
 import logging
 from pathlib import Path
 import secrets
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, Query, Request
 from fastapi.exceptions import RequestValidationError
@@ -27,7 +28,6 @@ from .model_service import ModelService
 from .model_api import ProfileAnalysis, ProfileVersion
 from .store import Store
 from .validation import Credentials, ModelAnalysis, ModelTest, PaperAction, PaperOrder, RiskUpdate, Setup, StrategyCreate, StrategyPatch
-
 log = logging.getLogger(__name__)
 VERSION = "0.1.0"
 
@@ -60,8 +60,16 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
             venue_dsn=settings.paper_venue_dsn, event_dsn=settings.paper_event_dsn,
             journal_directory=settings.paper_journal_directory), market_snapshot)
 
+    from trading_system.memory.repository import MemoryRepository
+    from trading_system.memory.service import StrategyMemoryService
+    from trading_system.memory.assembler import DecisionContextAssembler
+    memory = StrategyMemoryService(MemoryRepository(store), execution=store.execution)
+    assembler = DecisionContextAssembler(memory)
+    models.memory = memory
+
     automation = AutomationService(store, models, market_snapshot, settings,
-                                   program_automation=program_automation)
+                                   program_automation=program_automation, memory=memory,
+                                   assembler=assembler)
     from .analysis_snapshot import AnalysisFeed
     analysis_feed = AnalysisFeed(feed, market_snapshot, lambda: settings.market_enabled or quote_provider is not None)
     automation.feed = analysis_feed
@@ -100,6 +108,12 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
         await run_in_threadpool(store.initialize)
         await run_in_threadpool(models.migrate)
         await run_in_threadpool(market_config.migrate)
+        try:
+            from trading_system.memory.recovery import MemoryRecoveryService
+            app.state.memory_recovery = await run_in_threadpool(MemoryRecoveryService(memory).recover)
+        except Exception:
+            app.state.memory_recovery = None
+            log.warning("strategy memory recovery unavailable; no provider replay or trade replay attempted")
         if settings.market_enabled and hasattr(feed, 'start'):
             await feed.start()
         task = asyncio.create_task(poll(), name="aethertrade-public-quotes") if settings.market_enabled else None
@@ -135,6 +149,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     app.state.market_config = market_config
     app.state.program_automation = program_automation
     app.state.local_child_host = local_child_host
+    app.state.memory = memory
+    app.state.assembler = assembler
 
     @app.exception_handler(ApiError)
     async def expected_error(request, exc):
@@ -207,6 +223,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
                           snapshot=market_snapshot, reconfigure=reconfigure_market,
                           authenticated=authenticated, mutation=mutation, settings=settings,
                           externally_provided=quote_provider is not None)
+    from trading_system.memory.api import install_memory_routes
+    install_memory_routes(app, memory, store, authenticated)
 
     def session_response(data):
         token = data.pop("token")
@@ -368,9 +386,34 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
             if payload.task_profile is None:
                 raise ApiError('TASK_PROFILE_REQUIRED', '请选择研究周期与必需数据。')
             from .analysis_snapshot import build_analysis_context
-            return await build_analysis_context(store, analysis_feed, payload.symbol,
+            context = await build_analysis_context(store, analysis_feed, payload.symbol,
                 settings.quote_max_age_seconds, dict(payload.task_profile.model_dump(), strategy_revision=1))
-        return await run_in_threadpool(store.analysis_context, payload.symbol, market_snapshot(), settings.quote_max_age_seconds)
+        else:
+            context = await run_in_threadpool(store.analysis_context, payload.symbol, market_snapshot(), settings.quote_max_age_seconds)
+        strategy = {'id': 'manual:' + payload.symbol, 'symbol': payload.symbol, 'revision': 1,
+                    'status': 'ACTIVE', 'authorization_summary': {'manual_analysis': True},
+                    'risk_limits': {}}
+        if payload.decision_schema != 'assessment_v1':
+            return context
+        checkpoint = assembler.build_from_market_context(
+            strategy, 'manual:' + uuid4().hex, context,
+            decision_mode=getattr(payload, 'analysis_mode', 'single'))
+        prompt = assembler.prompt_for(
+            checkpoint, output_schema='assessment_v1'
+            if payload.decision_schema == 'assessment_v1' else 'legacy')
+        validation = checkpoint.context.sections.get('validation') or {}
+        result = dict(context)
+        result['strategy_memory'] = checkpoint.context.sections
+        result['strategy_prompt'] = prompt['text']
+        result['memory_binding'] = {
+            'checkpoint_id': checkpoint.checkpoint_id, 'run_id': checkpoint.context.run_id,
+            'scope': checkpoint.context.scope.as_payload(),
+            'state_revision': checkpoint.context.state_revision,
+            'prompt_version': prompt['version'], 'prompt_hash': prompt['hash'],
+            'completeness': checkpoint.context.completeness.value,
+            'block_new_risk': bool(validation.get('block_new_risk'))}
+        result['memory_record_decision'] = True
+        return result
 
     @app.post('/api/decisions/generate')
     async def generate_decision(payload: ModelAnalysis, idempotency_key: str | None = Header(default=None), _=Depends(mutation)):

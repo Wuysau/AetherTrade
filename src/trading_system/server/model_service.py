@@ -23,9 +23,10 @@ EDITABLE = {'name', 'protocol', 'base_url', 'model', 'enabled', 'local_mode', 'm
 
 
 class ModelService:
-    def __init__(self, store, key_path, *, client=None):
+    def __init__(self, store, key_path, *, client=None, memory=None):
         self.store = store
         self.vault = ModelSecrets(key_path)
+        self.memory = memory
         # Requests pin an approved IP while TLS authenticates the original host.
         # A pool keyed by the pinned IP must never reuse TLS across hostnames.
         self.client = client or httpx.AsyncClient(trust_env=False, follow_redirects=False, auth=None,
@@ -206,6 +207,23 @@ class ModelService:
         return None
 
     @staticmethod
+    def _memory_fields(context):
+        fields = {}
+        for key in ('strategy_memory', 'strategy_prompt', 'memory_binding', 'memory_record_decision'):
+            if key in context:
+                fields[key] = context[key]
+        if 'strategy_memory' in fields and not isinstance(fields['strategy_memory'], dict):
+            raise ApiError('INVALID_MODEL_CONTEXT', '策略记忆上下文无效。')
+        if 'memory_binding' in fields and not isinstance(fields['memory_binding'], dict):
+            raise ApiError('INVALID_MODEL_CONTEXT', '策略记忆绑定无效。')
+        if 'strategy_prompt' in fields and (not isinstance(fields['strategy_prompt'], str)
+                                           or len(fields['strategy_prompt']) > 12000):
+            raise ApiError('INVALID_MODEL_CONTEXT', '策略提示词无效。')
+        if 'memory_record_decision' in fields and type(fields['memory_record_decision']) is not bool:
+            raise ApiError('INVALID_MODEL_CONTEXT', '策略记忆记录标记无效。')
+        return fields
+
+    @staticmethod
     def _clean_context(symbol, context):
         if isinstance(context, dict) and 'analysis_snapshot' in context:
             from .analysis_snapshot import validate_snapshot
@@ -215,7 +233,14 @@ class ModelService:
             cutoff = datetime.fromisoformat(snapshot['evidence_cutoff'])
             if not 0 <= (datetime.now(timezone.utc)-cutoff).total_seconds() <= context.get('quote_max_age_seconds', 90):
                 raise ApiError('MODEL_QUOTE_UNAVAILABLE', '分析快照已过期。', 409)
-            return {'symbol': symbol, 'analysis_snapshot': snapshot}
+            clean = {'symbol': symbol, 'analysis_snapshot': snapshot}
+            clean.update(ModelService._memory_fields(context))
+            try:
+                if len(json.dumps(clean, allow_nan=False)) > 120000:
+                    raise ValueError()
+            except (TypeError, ValueError):
+                raise ApiError('INVALID_MODEL_CONTEXT', '分析上下文过大。') from None
+            return clean
         try:
             quote = context['quote']
             age = (datetime.now(timezone.utc) - datetime.fromisoformat(quote['as_of'])).total_seconds()
@@ -236,9 +261,10 @@ class ModelService:
             value = context.get(section)
             if isinstance(value, dict):
                 clean[section] = {k: v for k, v in value.items() if k in allowed and (v is None or type(v) in (str, int, float, bool))}
+        clean.update(ModelService._memory_fields(context))
         try:
             encoded = json.dumps(clean, allow_nan=False)
-            if len(encoded) > 16000:
+            if len(encoded) > (60000 if any(key in clean for key in ('strategy_memory', 'strategy_prompt')) else 16000):
                 raise ValueError()
         except (TypeError, ValueError):
             raise ApiError('INVALID_MODEL_CONTEXT', '分析上下文无效。') from None
@@ -260,6 +286,29 @@ class ModelService:
                 response_diagnostic=diagnostic)
         return ({'code': exc.code, 'error': exc.message} if isinstance(exc, ApiError) else
                 {'code': 'MODEL_REQUEST_FAILED', 'error': '模型请求未完成；不会自动重试。'})
+
+    def _record_memory(self, context, decision, *, prompt_revision=None, schema_revision=None,
+                       policy_revision=None):
+        if self.memory is None or not isinstance(context, dict) or not isinstance(decision, dict):
+            return
+        if context.get('memory_record_decision') is not True:
+            return
+        binding = context.get('memory_binding')
+        if not isinstance(binding, dict) or not isinstance(binding.get('checkpoint_id'), str):
+            return
+        checkpoint = self.memory.get_checkpoint(binding['checkpoint_id'])
+        if checkpoint is None:
+            decision['memory_checkpoint_missing'] = True
+            return
+        state = self.memory.record_decision(
+            checkpoint, decision, model_provider=decision.get('source'),
+            model_name=decision.get('model'), prompt_revision=prompt_revision,
+            schema_revision=schema_revision, policy_revision=policy_revision)
+        validation = checkpoint.context.sections.get('validation') or {}
+        decision.update(memory_checkpoint_id=checkpoint.checkpoint_id,
+                        memory_state_revision=state.state_revision,
+                        memory_completeness=checkpoint.context.completeness.value,
+                        memory_block_new_risk=bool(validation.get('block_new_risk')))
 
     async def generate(self, symbol, expected_revision, key, context, *, profile_id=DEFAULT_PROFILE_ID, component=False):
         from .program_model_context import FrozenProgramContext
@@ -306,6 +355,7 @@ class ModelService:
                             profile_name=config['name'], model_profile_ids=[profile_id],
                             profile_revisions={profile_id: config['revision']}, model_profiles=[self._identity(config)],
                             data_as_of=clean['quote']['as_of'], snapshot_hash=self._hash(clean))
+            self._record_memory(clean, decision, schema_revision='legacy')
             result = {'decision': decision, 'usage': usage}
         except BaseException as exc:
             with self.store.transaction() as connection:
@@ -614,6 +664,8 @@ class ModelService:
             from .analysis_snapshot import readiness_summary
             decision.update(summary=readiness_summary(snapshot), data_quality=snapshot['quality'],
                             missing_required=snapshot['quality']['missing_required'], source='数据就绪检查')
+        self._record_memory(clean, decision, prompt_revision=PROMPT_REVISION,
+                            schema_revision='assessment_v1', policy_revision='1')
         result = {'decision': decision, 'usage': usage}
         record.update(status='SUCCEEDED', result=result)
         persist()

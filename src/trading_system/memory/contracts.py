@@ -423,7 +423,11 @@ class DecisionHistoryRef:
                      "snapshot_id", "snapshot_hash", "checkpoint_id", "thesis_id", "plan_id", "execution_status"):
             value = getattr(self, name)
             if value is not None:
-                _token(value, "MEMORY_DECISION_FIELD_INVALID", maximum=256)
+                if name in ("model_provider", "model_name"):
+                    if type(value) is not str or not value or len(value) > 200 or any(ord(c) < 32 for c in value):
+                        raise ValueError("MEMORY_DECISION_FIELD_INVALID")
+                else:
+                    _token(value, "MEMORY_DECISION_FIELD_INVALID", maximum=256)
         if self.action is not None and self.action not in ("BUY", "SELL", "HOLD", "SET_TARGET", "UPDATE_EXIT", "REDUCE", "EXIT", None):
             raise ValueError("MEMORY_DECISION_ACTION_INVALID")
         if type(self.memory_state_revision) is not int or self.memory_state_revision < 0:

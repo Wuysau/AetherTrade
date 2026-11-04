@@ -71,6 +71,9 @@ async def assess_program(service,symbol,mode,ids,revisions,key,frame,policy,rese
     # Reuse existing market quality/freshness checks, without replacing its hash.
     service._clean_context(symbol,{'analysis_snapshot':payload['analysis_snapshot']})
     clean=dict(payload,context_hash=frame.context_hash)
+    if frame.memory_context is not None:clean['strategy_memory']=frame.memory_context
+    if frame.memory_binding is not None:clean['memory_binding']=frame.memory_binding
+    if frame.strategy_prompt is not None:clean['strategy_prompt']=frame.strategy_prompt
     if research_request is not None:
         _research_valid(service,research_request,symbol,mode,ids,revisions,key,frame,policy)
     fingerprint=service._hash([symbol,mode,ids,revisions,SCHEMA,frame.context_hash,policy,
@@ -199,5 +202,8 @@ async def assess_program(service,symbol,mode,ids,revisions,key,frame,policy,rese
         budget=dict(max_calls=max_calls,calls=len(record['requests'])),
         admission_blockers=payload['order_context']['blockers'],source='AI · typed program research')
     result={'decision':decision,'usage':usage}
+    if hasattr(service,'_record_memory'):
+        service._record_memory(clean,decision,prompt_revision=PROMPT_REVISION,
+                               schema_revision=SCHEMA,policy_revision=policy)
     record.update(status='SUCCEEDED',component_results=outcomes,result=result);persist()
     return result
