@@ -1,0 +1,153 @@
+"""Durable observation verification and atomic spot facts. Never sends orders."""
+from decimal import Decimal
+import re
+from sqlalchemy import select, update, insert
+from trading_system.engine.binance_demo.contracts import DemoError, decimal, digest
+from trading_system.storage.demo import accounts, commands, observations, inbox, fills, postings, protection
+
+TERMINAL = {'FILLED', 'CANCELED', 'EXPIRED', 'REJECTED', 'EXPIRED_IN_MATCH'}
+STATUSES = TERMINAL | {'NEW', 'PARTIALLY_FILLED', 'PENDING_NEW'}
+
+
+def spot_postings(*, side, base, quote, quantity, quote_quantity, commission, commission_asset):
+    if side not in {'BUY', 'SELL'} or not all(isinstance(asset, str) and re.fullmatch(r'[A-Z0-9]{1,20}', asset) for asset in (base, quote, commission_asset)):
+        raise DemoError('DEMO_FILL_ASSET_INVALID')
+    qty, cost, fee = decimal(quantity, positive=True), decimal(quote_quantity, positive=True), decimal(commission)
+    result = {base: qty if side == 'BUY' else -qty, quote: -cost if side == 'BUY' else cost}
+    result[commission_asset] = result.get(commission_asset, Decimal(0)) - fee
+    return result
+
+
+class DemoReportVerifier:
+    def __init__(self, repository, *, symbols=None):
+        self.repository = repository
+        # Explicit instrument binding; never split arbitrary symbols heuristically.
+        self.symbols = symbols if symbols is not None else {'BTCUSDT': ('BTC', 'USDT')}
+
+    def process(self, scope, observation_id):
+        with self.repository.safety_guard(scope):
+            try:
+                return self._process(scope, observation_id)
+            except DemoError as exc:
+                self.repository.freeze_on_conflict(scope, observation_id, exc.code)
+                raise
+
+    def _process(self, scope, observation_id):
+        with self.repository.transaction(scope.account_key) as conn:
+            observation = conn.execute(select(observations).where(observations.c.observation_id == observation_id, observations.c.account_key == scope.account_key, observations.c.scope_key == scope.key)).mappings().first()
+            if observation is None:
+                raise DemoError('DEMO_OBSERVATION_NOT_FOUND')
+            queue = conn.execute(select(inbox).where(inbox.c.observation_id == observation_id).with_for_update()).mappings().one()
+            if queue['state'] == 'PROCESSED':
+                return False
+            account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
+            if observation['credential_revision'] != account['credential_revision'] or account['frozen']:
+                raise DemoError('DEMO_OBSERVATION_STALE')
+            event = observation['payload']
+            if observation['source'] == 'REST_TRADES':
+                row = conn.execute(select(commands).where(commands.c.account_key == scope.account_key, commands.c.scope_key == scope.key,
+                    commands.c.namespace == 'SPOT', commands.c.order_id == str(event.get('orderId')))).mappings().first()
+                if row is None or event.get('symbol') != row['request']['symbol'] or type(event.get('isBuyer')) is not bool:
+                    raise DemoError('DEMO_ORDER_BINDING_REJECTED')
+                if row['state'] not in {'MAY_HAVE_SENT', 'UNKNOWN', 'ACKNOWLEDGED', 'OBSERVED'}:
+                    raise DemoError('DEMO_ORDER_NEVER_SENT')
+                side = 'BUY' if event['isBuyer'] else 'SELL'
+                if side != row['request']['side']:
+                    raise DemoError('DEMO_ORDER_BINDING_REJECTED')
+                normalized = {'s': event['symbol'], 'i': event['orderId'], 't': event['id'], 'S': side,
+                    'l': event['qty'], 'L': event['price'], 'Y': event['quoteQty'], 'n': event['commission'], 'N': event['commissionAsset']}
+                self._fill(conn, scope, normalized, row)
+                total = sum((decimal(p['quantity']) for p in conn.execute(select(fills.c.payload).where(fills.c.account_key == scope.account_key,
+                    fills.c.symbol == event['symbol'], fills.c.order_id == str(event['orderId']))).scalars()), Decimal(0))
+                if total > decimal(row['request']['quantity']):
+                    raise DemoError('DEMO_FILL_QUANTITY_CONFLICT')
+                if row['order_status'] in TERMINAL and total == decimal(row['cumulative_qty']):
+                    conn.execute(update(commands).where(commands.c.command_id == row['command_id']).values(reserve_amount='0'))
+                # REST trades do not imply an order terminal state. Query that separately.
+                conn.execute(update(inbox).where(inbox.c.observation_id == observation_id).values(state='PROCESSED', attempts=inbox.c.attempts + 1))
+                return True
+            if observation['source'] == 'REST_ORDER':
+                event = {'e': 'executionReport', 's': event.get('symbol'), 'c': event.get('clientOrderId'),
+                    'S': event.get('side'), 'o': event.get('type'), 'q': event.get('origQty'), 'p': event.get('price'),
+                    'i': event.get('orderId'), 'X': event.get('status'), 'z': event.get('executedQty'), 'x': 'REST_ORDER'}
+            elif observation['source'] != 'WS_EXECUTION_REPORT' or event.get('e') != 'executionReport':
+                raise DemoError('DEMO_REPORT_NOT_SUPPORTED')
+            symbol = event.get('s')
+            if symbol not in self.symbols:
+                raise DemoError('DEMO_SYMBOL_UNBOUND')
+            row = conn.execute(select(commands).where(commands.c.account_key == scope.account_key, commands.c.scope_key == scope.key,
+                commands.c.namespace == 'SPOT', commands.c.client_id == event.get('c'))).mappings().first()
+            if row is None:
+                raise DemoError('DEMO_ORDER_BINDING_REJECTED')
+            if row['state'] not in {'MAY_HAVE_SENT', 'UNKNOWN', 'ACKNOWLEDGED', 'OBSERVED'}:
+                raise DemoError('DEMO_ORDER_NEVER_SENT')
+            request = row['request']
+            if event.get('S') != request['side'] or symbol != request['symbol'] or event.get('o') != request['type'] or decimal(event['q']) != decimal(request['quantity']):
+                raise DemoError('DEMO_ORDER_BINDING_REJECTED')
+            if request['type'] == 'LIMIT' and decimal(event.get('p')) != decimal(request['price']):
+                raise DemoError('DEMO_LIMIT_PRICE_BINDING_REJECTED')
+            if type(event.get('i')) is not int or event['i'] < 0 or (row['order_id'] is not None and row['order_id'] != str(event['i'])):
+                raise DemoError('DEMO_ORDER_ID_CONFLICT')
+            other_order = conn.execute(select(commands.c.command_id).where(commands.c.account_key == scope.account_key, commands.c.namespace == 'SPOT', commands.c.order_id == str(event['i']), commands.c.command_id != row['command_id'])).first()
+            if other_order:
+                raise DemoError('DEMO_ORDER_ID_CONFLICT')
+            status = event.get('X')
+            cumulative, previous, total = decimal(event['z']), decimal(row['cumulative_qty']), decimal(request['quantity'])
+            if status not in STATUSES or cumulative > total or (status == 'FILLED' and cumulative != total):
+                raise DemoError('DEMO_ORDER_QUANTITY_CONFLICT')
+            if event.get('x') == 'TRADE':
+                self._fill(conn, scope, event, row)
+            # Older cumulative observations can add missing fills, never regress status.
+            current_status = row['order_status']
+            if cumulative < previous:
+                status = current_status
+                cumulative = previous
+            elif current_status in TERMINAL:
+                if status in TERMINAL and status != current_status:
+                    raise DemoError('DEMO_ORDER_TERMINAL_CONFLICT')
+                status = current_status
+            recorded = sum((decimal(payload['quantity']) for payload in conn.execute(select(fills.c.payload).where(fills.c.account_key == scope.account_key, fills.c.symbol == symbol, fills.c.order_id == str(event['i']))).scalars()), Decimal(0))
+            if recorded > total or recorded > cumulative:
+                raise DemoError('DEMO_FILL_QUANTITY_CONFLICT')
+            # Terminal report alone does not prove financial reconciliation.
+            release = status in TERMINAL and recorded == cumulative
+            conn.execute(update(commands).where(commands.c.command_id == row['command_id']).values(order_id=str(event['i']), order_status=status,
+                cumulative_qty=str(cumulative), state='OBSERVED', reserve_amount='0' if release else row['reserve_amount']))
+            conn.execute(update(inbox).where(inbox.c.observation_id == observation_id).values(state='PROCESSED', attempts=inbox.c.attempts + 1))
+            self.repository._event(conn, scope.account_key, 'ORDER_OBSERVED', observation_id, {'command_id': row['command_id'], 'status': status})
+            return True
+
+    def _fill(self, conn, scope, event, command):
+        trade_id = event.get('t')
+        if type(trade_id) is not int or trade_id < 0:
+            raise DemoError('DEMO_TRADE_ID_INVALID')
+        qty, price = decimal(event['l'], positive=True), decimal(event['L'], positive=True)
+        if command['request']['type'] == 'LIMIT':
+            limit = decimal(command['request']['price'], positive=True)
+            if (event['S'] == 'BUY' and price > limit) or (event['S'] == 'SELL' and price < limit):
+                raise DemoError('DEMO_LIMIT_PRICE_VIOLATION')
+        quote_qty = decimal(event.get('Y', str(qty * price)), positive=True)
+        if quote_qty != qty * price:
+            raise DemoError('DEMO_FILL_QUOTE_CONFLICT')
+        fee, asset = decimal(event['n']), event.get('N')
+        base, quote = self.symbols[event['s']]
+        if asset is None and fee == 0:
+            asset = quote
+        payload = {'symbol': event['s'], 'order_id': str(event['i']), 'trade_id': str(trade_id), 'side': event['S'], 'quantity': str(qty.normalize()),
+            'price': str(price.normalize()), 'quote_quantity': str(quote_qty.normalize()), 'commission': str(fee.normalize()), 'commission_asset': asset}
+        fill_key = digest([scope.account_key, event['s'], str(trade_id)])
+        payload_hash = digest(payload)
+        existing = conn.execute(select(fills).where(fills.c.fill_key == fill_key)).mappings().first()
+        if existing:
+            if existing['payload_hash'] != payload_hash or existing['scope_key'] != scope.key:
+                raise DemoError('DEMO_FILL_CONFLICT')
+            return
+        deltas = spot_postings(side=event['S'], base=base, quote=quote, quantity=str(qty), quote_quantity=str(quote_qty), commission=str(fee), commission_asset=asset)
+        conn.execute(insert(fills).values(fill_key=fill_key, account_key=scope.account_key, scope_key=scope.key, symbol=event['s'], trade_id=str(trade_id), order_id=str(event['i']), payload_hash=payload_hash, payload=payload))
+        for currency, delta in deltas.items():
+            conn.execute(insert(postings).values(fill_key=fill_key, asset=currency, account_key=scope.account_key, scope_key=scope.key, delta=str(delta)))
+        conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(revision=accounts.c.revision + 1))
+        if event['S'] == 'BUY':
+            conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(state='RECOVERY_REQUIRED'))
+            conn.execute(insert(protection).values(fill_key=fill_key, account_key=scope.account_key, scope_key=scope.key, state='REQUIRED'))
+        self.repository._event(conn, scope.account_key, 'FILL_ACCOUNTED', fill_key, {'fill_key': fill_key})

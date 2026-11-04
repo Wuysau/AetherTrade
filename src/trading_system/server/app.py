@@ -33,12 +33,14 @@ VERSION = "0.1.0"
 
 
 def create_app(settings: Settings | None = None, *, quote_provider=None, model_client=None, order_observer=None,
-               program_automation=None, local_child_host=None) -> FastAPI:
+               program_automation=None, local_child_host=None, demo_transport_factory=None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = Store(settings.database_url)
     market_config = MarketConfigService(store, settings.model_key_path)
     feed = quote_provider if quote_provider is not None else LiveMarketFeed(market_config, max_age_seconds=settings.quote_max_age_seconds)
     models = ModelService(store, settings.model_key_path, client=model_client)
+    from .demo_api import DemoConnectionService, install_demo_routes, session_key as demo_session_key
+    demo = DemoConnectionService(demo_transport_factory)
     refresh_lock = asyncio.Lock()
     refresh_failed = False
 
@@ -123,6 +125,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
         try:
             yield
         finally:
+            demo.close()
             if automation_task:
                 automation_task.cancel()
                 with suppress(asyncio.CancelledError):
@@ -146,6 +149,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     app = FastAPI(title="AetherTrade local PAPER API", version=VERSION, lifespan=lifespan,
                   docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings, app.state.store, app.state.market = settings, store, feed
+    app.state.demo = demo
     app.state.models = models
     app.state.automation = automation
     app.state.market_config = market_config
@@ -211,6 +215,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
             raise ApiError("CSRF_REJECTED", "安全令牌无效，请刷新页面后重试。", 403)
         return session
 
+    install_demo_routes(app, demo, authenticated, mutation, settings)
+
     from .order_observation import install_order_observation_routes, observer_for_runtime
     app.state.order_observer = order_observer or observer_for_runtime(store.execution)
     install_order_observation_routes(app, authenticated=authenticated,
@@ -275,6 +281,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
 
     @app.post("/api/session/logout")
     def logout(request: Request, _=Depends(mutation)):
+        demo.disconnect(demo_session_key(request, settings))
         store.logout(request.cookies.get(settings.cookie_name))
         response = JSONResponse({"ok": True})
         response.delete_cookie(settings.cookie_name, path="/", httponly=True, secure=settings.cookie_secure, samesite="strict")

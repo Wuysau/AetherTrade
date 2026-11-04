@@ -265,3 +265,12 @@ shipped integration.
 **This project is software research, not financial advice.** Trading involves
 substantial risk of loss, including losses beyond planned limits for leveraged products.
 Do not point this software — or any AI model — at an account you cannot afford to lose.
+
+### Binance Demo (read-only connection, unqualified execution)
+
+The **Binance Demo** page accepts the user's own Demo HMAC API Key and Secret for
+session-only, read-only checks. Credentials are not persisted; PAPER and official
+Demo balances stay separate. No order or capability-enable API is exposed.
+The branch also contains isolated durable lifecycle foundations, but the full
+Demo order/strategy runtime and PostgreSQL/venue qualification are not complete.
+See [implementation status and remaining gates](docs/binance-demo/README.md).

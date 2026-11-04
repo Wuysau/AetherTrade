@@ -1,0 +1,114 @@
+{
+  "recorded_at": "2026-11-04T15:50:47.400629+00:00",
+  "checkpoint": "read-only connection and durable lifecycle foundation",
+  "full_design_complete": false,
+  "base_commit": "4134fd1ba6ab9152be064fc91ad93c59f61b8eb7",
+  "local_source_commit": "798dfa1e0ac30b84d476d219ea3651812ee860dc",
+  "source_file_sha256": {
+    "migrations/0033_binance_demo.sql": "396527f5abd411a0369879dad705522342d2d7ad8e58141348d3ad934b6b2ab4",
+    "src/trading_system/engine/binance_demo/contracts.py": "853438d8c6e3c435554693ae64a9c7c55f6334535930271d79b781782fa9d5fa",
+    "src/trading_system/engine/binance_demo/credentials.py": "f1f063a165b0468bf02480d5299df530667e086d5074c12c0fbd5e5540f9c7d7",
+    "src/trading_system/engine/binance_demo/orders.py": "30a46f3c8bcd2aae4b10a9ba3248def54e8b9b2324cc8330138b1cac2d0f5600",
+    "src/trading_system/engine/binance_demo/stream.py": "6d9cbc2655970940f25cbff7e66fe1b19fd1b580bec3bb5890dfde0cfd09121b",
+    "src/trading_system/engine/binance_demo/transport.py": "782a96220f973290988a1d9af4c94447fd267f5ca7db46adb53f9e3198feec98",
+    "src/trading_system/execution/demo_commands.py": "36f6046fec82b362339f1ab28966f29a49658379d49dcc7fedb52d9697426b8f",
+    "src/trading_system/execution/demo_reconcile.py": "49f8ea299eccafa5e936f320a84ffdec896282e02a2690058aa282a1ebe0fcf6",
+    "src/trading_system/execution/demo_reports.py": "8b6348fb511ba79d214336b682bbf86424fd22805d6c82cff583844ed6602e79",
+    "src/trading_system/runtime/demo_host.py": "58db502a740ec2f3f8b27ceb81cfa15f0f63d4e7cd5817cac87e6794a64fd4bc",
+    "src/trading_system/server/app.py": "1b380ed23f5ded83133edd3b53e833bc00326273730e487fed5dd5ba3265de73",
+    "src/trading_system/server/demo_api.py": "56ae6fa8d332baa607e02f2a215ffee9e1c71f14ac80abb7a23b934caac71d81",
+    "src/trading_system/storage/demo.py": "7f9aba3c121ec10b97fefb2fa2a59949ce5914ab3d784139d3ce123bfd608fa8",
+    "tests/demo/test_lifecycle.py": "00cd189bff7d79103c27118235bd17e037740412aa3a92779da1e87d70b6f7f2",
+    "tests/demo/test_recovery.py": "5db77e208134a2b582cf9800131e95ad45c8a4c9445caabbc09fd5d8ccf816ca",
+    "tests/demo/test_transport.py": "15cf20753ecf7f645c214a71b08d3f605ceacbef4a6223682fb3187e1e16ac64",
+    "tests/server/test_demo_api.py": "9829a445aa4614280e67a5f0d2dd3cdbcf60f7d4630bba48971bfc6ff984e152",
+    "web/src/runtime/App.tsx": "37034e6422a6468f4c891207f8a9794d443bb8c5f200c75e0bfaa702b955f8cb",
+    "web/src/runtime/demo.tsx": "4de0944c1a6ec2460fcb922700951a6e8b687e292f72e64e6c28f51ace55c7cd",
+    "web/src/runtime/types.ts": "981b6ae4c72626cab5f26d9c890b524568826e5e4387c16bc111906174d8e122",
+    "web/tests/demo.test.tsx": "52b31d87e3ff2ac4a2570045e235f331c7b7ecad56bb5d890db8d3c224a9cd2a",
+    "web/tests/runtime-ui.test.tsx": "f58f7ea03ef6f968d0f1ec921ffcebbb5f556896ca27f5cfc854b25acd9d9fd8"
+  },
+  "checks": [
+    {
+      "name": "focused_backend",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "python -m pytest tests/demo tests/server/test_demo_api.py tests/server/test_startup.py tests/server/test_program_automation_wiring.py tests/server/test_api.py -q -m 'not paper_runtime'",
+      "result": "87 passed, 2 deselected, 1 upstream deprecation warning",
+      "seconds": 6.82
+    },
+    {
+      "name": "focused_frontend",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "npm test -- --run tests/demo.test.tsx tests/runtime-ui.test.tsx tests/runtime-api.test.ts",
+      "result": "3 files, 26 tests passed"
+    },
+    {
+      "name": "typecheck",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "production_build",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "npm run build",
+      "warning": "bundle >500 kB warning; no build error"
+    },
+    {
+      "name": "python_compile",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "python -m compileall -q <changed Demo Python modules>"
+    },
+    {
+      "name": "diff_whitespace",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "git diff --check"
+    },
+    {
+      "name": "postgresql_qualification",
+      "status": "NOT_RUN",
+      "reason": "shared DEV scheduler/infrastructure qualification not authorized for this task"
+    },
+    {
+      "name": "official_demo",
+      "status": "NOT_RUN",
+      "reason": "no user credentials or execution-window approval"
+    },
+    {
+      "name": "full_integration",
+      "status": "NOT_RUN",
+      "reason": "task-light governance; not a full acceptance run"
+    },
+    {
+      "name": "continuous_runtime",
+      "status": "NOT_RUN",
+      "reason": "native host composition and actual venue qualification remain outstanding"
+    }
+  ],
+  "side_effects": {
+    "real_orders": 0,
+    "real_credentials_used": 0,
+    "paid_model_calls": 0,
+    "docker_changes": 0,
+    "postgresql_databases_created": 0,
+    "deployments": 0
+  },
+  "review_fixes": [
+    "ephemeral credential expiry and timer removal",
+    "source account binding",
+    "reservation intent binding",
+    "LIMIT execution price verification",
+    "terminal-before-missing-fill release",
+    "sender guard and revision fencing",
+    "cross-strategy account event routing",
+    "unsent order fact rejection",
+    "nonblocking bounded stream callback",
+    "bounded order/history query work",
+    "stale UI responses and status refresh"
+  ]
+}

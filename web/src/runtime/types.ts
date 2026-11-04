@@ -1,5 +1,5 @@
 export type Range = '24H' | '7D' | '30D' | '90D';
-export type Page = 'overview' | 'decisions' | 'positions' | 'strategies' | 'memory' | 'prompts' | 'research' | 'risk';
+export type Page = 'overview' | 'decisions' | 'positions' | 'strategies' | 'memory' | 'prompts' | 'research' | 'risk' | 'demo';
 export type Mode = 'AI' | 'RULE' | 'HYBRID';
 export type SymbolName = 'BTCUSDT' | 'ETHUSDT' | 'SOLUSDT' | 'TSLABUSDT' | 'NVDABUSDT' | 'AAPLBUSDT';
 export type PaperAction = 'pause_new' | 'resume_new' | 'cancel_entries' | 'exit_owned';

@@ -1,0 +1,203 @@
+AetherTrade Binance Demo 接入设计
+面向开发实现与验收的技术设计
+基准日期 2026年11月4日  |  仓库 Wuysau/AetherTrade  |  分支 public-snapshot
+代码基准 4134fd1ba6ab9152be064fc91ad93c59f61b8eb7。本文定义目标架构与接入约束，不代表已经接通 Demo、完成交易资格验收或启用自动交易。
+1 设计结论与范围
+将 Binance Demo 作为独立模拟交易场所，由官方模拟撮合引擎产生订单和成交事实；AetherTrade 继续负责决策、风控、持久命令、账户投影、对账恢复和审计。保留本地 PAPER 作为可控离线测试场所，两者不能混用身份、余额和成交来源。
+优先实现现货 Demo 的完整订单生命周期，并以同一架构容纳 U 本位合约 Demo。现货和合约分别准入，不能因现货通过便自动开放合约、杠杆或复杂算法。当前目标不包括真实资金 LIVE，不创建或替用户开通真实交易账户。
+本地已有的 10,000 USDT PAPER 余额不能复制为官方 Demo 余额。官方账户余额由 Demo 返回；10,000 USDT 是本次项目层预算上限。可交易预算取已分配预算、可用余额与风险限额中的最小值。
+完成定义
+从合格行情快照和账户快照生成受约束决策，经原生风控和单一发送者持久化提交，收到官方 Demo 回报后幂等入账；断线、超时、进程重启和余额重置后仍能恢复一致状态。模型不可用、证据不足或状态不明时不新增风险。
+2 官方接口基准与环境边界
+环境
+端点基准
+定位与约束
+现货 Demo
+REST https://demo-api.binance.com/apiWS API wss://demo-ws-api.binance.com/ws-api/v3行情 wss://demo-stream.binance.com/ws
+官方模拟交易；价格及盘口类似实盘但非完全相同。维护可能中断。需独立 Demo Key。
+现货 Testnet
+https://testnet.binance.vision/api
+独立开发测试网；资产及订单会重置，不能视为 Demo 或实盘。
+U 本位 Demo
+https://demo-fapi.binance.comwss://demo-fstream.binance.com
+官方表示大多数接口可测试；能力必须逐端点核验。
+本地 PAPER
+本地模拟引擎和数据库
+独立模拟事实来源；不向 Binance 发送订单。
+
+基址与资源路径必须统一管理，避免拼成 /api/api/v3/order。建议注册表保存 origin=https://demo-api.binance.com，资源路径=/api/v3/order。用户只能选择受审核的环境标识，不能任意填写交易域名。
+现货接口
+创建订单 POST /api/v3/order；查询订单 GET /api/v3/order；取消订单 DELETE /api/v3/order；未完成订单 GET /api/v3/openOrders；历史订单 GET /api/v3/allOrders；成交历史 GET /api/v3/myTrades；账户 GET /api/v3/account；交易规则 GET /api/v3/exchangeInfo；服务时间 GET /api/v3/time。具体参数、权重、分页和时间窗以引用的当前官方文档及契约测试固定。
+私有流优先实现当前 WebSocket API 的 userDataStream.subscribe.signature，或使用 Ed25519 会话认证 session.logon 后 userDataStream.subscribe。认证方法、密钥类型、权限及生命周期必须按选择的机制固定；不得将旧 listenKey 假设套用到现货。订单更新由 executionReport 接收，组合订单另处理 listStatus。
+POST /api/v3/order/test 只用于参数和签名等校验，不进入撮合引擎，不能作为模拟成交验收。
+合约接口
+U 本位普通 LIMIT/MARKET 使用 /fapi/v1/order；条件订单使用独立 /fapi/v1/algoOrder。必须区分 orderId、algoId、clientOrderId 和 clientAlgoId，普通与条件命名空间分别查询、取消和恢复。账户流处理 ORDER_TRADE_UPDATE，条件生命周期处理 ALGO_UPDATE；触发成功不等于成交。未核验的 Demo 端点保持禁用，不使用生产地址兜底。
+3 当前代码与复用边界
+当前模块
+已有能力
+接入决策
+server/automation.py
+原生 assessment_v1、租约、过期和版本检查；legacy AI 自动执行拒绝
+复用决策治理，扩展明确的 Demo host，不绕过 LEGACY_REAUTH_REQUIRED。
+intents/program_compilation.py
+普通、条件、组合及算法订单字段编译
+复用可验证的纯编译逻辑；编译成功不产生发送权限。
+execution/program_dispatcher.py
+发送前 durable MAY、原始身份恢复
+现有构造与执行有 PAPER 和 exact-type 限制；新增 Demo 专用组合，不直接替换引擎。
+runtime/execution_owner.py
+所有权与发送期间保护
+审核具体类型和环境约束，设计 Demo owner/fencing，不放宽旧 PAPER guard。
+execution/program_fill_source.py 等
+成交来源、证据及财务处理
+Paper 专属证据不能认证 Demo 成交；新增场所来源验证，再接财务领域规则。
+storage/events.py 与 execution/outbox.py
+事务事件、outbox、消费确认
+复用事务和幂等模式，补私有事件 inbox 与恢复游标。
+engine/nautilus/native_program_adapter.py
+离线 SDK 请求探针
+不可当作真实 Demo transport；保留测试用途。
+server/market_live.py
+公开行情和快照质量控制
+新增 Demo 行情 profile；禁止默默以生产盘口替代 Demo 执行盘口。
+
+核心迁移原则：保留本地 PAPER 已验证的边界，独立建立 Binance Demo 的准入、发送、观察和成交认证链路。只有经回归测试证明与场所无关的纯规则，才提取为共享组件；不通过全局放宽 Environment 枚举检查或移除 exact-type 检查实现接入。
+4 目标组件与职责
+业务链路为：策略调度与模型 → assessment 校验 → 确定性风控及资金预留 → DemoCommandBoundary → 持久命令与 outbox → DemoExecutionOwner → BinanceDemoTransport → 官方 Demo。回报链路为：私有流及 REST 查询 → durable inbox → DemoReportVerifier → 订单与成交归并 → 业务账本 → outbox → 风控、保护、记忆和前端。
+拟新增组件
+主要责任
+DemoEndpointRegistry
+固定环境、产品、REST/WS 端点及允许路径；拒绝 LIVE、重定向和任意目的地。
+DemoCredentialProvider
+仅凭据引用、签名与轮换；不向模型或前端返回密钥。
+BinanceDemoTransport
+时间同步、签名、权重限制、超时分类、原始响应归档。
+DemoCommandBoundary 与 DemoExecutionOwner
+单次发送授权、持久 MAY、撤销与租约、发送身份。
+DemoUserStreamConsumer
+认证订阅、连接状态、原始事件持久化与去重，不直接改余额。
+DemoReportVerifier 与 DemoReconciler
+认证来源、账号/环境/订单绑定、缺口补查、冲突仲裁。
+DemoAccountingService 与 DemoRuntimeHost
+成交与费用幂等入账，预算与控制台统一，保护责任生命周期。
+
+上述名称是拟议模块，不代表仓库中已有同名实现。推荐放在 engine/binance_demo、execution/demo_* 和 runtime/demo_* 下；复用现有契约时保留 scope、request hash 与原始 ID。
+5 场所身份与准入
+Scope 至少包含 environment、venue、product、account_id、account_epoch、strategy_id。environment 使用独立 BINANCE_DEMO，不与 PAPER 或 LIVE 同值。产品至少分 SPOT 和 USDM。account_epoch 用于隔离 Demo 重置前后的数据，不能仅以订单数值 ID 推定全局唯一。
+账户状态建议为 DISABLED、READ_ONLY、RECONCILING、READY、PAUSED、RECOVERY_REQUIRED。创建连接先进入 READ_ONLY，完成官方端点验证、服务器时间检查、凭据权限、交易规则、余额、未完成订单及成交基线检查后才可 READY。
+现有 scope 的 canonical hash 与历史记录不可直接重算。新增环境/账户代次字段通过兼容迁移引入，冻结旧记录解释规则，显式映射新旧 scope；旧 PAPER 命令不能在迁移后变成 Demo 命令。
+执行授权必须同时满足：明确 Demo scope、准入证据有效、已授权策略、可调用的真实模型或明确规则来源、报价及账户快照新鲜、风险通过、预算足够、私有流健康或已批准的短时对账模式、无未解决 UNKNOWN。权限或模型配置变化使旧决策失效。
+不得将当前对话助手视为常驻 API。人工桥接仅用于有限次测试，必须保留 request_id、快照 hash、截止时间与模型来源。无人值守需要实际可调用模型服务或经过验证的调度桥；缺少任一条件保持 PAUSED。
+6 订单与成交生命周期
+命令提交
+在同一业务事务中完成风险快照引用、预算预留、不可变订单意图、原始 client ID、命令和 outbox。状态从 VALIDATED 到 DURABLE_READY。单一 owner 取得有效租约并在发送前再次检查授权、数据时效和预算；先提交 MAY_HAVE_SENT，再执行网络请求。
+请求成功得到 ACK 仅说明已接受或可观察，不释放全部预留、不标记已成交。显式拒绝经过验证后进入 REJECTED；超时、断连、无法解析或请求状态不明进入 UNKNOWN，保留资金风险占用。UNKNOWN 不得自动换新 client ID 重发。
+恢复与对账
+以原 client ID、交易对、账号、环境和命名空间查询。查询“未找到”不总能立即证明未发送，应考虑可见性延迟、历史查询窗口及交易所响应语义。只有具备证明的确定未发送路径才可重新授权发送；否则停留 RECOVERY_REQUIRED 并阻断该风险范围。
+cancelReplace 等组合操作可能出现 HTTP 409 部分成功，必须分别记录取消和新单结果，不能用单一 HTTP 成功布尔值决定整体状态。批量订单也逐成员归并；不支持的管理操作保持禁止。
+正常生命周期包括 NEW、PARTIALLY_FILLED、FILLED、CANCELED、EXPIRED、REJECTED。归并器处理事件乱序和重复，不允许晚到的 NEW 覆盖 FILLED。累计成交数量不得下降或超过订单数量；部分成交后撤单必须保留已成交部分。取消请求成功与订单终态分开记录。
+成交入账
+私有流和 REST 成交历史是同一事实的不同观察，按场所成交 ID、账号、环境、交易对及 epoch 唯一归并。验证价格、数量、方向、订单关联与费用币种后，成交、费用、余额贡献、仓位投影和 outbox 在同一业务事务提交。重复事件不得重复扣款或增加仓位。
+现货至少支持基础币、报价币和第三币种手续费。不得一律把手续费当 USDT。使用 Decimal 和交易所精度；保留原始金额与币种，展示换算独立于权威账本。账户余额快照用于核对，不反复当作资金入账事件。
+保护责任
+建仓成交后生成可追踪保护责任；保护单未建立、被拒绝或状态不明时暂停新增风险，并按事先批准的减险策略处理。原生止损或组合单可减少本地在线依赖，但需逐类型准入。应用发起的任何撤单、改单、补保护都必须经过持久命令，不能在事件处理器中直接发网络请求。
+7 数据模型与幂等边界
+拟议记录
+关键字段及约束
+venue_accounts
+scope、credential_ref、capability_profile、account_epoch、admission_status；不存明文密钥。
+venue_commands
+command_id、scope、request_hash、original_client_id、namespace、state、lease_epoch；发送意图不可变。
+venue_observations
+source、request/event ID、payload_hash、received_at、exchange_time、原始脱敏载荷；证据追加写。
+venue_inbox
+dedupe_key、payload_ref、processing_status、attempts、next_retry_at；持久化后才确认本地消费。
+venue_order_links
+local order/program/member 与 exchange order/algo/list ID 绑定；scope 内唯一。
+venue_fills
+scope、symbol、trade_id、order_id、qty、price、commission_asset、commission；原生事实幂等。
+venue_reconcile_runs
+起止水位、分页游标、查询范围、差异、完整性状态；补查可续跑。
+account_epochs
+重置检测证据、人工确认、旧期冻结与新期基线；不覆盖旧账。
+
+迁移编号在实施时依据仓库实际最新序列分配，不预占固定编号。所有唯一约束均包含必要 scope；多消费者使用原子领取或数据库锁，禁止先查询再插入造成并发重复。重要更新采用 revision 条件更新或行锁，测试并发重放和进程中断。
+8 行情与队列设计
+成交事实来自 Demo 私有账户流；公开行情只服务决策、估值及风控。Demo 交易优先使用同一 Demo 市场的报价、盘口和规则。若策略观察生产市场，必须标识不同数据源并评估基差，不能以生产报价作为 Demo 已成交证据。
+沿用 PostgreSQL durable inbox/outbox，不把新增 Kafka 或 RocketMQ 作为前置依赖。内存有界队列只缓冲；订单、成交及账户关键事件先落盘再处理。高频展示快照可合并，订单及成交事件不可静默丢弃。
+按账号及订单归并私有事件，不能假定所有流全局有序；使用事件时间、累计量、查询补偿和终态约束解决乱序。盘口增量按交易对维护源序列，溢出、断档或过期时标记不可用并重新同步。
+WebSocket 断线后先连接订阅并缓存事件，再 REST 补查自上次完整水位开始的重叠时间窗，合并去重后恢复 READY。不能先查询再无保护地订阅造成中间缺口。补查页数、权重和时间窗有限制，应持久化进度并保留不可恢复缺口。
+9 安全与运维
+交易和行情端点分开白名单；生产交易地址永不作为 Demo 的自动 fallback。签名请求禁止跟随重定向；TLS 证书验证不可关闭；代理采用显式受控配置，避免环境变量将带凭据请求导向未批准路径。
+密钥仅经安全配置界面或受控 secret store 导入；Key 与签名密钥不能出现在日志、错误、模型上下文、文档、前端响应或数据库审计载荷中。记录 fingerprint 和 credential_ref 即可。生成、配置及扩大凭据权限需显式批准。
+限流按 IP、账号和订单权重分别管理；429 遵循服务器提示退避，418 停止发送并告警。时间漂移或签名错误不靠无限放大 recvWindow 掩盖。读请求可有界重试；写请求进入原始 ID 恢复，不做通用 HTTP 自动重试。
+暂停策略停止新风险，不宣称已撤销所有挂单。全停机制同时暂停决策、阻止新发送，并通过受控命令处理已知挂单；UNKNOWN 必须单独显示。服务重启先恢复 owner 和对账，再开放执行。Demo 维护或余额重置按场所中断处理。
+监控至少包括：行情年龄、私有流最后事件、对账水位、UNKNOWN 数量与年龄、队列积压、订单确认延迟、成交入账延迟、账实差异、保护未覆盖敞口、模型延迟与失败率、策略预算占用。前端显著显示 BINANCE DEMO，不用 PAPER 或 LIVE 混称。
+10 能力准入与验收
+能力由环境、产品、订单类型、修饰符和组合共同确定。每个能力使用 DECLARED、COMPILED、CONTRACT_VERIFIED、DEMO_VERIFIED、ENABLED 状态。只有当前代码、当前官方契约和当前 Demo 账户通过验收的组合才能 ENABLED，禁止全局“支持 Binance 所有订单”的开关。
+验收类别
+必须证明的结果
+环境隔离
+生产端点、LIVE scope、错误账号和错误凭据类型均被拒绝；无外部实盘副作用。
+基础现货
+MARKET/LIMIT 的提交、部分成交、成交、取消与查询完整；费用及余额正确。
+幂等与乱序
+重复 WS/REST 成交只记一次；晚到状态不回退终态；列表及成员身份不混淆。
+模糊发送
+在 MAY 提交后崩溃、发送后丢响应、ACK 后崩溃，均能原 ID 恢复且不重复下单。
+断线补偿
+私有流重连、分页重叠补查、重启水位恢复；缺口未修复不开放新增风险。
+风险与保护
+预算不足、报价过期、仓位冲突、未知订单、保护失败均阻断相应操作。
+数据库恢复
+备份恢复后命令、成交、预留和账本一致；恢复不自动重发 MAY 命令。
+Demo 特有故障
+维护、余额重置、订单历史清空、规则变更时冻结并重建明确的新 epoch。
+持续运行
+模型响应超时不执行；风控拒绝正常记录；有界观察窗口内指标和资源可解释。
+
+离线单元/契约测试、PostgreSQL 集成测试和实际 Demo 验收必须分别报告。/order/test 通过不等于成交通过；本地模拟或录制回放不等于 Demo 实测；成功一单不等于组合单、合约、恢复能力全部通过。
+11 实施依赖与交付要求
+按依赖推进而不是把未完成能力包装为产品版本。每项任务需交付代码、测试、证据及能力矩阵更新；不允许为通过测试删除现有安全门禁。
+工作项
+依赖与交付
+D01 契约和边界
+固定代码 SHA、官方接口、产品范围、端点注册表和环境契约；明确不能复用的 PAPER guard。
+D02 凭据与只读接入
+依赖 D01；安全签名、时间同步、账户和规则查询、日志脱敏、READ_ONLY 准入。
+D03 持久发送
+依赖 D01/D02；Demo owner、command boundary、MAY、原 ID 恢复和写请求故障注入。
+D04 私有流与归并
+依赖 D02；durable inbox、订单/成交身份、WS认证、REST补查、乱序幂等。
+D05 账本与保护
+依赖 D03/D04；Demo事实验证、财务回写、预留释放和保护责任，防止重复入账。
+D06 策略与界面
+依赖 D05；Demo runtime host、assessment_v1、预算和风险、来源标签、暂停与恢复。
+D07 能力验收
+贯穿各项；逐订单组合准入、真实 Demo 证据及当前 SHA 对齐。
+D08 连续运行验收
+依赖已准入能力；明确时长、频率、模型费用与预算、监控和停止条件后执行。
+
+U 本位账户流应独立管理 listenKey 保活与连接轮换。官方当前说明 listenKey 有效期为 60 分钟，连接最长 24 小时；实际实现以当前 Demo 契约测试确认。除 ORDER_TRADE_UPDATE 和 ALGO_UPDATE，还需处理 ACCOUNT_UPDATE；事件触发与资金费处理不能照搬现货。
+合约接入在同一架构下独立完成仓位模式、杠杆、保证金、资金费、强平及条件单命名空间验收。不能直接复用现货余额公式或现货止损触发价语义。TWAP、VP、SOR、复杂列表等只有确认 Demo 可用且逐项验收后才启用。
+12 待确认事项
+执行接入前确认 Demo 账户及专用凭据可用性、现货与 U 本位的实际权限、可用余额和策略预算、模型服务及持续运行机制、运行环境与密钥存储、测试窗口和告警目的地。设计文档不授权创建账户、创建密钥、发送订单或部署；这些动作需在执行任务中取得对应授权。
+默认建议为现货优先、无杠杆、BTCUSDT、只启用已准入能力、预算上限 10,000 USDT。该建议不代表用户已批准实际策略参数，也不承诺利润或模拟结果可复现到实盘。
+13 参考来源
+S1 Binance Spot Demo General Info  打开来源
+S2 Binance Spot Testnet General Info  打开来源
+S3 Binance Spot Trade API  打开来源
+S4 Binance Spot User Data Stream  打开来源
+S4a Binance WebSocket 私有流认证接口  打开来源
+S4b Binance REST General Info  打开来源
+S5 Binance Spot WebSocket Streams  打开来源
+S6 Binance Futures General Info  打开来源
+S7 Binance Futures Trade API  打开来源
+S8 Binance Futures User Data Streams  打开来源
+C1 原生自动化  打开来源
+C2 PAPER 调度边界  打开来源
+C3 PAPER 运行组合  打开来源
+C4 离线适配器  打开来源
+C5 事务事件  打开来源
+C6 订单编译  打开来源
+官方页面随时间变化，实施时应把采用的文档日期、端点契约与 Demo 验收记录关联到具体代码提交。

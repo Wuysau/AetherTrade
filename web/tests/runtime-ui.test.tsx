@@ -75,7 +75,7 @@ describe('runtime session and empty states', () => {
     expect(screen.getByText('等待第一条决策')).toBeDefined();
     expect(screen.getByText('当前没有持仓')).toBeDefined();
     const navigation = screen.getByRole('navigation', { name: '主导航' });
-    expect(within(navigation).getAllByRole('button')).toHaveLength(8);
+    expect(within(navigation).getAllByRole('button')).toHaveLength(9);
     await user.click(within(navigation).getByRole('button', { name: '策略中心' }));
     await screen.findByRole('heading', { name: '尚未创建策略' });
     await user.click(within(navigation).getByRole('button', { name: '策略记忆' }));
