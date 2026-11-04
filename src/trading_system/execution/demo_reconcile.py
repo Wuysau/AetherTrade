@@ -129,12 +129,15 @@ class DemoReconciler:
             # The held sender guard serializes balance/posting/pause changes.
             # Observation inserts also lock this row, so none can commit
             # between this health check and the READY commit.
-            from trading_system.storage.demo import commands, inbox, observations, protection
+            from trading_system.storage.demo import commands, inbox, observations, protection, outbox
             from sqlalchemy import select, func
             count = lambda table, predicate: conn.execute(select(func.count()).select_from(table).where(predicate)).scalar_one()
             blocked = count(commands, (commands.c.account_key == scope.account_key) & commands.c.state.in_(['MAY_HAVE_SENT', 'UNKNOWN']))
             blocked += count(inbox, (inbox.c.state != 'PROCESSED') & inbox.c.observation_id.in_(select(observations.c.observation_id).where(observations.c.account_key == scope.account_key)))
             blocked += count(protection, (protection.c.account_key == scope.account_key) & (protection.c.state != 'SATISFIED') & ((protection.c.state != 'HOSTED_ACTIVE') | (protection.c.coverage_until <= int(self.clock()))))
+            # Risk breaches are durable and presently have no automatic resolution.
+            # Keep ingesting facts, but never resume trading on requalification alone.
+            blocked += count(outbox, (outbox.c.account_key == scope.account_key) & (outbox.c.kind == 'EXECUTION_RISK_BREACH'))
             if blocked or not stream.healthy:
                 raise DemoError('DEMO_RECOVERY_REQUIRED')
             receipt = {'cursor': progress['cursor'], 'open_orders_hash': digest(actual), 'balances_hash': digest(raw['balances']),

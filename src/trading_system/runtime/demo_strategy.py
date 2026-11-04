@@ -277,7 +277,7 @@ class DemoStrategyHost:
         self.repository.abandon_stale_unsent(self.scope, now=now)
         previous = self.repository.pending_cancel(self.scope, target['client_id'])
         if previous: return previous
-        identity = 'cancel:' + digest([target_command_id, target['request_hash'], binding['account_revision']])
+        identity = 'cancel:' + digest([target_command_id, target['request_hash'], binding['account_revision'], self.repository.cancel_lineage(self.scope, target['client_id'])])
         try: return self.repository.command(self.scope, identity)
         except DemoError as exc:
             if exc.code != 'DEMO_COMMAND_NOT_FOUND': raise
@@ -292,7 +292,9 @@ class DemoStrategyHost:
     def protection_tick(self):
         duties = self.repository.protection_duties(self.scope)
         if not duties:
-            return {'state': 'NO_EXPOSURE', 'commands': []}
+            self.repository.abandon_unneeded_protection(self.scope)
+            if not any(row['purpose'] == 'PROTECTION' for row in self.repository.active_orders(self.scope)):
+                return {'state': 'NO_EXPOSURE', 'commands': []}
         strategy, current = self._strategy(), self._frame()
         account = self.repository.account(self.scope); evidence = account.get('qualification') or {}
         if not self.owner or not self.stream or not self.stream.healthy or self.stream.credential_ref != account['credential_ref'] or evidence.get('protection') != 'HOSTED' or evidence.get('code_sha') != self.current_code_sha or evidence.get('state') != 'DEMO_VERIFIED':
@@ -310,10 +312,19 @@ class DemoStrategyHost:
                 triggered.append(duty)
         self.repository.abandon_stale_unsent(self.scope, now=now)
         active = self.repository.active_orders(self.scope)
-        if triggered and active:
+        expired = [row for row in active if row['purpose'] == 'PROTECTION' and (not duties or now >= row['expires_at'])]
+        if any(row['state'] == 'ACKNOWLEDGED' and row['order_status'] is None for row in expired):
+            return {'state': 'RECONCILIATION_REQUIRED', 'commands': []}
+        if active and (triggered or expired):
             entries = [row for row in active if row['purpose'] == 'ENTRY' and row['state'] != 'DURABLE_READY']
-            cancellations = [self.stage_cancel(row['command_id']) for row in entries]
-            return {'state': 'CANCEL_ENTRY_FIRST' if entries else 'MITIGATION_PENDING',
+            # A resting GTC exit has no inherent deadline. Cancel only a known
+            # active order after its send-authority deadline; an uncertain order
+            # must first be reconciled by its original identity.
+            expired_exits = [row for row in expired if row['purpose'] == 'PROTECTION'
+                and row['state'] in {'ACKNOWLEDGED', 'OBSERVED'} and row['order_status'] not in {None, 'FILLED', 'CANCELED', 'EXPIRED', 'REJECTED', 'EXPIRED_IN_MATCH'}
+                ]
+            cancellations = [self.stage_cancel(row['command_id']) for row in entries + expired_exits]
+            return {'state': 'CANCEL_ENTRY_FIRST' if entries else 'CANCEL_STALE_PROTECTION' if expired_exits else 'MITIGATION_PENDING',
                     'commands': [command for command in cancellations if command['state'] == 'DURABLE_READY']}
         if triggered:
             # Conservative base-fee headroom may leave filter-sized dust. It
@@ -327,10 +338,13 @@ class DemoStrategyHost:
             bid = decimal(current['market']['book']['bid'], positive=True)
             tick = decimal(filters['PRICE_FILTER']['tickSize'], positive=True)
             limit = (bid // tick) * tick
-            identity = digest([self.scope.key, sorted(row['fill_key'] for row in triggered), strategy['revision'], current['bindings']['account_revision']])
+            fill_keys = sorted(row['fill_key'] for row in triggered)
+            lineage = self.repository.mitigation_lineage(self.scope, fill_keys)
+            identity = digest([self.scope.key, fill_keys, lineage, strategy['revision'], current['bindings']['account_revision']])
             request = compile_spot_order(rules, side='SELL', order_type='LIMIT', quantity=str(quantity), price=str(limit), client_id='p-' + identity[:30], reference_price=str(price), filter_context=current['market']['execution_context'])
             binding = current['bindings']; risk = {key: binding[key] for key in ('strategy_revision', 'policy_revision', 'model_revisions', 'rules_hash', 'qualification_hash', 'authorization_ref')}
             risk['protection_fill_keys'] = [row['fill_key'] for row in triggered]
+            risk['fee_rate_cap'] = str(fee)
             command = self.repository.stage(self.scope, command_id='protect:' + identity, request=request, purpose='PROTECTION',
                 reserve_asset='BTC', reserve_amount=str(quantity * (1 + fee)), available=str(held), authorization_ref=strategy['authorization_ref'],
                 expires_at=min(now + 60, strategy['authorized_until']), now=now, risk_receipt=risk,

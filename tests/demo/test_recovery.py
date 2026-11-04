@@ -179,3 +179,38 @@ def test_ready_requires_full_bound_reconciliation_not_page_completion(repo, scop
     assert result['execution_authorized'] is False  # readiness alone never grants a strategy
     stream.healthy = False
     with pytest.raises(DemoError): reconciler.reconcile_and_resume(scope, stream=stream, current_code_sha='a'*40)
+
+
+def test_rotation_cannot_strand_unprocessed_observation(setup):
+    repo, scope = setup
+    repo.observe(scope, source='WS_EXECUTION_REPORT', payload={'e': 'executionReport'}, received_at=100, credential_ref='demo-session:fixture')
+    with pytest.raises(DemoError, match='INBOX_RECONCILIATION_REQUIRED'):
+        repo.rotate_credential(scope, credential_ref='demo-session:rotated', fingerprint='new', expected_revision=0)
+    assert repo.account(scope)['credential_ref'] == 'demo-session:fixture'
+    assert repo.account(scope)['credential_revision'] == 0
+
+
+def test_rotation_preserves_unknown_original_identity_and_epoch(setup):
+    repo, scope = setup
+    request = {'symbol': 'BTCUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': '0.001', 'price': '50000', 'newClientOrderId': 'original', 'timeInForce': 'GTC'}
+    repo.stage(scope, command_id='original-command', request=request, reserve_asset='USDT', reserve_amount='50', available='1000', authorization_ref='grant', expires_at=200, now=100)
+    repo.begin_send(scope, 'original-command', expected_revision=0, now=101)
+    repo.mark_unknown(scope, 'original-command', 'LOST_RESPONSE')
+    revision = repo.account(scope)['revision']
+    repo.rotate_credential(scope, credential_ref='demo-session:rotated', fingerprint='new', expected_revision=revision)
+    command = repo.command(scope, 'original-command')
+    assert command['state'] == 'UNKNOWN'
+    assert command['client_id'] == 'original' and command['request'] == request
+    assert command['reserve_amount'] == '50'
+    assert repo.account(scope)['state'] == 'READ_ONLY'
+    assert repo.account(scope)['identity']['account_epoch'] == 'e1'
+
+
+def test_postgres_rotation_is_blocked_without_cross_process_stream_fence(setup, monkeypatch):
+    repo, scope = setup
+    with monkeypatch.context() as patch:
+        patch.setattr(repo.engine.dialect, 'name', 'postgresql')
+        with pytest.raises(DemoError, match='REBIND_FENCING_UNQUALIFIED'):
+            repo.rotate_credential(scope, credential_ref='demo-session:new', fingerprint='new', expected_revision=0)
+    assert repo.account(scope)['credential_revision'] == 0
+    assert repo.account(scope)['credential_ref'] == 'demo-session:fixture'

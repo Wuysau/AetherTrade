@@ -60,6 +60,8 @@ class DemoExecutionOwner:
             if any(evidence.get(k) != v for k, v in required.items()) or proof.get('state') != 'DEMO_VERIFIED' or not proof.get('evidence_sha256') or not proof.get('official_contract_revision'):
                 raise DemoError('DEMO_CAPABILITY_NOT_QUALIFIED')
             management = command['purpose'] in {'CANCEL', 'REDUCTION', 'PROTECTION'}
+            if health['risk_breaches'] and not management:
+                raise DemoError('DEMO_EXECUTION_RISK_BREACH')
             if management:
                 if command['method'] == 'DELETE':
                     with self.repository.engine.connect() as conn:

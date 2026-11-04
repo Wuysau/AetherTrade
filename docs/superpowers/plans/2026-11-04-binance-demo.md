@@ -65,3 +65,17 @@ Interfaces: authenticated /api/demo/status, /connect, /disconnect; session-only 
 - Implemented committed plan-head lineage, revision/hash-bound UPDATE_EXIT with all-duty monotonic protection management and no venue order side effect.
 - Added separate Demo memory projection and exact native ModelService input-hash validation, leaving PAPER memory scopes unchanged.
 - Added migration 0035 without applying it. MARKET extension remains active work.
+
+### Offline continuation, 2026-11-04
+
+- Added a quote-budget MARKET compiler and accounting for base/quote cumulative execution. Malformed or missing MARKET notional filter fields fail closed. MARKET strategy admission still rejects execution, and capability-specific venue qualification remains mandatory. Quote-budget execution has no guaranteed execution-price bound; offline checks do not establish one.
+- Added explicit migration 0036 for cumulative quote amounts; it is NOT_RUN on a deployed database. MARKET fees and unmatched exposure are recorded as durable risk breaches; automatic resume and new entries remain blocked pending a separate breach-resolution workflow. Already-qualified cancellations and owned protective exits remain possible.
+- Offline credential rebind validates signed UID through the trusted epoch resolver, drains durable observations, retains commands and reservations, and waits for same-process windows and final pause. PostgreSQL rebind is BLOCKED because stream-lifetime ownership is not fenced across processes; venue identity continuity and PostgreSQL fencing remain unqualified. SQLite runtime windows are blocked, including execute=False.
+- Hosted protection now requests cancellation of a confirmed resting GTC mitigation after its bounded authority deadline. An acknowledged exit without a status requires original-ID reconciliation first, and a price rebound does not suppress cancellation. Orders with no remaining protection duty are also canceled or reconciled; a definitely-unsent expired cancellation can receive a new lineage, while UNKNOWN remains bound. A replacement requires terminal reconciliation and complete fill accounting. Dust, unavailable cancellation qualification, unresolved breaches, and account or stream uncertainty still block safe progress.
+- Offline local Demo tests: 125 passed, with one Starlette/httpx deprecation warning. Python compile and diff whitespace checks pass. No venue calls, credentials, Docker, deployed migrations, PostgreSQL concurrency qualification, full acceptance, or live trading were performed. Capability remains disabled pending qualification.
+
+- Runtime windows with `execute=False` still write reconciliation and stream observations; assessment can invoke model services and stage commands. Neither is an inert preview. No automatic startup or production wiring was added.
+
+- Quote-sized open BUYs have an unknown remaining base quantity, represented as null rather than a fabricated value. This permits protected SELL compilation while MAX_POSITION BUY admission fails closed. Actual Demo open-order semantics are unqualified; no venue calls were made.
+
+- Unmatched negative base exposure is retained in the management snapshot and blocks assessment/new risk, while independently qualified cancellation can still proceed. Protection fees beyond policy and unmatched debits produce durable breaches.

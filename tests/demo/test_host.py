@@ -218,3 +218,69 @@ def test_stop_trigger_stages_owned_exit_and_never_calls_send_from_event(host):
     assert Decimal(command['reserve_amount']) <= repo.asset_deltas(scope)['BTC']
     assert repo.protection_duties(scope)[0]['state'] == 'MITIGATION_PENDING'
     assert service.protection_tick()['commands'] == []  # no duplicate sell
+    repo.begin_send(scope, command['command_id'], expected_revision=repo.account(scope)['revision'], now=int(service.clock()))
+    repo.acknowledge(scope, command['command_id'], {'symbol': 'BTCUSDT', 'clientOrderId': command['client_id'], 'orderId': 45})
+    service.clock = lambda: command['expires_at']
+    service._frame = current
+    assert service.protection_tick()['state'] == 'RECONCILIATION_REQUIRED'
+    now = int(service.clock())
+    event = report(c=command['client_id'], S='SELL', q=command['request']['quantity'], p=command['request']['price'], i=45, t=-1, l='0', z='0', x='NEW', X='NEW', E=now * 1000)
+    observation = repo.observe(scope, source='WS_EXECUTION_REPORT', payload=event, received_at=now, credential_ref='demo-session:fixture')
+    DemoReportVerifier(repo).process(scope, observation)
+    service.clock = lambda: command['expires_at']
+    service._frame = current  # fixture clock advances; production fetches fresh data
+    service.owner.transport.last_price = lambda symbol: {'symbol': symbol, 'price': '51000'}  # rebound does not cancel the exit obligation
+    result = service.protection_tick()
+    assert result['state'] == 'CANCEL_STALE_PROTECTION'
+    assert result['commands'][0]['request']['origClientOrderId'] == command['client_id']
+    assert repo.protection_duties(scope)[0]['mitigation_command_id'] == command['command_id']
+    cancel = result['commands'][0]
+    repo.begin_send(scope, cancel['command_id'], expected_revision=repo.account(scope)['revision'], now=int(service.clock()))
+    repo.mark_unknown(scope, cancel['command_id'], 'LOST_RESPONSE')
+    assert service.protection_tick()['commands'] == []
+    assert repo.protection_duties(scope)[0]['mitigation_command_id'] == command['command_id']
+    event.update(x='CANCELED', X='CANCELED', E=int(service.clock()) * 1000)
+    observation = repo.observe(scope, source='WS_EXECUTION_REPORT', payload=event, received_at=int(service.clock()), credential_ref='demo-session:fixture')
+    DemoReportVerifier(repo).process(scope, observation)
+    assert repo.command(scope, cancel['command_id'])['state'] == 'OBSERVED'
+    assert repo.protection_duties(scope)[0]['mitigation_command_id'] is None
+    service.owner.transport.last_price = lambda symbol: {'symbol': symbol, 'price': '48000'}
+    retry = service.protection_tick()
+    assert retry['state'] == 'MITIGATION_STAGED'
+    assert retry['commands'][0]['command_id'] != command['command_id']
+
+
+def test_expired_unsent_cancel_gets_new_lineage(host):
+    service, repo, scope, config = host
+    asyncio.run(service.assess_once('entry-cancel'))
+    entry = service.admit_assessment('entry-cancel')
+    now = int(service.clock()); repo.begin_send(scope, entry['command_id'], expected_revision=0, now=now)
+    service._frame = lambda: frame(scope, config)
+    first = service.stage_cancel(entry['command_id'])
+    service.clock = lambda: first['expires_at']
+    second = service.stage_cancel(entry['command_id'])
+    assert second['command_id'] != first['command_id']
+    assert repo.command(scope, first['command_id'])['state'] == 'ABANDONED'
+    assert second['state'] == 'DURABLE_READY'
+
+
+def test_no_remaining_duty_still_cancels_confirmed_live_protection(host):
+    from types import SimpleNamespace
+    from sqlalchemy import update
+    from trading_system.storage.demo import accounts
+    from test_lifecycle import report
+    from trading_system.execution.demo_reports import DemoReportVerifier
+    service, repo, scope, config = host
+    with repo.transaction(scope.account_key) as conn:
+        conn.execute(update(accounts).values(qualification={'state':'DEMO_VERIFIED', 'code_sha':'a'*40, 'protection':'HOSTED'}))
+    now = int(service.clock())
+    request = {'symbol':'BTCUSDT', 'side':'SELL', 'type':'LIMIT', 'quantity':'0.001', 'price':'49000', 'newClientOrderId':'leftover-exit', 'timeInForce':'GTC'}
+    repo.stage(scope, command_id='leftover-exit', request=request, reserve_asset='BTC', reserve_amount='0.001', available='0.001', authorization_ref=config['authorization_ref'], expires_at=now+60, now=now, purpose='PROTECTION')
+    repo.begin_send(scope, 'leftover-exit', expected_revision=0, now=now)
+    event = report(c='leftover-exit', S='SELL', q='0.001', p='49000', i=45, t=-1, l='0', z='0', x='NEW', X='NEW', E=now*1000)
+    DemoReportVerifier(repo).process(scope, repo.observe(scope, source='WS_EXECUTION_REPORT', payload=event, received_at=now, credential_ref='demo-session:fixture'))
+    service.stream = SimpleNamespace(healthy=True, credential_ref='demo-session:fixture')
+    service.owner = SimpleNamespace(transport=SimpleNamespace(last_price=lambda symbol: {'symbol':symbol, 'price':'51000'}))
+    result = service.protection_tick()
+    assert result['state'] == 'CANCEL_STALE_PROTECTION'
+    assert result['commands'][0]['request']['origClientOrderId'] == 'leftover-exit'

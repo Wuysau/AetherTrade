@@ -54,7 +54,20 @@ class DemoFrameLoader:
             if not isinstance(open_orders, list) or len(open_orders) > 100:
                 raise DemoError('DEMO_OPEN_ORDER_BUDGET_EXCEEDED')
             selected = [row for row in open_orders if row.get('symbol') == 'BTCUSDT']
-            pending_buy = sum((decimal(row['origQty']) - decimal(row['executedQty']) for row in selected if row['side'] == 'BUY'), decimal('0'))
+            pending_buy = decimal('0')
+            for row in selected:
+                if row.get('side') != 'BUY':
+                    continue
+                original, executed = decimal(row.get('origQty')), decimal(row.get('executedQty'))
+                quote_sized = row.get('type') == 'MARKET' and (original == 0 or decimal(row.get('origQuoteOrderQty', '0')) > 0)
+                if quote_sized:
+                    # The quote budget cannot bound the base remainder without
+                    # a guaranteed minimum execution price. Preserve unknown.
+                    pending_buy = None
+                elif executed > original:
+                    raise DemoError('DEMO_OPEN_ORDER_QUANTITY_INVALID')
+                elif pending_buy is not None:
+                    pending_buy += original - executed
             average = transport.average_price('BTCUSDT')
             last = transport.last_price('BTCUSDT')
             if type(average.get('mins')) is not int or type(average.get('closeTime')) is not int or not 0 <= datetime.now(timezone.utc).timestamp() * 1000 - average['closeTime'] <= 5000 or last.get('symbol') != 'BTCUSDT':
@@ -62,7 +75,7 @@ class DemoFrameLoader:
             base = balances.get('BTC', {'free': '0', 'locked': '0'})
             execution = {'average_price': average['price'], 'average_minutes': average['mins'], 'last_price': last['price'],
                 'open_order_count': len(selected), 'exchange_open_order_count': len(open_orders),
-                'account_base_quantity': str(decimal(base['free']) + decimal(base['locked'])), 'pending_buy_quantity': str(pending_buy),
+                'account_base_quantity': str(decimal(base['free']) + decimal(base['locked'])), 'pending_buy_quantity': str(pending_buy) if pending_buy is not None else None,
                 'as_of': datetime.now(timezone.utc).isoformat()}
         book = transport.book_ticker('BTCUSDT')
         if book.get('symbol') != 'BTCUSDT':

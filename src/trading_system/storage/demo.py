@@ -33,7 +33,7 @@ commands = Table('demo_commands', metadata,
     Column('reserve_asset', String(20), nullable=False), Column('reserve_amount', Text, nullable=False),
     Column('original_reserve', Text, nullable=False), Column('protection_plan', JSON), Column('risk_receipt', JSON),
     Column('purpose', String(24), nullable=False, server_default='ENTRY'), Column('order_id', String(64)),
-    Column('order_status', String(32)), Column('cumulative_qty', Text, nullable=False), Column('reason', Text),
+    Column('order_status', String(32)), Column('cumulative_qty', Text, nullable=False), Column('cumulative_quote', Text, nullable=False, server_default='0'), Column('reason', Text),
     UniqueConstraint('account_key', 'namespace', 'client_id', name='demo_client_identity'))
 observations = Table('demo_observations', metadata,
     Column('observation_id', String(64), primary_key=True), Column('account_key', String(64), nullable=False),
@@ -190,22 +190,39 @@ class DemoRepository:
         if not authorization_ref or type(expires_at) is not int or not now < expires_at <= now + 300:
             raise DemoError('DEMO_AUTHORIZATION_EXPIRED')
         if method == 'POST':
-            required = {'symbol', 'side', 'type', 'quantity', 'newClientOrderId'}
-            allowed = required | {'price', 'timeInForce'}
-            if not required <= request.keys() or request.keys() - allowed or request['type'] not in {'LIMIT', 'MARKET'} or request['side'] not in {'BUY', 'SELL'}:
+            required = {'symbol', 'side', 'type', 'newClientOrderId'}
+            allowed = required | {'quantity', 'quoteOrderQty', 'price', 'timeInForce'}
+            if not required <= request.keys() or request.keys() - allowed or request['type'] not in {'LIMIT', 'MARKET'} or request['side'] not in {'BUY', 'SELL'} or ('quantity' in request) == ('quoteOrderQty' in request):
                 raise DemoError('DEMO_ORDER_INVALID')
-            decimal(request['quantity'], positive=True)
             client_id = request['newClientOrderId']
             if request['symbol'] != 'BTCUSDT':
                 raise DemoError('DEMO_RESERVATION_SYMBOL_NOT_QUALIFIED')
             expected_asset = 'USDT' if request['side'] == 'BUY' else 'BTC'
             if reserve_asset != expected_asset:
                 raise DemoError('DEMO_RESERVATION_ASSET_INVALID')
-            if request['type'] != 'LIMIT':
-                raise DemoError('DEMO_MARKET_RISK_NOT_QUALIFIED')
-            required_amount = decimal(request['quantity'], positive=True)
-            if request['side'] == 'BUY':
-                required_amount *= decimal(request.get('price'), positive=True)
+            if request['type'] == 'LIMIT':
+                if 'quoteOrderQty' in request or request.get('timeInForce') != 'GTC':
+                    raise DemoError('DEMO_ORDER_INVALID')
+                required_amount = decimal(request['quantity'], positive=True)
+                if request['side'] == 'BUY': required_amount *= decimal(request.get('price'), positive=True)
+            else:
+                risk = (risk_receipt or {}).get('market_risk') or {}
+                sizing = 'QUOTE_NOTIONAL' if request['side'] == 'BUY' else 'BASE_QUANTITY'
+                field = 'quoteOrderQty' if request['side'] == 'BUY' else 'quantity'
+                if 'price' in request or 'timeInForce' in request or field not in request or risk.get('sizing') != sizing or risk.get('price_policy') != 'UNBOUNDED_EXECUTION_PRICE':
+                    raise DemoError('DEMO_MARKET_RISK_NOT_QUALIFIED')
+                if request['side'] == 'SELL' and purpose not in {'REDUCTION', 'PROTECTION'}:
+                    raise DemoError('DEMO_UNOWNED_EXPOSURE')
+                fee_assets = risk.get('fee_assets')
+                if not isinstance(fee_assets, list) or not fee_assets or set(fee_assets) - {'BTC', 'USDT'}:
+                    raise DemoError('DEMO_MARKET_FEE_NOT_QUALIFIED')
+                principal = decimal(request[field], positive=True)
+                if decimal(risk.get('principal_cap')) != principal:
+                    raise DemoError('DEMO_MARKET_PRINCIPAL_INVALID')
+                fee_rate = decimal(risk.get('fee_rate_cap'))
+                if fee_rate > 1:
+                    raise DemoError('DEMO_MARKET_FEE_NOT_QUALIFIED')
+                required_amount = principal * (1 + fee_rate)
             if amount < required_amount:
                 raise DemoError('DEMO_RESERVATION_TOO_SMALL')
         else:
@@ -218,6 +235,8 @@ class DemoRepository:
             account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
             if account['frozen']:
                 raise DemoError('DEMO_EPOCH_FROZEN')
+            if method == 'POST' and purpose == 'ENTRY' and conn.execute(select(outbox.c.event_id).where(outbox.c.account_key == scope.account_key, outbox.c.kind == 'EXECUTION_RISK_BREACH')).first():
+                raise DemoError('DEMO_EXECUTION_RISK_BREACH')
             if expected_account_revision is not None and account['revision'] != expected_account_revision:
                 raise DemoError('DEMO_DECISION_BINDING_CHANGED')
             if expected_strategy_revision is not None:
@@ -246,7 +265,7 @@ class DemoRepository:
             conn.execute(insert(commands).values(command_id=command_id, account_key=scope.account_key, scope_key=scope.key,
                 scope=asdict(scope), namespace='SPOT' if method == 'POST' else 'SPOT_CANCEL', client_id=client_id, request=dict(request), request_hash=intent_hash,
                 authorization_ref=authorization_ref, credential_revision=account['credential_revision'], admission_revision=account['revision'], state='DURABLE_READY', method=method,
-                expires_at=expires_at, purpose=purpose, protection_plan=protection_plan, risk_receipt=risk_receipt, reserve_asset=reserve_asset, reserve_amount=str(amount), original_reserve=str(amount), cumulative_qty='0'))
+                expires_at=expires_at, purpose=purpose, protection_plan=protection_plan, risk_receipt=risk_receipt, reserve_asset=reserve_asset, reserve_amount=str(amount), original_reserve=str(amount), cumulative_qty='0', cumulative_quote='0'))
             self._event(conn, scope.account_key, 'COMMAND_STAGED', command_id, {'command_id': command_id, 'request_hash': intent_hash})
         return self.command(scope, command_id)
 
@@ -261,6 +280,8 @@ class DemoRepository:
             if account['frozen'] or account['revision'] != expected_revision or row['admission_revision'] != expected_revision or row['credential_revision'] != account['credential_revision'] or row['expires_at'] <= now:
                 raise DemoError('DEMO_SEND_AUTHORIZATION_STALE')
             if row['method'] == 'POST':
+                if row['purpose'] == 'ENTRY' and conn.execute(select(outbox.c.event_id).where(outbox.c.account_key == scope.account_key, outbox.c.kind == 'EXECUTION_RISK_BREACH')).first():
+                    raise DemoError('DEMO_EXECUTION_RISK_BREACH')
                 pending = conn.execute(select(inbox.c.observation_id).where(inbox.c.state != 'PROCESSED', inbox.c.observation_id.in_(select(observations.c.observation_id).where(observations.c.account_key == scope.account_key)))).first()
                 if pending:
                     raise DemoError('DEMO_INBOX_RECONCILIATION_REQUIRED')
@@ -323,6 +344,7 @@ class DemoRepository:
             def count(table, predicate):
                 return conn.execute(select(func.count()).select_from(table).where(predicate)).scalar_one()
             return {'fill_count': count(fills, fills.c.account_key == scope.account_key),
+                    'risk_breaches': count(outbox, (outbox.c.account_key == scope.account_key) & (outbox.c.kind == 'EXECUTION_RISK_BREACH')),
                     'unknown': count(commands, (commands.c.account_key == scope.account_key) & commands.c.state.in_(['MAY_HAVE_SENT', 'UNKNOWN'])),
                     'unprotected': count(protection, (protection.c.account_key == scope.account_key) & (protection.c.state != 'SATISFIED') & ((protection.c.state != 'HOSTED_ACTIVE') | (protection.c.coverage_until <= now))),
                     'pending_inbox': count(inbox, (inbox.c.state != 'PROCESSED') & inbox.c.observation_id.in_(select(observations.c.observation_id).where(observations.c.account_key == scope.account_key)))}
@@ -340,6 +362,9 @@ class DemoRepository:
                 conn.execute(update(reconciliations).where(reconciliations.c.account_key == scope.account_key, reconciliations.c.symbol == symbol).values(cursor=cursor, complete=complete, revision=expected_revision + 1))
 
     def rotate_credential(self, scope, *, credential_ref, fingerprint, expected_revision):
+        if self.engine.dialect.name == 'postgresql':
+            # A process-local lock cannot fence another process's live stream.
+            raise DemoError('DEMO_CREDENTIAL_REBIND_FENCING_UNQUALIFIED')
         # Call under the owner_guard in a deployed PostgreSQL runtime. SQLite is
         # offline-only and cannot have an executing owner.
         guard = self.owner_guard(scope) if self.engine.dialect.name == 'postgresql' else self._lock
@@ -347,6 +372,10 @@ class DemoRepository:
             row = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
             if row['revision'] != expected_revision:
                 raise DemoError('DEMO_CREDENTIAL_REVISION_CONFLICT')
+            pending = conn.execute(select(inbox.c.observation_id).where(inbox.c.state != 'PROCESSED', inbox.c.observation_id.in_(
+                select(observations.c.observation_id).where(observations.c.account_key == scope.account_key)))).first()
+            if pending:
+                raise DemoError('DEMO_INBOX_RECONCILIATION_REQUIRED')
             conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(credential_ref=credential_ref,
                 fingerprint=fingerprint, revision=expected_revision + 1, credential_revision=row['credential_revision'] + 1, state='READ_ONLY', qualification=None))
 
@@ -492,6 +521,13 @@ class DemoRepository:
             return [dict(row) for row in conn.execute(select(commands).where(commands.c.scope_key == scope.key, commands.c.method == 'POST',
                 commands.c.state != 'ABANDONED', (commands.c.order_status.is_(None) | commands.c.order_status.not_in(['FILLED', 'CANCELED', 'EXPIRED', 'REJECTED', 'EXPIRED_IN_MATCH']) | (commands.c.reserve_amount != '0')))).mappings()]
 
+    def mitigation_lineage(self, scope, fill_keys):
+        keys = set(fill_keys)
+        with self.engine.connect() as conn:
+            rows = conn.execute(select(commands.c.command_id, commands.c.risk_receipt).where(
+                commands.c.scope_key == scope.key, commands.c.purpose == 'PROTECTION')).all()
+        return sorted(row.command_id for row in rows if keys.intersection((row.risk_receipt or {}).get('protection_fill_keys', [])))
+
     def protection_duties(self, scope):
         with self.engine.connect() as conn:
             return [dict(row) for row in conn.execute(select(protection).where(protection.c.scope_key == scope.key, protection.c.state != 'SATISFIED').order_by(protection.c.opened_at, protection.c.fill_key)).mappings()]
@@ -542,6 +578,17 @@ class DemoRepository:
                     raise DemoError('DEMO_PROTECTION_COMMAND_CONFLICT')
                 conn.execute(update(protection).where(protection.c.fill_key == key).values(state='MITIGATION_PENDING', mitigation_command_id=command_id, coverage_until=0))
 
+    def abandon_unneeded_protection(self, scope):
+        with self.safety_guard(scope), self.transaction(scope.account_key) as conn:
+            if conn.execute(select(protection.c.fill_key).where(protection.c.scope_key == scope.key, protection.c.state != 'SATISFIED')).first():
+                return 0
+            rows = conn.execute(select(commands.c.command_id).where(commands.c.scope_key == scope.key,
+                commands.c.purpose == 'PROTECTION', commands.c.state == 'DURABLE_READY')).scalars().all()
+            for command_id in rows:
+                conn.execute(update(commands).where(commands.c.command_id == command_id).values(state='ABANDONED', reserve_amount='0', reason='DEMO_NO_REMAINING_PROTECTION_DUTY'))
+                self._event(conn, scope.account_key, 'COMMAND_ABANDONED_UNSENT', command_id, {'command_id': command_id})
+            return len(rows)
+
     def abandon_stale_unsent(self, scope, *, now):
         with self.safety_guard(scope), self.transaction(scope.account_key) as conn:
             account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
@@ -552,6 +599,12 @@ class DemoRepository:
                 conn.execute(update(protection).where(protection.c.scope_key == scope.key, protection.c.mitigation_command_id == row['command_id'], protection.c.state == 'MITIGATION_PENDING').values(state='REQUIRED', mitigation_command_id=None, coverage_until=0))
                 self._event(conn, scope.account_key, 'COMMAND_ABANDONED_UNSENT', row['command_id'], {'command_id': row['command_id']})
             return len(rows)
+
+    def cancel_lineage(self, scope, original_client_id):
+        with self.engine.connect() as conn:
+            rows = conn.execute(select(commands.c.command_id, commands.c.request).where(
+                commands.c.scope_key == scope.key, commands.c.method == 'DELETE')).all()
+        return sorted(row.command_id for row in rows if row.request.get('origClientOrderId') == original_client_id)
 
     def pending_cancel(self, scope, original_client_id):
         with self.engine.connect() as conn:

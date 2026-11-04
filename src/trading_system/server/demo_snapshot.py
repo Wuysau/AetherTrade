@@ -15,6 +15,12 @@ TOP = {'schema_revision', 'scope', 'instrument_ref', 'venue', 'product', 'source
        'snapshot_id', 'snapshot_hash', 'task_profile', 'market', 'portfolio', 'constraints', 'costs', 'bindings', 'quality', 'evidence_refs', 'rules'}
 
 
+def _signed_decimal(value):
+    if isinstance(value, str) and value.startswith('-'):
+        return -decimal(value[1:])
+    return decimal(value)
+
+
 def snapshot_hash(snapshot):
     return digest({k: v for k, v in snapshot.items() if k not in {'snapshot_id', 'snapshot_hash', 'built_at'}})
 
@@ -43,7 +49,7 @@ def build_demo_snapshot(*, scope, strategy, account, market, rules, qualificatio
         if bars:
             features[interval] = _features(bars)
     cash = decimal(account['balances'].get('USDT', {}).get('free', '0'))
-    base = decimal(account['position'])
+    base = _signed_decimal(account['position'])
     budget = min(decimal(strategy['budget'], positive=True), Decimal('10000'))
     fee = account.get('fee_rate')
     fee_cap = decimal(strategy['fee_rate_cap'])
@@ -58,6 +64,8 @@ def build_demo_snapshot(*, scope, strategy, account, market, rules, qualificatio
     missing = [ref for ref in profile['required'] if sections[ref]['status'] != 'READY']
     if not 0 <= account_age <= 15:
         missing.append('account')
+    if base < 0:
+        missing.append('unmatched_base_exposure')
     snapshot = {'schema_revision': SCHEMA, 'scope': asdict(scope), 'instrument_ref': 'binance-demo:SPOT:BTCUSDT',
         'venue': 'BINANCE', 'product': 'SPOT', 'source_id': 'BINANCE_DEMO:SPOT', 'evidence_cutoff': now.isoformat(), 'built_at': now.isoformat(),
         'task_profile': profile,
@@ -67,7 +75,7 @@ def build_demo_snapshot(*, scope, strategy, account, market, rules, qualificatio
                       'position': {'symbol': 'BTCUSDT', 'quantity': str(base)} if base else None, 'previous_proposal': deepcopy(account.get('previous_proposal'))},
         'constraints': {'maximum_target_notional': str(budget), 'max_planned_loss': strategy['max_planned_loss'], 'max_daily_loss': strategy['max_daily_loss'],
                         'protection_supported': qualification.get('state') == 'DEMO_VERIFIED' and qualification.get('protection') == strategy['protection_mode'],
-                        'execution_supported': qualification.get('state') == 'DEMO_VERIFIED'},
+                        'execution_supported': qualification.get('state') == 'DEMO_VERIFIED' and base >= 0},
         'costs': {'fee_rate': str(decimal(fee)) if fee is not None else None, 'fee_rate_cap': str(fee_cap), 'fee_source': 'BINANCE_DEMO_ACCOUNT' if complete else 'UNAVAILABLE', 'complete': complete},
         'bindings': {'account_revision': account['revision'], 'credential_revision': account['credential_revision'], 'account_as_of': account['observed_at'],
                      'plan_revision': account.get('plan_revision', 0), 'protection_hash': account.get('protection_hash', digest([])),
@@ -106,7 +114,8 @@ def validate_demo_snapshot(snapshot):
         context = snapshot['market']['execution_context']
         if context:
             _exact(context, {'average_price', 'average_minutes', 'last_price', 'open_order_count', 'exchange_open_order_count', 'account_base_quantity', 'pending_buy_quantity', 'as_of'})
-            for field in ('average_price', 'last_price', 'account_base_quantity', 'pending_buy_quantity'): decimal(context[field])
+            for field in ('average_price', 'last_price', 'account_base_quantity'): decimal(context[field])
+            if context['pending_buy_quantity'] is not None: decimal(context['pending_buy_quantity'])
             if any(type(context[field]) is not int or context[field] < 0 for field in ('average_minutes', 'open_order_count', 'exchange_open_order_count')) or not 0 <= (cutoff - datetime.fromisoformat(context['as_of'])).total_seconds() <= 5:
                 raise DemoError('DEMO_FILTER_CONTEXT_INVALID')
         if set(snapshot['market']['candles']) != set(profile['windows']):
@@ -125,9 +134,10 @@ def validate_demo_snapshot(snapshot):
         _exact(snapshot['portfolio']['account'], {'cash', 'equity', 'currency', 'paused'})
         if snapshot['portfolio']['account']['currency'] != 'USDT' or type(snapshot['portfolio']['account']['paused']) is not bool:
             raise DemoError('DEMO_SNAPSHOT_PORTFOLIO_INVALID')
-        for field in ('cash', 'equity'): decimal(snapshot['portfolio']['account'][field])
+        decimal(snapshot['portfolio']['account']['cash'])
+        _signed_decimal(snapshot['portfolio']['account']['equity'])
         if snapshot['portfolio']['position'] is not None:
-            _exact(snapshot['portfolio']['position'], {'symbol', 'quantity'}); decimal(snapshot['portfolio']['position']['quantity'])
+            _exact(snapshot['portfolio']['position'], {'symbol', 'quantity'}); _signed_decimal(snapshot['portfolio']['position']['quantity'])
         if snapshot['portfolio']['previous_proposal'] is not None:
             from trading_system.contracts.wire import ContractCodec
             previous = ContractCodec().decode('decision-proposal', snapshot['portfolio']['previous_proposal'])
@@ -159,6 +169,8 @@ def validate_demo_snapshot(snapshot):
         required = [ref for ref in profile['required'] if not expected[ref]]
         if not 0 <= (cutoff - datetime.fromisoformat(snapshot['bindings']['account_as_of'])).total_seconds() <= 15:
             required.append('account')
+        if snapshot['portfolio']['position'] is not None and _signed_decimal(snapshot['portfolio']['position']['quantity']) < 0:
+            required.append('unmatched_base_exposure')
         optional = [ref for ref in profile['optional'] if not expected[ref]]
         if snapshot['quality']['missing_required'] != required or snapshot['quality']['missing_optional'] != optional or snapshot['quality']['status'] != ('DATA_BLOCKED' if required else 'READY'):
             raise DemoError('DEMO_SNAPSHOT_QUALITY_INVALID')

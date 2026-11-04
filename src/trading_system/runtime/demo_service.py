@@ -6,6 +6,7 @@ and build SHA. There is deliberately no HTTP enable/qualification-write route.
 import asyncio
 from dataclasses import dataclass
 import time
+from threading import RLock
 from uuid import uuid4
 
 from trading_system.engine.binance_demo.contracts import DemoError, DemoScope
@@ -35,11 +36,30 @@ class DemoRuntimeService:
         self.scope_resolver, self.current_code_sha = scope_resolver, current_code_sha
         self.rule_assessor, self.hybrid_gate = rule_assessor, hybrid_gate
         self._sessions = {}
+        self._lifecycle_lock = RLock()
 
     def bind_session(self, session_key):
+        with self._lifecycle_lock:
+            return self._bind_session(session_key)
+
+    def _bind_session(self, session_key):
         if session_key in self._sessions:
-            self._sessions[session_key].lease.validate()
-            return self.status(session_key)
+            previous = self._sessions[session_key]
+            try:
+                if previous.revoked:
+                    raise DemoError('DEMO_SESSION_LEASE_REVOKED')
+                previous.lease.validate()
+            except DemoError:
+                # A revoked session must finish its stream window before a new
+                # credential may take ownership. Never overlap old and new.
+                if previous.running:
+                    previous.revoked = True
+                    previous.stream.healthy = False
+                    previous.transport.close()
+                    raise DemoError('DEMO_RUNTIME_DRAIN_REQUIRED') from None
+                self.close_session(session_key)
+            else:
+                return self.status(session_key)
         lease = self.connections.connection_lease(session_key)
         transport = lease.transport()
         try:
@@ -49,8 +69,28 @@ class DemoRuntimeService:
             scope = self.scope_resolver(account)
             if type(scope) is not DemoScope or scope.product != 'SPOT' or type(account.get('uid')) is not int or str(account['uid']) != scope.account_id:
                 raise DemoError('DEMO_VERIFIED_ACCOUNT_IDENTITY_REQUIRED')
+            if any(other.running and other.host.scope.account_key == scope.account_key for other in self._sessions.values()):
+                raise DemoError('DEMO_ACCOUNT_RUNTIME_DRAIN_REQUIRED')
             fingerprint = self.connections.provider.describe(lease.credential_ref)['fingerprint']
-            self.repository.register_account(scope, credential_ref=lease.credential_ref, fingerprint=fingerprint, budget='10000')
+            try:
+                existing = self.repository.account(scope)
+            except DemoError as exc:
+                if exc.code != 'DEMO_ACCOUNT_UNREGISTERED':
+                    raise
+                self.repository.register_account(scope, credential_ref=lease.credential_ref, fingerprint=fingerprint, budget='10000')
+            else:
+                if existing['credential_ref'] != lease.credential_ref or existing['fingerprint'] != fingerprint:
+                    # Process already durable observations under their original
+                    # revision before atomically changing that revision.
+                    from trading_system.execution.demo_reports import DemoReportVerifier
+                    verifier = DemoReportVerifier(self.repository)
+                    for observation in self.repository.pending_observations(scope, limit=1000):
+                        if not observation.get('scope'):
+                            raise DemoError('DEMO_OBSERVATION_SCOPE_MISSING')
+                        verifier.process(DemoScope(**observation['scope']), observation['observation_id'])
+                    lease.validate()
+                    existing = self.repository.account(scope)
+                    self.repository.rotate_credential(scope, credential_ref=lease.credential_ref, fingerprint=fingerprint, expected_revision=existing['revision'])
             stream = DemoUserStreamConsumer(self.repository, scope, lease.credential_ref, request_id='demo-' + uuid4().hex)
             host = DemoStrategyHost(self.repository, scope, frame_loader=DemoFrameLoader(self.repository, scope, transport, current_code_sha=self.current_code_sha),
                 model_service=self.models, execution_owner=DemoExecutionOwner(self.repository, transport, preflight=lease.validate), stream=stream,
@@ -89,18 +129,23 @@ class DemoRuntimeService:
         return result
 
     async def run_window(self, session_key, *, duration_seconds, execute=False, decision_interval_seconds=60, socket_factory=private_connection):
-        runtime = self._runtime(session_key)
-        if runtime.running or type(duration_seconds) is not int or not 1 <= duration_seconds <= 900 or type(decision_interval_seconds) is not int or decision_interval_seconds < 30:
-            raise DemoError('DEMO_RUNTIME_WINDOW_INVALID')
-        if time.time() + duration_seconds >= runtime.lease.expires_at:
-            raise DemoError('DEMO_WINDOW_EXCEEDS_CREDENTIAL_TTL')
-        if execute:
-            strategy = self.repository.strategy(runtime.host.scope)
-            if strategy.get('allow_execution') is not True or strategy['authorized_until'] < time.time() + duration_seconds:
-                raise DemoError('DEMO_EXECUTION_PERMISSION_REQUIRED')
+        with self._lifecycle_lock:
+            runtime = self._runtime(session_key)
+            if runtime.running or type(duration_seconds) is not int or not 1 <= duration_seconds <= 900 or type(decision_interval_seconds) is not int or decision_interval_seconds < 30:
+                raise DemoError('DEMO_RUNTIME_WINDOW_INVALID')
+            if any(other is not runtime and other.running and other.host.scope.account_key == runtime.host.scope.account_key for other in self._sessions.values()):
+                raise DemoError('DEMO_ACCOUNT_RUNTIME_DRAIN_REQUIRED')
+            if self.repository.account(runtime.host.scope)['credential_ref'] != runtime.lease.credential_ref:
+                raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
             if self.repository.engine.dialect.name != 'postgresql':
                 raise DemoError('DEMO_POSTGRESQL_OWNER_REQUIRED')
-        runtime.running = True
+            if time.time() + duration_seconds >= runtime.lease.expires_at:
+                raise DemoError('DEMO_WINDOW_EXCEEDS_CREDENTIAL_TTL')
+            if execute:
+                strategy = self.repository.strategy(runtime.host.scope)
+                if strategy.get('allow_execution') is not True or strategy['authorized_until'] < time.time() + duration_seconds:
+                    raise DemoError('DEMO_EXECUTION_PERMISSION_REQUIRED')
+            runtime.running = True
         deadline = time.monotonic() + duration_seconds
         window_id = uuid4().hex
         async def supervise(stream):
@@ -127,6 +172,9 @@ class DemoRuntimeService:
                                 await asyncio.to_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
                                 last_recovery = time.monotonic()
                             protection = await asyncio.to_thread(runtime.host.protection_tick)
+                            if protection['state'] == 'RECONCILIATION_REQUIRED' and time.monotonic() - last_recovery >= 5:
+                                await asyncio.to_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
+                                last_recovery = time.monotonic()
                             for command in protection['commands']:
                                 self._runtime(session_key)
                                 await asyncio.to_thread(runtime.host.dispatch, command['command_id'])
@@ -172,13 +220,24 @@ class DemoRuntimeService:
         try:
             await runtime.stream.run_window(runtime.transport, duration_seconds=duration_seconds, on_subscribed=supervise, socket_factory=socket_factory)
         finally:
-            runtime.running = False
-            self.repository.pause(runtime.host.scope, 'DEMO_RUNTIME_WINDOW_ENDED')
+            with self._lifecycle_lock:
+                try:
+                    self.repository.pause(runtime.host.scope, 'DEMO_RUNTIME_WINDOW_ENDED')
+                finally:
+                    runtime.running = False
+                    if runtime.revoked and self._sessions.get(session_key) is runtime:
+                        self._sessions.pop(session_key, None)
         return self.status(session_key)
 
     def close_session(self, session_key):
-        runtime = self._sessions.pop(session_key, None)
+        with self._lifecycle_lock:
+            return self._close_session(session_key)
+
+    def _close_session(self, session_key):
+        runtime = self._sessions.get(session_key)
         if runtime:
+            if not runtime.running:
+                self._sessions.pop(session_key, None)
             runtime.revoked = True; runtime.stream.healthy = False
             try:
                 self.repository.pause(runtime.host.scope, 'DEMO_SESSION_REVOKED')
