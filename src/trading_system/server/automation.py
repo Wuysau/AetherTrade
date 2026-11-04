@@ -346,6 +346,17 @@ class AutomationService:
                                 schedule['last_price_trigger_key'] = key
                     except ApiError:
                         pass
+                if (schedule.get('last_analysis_at')
+                        and schedule.get('activated_at') == strategy.get('_activated_at')):
+                    from trading_system.contracts.canonical import utc_timestamp
+                    earliest = (utc_timestamp(schedule['last_analysis_at'])
+                                + timedelta(seconds=strategy.get('analysis_interval_seconds', 300)))
+                    if earliest > utc_timestamp(current_time):
+                        if (not schedule.get('next_analysis_at')
+                                or utc_timestamp(schedule['next_analysis_at']) < earliest):
+                            schedule['next_analysis_at'] = earliest.isoformat()
+                            put(connection, schedules, strategy['id'], schedule)
+                        continue
                 if schedule.get("activated_at") == strategy.get("_activated_at") and schedule.get("next_analysis_at") and schedule["next_analysis_at"] > current_time:
                     continue
                 analysis_mode, identifiers = self._binding(strategy)

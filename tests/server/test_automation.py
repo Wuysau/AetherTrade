@@ -1,5 +1,5 @@
 import asyncio
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 import httpx
@@ -11,7 +11,7 @@ from trading_system.server.config import Settings
 from trading_system.server.errors import ApiError
 from trading_system.server.model_service import ModelService
 from trading_system.server import model_repository as repository
-from trading_system.server.store import Store, now, stamp, positions
+from trading_system.server.store import Store, now, stamp, positions, strategies
 from server.test_store import market
 
 
@@ -88,6 +88,7 @@ def fake(service, action="BUY", callback=None):
 def due(service, saved):
     with service.store.transaction() as connection:
         schedule = read(connection, schedules, saved["id"])
+        schedule["last_analysis_at"] = (now() - timedelta(seconds=saved.get("analysis_interval_seconds", 300) + 1)).isoformat()
         schedule["next_analysis_at"] = (now() - timedelta(seconds=1)).isoformat()
         put(connection, schedules, saved["id"], schedule)
 
@@ -113,6 +114,30 @@ def test_price_watch_does_not_requeue_on_each_quote_after_failed_review(system):
     with system.store.transaction() as connection:
         schedule = read(connection, schedules, saved["id"])
     assert schedule["next_analysis_at"] > stamp()
+
+
+def test_watch_review_waits_for_configured_analysis_interval(system):
+    saved = strategy(system, analysis_interval_seconds=300)
+    with system.store.transaction() as connection:
+        current = read(connection, strategies, saved["id"])
+        put(connection, schedules, saved["id"], dict(
+            next_analysis_at=(now() + timedelta(hours=1)).isoformat(),
+            last_analysis_at=stamp(),
+            watch_conditions=[{"kind": "PRICE_ABOVE", "value": "49000", "evidence_ref": "quote"}],
+            watch_baseline={"price": "48000"},
+            activated_at=current.get("_activated_at")))
+
+    assert system._claim(system.models.get_config(), market("50000")) is None
+    with system.store.transaction() as connection:
+        schedule = read(connection, schedules, saved["id"])
+    assert schedule["review_kind"] == "HYPOTHESIS_REVIEW"
+    assert 295 <= (datetime.fromisoformat(schedule["next_analysis_at"]) - now()).total_seconds() <= 300
+
+    with system.store.transaction() as connection:
+        schedule["last_analysis_at"] = (now() - timedelta(seconds=301)).isoformat()
+        schedule["next_analysis_at"] = (now() - timedelta(seconds=1)).isoformat()
+        put(connection, schedules, saved["id"], schedule)
+    assert system._claim(system.models.get_config(), market("50001")) is not None
 
 
 def dashboard(service):
