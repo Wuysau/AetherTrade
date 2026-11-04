@@ -177,6 +177,8 @@ def parse_program_assessment(value,frame,*,now=None):
             require(now<utc_timestamp(typed.program.submit_valid_until),'PROGRAM_SUBMISSION_EXPIRED')
         if typed.action in ('HOLD','UPDATE_EXIT'):
             previous=snapshot['portfolio'].get('previous_proposal')
+            if previous is None and frame.memory_context:
+                previous=frame.memory_context.get('previous_proposal')
             require(type(previous) is dict and previous.get('contract_version')=='2026-10-29',
                     'PROGRAM_PREVIOUS_RESPONSIBILITY_REQUIRED')
             from trading_system.contracts.order_program import validate_program_transition

@@ -188,6 +188,8 @@ class DecisionContextAssembler:
         cursor = max(0, state.event_cursor - max(4, self.budget.max_events * 2))
         events = self.memory.list_events_since(scope, cursor)
         plan = state.active_plan
+        if previous_proposal is None and plan is not None and plan.source_proposal:
+            previous_proposal = dict(plan.source_proposal)
         execution = self.memory.get_execution_facts(scope, plan.plan_id if plan else None)
         knowledge = self.memory.repository.list_knowledge(scope, limit=max(2, self.budget.max_knowledge * 2))
         bundle = self.retriever.build(

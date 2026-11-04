@@ -171,7 +171,7 @@ class StrategyMemoryService:
             evidence_refs=tuple(self._evidence_refs(decision)),
             invalidation_conditions=tuple(self._invalidation(decision)),
             valid_until=proposal.get("valid_until"), created_at=created_at,
-            updated_at=created_at, source="MODEL")
+            updated_at=created_at, source="MODEL", source_proposal=dict(proposal))
         self.append_event(scope, EventType.PLAN_PROPOSED, domain_payload(plan),
                           source="MODEL", idempotency_key=f"plan:{scope.scope_id}:{run_id}",
                           occurred_at=created_at)

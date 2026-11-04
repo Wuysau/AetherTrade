@@ -1,0 +1,78 @@
+{
+  "schema_revision": "memory-verification-v1",
+  "recorded_at": "2026-11-04",
+  "baseline_head": "b15a825",
+  "implementation_head_at_run": "936a26a3591e846f5b97e4fd891bdab68182b15c",
+  "environment": {
+    "platform": "win32",
+    "python": "3.14.2",
+    "pytest": "9.1.1",
+    "database": "SQLite unit/light only",
+    "docker_used": false,
+    "postgresql_used": false,
+    "paid_model_calls": false
+  },
+  "commands": [
+    {
+      "name": "memory_suite",
+      "command": ".venv/Scripts/python.exe -m pytest tests/unit/test_memory_contracts.py tests/unit/test_memory_repository.py tests/unit/test_memory_context.py tests/unit/test_memory_service.py tests/unit/test_memory_governance.py tests/unit/test_memory_recovery.py tests/unit/test_memory_acceptance.py tests/server/test_memory_integration.py tests/server/test_memory_api.py -q --disable-warnings",
+      "exit_code": 0,
+      "result": "65 passed, 1 warning",
+      "duration_seconds": 7.81,
+      "status": "PASS"
+    },
+    {
+      "name": "full_light_regression",
+      "command": ".venv/Scripts/python.exe -m pytest tests/contracts tests/intents tests/unit tests/security tests/server tests/api tests/terminal tests/research tests/faults tests/ops -q --disable-warnings -m \"not paper_runtime\"",
+      "exit_code": 0,
+      "result": "3313 passed, 12 skipped, 56 deselected, 1 warning",
+      "duration_seconds": 136.31,
+      "status": "PASS"
+    },
+    {
+      "name": "postgresql_migration_and_restore",
+      "command": "not run (no approved Docker/PostgreSQL access)",
+      "exit_code": null,
+      "result": null,
+      "duration_seconds": null,
+      "status": "BLOCKED"
+    }
+  ],
+  "resources": {
+    "d_free_bytes_before": 284787748864,
+    "d_free_bytes_after": 284781223936,
+    "net_change_bytes": 6524928,
+    "containers_created": 0,
+    "databases_created": 0
+  },
+  "acceptance": {
+    "T01": "PASS",
+    "T02": "PASS",
+    "T03": "PASS",
+    "T04": "PASS",
+    "T05": "PASS",
+    "T06": "PASS",
+    "T07": "PASS",
+    "T08": "PASS",
+    "T09": "PASS",
+    "T10": "PASS",
+    "T11": "PASS",
+    "T12": "PASS",
+    "T13": "PASS",
+    "T14": "PASS_SQLITE_PROJECTION_ONLY",
+    "T15": "PASS",
+    "T16": "PASS",
+    "T17": "PASS",
+    "T18": "PASS"
+  },
+  "blocked": [
+    "PostgreSQL migration 0032 execution",
+    "PostgreSQL full/incremental backup and restore drill",
+    "paper_runtime integration tests (56 deselected)"
+  ],
+  "partial": [
+    "MEM-15 web UI panel (API delivered)",
+    "Exact individual fill IDs (order aggregate refs where projection lacks fill IDs)",
+    "Legacy generate() provider payload memory injection (wire compatibility preserved)"
+  ]
+}

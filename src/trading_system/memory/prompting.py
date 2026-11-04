@@ -134,14 +134,15 @@ class PromptFramework:
         values = dict(variables or {})
         defaults = {
             "strategy_id": "<unknown>", "instrument": "<unknown>", "product": "SPOT",
-            "strategy_version": "1", "authorization_summary": "{}", "risk_limits": "{}",
+            "strategy_version": "1", "decision_mode": "single",
+            "authorization_summary": "{}", "risk_limits": "{}",
             "memory_completeness": "UNKNOWN", "memory_conflicts": "[]", "memory_missing": "[]",
             "output_schema": "assessment_v1",
         }
         defaults.update(values)
         rendered = []
         for layer in self.layers:
-            if layer.role != role:
+            if layer.role not in (role, "decision"):
                 continue
             missing = [name for name in layer.variables if name not in defaults]
             if missing:

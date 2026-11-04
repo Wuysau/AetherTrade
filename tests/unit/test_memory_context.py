@@ -148,6 +148,8 @@ def test_prompt_framework_is_versioned_and_has_memory_protocol():
     assert [layer["layer_id"] for layer in rendered["layers"]] == ["P0", "P1", "P2", "P3", "P4", "P5", "P6"]
     assert "MEMORY CONTEXT PROTOCOL" in rendered["text"]
     assert rendered["hash"] == framework.framework_hash
+    review = framework.render(role="review", variables={"output_schema": "review_v1"})
+    assert review["layers"] and "review_v1" in review["text"]
     with pytest.raises(ValueError, match="MEMORY_PROMPT_VARIABLE_MISSING"):
         PromptFramework((PromptLayer(layer_id="P0", title="x", version="v1", template="{missing}"),)).render()
 

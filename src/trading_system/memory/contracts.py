@@ -292,6 +292,7 @@ class StrategyPlan:
     supersedes_plan_id: str | None = None
     authorization_ref: str | None = None
     execution_refs: tuple[str, ...] = ()
+    source_proposal: dict = field(default_factory=dict)
 
     def __post_init__(self):
         _token(self.plan_id, "MEMORY_PLAN_ID_INVALID")
@@ -312,7 +313,7 @@ class StrategyPlan:
         object.__setattr__(self, "target_value", _decimal(self.target_value, "MEMORY_PLAN_TARGET_INVALID"))
         if Decimal(self.target_value) < 0:
             raise ValueError("MEMORY_PLAN_TARGET_INVALID")
-        for name in ("entry", "exit_plan"):
+        for name in ("entry", "exit_plan", "source_proposal"):
             if type(getattr(self, name)) is not dict:
                 raise ValueError("MEMORY_PLAN_TERMS_INVALID")
         object.__setattr__(self, "evidence_refs", _refs(self.evidence_refs, "MEMORY_PLAN_EVIDENCE_INVALID"))
