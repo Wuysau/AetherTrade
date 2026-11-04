@@ -33,7 +33,7 @@ VERSION = "0.1.0"
 
 
 def create_app(settings: Settings | None = None, *, quote_provider=None, model_client=None, order_observer=None,
-               program_automation=None, local_child_host=None, demo_transport_factory=None) -> FastAPI:
+               program_automation=None, local_child_host=None, demo_transport_factory=None, demo_runtime_factory=None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = Store(settings.database_url)
     market_config = MarketConfigService(store, settings.model_key_path)
@@ -41,6 +41,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     models = ModelService(store, settings.model_key_path, client=model_client)
     from .demo_api import DemoConnectionService, install_demo_routes, session_key as demo_session_key
     demo = DemoConnectionService(demo_transport_factory)
+    demo_runtime = demo_runtime_factory(connections=demo, model_service=models) if demo_runtime_factory is not None else None
+    demo.runtime = demo_runtime
     refresh_lock = asyncio.Lock()
     refresh_failed = False
 
@@ -150,6 +152,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
                   docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings, app.state.store, app.state.market = settings, store, feed
     app.state.demo = demo
+    app.state.demo_runtime = demo_runtime
     app.state.models = models
     app.state.automation = automation
     app.state.market_config = market_config

@@ -30,6 +30,25 @@ class _Connection:
     snapshot: dict | None = None
 
 
+class _ConnectionLease:
+    """Internal capability object; never accepted from or serialized to HTTP."""
+    def __init__(self, service, session, entry):
+        self._service, self._session, self._entry = service, session, entry
+        self.credential_ref, self.expires_at = entry.credential_ref, entry.expires_at
+
+    def validate(self):
+        with self._service._lock:
+            self._service._expire()
+            if self._service._entries.get(self._session) is not self._entry:
+                raise DemoError('DEMO_SESSION_LEASE_REVOKED')
+            self._service.provider.describe(self.credential_ref)
+            return True
+
+    def transport(self):
+        self.validate()
+        return self._service._transport_factory(self._service.provider, self.credential_ref)
+
+
 class DemoConnectionService:
     """One connection per authenticated console session, expiring in 15 minutes.
 
@@ -43,6 +62,15 @@ class DemoConnectionService:
         self._entries = {}
         self._generation = 0
         self._lock = RLock()
+        self.runtime = None
+
+    def connection_lease(self, session_key):
+        with self._lock:
+            self._expire()
+            entry = self._entries.get(session_key)
+            if entry is None or entry.snapshot is None:
+                raise DemoError('DEMO_CONNECTED_SESSION_REQUIRED')
+            return _ConnectionLease(self, session_key, entry)
 
     @property
     def connection_count(self):
@@ -133,9 +161,13 @@ class DemoConnectionService:
             entry = self._entries.pop(session_key, None)
             if entry:
                 self.provider.remove(entry.credential_ref)
+        if self.runtime is not None:
+            self.runtime.close_session(session_key)
         return self.status(session_key)
 
     def close(self):
+        if self.runtime is not None:
+            self.runtime.close()
         with self._lock:
             self._entries.clear()
             self.provider.clear()
@@ -148,7 +180,10 @@ def session_key(request, settings):
 def install_demo_routes(app, service, authenticated, mutation, settings):
     @app.get('/api/demo/status')
     def status(request: Request, _=Depends(authenticated)):
-        return service.status(session_key(request, settings))
+        result = service.status(session_key(request, settings))
+        if service.runtime is not None:
+            result['runtime'] = service.runtime.status(session_key(request, settings))
+        return result
 
     @app.post('/api/demo/connect')
     def connect(payload: DemoConnect, request: Request, session=Depends(mutation)):

@@ -1,4 +1,5 @@
 import asyncio
+from test_lifecycle import repo, scope
 import json
 import pytest
 from sqlalchemy import create_engine, select
@@ -146,3 +147,35 @@ def test_stream_drains_durable_frames_while_backfill_callback_runs(setup):
     stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
     asyncio.run(stream.run_window(Transport(), duration_seconds=2, on_subscribed=backfill, socket_factory=socket_factory))
     assert receipt_ready.is_set()
+
+
+def test_ready_requires_full_bound_reconciliation_not_page_completion(repo, scope):
+    from trading_system.execution.demo_reconcile import DemoReconciler
+    from trading_system.engine.binance_demo.contracts import digest
+    from trading_system.storage.demo import accounts
+    from sqlalchemy import update
+    from test_lifecycle import register
+    register(repo, scope)
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self, *a, **kw): return []
+        def account(self): return {'accountType': 'SPOT', 'balances': [{'asset': 'USDT', 'free': '1000', 'locked': '0'}]}
+        def open_orders(self, symbol=None): return []
+    class Stream:
+        healthy = True
+        credential_ref = 'demo-session:fixture'
+        subscription_id = 1
+    stream = Stream(); stream.scope = scope
+    reconciler = DemoReconciler(repo, Transport(), clock=lambda: 100)
+    with pytest.raises(DemoError, match='QUALIFICATION'):
+        reconciler.reconcile_and_resume(scope, stream=stream, current_code_sha='a'*40)
+    with repo.transaction(scope.account_key) as conn:
+        conn.execute(update(accounts).values(qualification={'state': 'DEMO_VERIFIED', 'code_sha': 'a'*40, 'account_key': scope.account_key,
+            'credential_revision': 0, 'product': 'SPOT', 'evidence_sha256': 'f'*64, 'official_contract_revision': 'offline-only',
+            'baseline_hash': digest({'USDT': '1000'}), 'history_coverage': 'COMPLETE'}))
+    result = reconciler.reconcile_and_resume(scope, stream=stream, current_code_sha='a'*40)
+    assert result['state'] == 'READY'
+    assert result['execution_authorized'] is False  # readiness alone never grants a strategy
+    stream.healthy = False
+    with pytest.raises(DemoError): reconciler.reconcile_and_resume(scope, stream=stream, current_code_sha='a'*40)

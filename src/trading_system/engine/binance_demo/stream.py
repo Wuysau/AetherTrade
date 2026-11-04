@@ -53,7 +53,7 @@ class DemoUserStreamConsumer:
             self.repository.pause(self.scope, 'DEMO_STREAM_RECONCILIATION_REQUIRED')
             return None
         try:
-            owner_scope = self.repository.resolve_order_scope(self.scope, client_id=event.get('c'), symbol=event.get('s'))
+            owner_scope = self.repository.resolve_order_scope(self.scope, client_id=(event.get('C') if event.get('X') == 'CANCELED' and event.get('C') else event.get('c')), symbol=event.get('s'))
         except DemoError:
             owner_scope = self.scope  # Preserve unknown-account events for review.
             self.repository.pause(self.scope, 'DEMO_UNBOUND_ACCOUNT_ORDER')
@@ -70,6 +70,7 @@ class DemoUserStreamConsumer:
         if type(duration_seconds) is not int or not 1 <= duration_seconds <= 3600:
             raise DemoError('DEMO_STREAM_WINDOW_INVALID')
         # Explicit bounded run only; no implicit background runtime or reconnect.
+        subscribed = False
         try:
             await asyncio.to_thread(transport.sync_time)
             async with asyncio.timeout(duration_seconds):
@@ -77,6 +78,7 @@ class DemoUserStreamConsumer:
                     await socket.send(json.dumps(transport.subscription(self.request_id)))
                     response = json.loads(await asyncio.wait_for(socket.recv(), timeout=10))
                     self.accept_subscription(response)
+                    subscribed = True
                     async with asyncio.TaskGroup() as tasks:
                         if on_subscribed:
                             async def backfill():
@@ -88,6 +90,9 @@ class DemoUserStreamConsumer:
                         # execution report is durably archived before next recv.
                         async for message in socket:
                             await asyncio.to_thread(self.ingest, json.loads(message), received_at=int(time.time()))
+        except TimeoutError:
+            if not subscribed:
+                raise DemoError('DEMO_STREAM_SUBSCRIPTION_TIMEOUT') from None
         except Exception:
             raise DemoError('DEMO_STREAM_INTERRUPTED') from None
         finally:

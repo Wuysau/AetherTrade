@@ -1,6 +1,6 @@
 # Binance Demo Integration Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add an isolated Binance Demo foundation and user-entered, session-only Demo credentials without changing PAPER or enabling unqualified trading.
 **Architecture:** Dedicated Demo scope, endpoint registry, signed transport, durable SQL records, execution gate, report reducer and account journal. The authenticated console exposes only read-only connection checks; order execution stays closed pending PostgreSQL and actual Demo qualification.
@@ -24,32 +24,39 @@
 ### Task 1: Contracts and transport
 Files: engine/binance_demo/{contracts,credentials,transport,orders}.py; tests/demo/test_transport.py.
 Interfaces: DemoScope, DemoEndpointRegistry, DemoCredentialProvider, BinanceDemoTransport; independent of legacy ScopeKey.
-- [ ] Write and run failing tests for endpoint isolation, signing, credentials, time/HTTP failure classification, spot filter validation.
-- [ ] Implement fixed spot endpoints and disabled USDM namespace, HMAC credentials, bounded read-only APIs and write transport requiring owner permit.
-- [ ] Run focused tests; commit the contract/transport slice.
+- [x] Write and run failing tests for endpoint isolation, signing, credentials, time/HTTP failure classification, spot filter validation.
+- [x] Implement fixed spot endpoints and disabled USDM namespace, HMAC credentials, bounded read-only APIs and write transport requiring owner permit.
+- [x] Run focused tests; commit the contract/transport slice.
 
 ### Task 2: Durable command and facts
 Files: storage/demo.py, migrations/0033_binance_demo.sql, execution/demo_commands.py, execution/demo_reports.py, runtime/demo_host.py; tests/demo/test_lifecycle.py.
 Interfaces: DemoRepository transactions, DemoCommandBoundary, DemoExecutionOwner, DemoReportVerifier, DemoAccountingService, DemoReconciler.
-- [ ] Write/run failing tests for reservation/idempotency/MAY/UNKNOWN and duplicate/late/conflicting reports.
-- [ ] Implement scoped SQL persistence, fencing, durable inbox/outbox, immutable intents, order/fill bindings, Decimal postings and recovery cursors.
-- [ ] Implement conservative risk/admission and unsupported-capability gates; offline testing never grants network execution.
-- [ ] Run focused tests; document PostgreSQL concurrency acceptance as NOT_RUN; commit.
+- [x] Write/run failing tests for reservation/idempotency/MAY/UNKNOWN and duplicate/late/conflicting reports.
+- [x] Implement scoped SQL persistence, fencing, durable inbox/outbox, immutable intents, order/fill bindings, Decimal postings and recovery cursors.
+- [x] Implement conservative risk/admission and unsupported-capability gates; offline testing never grants network execution.
+- [x] Run focused tests; document PostgreSQL concurrency acceptance as NOT_RUN; commit.
 
 ### Task 3: User-entered Demo credentials
 Files: server/demo_api.py, server/app.py, web/src/runtime/demo.tsx, web/src/runtime/{App,types}.tsx/ts; tests/server/test_demo_api.py; web/tests/runtime-demo.test.tsx.
 Interfaces: authenticated /api/demo/status, /connect, /disconnect; session-only provider and read-only checks.
-- [ ] Write/run failing API tests for auth/CSRF, invalid inputs, safe errors, logout and no credential persistence.
-- [ ] Implement explicit user consent, fixed SPOT/HMAC input, verified Demo balances/rules/open orders and visibly blocked order execution.
-- [ ] Add bilingual accessible form, repeated submission protection, cancellation/unmount guards and credential field clearing.
-- [ ] Run related API checks, frontend targeted tests/typecheck/build if installed tooling permits; commit.
+- [x] Write/run failing API tests for auth/CSRF, invalid inputs, safe errors, logout and no credential persistence.
+- [x] Implement explicit user consent, fixed SPOT/HMAC input, verified Demo balances/rules/open orders and visibly blocked order execution.
+- [x] Add bilingual accessible form, repeated submission protection, cancellation/unmount guards and credential field clearing.
+- [x] Run related API checks, frontend targeted tests/typecheck/build if installed tooling permits; commit.
 
 ### Task 4: Evidence, review and publication
-- [ ] Independent whole-branch safety review; address important findings with regression tests.
-- [ ] Record exact commands, PASS/BLOCKED/NOT_RUN, capability matrix and deferred real-venue qualification.
-- [ ] Commit final evidence; publish feature branch and verify remote commit, no merge.
+- [x] Independent whole-branch safety review; address important findings with regression tests.
+- [x] Record exact commands, PASS/BLOCKED/NOT_RUN, capability matrix and deferred real-venue qualification.
+- [x] Commit final evidence; publish feature branch and verify remote commit, no merge.
 
 ## Execution rulings
 - User already approved the supplied design and explicitly requested execution, so proceed without another planning approval.
 - Repository governance overrides generic full-suite instructions: no full pytest, full frontend suite or database provisioning.
 - Session-only credentials implement user input without granting ongoing access or saving secrets. D07/D08 actual venue qualification remains blocked without keys/authorization. UI cannot enable trading.
+
+## D06 continuation
+- Added independent snapshot/frame adapter, real assessment_v1 ModelService composition and immutable native decision receipts.
+- Added target/fee/slippage/daily-loss/active-order gates, scoped protection/management, bounded runtime composition and evidence-bound READY.
+- Added additive migration 0034; never applied it here.
+- Added read-only independent safety review plus regressions for stale snapshots, concurrent claims, foreign/PAPER projection, cancel UNKNOWN and no replay, bound protection allocation, and slow/failed model supervision.
+- Full-design acceptance remains open: PostgreSQL/venue qualification and D08 are NOT_RUN. MARKET/USDM/UPDATE_EXIT/native conditional/OCO and strategy-memory projection remain disabled or unimplemented, as explicitly itemized in docs/binance-demo/README.md.

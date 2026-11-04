@@ -115,3 +115,18 @@ def test_disconnect_during_connect_does_not_resurrect_credentials():
     assert service.connection_count == 0
     assert service.status('session')['state'] == 'DISABLED'
     service.close()
+
+
+def test_connection_lease_is_internal_session_bound_and_revoked_on_disconnect(tmp_path):
+    from trading_system.server.demo_api import session_key
+    from trading_system.engine.binance_demo.contracts import DemoError
+    with make_client(tmp_path) as client:
+        login(client)
+        client.post('/api/demo/connect', json=PAYLOAD)
+        service = client.app.state.demo
+        key = next(iter(service._entries))
+        lease = service.connection_lease(key)
+        assert lease.validate() is True
+        with pytest.raises(DemoError): service.connection_lease('different-session')
+        client.post('/api/demo/disconnect')
+        with pytest.raises(DemoError): lease.validate()

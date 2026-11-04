@@ -112,7 +112,7 @@ class BinanceDemoTransport:
         return self._request('GET', '/api/v3/exchangeInfo', {'symbol': symbol})
 
     def open_orders(self, symbol='BTCUSDT'):
-        return self._request('GET', '/api/v3/openOrders', {'symbol': symbol}, signed=True)
+        return self._request('GET', '/api/v3/openOrders', {'symbol': symbol} if symbol is not None else {}, signed=True)
 
     def query_order(self, symbol, original_client_id):
         return self._request('GET', '/api/v3/order', {'symbol': symbol, 'origClientOrderId': original_client_id}, signed=True)
@@ -127,6 +127,17 @@ class BinanceDemoTransport:
 
     def book_ticker(self, symbol='BTCUSDT'):
         return self._request('GET', '/api/v3/ticker/bookTicker', {'symbol': symbol})
+
+    def klines(self, symbol, interval, limit):
+        if symbol != 'BTCUSDT' or interval not in {'1m', '5m', '15m', '30m', '1h', '4h', '1d'} or type(limit) is not int or not 1 <= limit <= 201:
+            raise DemoError('DEMO_KLINE_BUDGET_INVALID')
+        return self._request('GET', '/api/v3/klines', {'symbol': symbol, 'interval': interval, 'limit': limit})
+
+    def average_price(self, symbol='BTCUSDT'):
+        return self._request('GET', '/api/v3/avgPrice', {'symbol': symbol})
+
+    def last_price(self, symbol='BTCUSDT'):
+        return self._request('GET', '/api/v3/ticker/price', {'symbol': symbol})
 
     def send_order(self, params, *, permit):
         from trading_system.execution.demo_commands import DemoSendPermit

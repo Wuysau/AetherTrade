@@ -1,27 +1,38 @@
 {
-  "recorded_at": "2026-11-04T15:50:47.400629+00:00",
-  "checkpoint": "read-only connection and durable lifecycle foundation",
+  "recorded_at": "2026-11-04T16:36:23.888761+00:00",
+  "checkpoint": "native assessment and bounded Demo runtime lifecycle",
   "full_design_complete": false,
   "base_commit": "4134fd1ba6ab9152be064fc91ad93c59f61b8eb7",
-  "local_source_commit": "798dfa1e0ac30b84d476d219ea3651812ee860dc",
+  "previous_remote_commit": "c44c6e630cf937e4f33b3f3313193736bfaa24b3",
   "source_file_sha256": {
     "migrations/0033_binance_demo.sql": "396527f5abd411a0369879dad705522342d2d7ad8e58141348d3ad934b6b2ab4",
-    "src/trading_system/engine/binance_demo/contracts.py": "853438d8c6e3c435554693ae64a9c7c55f6334535930271d79b781782fa9d5fa",
+    "migrations/0034_binance_demo_runtime.sql": "da415d2b8df18403f3b85a3dca1f147c64794fa6d503f65b6bc41734ce2a27fc",
+    "src/trading_system/engine/binance_demo/contracts.py": "4ee48941a5868dd42099d3af95d4fa772fdac6cb25e2eb5741556e3380758c86",
     "src/trading_system/engine/binance_demo/credentials.py": "f1f063a165b0468bf02480d5299df530667e086d5074c12c0fbd5e5540f9c7d7",
-    "src/trading_system/engine/binance_demo/orders.py": "30a46f3c8bcd2aae4b10a9ba3248def54e8b9b2324cc8330138b1cac2d0f5600",
-    "src/trading_system/engine/binance_demo/stream.py": "6d9cbc2655970940f25cbff7e66fe1b19fd1b580bec3bb5890dfde0cfd09121b",
-    "src/trading_system/engine/binance_demo/transport.py": "782a96220f973290988a1d9af4c94447fd267f5ca7db46adb53f9e3198feec98",
-    "src/trading_system/execution/demo_commands.py": "36f6046fec82b362339f1ab28966f29a49658379d49dcc7fedb52d9697426b8f",
-    "src/trading_system/execution/demo_reconcile.py": "49f8ea299eccafa5e936f320a84ffdec896282e02a2690058aa282a1ebe0fcf6",
-    "src/trading_system/execution/demo_reports.py": "8b6348fb511ba79d214336b682bbf86424fd22805d6c82cff583844ed6602e79",
-    "src/trading_system/runtime/demo_host.py": "58db502a740ec2f3f8b27ceb81cfa15f0f63d4e7cd5817cac87e6794a64fd4bc",
-    "src/trading_system/server/app.py": "1b380ed23f5ded83133edd3b53e833bc00326273730e487fed5dd5ba3265de73",
-    "src/trading_system/server/demo_api.py": "56ae6fa8d332baa607e02f2a215ffee9e1c71f14ac80abb7a23b934caac71d81",
-    "src/trading_system/storage/demo.py": "7f9aba3c121ec10b97fefb2fa2a59949ce5914ab3d784139d3ce123bfd608fa8",
+    "src/trading_system/engine/binance_demo/orders.py": "e3874357cd627e704ab541b250216142d6a1be89ac994b82fb873d2eb30ed670",
+    "src/trading_system/engine/binance_demo/stream.py": "73fc1742a4302b0e162e89bd7468af541efc8ad01e9c7cdce8b15a751dba7b7b",
+    "src/trading_system/engine/binance_demo/transport.py": "8e3454c96dd90bc5969da5d4670d40f20a75887dfcd8504980674227280bf1bb",
+    "src/trading_system/execution/demo_commands.py": "740ba72886f55aceec090b54a8412fb980139ba60a3af5f95c73bbcf4b9c960c",
+    "src/trading_system/execution/demo_reconcile.py": "5705666a799c90f4c44d5fb5cfb7277ded214727f6e0a98202293be322794066",
+    "src/trading_system/execution/demo_reports.py": "d2a7bf997bd4dd30087fa464baeef6ff3687c519b1c46cc6ea4e634b6cb69ad4",
+    "src/trading_system/runtime/demo_frame.py": "f7c49545cea35bb21c85a1dfb1e2f27ae6dbd36ec52cdbb160937452b13194b3",
+    "src/trading_system/runtime/demo_host.py": "85df39eab66c30213c08f99c693021d5fa88a29bca88a8cba70d6a8611acf3fb",
+    "src/trading_system/runtime/demo_service.py": "da96854242c30399ef59f8164e9a09ce6d2622afe3aa874de8b8fbb54d02e17e",
+    "src/trading_system/runtime/demo_strategy.py": "8e305a57b430f58609a9728df06f06f355701d083ea3285bb3458e678352c558",
+    "src/trading_system/server/app.py": "e7fa6fec24cc2377d55e032cf4697f356bef36d3d364ebda9f7d1ffab6802664",
+    "src/trading_system/server/demo_api.py": "43a20892ed34231eb5e36a0a9e7f1b65feef2113e1ce07168b72fbf06a4369b5",
+    "src/trading_system/server/demo_snapshot.py": "aa921a7a82dcdb325332043458874bdfc50efdd3d6157bdc8aeb8f164c6e2835",
+    "src/trading_system/server/model_service.py": "c6f90bbd87e3adacc2a846a18148ef828840cf1a79a7262fec9be921355771f4",
+    "src/trading_system/storage/demo.py": "f617735e48f52f5a9909e68122921bf047c3209fe300c86db6de311658b209d0",
+    "tests/demo/test_frame.py": "60e3184fa591a72711839d5472242c88a04b95a74002e02bbd8aa443138e946b",
+    "tests/demo/test_host.py": "68fafcc5daaa5adcb19dfdd992f101b1a9231339f1cc31457d8ba0f1cc46914c",
     "tests/demo/test_lifecycle.py": "00cd189bff7d79103c27118235bd17e037740412aa3a92779da1e87d70b6f7f2",
-    "tests/demo/test_recovery.py": "5db77e208134a2b582cf9800131e95ad45c8a4c9445caabbc09fd5d8ccf816ca",
-    "tests/demo/test_transport.py": "15cf20753ecf7f645c214a71b08d3f605ceacbef4a6223682fb3187e1e16ac64",
-    "tests/server/test_demo_api.py": "9829a445aa4614280e67a5f0d2dd3cdbcf60f7d4630bba48971bfc6ff984e152",
+    "tests/demo/test_management.py": "61434476daab8becae924f94bd9ed43a00121152f7aa727ab1024ebb3cc6912a",
+    "tests/demo/test_model_host.py": "6c8abeeb5fc9c090c7165427274f47f26333013bec93cfaf91e0f7ff52ee2ffd",
+    "tests/demo/test_recovery.py": "c0f43ffc55125ebee04739c825f6cb394f254774a6eba9b79e04d2810d550f54",
+    "tests/demo/test_runtime_service.py": "f0f1e02a8ecfe262e67d29e252d8bd6a05eb566ec1a0486141cb9b9bc0b8bc5c",
+    "tests/demo/test_transport.py": "b047750f9727ba3de9b7a3aa4a0fe42b090317de3d4a512cd74f07e6fbe12b77",
+    "tests/server/test_demo_api.py": "56f3014f386c6ea01eaf6996b4d8a08cec3725f1f3f8bf2d912a371d811d85fb",
     "web/src/runtime/App.tsx": "37034e6422a6468f4c891207f8a9794d443bb8c5f200c75e0bfaa702b955f8cb",
     "web/src/runtime/demo.tsx": "4de0944c1a6ec2460fcb922700951a6e8b687e292f72e64e6c28f51ace55c7cd",
     "web/src/runtime/types.ts": "981b6ae4c72626cab5f26d9c890b524568826e5e4387c16bc111906174d8e122",
@@ -33,82 +44,68 @@
       "name": "focused_backend",
       "status": "PASS",
       "exit_code": 0,
-      "command": "python -m pytest tests/demo tests/server/test_demo_api.py tests/server/test_startup.py tests/server/test_program_automation_wiring.py tests/server/test_api.py -q -m 'not paper_runtime'",
-      "result": "87 passed, 2 deselected, 1 upstream deprecation warning",
-      "seconds": 6.82
+      "command": "python -m pytest tests/demo tests/server/test_demo_api.py tests/server/test_startup.py tests/server/test_program_automation_wiring.py tests/server/test_api.py tests/server/test_model_api.py tests/server/test_decision_assessment.py tests/server/test_analysis_snapshot.py tests/server/test_assessment_api.py tests/server/test_model_consensus.py -q -m 'not paper_runtime'",
+      "result": "206 passed, 3 deselected; one upstream httpx deprecation warning",
+      "seconds": 13.77
     },
     {
       "name": "focused_frontend",
       "status": "PASS",
       "exit_code": 0,
-      "command": "npm test -- --run tests/demo.test.tsx tests/runtime-ui.test.tsx tests/runtime-api.test.ts",
-      "result": "3 files, 26 tests passed"
+      "command": "npm --prefix web run test -- --run tests/demo.test.tsx tests/runtime-ui.test.tsx tests/runtime-api.test.ts",
+      "result": "26 passed in 3 files"
     },
     {
-      "name": "typecheck",
+      "name": "typescript",
       "status": "PASS",
       "exit_code": 0,
-      "command": "npm run typecheck"
+      "command": "npm --prefix web run typecheck"
     },
     {
-      "name": "production_build",
+      "name": "frontend_build",
       "status": "PASS",
       "exit_code": 0,
-      "command": "npm run build",
-      "warning": "bundle >500 kB warning; no build error"
+      "command": "npm --prefix web run build",
+      "note": "Existing bundle-size warning remains"
     },
     {
-      "name": "python_compile",
+      "name": "syntax",
       "status": "PASS",
       "exit_code": 0,
-      "command": "python -m compileall -q <changed Demo Python modules>"
+      "command": "python -m compileall -q [changed Demo Python modules]"
     },
     {
-      "name": "diff_whitespace",
+      "name": "whitespace",
       "status": "PASS",
       "exit_code": 0,
-      "command": "git diff --check"
-    },
-    {
-      "name": "postgresql_qualification",
-      "status": "NOT_RUN",
-      "reason": "shared DEV scheduler/infrastructure qualification not authorized for this task"
-    },
-    {
-      "name": "official_demo",
-      "status": "NOT_RUN",
-      "reason": "no user credentials or execution-window approval"
-    },
-    {
-      "name": "full_integration",
-      "status": "NOT_RUN",
-      "reason": "task-light governance; not a full acceptance run"
-    },
-    {
-      "name": "continuous_runtime",
-      "status": "NOT_RUN",
-      "reason": "native host composition and actual venue qualification remain outstanding"
+      "command": "git -c core.whitespace=cr-at-eol diff --check",
+      "note": "Preserves original CRLF in server/app.py"
     }
   ],
-  "side_effects": {
-    "real_orders": 0,
-    "real_credentials_used": 0,
-    "paid_model_calls": 0,
-    "docker_changes": 0,
-    "postgresql_databases_created": 0,
-    "deployments": 0
+  "review": {
+    "status": "PASS_WITH_QUALIFICATION_GATES",
+    "kind": "independent read-only static safety review",
+    "note": "Reported admission, cancellation, receipt, projection, supervision and READY-binding findings fixed; no further stop-ship issue in final focused pass"
   },
-  "review_fixes": [
-    "ephemeral credential expiry and timer removal",
-    "source account binding",
-    "reservation intent binding",
-    "LIMIT execution price verification",
-    "terminal-before-missing-fill release",
-    "sender guard and revision fencing",
-    "cross-strategy account event routing",
-    "unsent order fact rejection",
-    "nonblocking bounded stream callback",
-    "bounded order/history query work",
-    "stale UI responses and status refresh"
-  ]
+  "not_run": [
+    "PostgreSQL migration and ownership/concurrency/crash qualification",
+    "Real Binance Demo read/write/stream qualification",
+    "Actual model-provider requests or paid inference",
+    "Continuous Demo window",
+    "Full repository integration suite or CI"
+  ],
+  "continuing_scope": [
+    "UPDATE_EXIT and dedicated Demo strategy-memory projection",
+    "MARKET and other capability implementations/qualification remain disabled; see scope matrix"
+  ],
+  "safety": {
+    "real_credentials_used": false,
+    "real_orders_sent": false,
+    "credentials_persisted": false,
+    "docker_started": false,
+    "database_provisioned": false,
+    "paper_live_identity_changed": false,
+    "qualified_capability_created": false
+  },
+  "evidence_delivery": "Sanitized results and source hashes only; raw workspace logs are not published."
 }

@@ -129,3 +129,21 @@ def test_expired_key_cannot_sign_even_without_status_polling():
     now[0] = 102.0
     with pytest.raises(DemoError, match='CREDENTIAL_UNAVAILABLE'):
         provider.sign(ref, 'anything')
+
+
+def test_percent_price_and_order_capacity_need_fresh_bound_context():
+    from copy import deepcopy
+    rules = deepcopy(RULES)
+    rules['filters'] += [{'filterType': 'PERCENT_PRICE_BY_SIDE', 'bidMultiplierUp': '1.1', 'bidMultiplierDown': '0.9', 'askMultiplierUp': '1.1', 'askMultiplierDown': '0.9', 'avgPriceMins': 5},
+        {'filterType': 'MAX_NUM_ORDERS', 'maxNumOrders': 2}, {'filterType': 'MAX_POSITION', 'maxPosition': '1'}]
+    arguments = dict(side='BUY', order_type='LIMIT', quantity='0.001', price='50000', client_id='limits', reference_price='50000')
+    with pytest.raises(DemoError): compile_spot_order(rules, **arguments)
+    context = {'average_price': '50000', 'average_minutes': 5, 'open_order_count': 0, 'exchange_open_order_count': 0, 'account_base_quantity': '0', 'pending_buy_quantity': '0'}
+    assert compile_spot_order(rules, **arguments, filter_context=context)['price'] == '50000'
+    with pytest.raises(DemoError): compile_spot_order(rules, **arguments, filter_context={**context, 'open_order_count': 2})
+
+
+def test_decimal_rejects_resource_exhausting_exponents():
+    from trading_system.engine.binance_demo.contracts import decimal
+    for value in ('1e1000000', '0.' + '0'*1000 + '1'):
+        with pytest.raises(DemoError): decimal(value)

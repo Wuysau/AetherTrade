@@ -227,7 +227,11 @@ class ModelService:
     def _clean_context(symbol, context):
         if isinstance(context, dict) and 'analysis_snapshot' in context:
             from .analysis_snapshot import validate_snapshot
-            snapshot = validate_snapshot(context['analysis_snapshot'])
+            if isinstance(context['analysis_snapshot'], dict) and context['analysis_snapshot'].get('schema_revision') == 'demo-analysis-snapshot-v1':
+                from .demo_snapshot import validate_demo_snapshot
+                snapshot = validate_demo_snapshot(context['analysis_snapshot'])
+            else:
+                snapshot = validate_snapshot(context['analysis_snapshot'])
             if snapshot['market']['quote'] is not None and snapshot['market']['quote']['symbol'] != symbol:
                 raise ApiError('INVALID_MODEL_CONTEXT', 'Snapshot symbol mismatch.')
             cutoff = datetime.fromisoformat(snapshot['evidence_cutoff'])
@@ -482,7 +486,7 @@ class ModelService:
     def decisions(self):
         with self.store.transaction() as connection:
             records = connection.execute(select(repository.runs.c.data)).scalars()
-            return sorted([r['result']['decision'] for r in records if r['status'] == 'SUCCEEDED' and not r.get('component')], key=lambda d: d['created_at'], reverse=True)[:200]
+            return sorted([r['result']['decision'] for r in records if r['status'] == 'SUCCEEDED' and not r.get('component') and (r.get('snapshot') or {}).get('schema_revision') != 'demo-analysis-snapshot-v1'], key=lambda d: d['created_at'], reverse=True)[:200]
 
     def service_summary(self):
         config = self.get_config()
@@ -663,6 +667,8 @@ class ModelService:
                         analysis_mode=mode, required_profile_ids=ids, model_profile_ids=ids, profile_revisions=revisions,
                         model_profiles=[self._identity(configs[p][0]) for p in ids], data_as_of=snapshot['evidence_cutoff'],
                         risk_status='NOT_EVALUATED', source='AI', budget={'max_calls':max_calls,'calls':len(record['requests']), 'reserved_output_tokens': (None if any(configs[r['profile_id']][0]['max_output_tokens'] is None for r in record['requests']) else sum(configs[r['profile_id']][0]['max_output_tokens'] for r in record['requests'])), 'usage_complete': all(c.get('usage', {}).get('output_tokens') is not None for c in components)})
+        if snapshot.get('schema_revision') == 'demo-analysis-snapshot-v1':
+            decision.update(environment='BINANCE_DEMO', source_id=snapshot['source_id'])
         if status == 'DATA_BLOCKED':
             from .analysis_snapshot import readiness_summary
             decision.update(summary=readiness_summary(snapshot), data_quality=snapshot['quality'],

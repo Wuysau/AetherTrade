@@ -18,13 +18,13 @@ def digest(value) -> str:
 
 
 def decimal(value, *, positive=False) -> Decimal:
-    if not isinstance(value, (str, Decimal)):
+    if not isinstance(value, (str, Decimal)) or (isinstance(value, str) and len(value) > 100):
         raise DemoError('DEMO_DECIMAL_REQUIRED')
     try:
         result = Decimal(value)
     except InvalidOperation:
         raise DemoError('DEMO_DECIMAL_INVALID') from None
-    if not result.is_finite() or result < 0 or (positive and result == 0):
+    if not result.is_finite() or len(result.as_tuple().digits) > 40 or abs(result.as_tuple().exponent) > 24 or result < 0 or (positive and result == 0):
         raise DemoError('DEMO_DECIMAL_INVALID')
     return result
 
@@ -61,7 +61,7 @@ class DemoEndpointRegistry:
     SPOT_MARKET_WS = 'wss://demo-stream.binance.com/ws'
     USDM_ORIGIN = 'https://demo-fapi.binance.com'
     USDM_WS = 'wss://demo-fstream.binance.com'
-    _SPOT = {'GET': frozenset({'/api/v3/time', '/api/v3/exchangeInfo', '/api/v3/account', '/api/v3/order', '/api/v3/openOrders', '/api/v3/allOrders', '/api/v3/myTrades', '/api/v3/ticker/bookTicker'}),
+    _SPOT = {'GET': frozenset({'/api/v3/time', '/api/v3/exchangeInfo', '/api/v3/account', '/api/v3/order', '/api/v3/openOrders', '/api/v3/allOrders', '/api/v3/myTrades', '/api/v3/ticker/bookTicker', '/api/v3/klines', '/api/v3/ticker/price', '/api/v3/avgPrice'}),
              'POST': frozenset({'/api/v3/order'}), 'DELETE': frozenset({'/api/v3/order'})}
 
     @classmethod

@@ -8,6 +8,9 @@ import time
 
 from trading_system.engine.binance_demo.contracts import DemoError, digest
 from trading_system.runtime.demo_host import DemoRuntimeHost
+from trading_system.engine.binance_demo.contracts import decimal
+from sqlalchemy import select
+from trading_system.storage.demo import commands
 
 _OWNER = object()
 
@@ -37,11 +40,12 @@ class DemoCommandBoundary:
 
 
 class DemoExecutionOwner:
-    def __init__(self, repository, transport, *, clock=time.time):
-        self.repository, self.transport, self.clock = repository, transport, clock
+    def __init__(self, repository, transport, *, clock=time.time, preflight=None):
+        self.repository, self.transport, self.clock, self.preflight = repository, transport, clock, preflight
 
     def dispatch(self, scope, command_id, *, context):
         with self.repository.owner_guard(scope):
+            if self.preflight: self.preflight()
             account = self.repository.account(scope)
             command = self.repository.command(scope, command_id)
             health = self.repository.health(scope)
@@ -50,12 +54,27 @@ class DemoExecutionOwner:
             # product and exact order type; no blanket ENABLED switch exists.
             required = {'code_sha': context.code_sha, 'account_key': scope.account_key,
                         'credential_revision': account['credential_revision'], 'product': scope.product,
-                        'order_type': command['request'].get('type'), 'state': 'DEMO_VERIFIED'}
-            if any(evidence.get(k) != v for k, v in required.items()) or not evidence.get('evidence_sha256') or not evidence.get('official_contract_revision'):
+                        'state': 'DEMO_VERIFIED'}
+            capability = 'CANCEL' if command['method'] == 'DELETE' else command['request'].get('type')
+            proof = (evidence.get('capabilities') or {}).get(capability) or (evidence if evidence.get('order_type') == capability else {})
+            if any(evidence.get(k) != v for k, v in required.items()) or proof.get('state') != 'DEMO_VERIFIED' or not proof.get('evidence_sha256') or not proof.get('official_contract_revision'):
                 raise DemoError('DEMO_CAPABILITY_NOT_QUALIFIED')
+            management = command['purpose'] in {'CANCEL', 'REDUCTION', 'PROTECTION'}
+            if management:
+                if command['method'] == 'DELETE':
+                    with self.repository.engine.connect() as conn:
+                        targets = list(conn.execute(select(commands).where(commands.c.scope_key == scope.key, commands.c.namespace == 'SPOT', commands.c.client_id == command['request']['origClientOrderId'])).mappings())
+                    if len(targets) != 1 or targets[0]['request']['symbol'] != command['request']['symbol'] or targets[0]['state'] not in {'MAY_HAVE_SENT', 'UNKNOWN', 'ACKNOWLEDGED', 'OBSERVED'}:
+                        raise DemoError('DEMO_CANCEL_TARGET_INVALID')
+                    if targets[0]['order_status'] in {'FILLED', 'CANCELED', 'EXPIRED', 'REJECTED', 'EXPIRED_IN_MATCH'}:
+                        raise DemoError('DEMO_CANCEL_TARGET_TERMINAL')
+                elif command['request']['side'] != 'SELL' or decimal(command['reserve_amount']) > self.repository.asset_deltas(scope).get('BTC', 0):
+                    raise DemoError('DEMO_UNOWNED_EXPOSURE')
+            def admit(value):
+                return DemoRuntimeHost.admit_management(value, cancel=command['method'] == 'DELETE') if management else DemoRuntimeHost.admit(value)
             current = replace(context, now=int(self.clock()), account_state=account['state'],
-                unresolved_unknown=health['unknown'], unprotected=health['unprotected'])
-            DemoRuntimeHost.admit(current)
+                unresolved_unknown=health['unknown'], unprotected=health['unprotected'], pending_inbox=health['pending_inbox'])
+            admit(current)
             if self.transport.credential_ref != account['credential_ref']:
                 raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
             # Network time validation precedes MAY; it does not create an order.
@@ -65,8 +84,9 @@ class DemoExecutionOwner:
             if current_account['revision'] != account['revision']:
                 raise DemoError('DEMO_SEND_AUTHORIZATION_STALE')
             current = replace(current, now=int(self.clock()), account_state=current_account['state'],
-                unresolved_unknown=current_health['unknown'], unprotected=current_health['unprotected'])
-            DemoRuntimeHost.admit(current)
+                unresolved_unknown=current_health['unknown'], unprotected=current_health['unprotected'], pending_inbox=current_health['pending_inbox'])
+            admit(current)
+            if self.preflight: self.preflight()
             command = self.repository.begin_send(scope, command_id, expected_revision=account['revision'], now=current.now)
             permit = DemoSendPermit(_owner=_OWNER, method=command['method'], request=command['request'], credential_ref=account['credential_ref'])
             try:

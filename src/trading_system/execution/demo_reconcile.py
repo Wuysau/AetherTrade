@@ -85,3 +85,61 @@ class DemoReconciler:
         # qualified baseline. Report only page completion and leave account paused.
         return {'pages_complete': complete, 'cursor': cursor, 'execution_authorized': False,
                 'state': 'RECOVERY_REQUIRED', 'reason': 'DEMO_BASELINE_AND_ACCOUNT_RECONCILIATION_REQUIRED'}
+
+    def reconcile_and_resume(self, scope, *, stream, current_code_sha):
+        from trading_system.engine.binance_demo.contracts import digest
+        from trading_system.storage.demo import accounts
+        from sqlalchemy import update
+        account = self.repository.account(scope)
+        evidence = account.get('qualification') or {}
+        required = {'state': 'DEMO_VERIFIED', 'code_sha': current_code_sha, 'account_key': scope.account_key,
+                    'credential_revision': account['credential_revision'], 'product': scope.product, 'history_coverage': 'COMPLETE'}
+        if any(evidence.get(key) != value for key, value in required.items()) or not evidence.get('baseline_hash') or not evidence.get('evidence_sha256') or not evidence.get('official_contract_revision'):
+            raise DemoError('DEMO_QUALIFICATION_BASELINE_REQUIRED')
+        progress = self.reconcile(scope, symbol='BTCUSDT', stream=stream)
+        if not progress['pages_complete']:
+            raise DemoError('DEMO_BACKFILL_INCOMPLETE')
+        # Stream was subscribed before all reads, and its durable inbox must
+        # have drained. READY is withheld if a report races this gate.
+        expected_revision = self.repository.account(scope)['revision']
+        actual = self.transport.open_orders(None)
+        if not isinstance(actual, list) or len(actual) > 100:
+            raise DemoError('DEMO_OPEN_ORDER_BUDGET_EXCEEDED')
+        expected = {(row['request']['symbol'], row['client_id']) for row in self.repository.pending_commands(scope, limit=101)
+                    if row['order_status'] not in {'FILLED', 'CANCELED', 'EXPIRED', 'REJECTED', 'EXPIRED_IN_MATCH'}}
+        seen = {(row.get('symbol'), row.get('clientOrderId')) for row in actual}
+        if len(seen) != len(actual) or seen != expected:
+            raise DemoError('DEMO_OPEN_ORDER_RECONCILIATION_REQUIRED')
+        raw = self.transport.account()
+        if raw.get('accountType') != 'SPOT':
+            raise DemoError('DEMO_ACCOUNT_BINDING_REJECTED')
+        self.check_balances(scope, raw['balances'])
+        account = self.repository.account(scope)
+        if account['revision'] != expected_revision:
+            raise DemoError('DEMO_RECONCILIATION_RACED')
+        if digest(account['balances']) != evidence['baseline_hash'] or account['frozen']:
+            raise DemoError('DEMO_QUALIFICATION_BASELINE_REQUIRED')
+        with self.repository.safety_guard(scope), self.repository.transaction(scope.account_key) as conn:
+            from sqlalchemy import select
+            final_account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
+            if final_account['credential_ref'] != self.transport.credential_ref or final_account['credential_ref'] != stream.credential_ref or final_account['credential_revision'] != required['credential_revision'] or digest(final_account.get('qualification') or {}) != digest(evidence):
+                raise DemoError('DEMO_RECONCILIATION_BINDING_CHANGED')
+            if final_account['revision'] != expected_revision:
+                raise DemoError('DEMO_RECONCILIATION_RACED')
+            # The held sender guard serializes balance/posting/pause changes.
+            # Observation inserts also lock this row, so none can commit
+            # between this health check and the READY commit.
+            from trading_system.storage.demo import commands, inbox, observations, protection
+            from sqlalchemy import select, func
+            count = lambda table, predicate: conn.execute(select(func.count()).select_from(table).where(predicate)).scalar_one()
+            blocked = count(commands, (commands.c.account_key == scope.account_key) & commands.c.state.in_(['MAY_HAVE_SENT', 'UNKNOWN']))
+            blocked += count(inbox, (inbox.c.state != 'PROCESSED') & inbox.c.observation_id.in_(select(observations.c.observation_id).where(observations.c.account_key == scope.account_key)))
+            blocked += count(protection, (protection.c.account_key == scope.account_key) & (protection.c.state != 'SATISFIED') & ((protection.c.state != 'HOSTED_ACTIVE') | (protection.c.coverage_until <= int(self.clock()))))
+            if blocked or not stream.healthy:
+                raise DemoError('DEMO_RECOVERY_REQUIRED')
+            receipt = {'cursor': progress['cursor'], 'open_orders_hash': digest(actual), 'balances_hash': digest(raw['balances']),
+                'qualification_hash': digest(evidence), 'credential_revision': account['credential_revision'], 'checked_at': int(self.clock()),
+                'subscription_id': stream.subscription_id, 'account_revision': account['revision']}
+            conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key, accounts.c.revision == account['revision']).values(state='READY', revision=account['revision'] + 1))
+            self.repository._event(conn, scope.account_key, 'RECONCILIATION_READY', digest(receipt), receipt)
+        return {'state': 'READY', 'execution_authorized': False, 'receipt': receipt}
