@@ -310,6 +310,19 @@ class MemoryRepository:
                 result.append(decision_ref_from_payload(decision))
         return tuple(result)
 
+    def find_decision(self, scope: StrategyMemoryScope, run_id: str):
+        with self.store.transaction() as connection:
+            rows = connection.execute(
+                select(events.c.payload).where(
+                    events.c.scope_id == scope.scope_id,
+                    events.c.event_type == EventType.DECISION_RECORDED.value,
+                ).order_by(events.c.sequence.desc()).limit(500)).scalars().all()
+        for payload in rows:
+            decision = payload.get("decision")
+            if isinstance(decision, dict) and decision.get("run_id") == run_id:
+                return decision_ref_from_payload(decision)
+        return None
+
     def save_knowledge(self, item: ValidatedKnowledge) -> None:
         with self.store.transaction() as connection:
             self._upsert(connection, knowledge,

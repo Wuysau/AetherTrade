@@ -104,6 +104,9 @@ class StrategyMemoryService:
         scope = checkpoint.context.scope
         run_id = checkpoint.context.run_id
         self.ensure_strategy(scope, strategy_version=checkpoint.context.strategy_version)
+        existing = self.repository.find_decision(scope, run_id)
+        if existing is not None:
+            return self.repository.load_state(scope) or self.reducer.initial(scope)
         state = self.repository.load_state(scope)
         created_at = str(decision.get("created_at") or self.clock())
         status = str(decision.get("assessment_status") or decision.get("status") or "UNKNOWN")

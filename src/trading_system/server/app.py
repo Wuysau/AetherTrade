@@ -381,7 +381,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     async def test_model(payload: ModelTest, _=Depends(mutation)):
         return await models.test_connection(payload.expected_revision)
 
-    async def decision_context(payload):
+    async def decision_context(payload, idempotency_key=None):
         if payload.decision_schema == 'assessment_v1':
             if payload.task_profile is None:
                 raise ApiError('TASK_PROFILE_REQUIRED', '请选择研究周期与必需数据。')
@@ -393,11 +393,15 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
         strategy = {'id': 'manual:' + payload.symbol, 'symbol': payload.symbol, 'revision': 1,
                     'status': 'ACTIVE', 'authorization_summary': {'manual_analysis': True},
                     'risk_limits': {}}
-        if payload.decision_schema != 'assessment_v1':
-            return context
+        import hashlib
+        run_id = 'manual:' + (hashlib.sha256(idempotency_key.encode()).hexdigest()[:32]
+                              if isinstance(idempotency_key, str) and idempotency_key else uuid4().hex)
         checkpoint = assembler.build_from_market_context(
-            strategy, 'manual:' + uuid4().hex, context,
-            decision_mode=getattr(payload, 'analysis_mode', 'single'))
+            strategy, run_id, context, decision_mode=getattr(payload, 'analysis_mode', 'single'))
+        if payload.decision_schema != 'assessment_v1':
+            result = dict(context)
+            result['_memory_checkpoint_id'] = checkpoint.checkpoint_id
+            return result
         prompt = assembler.prompt_for(
             checkpoint, output_schema='assessment_v1'
             if payload.decision_schema == 'assessment_v1' else 'legacy')
@@ -415,16 +419,32 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
         result['memory_record_decision'] = True
         return result
 
+    def record_legacy_memory(context, result):
+        checkpoint_id = context.get('_memory_checkpoint_id') if isinstance(context, dict) else None
+        if not checkpoint_id:
+            return
+        checkpoint = memory.get_checkpoint(checkpoint_id)
+        decision = result.get('decision') if isinstance(result, dict) else None
+        if checkpoint is None or not isinstance(decision, dict):
+            return
+        decision.setdefault('assessment_status', 'LEGACY_ADVICE')
+        memory.record_decision(checkpoint, decision, model_provider=decision.get('source'),
+                               model_name=decision.get('model'), schema_revision='legacy')
+
     @app.post('/api/decisions/generate')
     async def generate_decision(payload: ModelAnalysis, idempotency_key: str | None = Header(default=None), _=Depends(mutation)):
-        context = await decision_context(payload)
-        return await models.generate(payload.symbol, payload.expected_revision, idempotency_key, context)
+        context = await decision_context(payload, idempotency_key)
+        result = await models.generate(payload.symbol, payload.expected_revision, idempotency_key, context)
+        record_legacy_memory(context, result)
+        return result
 
     @app.post('/api/decisions/analyze')
     async def analyze_with_profiles(payload: ProfileAnalysis, idempotency_key: str | None = Header(default=None), _=Depends(mutation)):
-        context = await decision_context(payload)
-        return await models.analyze(payload.symbol, payload.analysis_mode, payload.model_profile_ids,
+        context = await decision_context(payload, idempotency_key)
+        result = await models.analyze(payload.symbol, payload.analysis_mode, payload.model_profile_ids,
                                     payload.expected_revisions, idempotency_key, context, **({"decision_policy": payload.decision_policy} if payload.decision_schema == "assessment_v1" else {}))
+        record_legacy_memory(context, result)
+        return result
 
     @app.post("/api/market/refresh")
     async def market_refresh(_=Depends(mutation)):
