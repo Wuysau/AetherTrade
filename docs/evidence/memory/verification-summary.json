@@ -31,6 +31,30 @@
       "note": "56 paper_runtime PostgreSQL tests + 1 pre-existing timing-sensitive market-live test deselected; the latter passes alone (27 passed in test_market_live.py)."
     },
     {
+      "name": "web_typecheck",
+      "command": "cd web && npm run typecheck",
+      "exit_code": 0,
+      "result": "tsc --noEmit passed",
+      "duration_seconds": null,
+      "status": "PASS"
+    },
+    {
+      "name": "web_tests",
+      "command": "cd web && npm run test",
+      "exit_code": 0,
+      "result": "13 test files / 125 tests passed",
+      "duration_seconds": 6.29,
+      "status": "PASS"
+    },
+    {
+      "name": "web_build",
+      "command": "cd web && npm run build",
+      "exit_code": 0,
+      "result": "vite production build passed",
+      "duration_seconds": 0.43,
+      "status": "PASS"
+    },
+    {
       "name": "postgresql_migration_and_restore",
       "command": "not run (no approved Docker/PostgreSQL access)",
       "exit_code": null,
@@ -72,7 +96,6 @@
     "paper_runtime integration tests (56 deselected)"
   ],
   "partial": [
-    "MEM-15 web UI panel (API delivered)",
     "Exact individual fill IDs (order aggregate refs where projection lacks fill IDs)",
     "Legacy generate() provider payload memory injection (wire compatibility preserved; checkpoint/decision still recorded)"
   ]

@@ -1,4 +1,4 @@
-import type { CandleHistory, CandleInterval, MarketConfig, MarketInput, AnalysisInput, ModelProfile, ModelProfileInput, TokenUsage, Notifications, ModelConfig, ModelInput, Decision, Instrument, SymbolName, ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput } from './types';
+import type { CandleHistory, CandleInterval, MarketConfig, MarketInput, AnalysisInput, ModelProfile, ModelProfileInput, TokenUsage, Notifications, ModelConfig, ModelInput, Decision, Instrument, SymbolName, ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput, MemoryOverview, MemoryEvent, MemoryDecisionRef, MemoryKnowledge, MemoryHealth, MemoryCheckpoint } from './types';
 import type {ProgramPage,ProgramView,CapabilityView} from './orderobservationtypes';
 
 export class ApiError extends Error {
@@ -71,6 +71,22 @@ export class RuntimeApi {
   setup(username: string, password: string, initial_cash: string) { return this.request<Session>('/setup', { method: 'POST', body: JSON.stringify({ username, password, initial_cash }) }); }
   logout() { return this.request<{ ok: boolean }>('/session/logout', { method: 'POST' }); }
   dashboard(range: Range, signal?: AbortSignal) { return this.request<Dashboard>(`/dashboard?range=${range}`, { signal }); }
+  strategyMemory(id: string, signal?: AbortSignal) { return this.request<MemoryOverview>(`/strategies/${encodeURIComponent(id)}/memory`, { signal }); }
+  strategyMemoryEvents(id: string, signal?: AbortSignal, cursor = 0, limit = 50) {
+    return this.request<{ events: MemoryEvent[] }>(`/strategies/${encodeURIComponent(id)}/memory/events?cursor=${cursor}&limit=${limit}`, { signal });
+  }
+  strategyMemoryDecisions(id: string, signal?: AbortSignal, limit = 20) {
+    return this.request<{ decisions: MemoryDecisionRef[] }>(`/strategies/${encodeURIComponent(id)}/memory/decisions?limit=${limit}`, { signal });
+  }
+  strategyMemoryKnowledge(id: string, signal?: AbortSignal) {
+    return this.request<{ knowledge: MemoryKnowledge[] }>(`/strategies/${encodeURIComponent(id)}/memory/knowledge`, { signal });
+  }
+  strategyMemoryHealth(id: string, signal?: AbortSignal) {
+    return this.request<MemoryHealth>(`/strategies/${encodeURIComponent(id)}/memory/health`, { signal });
+  }
+  decisionContext(runId: string, signal?: AbortSignal) {
+    return this.request<MemoryCheckpoint>(`/decisions/${encodeURIComponent(runId)}/context`, { signal });
+  }
   refreshMarket() { return this.request<Market>('/market/refresh', { method: 'POST' }); }
   saveStrategy(values: StrategyInput, existing?: Strategy, status?: Strategy['status']) {
     return this.request<Strategy>(existing ? `/strategies/${encodeURIComponent(existing.id)}` : '/strategies', {

@@ -19,7 +19,7 @@ interface PageProps {
   marketBrowserStatus?: BrowserMarketStatus; onMarket?: (market: Market) => void;
   decisionSelectionVersion?: number; selectedDecisionId?: string; data: Dashboard; range: Range; onRange: (range: Range) => void; onNavigate: (page: Page) => void;
   onOrder: (initial?: Partial<PaperOrderInput>) => void; onAction: (action: PaperAction) => void;
-  onStrategy: (mode: Mode, existing?: Strategy) => void; onRefreshMarket: () => void;
+  onStrategy: (mode: Mode, existing?: Strategy) => void; onDecision: (id: string) => void; onRefreshMarket: () => void;
   refreshing: boolean; loading: boolean; offline: boolean; api: RuntimeApi; onSaved: (message: string) => void; onExport: () => void; exporting: boolean;
 }
 function MarketPanel({ data, onRefreshMarket, refreshing }: Pick<PageProps, 'data' | 'onRefreshMarket' | 'refreshing'>) {

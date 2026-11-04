@@ -29,13 +29,14 @@ def install_memory_routes(app, memory, store, authenticated):
         validation = (checkpoint.context.sections.get("validation") or {}) if checkpoint else {}
         return {
             "strategy_id": strategy_id,
-            "scope": scope.as_payload(),
+            "scope": {**scope.as_payload(), "scope_id": scope.scope_id},
             "state": domain_payload(state),
             "active_thesis": None if state.active_thesis is None else domain_payload(state.active_thesis),
             "active_plan": None if state.active_plan is None else domain_payload(state.active_plan),
             "state_revision": state.state_revision,
             "last_checkpoint": None if checkpoint is None else {
                 "checkpoint_id": checkpoint.checkpoint_id,
+                "run_id": checkpoint.context.run_id,
                 "created_at": checkpoint.created_at,
                 "completeness": checkpoint.context.completeness.value,
                 "conflicts": list(checkpoint.context.conflicts),

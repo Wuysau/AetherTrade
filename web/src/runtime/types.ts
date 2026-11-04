@@ -1,5 +1,5 @@
 export type Range = '24H' | '7D' | '30D' | '90D';
-export type Page = 'overview' | 'decisions' | 'positions' | 'strategies' | 'research' | 'risk';
+export type Page = 'overview' | 'decisions' | 'positions' | 'strategies' | 'memory' | 'research' | 'risk';
 export type Mode = 'AI' | 'RULE' | 'HYBRID';
 export type SymbolName = 'BTCUSDT' | 'ETHUSDT' | 'SOLUSDT' | 'TSLABUSDT' | 'NVDABUSDT' | 'AAPLBUSDT';
 export type PaperAction = 'pause_new' | 'resume_new' | 'cancel_entries' | 'exit_owned';
@@ -36,6 +36,7 @@ export interface Decision {
   created_at: string; next_review_at: string | null;
   strategy_id?: string | null; strategy_name?: string | null; execution_status?: string; execution_reason?: string | null; order_id?: string | null;
   analysis_mode?: AnalysisMode; consensus_status?: 'AGREED' | 'DISAGREED' | 'INCOMPLETE';
+  memory_checkpoint_id?: string; memory_state_revision?: number; memory_completeness?: string; memory_block_new_risk?: boolean;
   model_profile_ids?: string[]; profile_revisions?: Record<string, number>; model_results?: ModelResult[];
   data_as_of?: string; snapshot_hash?: string; model_profile_id?: string; profile_name?: string; model?: string; config_revision?: number;
   model_profiles?: { profile_id: string; profile_name: string; model: string; config_revision: number }[];
@@ -113,3 +114,91 @@ export interface ModelConfig extends ModelFields { revision: number; has_api_key
 export interface ModelInput extends ModelFields { expected_revision: number; api_key?: string; clear_api_key?: boolean }
 export interface ModelProfile extends ModelConfig { id: string; name: string }
 export interface ModelProfileInput extends ModelFields { name: string; api_key?: string; clear_api_key?: boolean }
+
+export interface MemoryScope {
+  tenant_id: string; user_id: string; account_scope: string; strategy_id: string;
+  product: string; instrument: string; environment: string; scope_id?: string;
+}
+export type ThesisStatus = 'ACTIVE' | 'WEAKENED' | 'INVALIDATED' | 'EXPIRED' | 'SUPERSEDED';
+export type PlanStatus = 'PROPOSED' | 'ACCEPTED' | 'ACTIVE' | 'REVISED' | 'CANCEL_PENDING' | 'COMPLETED' | 'EXPIRED' | 'REJECTED';
+export type KnowledgeStatus = 'PROPOSED' | 'VALIDATED' | 'REJECTED' | 'EXPIRED';
+export type MemoryCompleteness = 'COMPLETE' | 'PARTIAL' | 'CONTEXT_INCOMPLETE';
+export interface MemoryThesis {
+  thesis_id: string; scope: MemoryScope; statement: string; status: ThesisStatus;
+  evidence_refs: string[]; invalidation_conditions: string[];
+  created_at: string; updated_at: string; expires_at: string | null;
+  revision: number; source: string; model_confidence: string | null;
+}
+export interface MemoryPlan {
+  plan_id: string; scope: MemoryScope; thesis_id: string | null; status: PlanStatus;
+  action: string; target_side: string; target_sizing: string; target_value: string;
+  entry: Record<string, unknown>; exit_plan: Record<string, unknown>;
+  evidence_refs: string[]; invalidation_conditions: string[];
+  valid_until: string | null; created_at: string; updated_at: string; revision: number;
+  source: string; supersedes_plan_id: string | null; authorization_ref: string | null;
+  execution_refs: string[]; source_proposal: Record<string, unknown>;
+}
+export interface MemoryKnowledge {
+  knowledge_id: string; scope: MemoryScope; statement: string; status: KnowledgeStatus;
+  market: string; product: string; instrument: string; timeframe: string;
+  strategy_version: number; sample_size: number; evaluation_window: Record<string, unknown>;
+  evidence_refs: string[]; proposed_at: string; validated_at: string | null;
+  expires_at: string | null; version: number; provenance: string;
+}
+export interface MemoryState {
+  scope: MemoryScope; state_revision: number; schema_revision: string; strategy_version: number;
+  status: string; active_thesis_id: string | null; active_plan_id: string | null;
+  last_event_id: string | null; last_decision_id: string | null; event_cursor: number;
+  updated_at: string; manual_intervention_at: string | null; manual_action: string | null;
+  theses: MemoryThesis[]; plans: MemoryPlan[]; knowledge: MemoryKnowledge[]; state_hash: string;
+}
+export interface MemoryCheckpointSummary {
+  checkpoint_id: string; run_id?: string; created_at: string; completeness: MemoryCompleteness;
+  conflicts: string[]; missing: string[]; token_estimate: number; block_new_risk: boolean;
+  prompt_versions: Record<string, string>; schema_versions: Record<string, string>;
+}
+export interface MemoryOverview {
+  strategy_id: string; scope: MemoryScope; state: MemoryState;
+  active_thesis: MemoryThesis | null; active_plan: MemoryPlan | null;
+  state_revision: number; last_checkpoint: MemoryCheckpointSummary | null;
+}
+export interface MemoryEvent {
+  event_id: string; sequence: number; event_type: string; source: string;
+  occurred_at: string; recorded_at: string; state_revision: number;
+}
+export interface MemoryDecisionRef {
+  run_id: string; scope: MemoryScope; created_at: string; decision_status: string;
+  action: string | null; model_provider: string | null; model_name: string | null;
+  prompt_revision: string | null; schema_revision: string | null; policy_revision: string | null;
+  snapshot_id: string | null; snapshot_hash: string | null; memory_state_revision: number;
+  checkpoint_id: string | null; thesis_id: string | null; plan_id: string | null;
+  execution_status: string | null;
+}
+export interface MemoryHealth {
+  strategy_id: string; state_revision: number; event_cursor: number; status: string;
+  manual_action: string | null; execution_unknown: string[]; execution_stale: string[];
+  completeness: MemoryCompleteness | null; conflicts: string[]; missing: string[];
+  block_new_risk: boolean; provider_calls_replayed: boolean;
+}
+export interface MemoryContextSections {
+  identity?: Record<string, unknown>; market?: Record<string, unknown> | null;
+  execution?: { facts?: Record<string, unknown>[]; unknown?: string[]; stale?: string[] } | null;
+  active_thesis?: MemoryThesis | null; active_plan?: MemoryPlan | null;
+  previous_decision?: MemoryDecisionRef | null; previous_proposal?: Record<string, unknown> | null;
+  recent_decisions?: MemoryDecisionRef[];
+  events_since?: { event_id: string; event_type: string; source: string; occurred_at: string; recorded_at: string; state_revision: number; summary: string }[];
+  knowledge?: MemoryKnowledge[];
+  validation?: { valid?: boolean; blocking?: boolean; block_new_risk?: boolean; reasons?: string[]; missing?: string[]; conflicts?: string[] };
+  [key: string]: unknown;
+}
+export interface MemoryContext {
+  run_id: string; scope: MemoryScope; as_of: string; state_revision: number; strategy_version: number;
+  snapshot_id: string; snapshot_hash: string; account_revision: number;
+  sections: MemoryContextSections; token_estimate: number; completeness: MemoryCompleteness;
+  missing: string[]; conflicts: string[]; evidence_refs: string[];
+  prompt_versions: Record<string, string>; schema_versions: Record<string, string>;
+  model_versions: Record<string, string>; previous_plan_id: string | null;
+  previous_thesis_id: string | null; manual_intervention_at: string | null;
+  input_hash: string; schema_revision: string;
+}
+export interface MemoryCheckpoint { checkpoint_id: string; schema_revision: string; created_at: string; context: MemoryContext }

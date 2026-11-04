@@ -25,7 +25,7 @@ no TESTNET/LIVE, no paid model calls.
 | MEM-12 review scheduling | PASS | `tests/unit/test_memory_governance.py` (trigger idempotency) |
 | MEM-13 restart/model switch/recovery | PASS (SQLite) / BLOCKED (PG disaster restore) | `memory/recovery.py`, `tests/unit/test_memory_recovery.py` |
 | MEM-14 knowledge governance | PASS | `memory/knowledge.py`, `tests/unit/test_memory_governance.py` |
-| MEM-15 observability | PARTIAL | Read-only API + tests; no React/web memory panel added |
+| MEM-15 observability | PASS | Scope-authorized read-only API + React “策略记忆” page (`web/src/runtime/memory.tsx`, `web/tests/memory.test.tsx`); no write/execution authority |
 | MEM-16 safety/backup/restore | PARTIAL / BLOCKED | Runbook + retention policy delivered; real PostgreSQL restore drill **BLOCKED** |
 
 ## 2. Test evidence
@@ -62,6 +62,21 @@ recorded as an environmental flake, not a memory PASS claim.
 
 The 56 `paper_runtime` scenarios require a real isolated PostgreSQL console and
 were **NOT_RUN** under the approved no-Docker policy.
+
+### Web / memory page
+
+```
+cd web
+npm run typecheck
+npm run test
+npm run build
+```
+
+Result: typecheck exit 0; `13` test files / `125` tests passed; production build
+exit 0. The memory page is read-only, scope-selected, and distinguishes
+`COMPLETE` / `PARTIAL` / `CONTEXT_INCOMPLETE`, data-blocked, model-failure,
+capability-blocked, rejected and risk-blocked states. It does not display keys,
+tokens or signatures, and it does not replay provider calls.
 
 ## 3. Acceptance scenarios T01-T18
 
@@ -108,8 +123,9 @@ operation was performed.
    is written but has not been applied to a real PostgreSQL instance in this
    environment. Do not mark MEM-02/MEM-16 fully accepted until the approved
    migration + backup/restore drill passes.
-2. **Web UI panel is not implemented.** MEM-15 delivers the scope-authorized
-   read-only API and tests; the React/web dashboard still needs a memory view.
+2. **Web UI is read-only and now present.** MEM-15 delivers the
+   scope-authorized API and a React “策略记忆” page. It does not write memory,
+   replay provider calls or change trading permissions.
 3. **Legacy provider payload is unchanged.** The existing exact-key legacy
    contract test is preserved; legacy `generate()` does not receive memory
    sections. The manual legacy endpoint still builds and records a checkpoint

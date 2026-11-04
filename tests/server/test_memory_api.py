@@ -61,6 +61,9 @@ def test_memory_api_is_scope_authorized_and_shows_checkpoint(tmp_path):
         assert response.status_code == 200
         assert response.json()["active_thesis"]["thesis_id"] == "t1"
         assert response.json()["state_revision"] >= 2
+        assert response.json()["scope"]["scope_id"].startswith("sms:")
+        assert response.json()["last_checkpoint"]["run_id"] == "api-run-1"
+        assert response.json()["last_checkpoint"]["checkpoint_id"] == checkpoint.checkpoint_id
         events = client.get(f"/api/strategies/{first['id']}/memory/events").json()["events"]
         assert any(event["event_type"] == "THESIS_CREATED" for event in events)
         context = client.get("/api/decisions/api-run-1/context")
