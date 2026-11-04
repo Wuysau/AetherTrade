@@ -59,4 +59,9 @@ Interfaces: authenticated /api/demo/status, /connect, /disconnect; session-only 
 - Added target/fee/slippage/daily-loss/active-order gates, scoped protection/management, bounded runtime composition and evidence-bound READY.
 - Added additive migration 0034; never applied it here.
 - Added read-only independent safety review plus regressions for stale snapshots, concurrent claims, foreign/PAPER projection, cancel UNKNOWN and no replay, bound protection allocation, and slow/failed model supervision.
-- Full-design acceptance remains open: PostgreSQL/venue qualification and D08 are NOT_RUN. MARKET/USDM/UPDATE_EXIT/native conditional/OCO and strategy-memory projection remain disabled or unimplemented, as explicitly itemized in docs/binance-demo/README.md.
+- Full-design acceptance remains open: PostgreSQL/venue qualification and D08 are NOT_RUN. MARKET/USDM/native conditional/OCO remain disabled or unimplemented, as explicitly itemized in docs/binance-demo/README.md.
+
+## Exit and memory continuation
+- Implemented committed plan-head lineage, revision/hash-bound UPDATE_EXIT with all-duty monotonic protection management and no venue order side effect.
+- Added separate Demo memory projection and exact native ModelService input-hash validation, leaving PAPER memory scopes unchanged.
+- Added migration 0035 without applying it. MARKET extension remains active work.

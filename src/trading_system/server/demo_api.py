@@ -166,11 +166,13 @@ class DemoConnectionService:
         return self.status(session_key)
 
     def close(self):
-        if self.runtime is not None:
-            self.runtime.close()
-        with self._lock:
-            self._entries.clear()
-            self.provider.clear()
+        try:
+            if self.runtime is not None:
+                self.runtime.close()
+        finally:
+            with self._lock:
+                self._entries.clear()
+                self.provider.clear()
 
 
 def session_key(request, settings):

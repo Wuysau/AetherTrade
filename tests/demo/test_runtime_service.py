@@ -67,6 +67,7 @@ def test_slow_assessment_does_not_starve_protection_supervisor(fail_model):
         def validate(self): return True
     class Host:
         scope = 'scope'
+        memory = None
         async def assess_once(self, run):
             counters['assessing'] = True
             if fail_model:

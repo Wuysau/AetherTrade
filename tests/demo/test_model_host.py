@@ -10,12 +10,16 @@ from test_host import host, frame, assessment
 
 def test_native_model_receipt_drives_demo_command_without_paper_order(host, tmp_path):
     service, repo, scope, config = host
+    from trading_system.runtime.demo_memory import DemoMemoryProjector
+    service.memory = DemoMemoryProjector(repo)
     requests = []
     def provider(request):
         body = json.loads(request.content)
         context = json.loads(body['messages'][-1]['content'])
         assert context['analysis_snapshot']['schema_revision'] == 'demo-analysis-snapshot-v1'
         assert 'demo-session:' not in request.content.decode()
+        assert context['strategy_memory']['scope']['environment'] == 'BINANCE_DEMO'
+        assert context['memory_record_decision'] is False
         requests.append(body)
         return httpx.Response(200, json={'choices': [{'finish_reason': 'stop', 'message': {'content': json.dumps(assessment(context['analysis_snapshot']))}}], 'usage': {'prompt_tokens': 10, 'completion_tokens': 10}})
     model_client = httpx.AsyncClient(transport=httpx.MockTransport(provider), trust_env=False)
@@ -41,8 +45,15 @@ def test_native_model_receipt_drives_demo_command_without_paper_order(host, tmp_
         service.frame_loader = current
         decision = asyncio.run(service.assess_once('model-run'))
         assert decision['result']['decision']['assessment_status'] == 'DECIDED', decision['result']
+        from copy import deepcopy
+        from trading_system.engine.binance_demo.contracts import DemoError
+        import pytest
+        altered = deepcopy(decision); altered['result']['decision']['input_hash'] = '0'*64
+        with pytest.raises(DemoError, match='CONTEXT_RECEIPT'):
+            service._validate_receipt(altered, ai)
         command = service.admit_assessment('model-run')
         assert command['state'] == 'DURABLE_READY'
+        assert command['risk_receipt']['memory_hash'] == decision['memory_context']['context_hash']
         assert len(requests) == 1
         assert asyncio.run(service.assess_once('model-run'))['command_id'] == command['command_id']
         assert len(requests) == 1

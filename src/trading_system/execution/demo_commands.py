@@ -87,7 +87,10 @@ class DemoExecutionOwner:
                 unresolved_unknown=current_health['unknown'], unprotected=current_health['unprotected'], pending_inbox=current_health['pending_inbox'])
             admit(current)
             if self.preflight: self.preflight()
-            command = self.repository.begin_send(scope, command_id, expected_revision=account['revision'], now=current.now)
+            def final_admission(now):
+                if self.preflight: self.preflight()
+                admit(replace(current, now=now))
+            command = self.repository.begin_send(scope, command_id, expected_revision=account['revision'], now=current.now, clock=self.clock, validator=final_admission)
             permit = DemoSendPermit(_owner=_OWNER, method=command['method'], request=command['request'], credential_ref=account['credential_ref'])
             try:
                 response = (self.transport.send_order if command['method'] == 'POST' else self.transport.cancel_order)(command['request'], permit=permit)

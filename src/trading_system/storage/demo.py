@@ -63,7 +63,7 @@ protection = Table('demo_protection', metadata,
 outbox = Table('demo_outbox', metadata,
     Column('event_id', String(64), primary_key=True), Column('account_key', String(64), nullable=False),
     Column('kind', String(40), nullable=False), Column('payload', JSON, nullable=False),
-    Column('delivered', Boolean, nullable=False))
+    Column('delivered', Boolean, nullable=False), Column('created_at', Integer, nullable=False, server_default='0'))
 reconciliations = Table('demo_reconciliations', metadata,
     Column('account_key', String(64), primary_key=True), Column('symbol', String(20), primary_key=True),
     Column('cursor', JSON, nullable=False), Column('complete', Boolean, nullable=False),
@@ -78,11 +78,26 @@ decisions = Table('demo_decisions', metadata,
     Column('account_key', String(64), nullable=False), Column('state', String(32), nullable=False),
     Column('source', String(32), nullable=False), Column('binding_hash', String(64), nullable=False),
     Column('snapshot', JSON, nullable=False), Column('strategy', JSON, nullable=False), Column('result', JSON),
-    Column('command_id', String(100)), Column('error', String(80)))
+    Column('command_id', String(100)), Column('error', String(80)), Column('memory_context', JSON))
 
 account_snapshots = Table('demo_account_snapshots', metadata,
     Column('account_key', String(64), primary_key=True), Column('facts_hash', String(64), nullable=False),
     Column('facts', JSON, nullable=False), Column('observed_at', String(40), nullable=False))
+
+memory_projection = Table('demo_memory_projection', metadata,
+    Column('scope_key', String(64), primary_key=True), Column('event_id', String(64), primary_key=True),
+    Column('account_key', String(64), nullable=False), Column('kind', String(40), nullable=False),
+    Column('payload', JSON), Column('created_at', Integer, nullable=False))
+
+plan_heads = Table('demo_plan_heads', metadata,
+    Column('scope_key', String(64), primary_key=True), Column('account_key', String(64), nullable=False),
+    Column('revision', Integer, nullable=False), Column('state', String(16), nullable=False), Column('proposal', JSON, nullable=False),
+    Column('source_command_id', String(100), nullable=False), Column('predecessor_hash', String(64)))
+plan_updates = Table('demo_plan_updates', metadata,
+    Column('management_id', String(100), primary_key=True), Column('scope_key', String(64), nullable=False),
+    Column('account_key', String(64), nullable=False), Column('run_id', String(100), nullable=False),
+    Column('request_hash', String(64), nullable=False), Column('receipt', JSON, nullable=False),
+    UniqueConstraint('scope_key', 'run_id', name='demo_exit_update_identity'))
 
 
 class DemoRepository:
@@ -166,7 +181,7 @@ class DemoRepository:
     def _event(self, conn, account_key, kind, identity, payload):
         event_id = digest([account_key, kind, identity])
         if conn.execute(select(outbox.c.event_id).where(outbox.c.event_id == event_id)).first() is None:
-            conn.execute(insert(outbox).values(event_id=event_id, account_key=account_key, kind=kind, payload=payload, delivered=False))
+            conn.execute(insert(outbox).values(event_id=event_id, account_key=account_key, kind=kind, payload=payload, delivered=False, created_at=int(__import__('time').time())))
 
     def stage(self, scope, *, command_id, request, reserve_asset, reserve_amount, available, authorization_ref, expires_at, now, method='POST', purpose='ENTRY', protection_plan=None, risk_receipt=None, expected_account_revision=None, expected_strategy_revision=None, reject_active_orders=False):
         if scope.product != 'SPOT' or method not in {'POST', 'DELETE'}:
@@ -235,8 +250,10 @@ class DemoRepository:
             self._event(conn, scope.account_key, 'COMMAND_STAGED', command_id, {'command_id': command_id, 'request_hash': intent_hash})
         return self.command(scope, command_id)
 
-    def begin_send(self, scope, command_id, *, expected_revision, now):
+    def begin_send(self, scope, command_id, *, expected_revision, now, clock=None, validator=None):
         with self.transaction(scope.account_key) as conn:
+            now = int(clock()) if clock is not None else now
+            if validator is not None: validator(now)
             account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
             row = conn.execute(select(commands).where(commands.c.command_id == command_id, commands.c.scope_key == scope.key)).mappings().one()
             if row['state'] != 'DURABLE_READY':
@@ -421,8 +438,8 @@ class DemoRepository:
             row = conn.execute(select(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id)).mappings().first()
             return dict(row) if row else None
 
-    def begin_decision(self, scope, run_id, snapshot, strategy, source):
-        binding_hash = digest([snapshot['snapshot_hash'], strategy])
+    def begin_decision(self, scope, run_id, snapshot, strategy, source, memory_context=None):
+        binding_hash = digest([snapshot['snapshot_hash'], strategy, memory_context])
         with self.transaction(scope.account_key) as conn:
             row = conn.execute(select(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id)).mappings().first()
             if row:
@@ -430,13 +447,14 @@ class DemoRepository:
                     raise DemoError('DEMO_DECISION_IDEMPOTENCY_CONFLICT')
                 raise DemoError('DEMO_MODEL_RUN_NOT_RETRYABLE')
             conn.execute(insert(decisions).values(scope_key=scope.key, run_id=run_id, account_key=scope.account_key,
-                state='IN_FLIGHT', source=source, binding_hash=binding_hash, snapshot=snapshot, strategy=strategy))
+                state='IN_FLIGHT', source=source, binding_hash=binding_hash, snapshot=snapshot, strategy=strategy, memory_context=memory_context))
         return self.decision(scope, run_id)
 
     def finish_decision(self, scope, run_id, *, result=None, error=None):
         with self.transaction(scope.account_key) as conn:
             conn.execute(update(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id,
                 decisions.c.state == 'IN_FLIGHT').values(state='FAILED' if error else 'ASSESSED', result=result, error=error))
+            self._event(conn, scope.account_key, 'DECISION_RECORDED', digest([scope.key, run_id]), {'scope_key': scope.key, 'run_id': run_id})
         return self.decision(scope, run_id)
 
     def bind_decision_command(self, scope, run_id, command_id):
@@ -543,3 +561,76 @@ class DemoRepository:
         if len(matches) > 1:
             raise DemoError('DEMO_CANCEL_IDENTITY_CONFLICT')
         return matches[0] if matches else None
+
+    def plan_head(self, scope):
+        with self.engine.connect() as conn:
+            row = conn.execute(select(plan_heads).where(plan_heads.c.scope_key == scope.key, plan_heads.c.state == 'ACTIVE')).mappings().first()
+        return dict(row) if row else None
+
+    @staticmethod
+    def duties_hash(rows):
+        return digest(sorted([{'fill_key': row['fill_key'], 'plan': row['plan'], 'remaining_quantity': row['remaining_quantity'],
+            'entry_command_id': row['entry_command_id'], 'opened_at': row['opened_at']} for row in rows], key=lambda row: row['fill_key']))
+
+    def exit_update(self, scope, run_id):
+        with self.engine.connect() as conn:
+            return conn.execute(select(plan_updates.c.receipt).where(plan_updates.c.scope_key == scope.key, plan_updates.c.run_id == run_id)).scalar_one_or_none()
+
+    def apply_exit_update(self, scope, run_id, *, candidate, expected_account_revision, expected_plan_revision, expected_duties_hash, strategy, now, bid, clock=None):
+        from trading_system.contracts.wire import ContractCodec, validate_transition
+        identifier = 'exit:' + digest([scope.key, run_id])
+        request_hash = digest([scope.key, run_id, candidate, expected_plan_revision, expected_duties_hash])
+        with self.safety_guard(scope), self.transaction(scope.account_key) as conn:
+            now = int(clock()) if clock is not None else now
+            prior = conn.execute(select(plan_updates).where(plan_updates.c.management_id == identifier)).mappings().first()
+            if prior:
+                if prior['request_hash'] != request_hash: raise DemoError('DEMO_EXIT_UPDATE_IDEMPOTENCY_CONFLICT')
+                return prior['receipt']
+            account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
+            current_strategy = conn.execute(select(strategies.c.config).where(strategies.c.scope_key == scope.key)).scalar_one()
+            head = conn.execute(select(plan_heads).where(plan_heads.c.scope_key == scope.key, plan_heads.c.state == 'ACTIVE')).mappings().first()
+            decision = conn.execute(select(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id)).mappings().one()
+            if account['frozen'] or account['revision'] != expected_account_revision or current_strategy != strategy or not strategy.get('authorized') or now >= strategy['authorized_until'] or not head or head['revision'] != expected_plan_revision:
+                raise DemoError('DEMO_EXIT_UPDATE_BINDING_CHANGED')
+            from datetime import datetime
+            if any(datetime.fromisoformat(value).timestamp() <= now for value in (candidate['valid_until'], candidate['entry']['entry_deadline'], candidate['exit_plan']['review_due_at'])):
+                raise DemoError('DEMO_EXIT_UPDATE_EXPIRED')
+            if decision['state'] != 'ASSESSED' or (decision['result'] or {}).get('decision', {}).get('proposal') != candidate:
+                raise DemoError('DEMO_EXIT_UPDATE_RECEIPT_INVALID')
+            active = conn.execute(select(commands.c.command_id).where(commands.c.scope_key == scope.key, commands.c.method == 'POST', commands.c.state != 'ABANDONED',
+                (commands.c.order_status.is_(None) | commands.c.order_status.not_in(['FILLED', 'CANCELED', 'EXPIRED', 'REJECTED', 'EXPIRED_IN_MATCH']) | (commands.c.reserve_amount != '0')))).first()
+            pending = conn.execute(select(inbox.c.observation_id).where(inbox.c.state != 'PROCESSED', inbox.c.observation_id.in_(select(observations.c.observation_id).where(observations.c.account_key == scope.account_key)))).first()
+            unknown = conn.execute(select(commands.c.command_id).where(commands.c.account_key == scope.account_key, commands.c.state.in_(['MAY_HAVE_SENT', 'UNKNOWN']))).first()
+            duties = [dict(row) for row in conn.execute(select(protection).where(protection.c.scope_key == scope.key, protection.c.state != 'SATISFIED')).mappings()]
+            if active or pending or unknown or not duties or any(row['state'] == 'MITIGATION_PENDING' for row in duties):
+                raise DemoError('DEMO_EXIT_UPDATE_RECOVERY_REQUIRED')
+            if self.duties_hash(duties) != expected_duties_hash:
+                raise DemoError('DEMO_EXIT_UPDATE_BINDING_CHANGED')
+            codec = ContractCodec()
+            try: validate_transition(codec.decode('decision-proposal', head['proposal']), codec.decode('decision-proposal', candidate))
+            except Exception: raise DemoError('DEMO_EXIT_UPDATE_TRANSITION_INVALID') from None
+            if candidate['action'] != 'UPDATE_EXIT' or candidate.get('requested_leverage', 1) != head['proposal'].get('requested_leverage', 1) or any(candidate['entry'][key] != head['proposal']['entry'][key] for key in ('order_preference', 'limit_price', 'maximum_entry_slippage_bps', 'allow_partial')):
+                raise DemoError('DEMO_EXIT_UPDATE_ENTRY_CHANGED')
+            exit_plan = candidate['exit_plan']; stop = decimal(exit_plan['stop_price'], positive=True)
+            if exit_plan['stop_trigger'] != 'LAST' or stop >= decimal(bid, positive=True):
+                raise DemoError('DEMO_EXIT_UPDATE_STOP_INVALID')
+            for duty in duties:
+                plan = duty['plan'] or {}
+                if plan.get('mode') != 'HOSTED' or plan.get('stop_trigger', 'LAST') != 'LAST' or plan.get('authorization_ref') != strategy['authorization_ref']:
+                    raise DemoError('DEMO_EXIT_UPDATE_PROTECTION_UNSUPPORTED')
+                if stop < decimal(plan['stop_price']) or exit_plan['maximum_holding_seconds'] > plan['maximum_holding_seconds']:
+                    raise DemoError('DEMO_EXIT_UPDATE_WOULD_LOOSEN')
+                if now >= duty['opened_at'] + exit_plan['maximum_holding_seconds']:
+                    raise DemoError('DEMO_EXIT_UPDATE_REDUCTION_DUE')
+            for duty in duties:
+                plan = {**duty['plan'], 'stop_price': str(stop), 'maximum_holding_seconds': exit_plan['maximum_holding_seconds'], 'proposal_id': candidate['proposal_id']}
+                conn.execute(update(protection).where(protection.c.fill_key == duty['fill_key']).values(plan=plan))
+            conn.execute(update(plan_heads).where(plan_heads.c.scope_key == scope.key).values(revision=head['revision'] + 1, proposal=candidate, predecessor_hash=digest(dict(head))))
+            conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(revision=accounts.c.revision + 1))
+            receipt = {'management_id': identifier, 'state': 'APPLIED', 'purpose': 'UPDATE_EXIT', 'execution_authorized': False,
+                'scope_key': scope.key, 'run_id': run_id, 'previous_revision': head['revision'], 'plan_revision': head['revision'] + 1,
+                'proposal_hash': digest(candidate), 'duty_ids': [row['fill_key'] for row in duties]}
+            conn.execute(insert(plan_updates).values(management_id=identifier, scope_key=scope.key, account_key=scope.account_key, run_id=run_id, request_hash=request_hash, receipt=receipt))
+            conn.execute(update(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id).values(state='MANAGEMENT_APPLIED'))
+            self._event(conn, scope.account_key, 'EXIT_PLAN_UPDATED', identifier, receipt)
+            return receipt

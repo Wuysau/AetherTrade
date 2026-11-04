@@ -69,7 +69,10 @@ class DemoFrameLoader:
             raise DemoError('DEMO_MARKET_SOURCE_INVALID')
         market = {'environment': 'BINANCE_DEMO', 'symbol': 'BTCUSDT', 'as_of': datetime.now(timezone.utc).isoformat(),
                   'bid': book['bidPrice'], 'ask': book['askPrice'], 'candles': candles, 'execution_context': execution}
+        head = repo.plan_head(scope)
+        duties = repo.protection_duties(scope)
         if repo.account(scope)['revision'] != account['revision'] or repo.strategy(scope) != strategy:
             raise DemoError('DEMO_FRAME_BINDING_CHANGED')
         return build_demo_snapshot(scope=scope, strategy=strategy, account={**account, 'balances': balances, 'fee_rate': str(fee) if fee is not None else None,
-            'position': str(repo.asset_deltas(scope).get('BTC', 0)), 'observed_at': observed_at}, market=market, rules=rules[0], qualification=account.get('qualification') or {}, code_sha=self.current_code_sha)
+            'position': str(repo.asset_deltas(scope).get('BTC', 0)), 'observed_at': observed_at,
+            'previous_proposal': head['proposal'] if head else None, 'plan_revision': head['revision'] if head else 0, 'protection_hash': repo.duties_hash(duties)}, market=market, rules=rules[0], qualification=account.get('qualification') or {}, code_sha=self.current_code_sha)

@@ -140,6 +140,10 @@ def validate_assessment(value: dict, snapshot: dict) -> DecisionAssessment:
         raise ValueError('Unknown/exceeded target budget')
     if typed.target.side != 'FLAT':
         stop = typed.exit_plan.stop_price
+        # Demo management tightens an existing responsibility; historical entry
+        # price is not the current stop reference. Legacy PAPER remains unchanged.
+        if typed.action == 'UPDATE_EXIT' and snapshot.get('schema_revision') == 'demo-analysis-snapshot-v1':
+            price = number(snapshot['market']['book']['bid' if typed.target.side == 'LONG' else 'ask'])
         if stop is None or (typed.target.side == 'LONG' and number(stop) >= price) or (typed.target.side == 'SHORT' and number(stop) <= price):
             raise ValueError('Invalid protective stop')
         if constraints.get('protection_supported') is not True:

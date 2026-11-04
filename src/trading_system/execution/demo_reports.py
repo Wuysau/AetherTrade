@@ -3,7 +3,7 @@ from decimal import Decimal
 import re
 from sqlalchemy import select, update, insert
 from trading_system.engine.binance_demo.contracts import DemoError, decimal, digest
-from trading_system.storage.demo import accounts, commands, observations, inbox, fills, postings, protection
+from trading_system.storage.demo import accounts, commands, observations, inbox, fills, postings, protection, plan_heads, decisions
 
 TERMINAL = {'FILLED', 'CANCELED', 'EXPIRED', 'REJECTED', 'EXPIRED_IN_MATCH'}
 STATUSES = TERMINAL | {'NEW', 'PARTIALLY_FILLED', 'PENDING_NEW'}
@@ -175,4 +175,18 @@ class DemoReportVerifier:
                 if remaining == 0: break
             if remaining:
                 raise DemoError('DEMO_UNOWNED_EXPOSURE')
+        if event['S'] == 'BUY' and (command['risk_receipt'] or {}).get('run_id'):
+            run_id = command['risk_receipt']['run_id']
+            record = conn.execute(select(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id)).mappings().one()
+            proposal = (record['result'] or {}).get('decision', {}).get('proposal')
+            if not proposal or digest(proposal) != command['risk_receipt']['proposal_hash'] or proposal['instrument_ref'] != 'binance-demo:SPOT:BTCUSDT':
+                raise DemoError('DEMO_PLAN_LINEAGE_INVALID')
+            head = conn.execute(select(plan_heads).where(plan_heads.c.scope_key == scope.key)).mappings().first()
+            if not head or head['source_command_id'] != command['command_id']:
+                values = {'scope_key': scope.key, 'account_key': scope.account_key, 'revision': head['revision'] + 1 if head else 1,
+                    'state': 'ACTIVE', 'proposal': proposal, 'source_command_id': command['command_id'], 'predecessor_hash': digest(dict(head)) if head else None}
+                conn.execute(update(plan_heads).where(plan_heads.c.scope_key == scope.key).values(**values) if head else insert(plan_heads).values(**values))
+        elif event['S'] == 'SELL':
+            if not conn.execute(select(protection.c.fill_key).where(protection.c.scope_key == scope.key, protection.c.state != 'SATISFIED')).first():
+                conn.execute(update(plan_heads).where(plan_heads.c.scope_key == scope.key).values(state='CLOSED', revision=plan_heads.c.revision + 1))
         self.repository._event(conn, scope.account_key, 'FILL_ACCOUNTED', fill_key, {'fill_key': fill_key})

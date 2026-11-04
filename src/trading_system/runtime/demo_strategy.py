@@ -22,12 +22,13 @@ ENVELOPE = ('schema_revision', 'summary', 'proposal', 'evidence_claims', 'watch_
 
 
 class DemoStrategyHost:
-    def __init__(self, repository, scope, *, frame_loader, model_service, execution_owner, rule_assessor=None, hybrid_gate=None, current_code_sha, stream=None, clock=time.time):
+    def __init__(self, repository, scope, *, frame_loader, model_service, execution_owner, rule_assessor=None, hybrid_gate=None, current_code_sha, stream=None, memory_service=None, clock=time.time):
         if not callable(frame_loader) or scope.product != 'SPOT' or len(current_code_sha) != 40:
             raise DemoError('DEMO_HOST_COMPOSITION_INVALID')
         self.repository, self.scope, self.frame_loader = repository, scope, frame_loader
         self.models, self.owner, self.rule_assessor, self.hybrid_gate = model_service, execution_owner, rule_assessor, hybrid_gate
         self.current_code_sha, self.clock, self.stream = current_code_sha, clock, stream
+        self.memory = memory_service
 
     def _strategy(self):
         strategy = self.repository.strategy(self.scope)
@@ -52,7 +53,7 @@ class DemoStrategyHost:
         if previous:
             if previous['strategy'] != strategy:
                 raise DemoError('DEMO_DECISION_BINDING_CHANGED')
-            if previous['state'] in {'ASSESSED', 'STAGED'}:
+            if previous['state'] in {'ASSESSED', 'STAGED', 'MANAGEMENT_APPLIED'}:
                 return previous
             raise DemoError('DEMO_MODEL_RUN_NOT_RETRYABLE')
         mode = strategy.get('mode')
@@ -60,11 +61,16 @@ class DemoStrategyHost:
             raise DemoError('DEMO_STRATEGY_MODE_INVALID')
         if mode != 'RULE' and (strategy.get('allow_model_calls') is not True or self.models is None):
             raise DemoError('DEMO_MODEL_PERMISSION_REQUIRED')
+        if self.memory is not None:
+            await asyncio.to_thread(self.memory.project, self.scope)
         snapshot = await asyncio.to_thread(self._frame)
         if snapshot['task_profile']['strategy_revision'] != strategy['revision']:
             raise DemoError('DEMO_DECISION_BINDING_CHANGED')
         source = 'verified_rule_v1' if mode == 'RULE' else 'assessment_v1'
-        self.repository.begin_decision(self.scope, run_id, snapshot, strategy, source)
+        memory_context = await asyncio.to_thread(self.memory.context, self.scope, snapshot_hash=snapshot['snapshot_hash']) if self.memory is not None else None
+        if self.repository.account(self.scope)['revision'] != snapshot['bindings']['account_revision']:
+            raise DemoError('DEMO_FRAME_BINDING_CHANGED')
+        self.repository.begin_decision(self.scope, run_id, snapshot, strategy, source, memory_context=memory_context)
         try:
             if snapshot['quality']['status'] != 'READY':
                 raise DemoError('DEMO_REQUIRED_EVIDENCE_MISSING')
@@ -79,7 +85,9 @@ class DemoStrategyHost:
             else:
                 result = await self.models.analyze('BTCUSDT', strategy['analysis_mode'], strategy['model_profile_ids'],
                     strategy['model_revisions'], 'demo:' + digest([self.scope.key, run_id]),
-                    {'analysis_snapshot': snapshot, 'quote_max_age_seconds': 5}, decision_policy=strategy['decision_policy'])
+                    {'analysis_snapshot': snapshot, 'quote_max_age_seconds': 5, **({'strategy_memory': memory_context,
+                    'memory_binding': {'schema_revision': 'demo-memory-binding-v1', 'scope_key': self.scope.key, 'context_hash': memory_context['context_hash']},
+                    'memory_record_decision': False} if memory_context is not None else {})}, decision_policy=strategy['decision_policy'])
             if self._strategy() != strategy:
                 raise DemoError('DEMO_DECISION_BINDING_CHANGED')
             return self.repository.finish_decision(self.scope, run_id, result=result)
@@ -93,7 +101,16 @@ class DemoStrategyHost:
         snapshot = row['snapshot']
         if row['strategy'] != strategy or decision.get('assessment_status') != 'DECIDED' or decision.get('snapshot_hash') != snapshot['snapshot_hash'] or decision.get('snapshot_id') != snapshot['snapshot_id'] or decision.get('strategy_revision') != strategy['revision']:
             raise DemoError('DEMO_DECISION_BINDING_CHANGED')
+        memory = row.get('memory_context')
+        if memory is not None:
+            if memory.get('scope') != __import__('dataclasses').asdict(self.scope) or memory.get('snapshot_hash') != snapshot['snapshot_hash'] or memory.get('context_hash') != digest({key: value for key, value in memory.items() if key != 'context_hash'}):
+                raise DemoError('DEMO_MEMORY_RECEIPT_INVALID')
         if row['source'] == 'assessment_v1':
+            clean = {'symbol': 'BTCUSDT', 'analysis_snapshot': snapshot}
+            if memory is not None:
+                clean.update(strategy_memory=memory, memory_binding={'schema_revision': 'demo-memory-binding-v1', 'scope_key': self.scope.key, 'context_hash': memory['context_hash']}, memory_record_decision=False)
+            if decision.get('input_hash') != self.models._hash(clean):
+                raise DemoError('DEMO_MODEL_CONTEXT_RECEIPT_INVALID')
             ids, revisions = strategy['model_profile_ids'], strategy['model_revisions']
             if decision.get('required_profile_ids') != ids or decision.get('profile_revisions') != revisions or decision.get('decision_policy') != strategy['decision_policy']:
                 raise DemoError('DEMO_MODEL_RECEIPT_INVALID')
@@ -119,8 +136,10 @@ class DemoStrategyHost:
 
     def admit_assessment(self, run_id):
         row = self.repository.decision(self.scope, run_id)
-        if row is None or row['state'] not in {'ASSESSED', 'STAGED'}:
+        if row is None or row['state'] not in {'ASSESSED', 'STAGED', 'MANAGEMENT_APPLIED'}:
             raise DemoError('DEMO_ASSESSMENT_UNAVAILABLE')
+        if row['state'] == 'MANAGEMENT_APPLIED':
+            return self.repository.exit_update(self.scope, run_id)
         strategy = self._strategy()
         value = self._validate_receipt(row, strategy)
         if row['command_id']:
@@ -128,6 +147,21 @@ class DemoStrategyHost:
         proposal = value['proposal']
         if proposal is None or proposal['action'] == 'HOLD':
             return {'state': 'NO_ACTION', 'execution_authorized': False}
+        if proposal['action'] == 'UPDATE_EXIT':
+            current = self._frame()
+            if strategy.get('allow_execution') is not True:
+                raise DemoError('DEMO_EXECUTION_PERMISSION_REQUIRED')
+            binding = row['snapshot']['bindings']
+            if current['bindings'] != binding:
+                # Refresh timestamps are allowed, identities/revisions are not.
+                keys = set(binding) - {'account_as_of'}
+                if any(current['bindings'][key] != binding[key] for key in keys):
+                    raise DemoError('DEMO_EXIT_UPDATE_BINDING_CHANGED')
+            if strategy['mode'] == 'HYBRID' and (not callable(self.hybrid_gate) or self.hybrid_gate(value, current) is not True):
+                raise DemoError('DEMO_HYBRID_GATE_REJECTED')
+            return self.repository.apply_exit_update(self.scope, run_id, candidate=proposal, expected_account_revision=binding['account_revision'],
+                expected_plan_revision=binding['plan_revision'], expected_duties_hash=binding['protection_hash'], strategy=strategy,
+                now=int(self.clock()), bid=current['market']['book']['bid'], clock=self.clock)
         if proposal['action'] != 'SET_TARGET':
             raise DemoError('DEMO_MANAGEMENT_REQUIRES_SEPARATE_COMMAND')
         current = self._frame()
@@ -183,7 +217,7 @@ class DemoStrategyHost:
         reserve = quantity * price * (1 + fee) if side == 'BUY' else quantity * (1 + fee)
         available = current['portfolio']['account']['cash'] if side == 'BUY' else str(held)
         deadline = min(int(datetime.fromisoformat(proposal['valid_until']).timestamp()), int(datetime.fromisoformat(proposal['entry']['entry_deadline']).timestamp()))
-        risk = {'run_id': run_id, 'snapshot_hash': row['snapshot']['snapshot_hash'], 'strategy_revision': strategy['revision'],
+        risk = {'run_id': run_id, 'memory_hash': (row.get('memory_context') or {}).get('context_hash'), 'snapshot_hash': row['snapshot']['snapshot_hash'], 'strategy_revision': strategy['revision'],
             'qualification_hash': binding['qualification_hash'], 'policy_revision': strategy['policy_revision'], 'model_revisions': strategy['model_revisions'], 'authorization_ref': strategy['authorization_ref'],
             'rules_hash': binding['rules_hash'], 'planned_loss': str(planned_loss), 'proposal_hash': digest(proposal)}
         plan = {'stop_trigger': proposal['exit_plan']['stop_trigger'], 'stop_price': str(stop), 'maximum_holding_seconds': proposal['exit_plan']['maximum_holding_seconds'], 'proposal_id': proposal['proposal_id'],

@@ -64,12 +64,13 @@ def build_demo_snapshot(*, scope, strategy, account, market, rules, qualificatio
         'market': {'quote': {'symbol': 'BTCUSDT', 'price': str(price), 'change_pct': '0', 'as_of': market['as_of']},
                    'book': {'bid': str(bid), 'ask': str(ask), 'spread': str(ask - bid), 'as_of': market['as_of']}, 'candles': rows, 'features': features, 'execution_context': deepcopy(market.get('execution_context', {}))},
         'portfolio': {'account': {'cash': str(cash), 'equity': str(cash + base * price), 'currency': 'USDT', 'paused': account['state'] != 'READY'},
-                      'position': {'symbol': 'BTCUSDT', 'quantity': str(base)} if base else None, 'previous_proposal': None},
+                      'position': {'symbol': 'BTCUSDT', 'quantity': str(base)} if base else None, 'previous_proposal': deepcopy(account.get('previous_proposal'))},
         'constraints': {'maximum_target_notional': str(budget), 'max_planned_loss': strategy['max_planned_loss'], 'max_daily_loss': strategy['max_daily_loss'],
                         'protection_supported': qualification.get('state') == 'DEMO_VERIFIED' and qualification.get('protection') == strategy['protection_mode'],
                         'execution_supported': qualification.get('state') == 'DEMO_VERIFIED'},
         'costs': {'fee_rate': str(decimal(fee)) if fee is not None else None, 'fee_rate_cap': str(fee_cap), 'fee_source': 'BINANCE_DEMO_ACCOUNT' if complete else 'UNAVAILABLE', 'complete': complete},
         'bindings': {'account_revision': account['revision'], 'credential_revision': account['credential_revision'], 'account_as_of': account['observed_at'],
+                     'plan_revision': account.get('plan_revision', 0), 'protection_hash': account.get('protection_hash', digest([])),
                      'strategy_revision': strategy['revision'], 'policy_revision': strategy['policy_revision'], 'model_revisions': strategy['model_revisions'],
                      'rules_hash': digest(rules), 'qualification_hash': digest(qualification), 'code_sha': code_sha,
                      'authorization_ref': strategy['authorization_ref'], 'authorized_until': strategy['authorized_until']},
@@ -128,7 +129,10 @@ def validate_demo_snapshot(snapshot):
         if snapshot['portfolio']['position'] is not None:
             _exact(snapshot['portfolio']['position'], {'symbol', 'quantity'}); decimal(snapshot['portfolio']['position']['quantity'])
         if snapshot['portfolio']['previous_proposal'] is not None:
-            raise DemoError('DEMO_PREVIOUS_PROPOSAL_NOT_BOUND')
+            from trading_system.contracts.wire import ContractCodec
+            previous = ContractCodec().decode('decision-proposal', snapshot['portfolio']['previous_proposal'])
+            if previous.instrument_ref != snapshot['instrument_ref'] or snapshot['bindings']['plan_revision'] < 1:
+                raise DemoError('DEMO_PREVIOUS_PROPOSAL_NOT_BOUND')
         _exact(snapshot['constraints'], {'maximum_target_notional', 'max_planned_loss', 'max_daily_loss', 'protection_supported', 'execution_supported'})
         for field in ('maximum_target_notional', 'max_planned_loss', 'max_daily_loss'): decimal(snapshot['constraints'][field])
         if any(type(snapshot['constraints'][field]) is not bool for field in ('protection_supported', 'execution_supported')):
@@ -138,14 +142,16 @@ def validate_demo_snapshot(snapshot):
         complete = costs['fee_rate'] is not None and decimal(costs['fee_rate']) <= decimal(costs['fee_rate_cap'])
         if costs['complete'] is not complete or costs['fee_source'] != ('BINANCE_DEMO_ACCOUNT' if complete else 'UNAVAILABLE'):
             raise DemoError('DEMO_SNAPSHOT_COST_INVALID')
-        _exact(snapshot['bindings'], {'account_revision', 'credential_revision', 'account_as_of', 'strategy_revision', 'policy_revision', 'model_revisions', 'rules_hash', 'qualification_hash', 'code_sha', 'authorization_ref', 'authorized_until'})
+        _exact(snapshot['bindings'], {'account_revision', 'credential_revision', 'account_as_of', 'strategy_revision', 'policy_revision', 'model_revisions', 'rules_hash', 'qualification_hash', 'code_sha', 'authorization_ref', 'authorized_until', 'plan_revision', 'protection_hash'})
         if snapshot['bindings']['rules_hash'] != digest(snapshot['rules']) or snapshot['bindings']['strategy_revision'] != profile['strategy_revision']:
             raise DemoError('DEMO_SNAPSHOT_BINDING_INVALID')
-        for field in ('account_revision', 'credential_revision', 'strategy_revision', 'policy_revision', 'authorized_until'):
+        for field in ('account_revision', 'credential_revision', 'strategy_revision', 'policy_revision', 'authorized_until', 'plan_revision'):
             if type(snapshot['bindings'][field]) is not int or snapshot['bindings'][field] < 0: raise DemoError('DEMO_SNAPSHOT_BINDING_INVALID')
         if not re.fullmatch(r'[a-f0-9]{40}', snapshot['bindings']['code_sha'] or '') or not re.fullmatch(r'[a-f0-9]{64}', snapshot['bindings']['qualification_hash']):
             raise DemoError('DEMO_SNAPSHOT_BINDING_INVALID')
         if not isinstance(snapshot['bindings']['model_revisions'], dict) or any(type(v) is not int or v < 1 for v in snapshot['bindings']['model_revisions'].values()):
+            raise DemoError('DEMO_SNAPSHOT_BINDING_INVALID')
+        if not re.fullmatch(r'[a-f0-9]{64}', snapshot['bindings']['protection_hash']):
             raise DemoError('DEMO_SNAPSHOT_BINDING_INVALID')
         _exact(snapshot['quality'], {'status', 'missing_required', 'missing_optional', 'sections'})
         if set(snapshot['quality']['sections']) != set(expected):

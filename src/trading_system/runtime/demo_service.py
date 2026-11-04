@@ -13,6 +13,7 @@ from trading_system.engine.binance_demo.stream import DemoUserStreamConsumer, pr
 from trading_system.execution.demo_commands import DemoExecutionOwner
 from trading_system.execution.demo_reconcile import DemoReconciler
 from .demo_frame import DemoFrameLoader
+from .demo_memory import DemoMemoryProjector
 from .demo_strategy import DemoStrategyHost
 
 
@@ -53,7 +54,7 @@ class DemoRuntimeService:
             stream = DemoUserStreamConsumer(self.repository, scope, lease.credential_ref, request_id='demo-' + uuid4().hex)
             host = DemoStrategyHost(self.repository, scope, frame_loader=DemoFrameLoader(self.repository, scope, transport, current_code_sha=self.current_code_sha),
                 model_service=self.models, execution_owner=DemoExecutionOwner(self.repository, transport, preflight=lease.validate), stream=stream,
-                rule_assessor=self.rule_assessor, hybrid_gate=self.hybrid_gate, current_code_sha=self.current_code_sha)
+                rule_assessor=self.rule_assessor, hybrid_gate=self.hybrid_gate, current_code_sha=self.current_code_sha, memory_service=DemoMemoryProjector(self.repository))
             runtime = _Runtime(lease, transport, host, stream, DemoReconciler(self.repository, transport))
             lease.validate(); self._sessions[session_key] = runtime
             return self.status(session_key)
@@ -117,6 +118,8 @@ class DemoRuntimeService:
                     self._runtime(session_key)
                     try:
                         await asyncio.to_thread(runtime.host.drain_inbox)
+                        if runtime.host.memory is not None:
+                            await asyncio.to_thread(runtime.host.memory.project, runtime.host.scope)
                         if execute:
                             await asyncio.to_thread(self.repository.abandon_stale_unsent, runtime.host.scope, now=int(time.time()))
                             health = await asyncio.to_thread(self.repository.health, runtime.host.scope)
@@ -132,6 +135,8 @@ class DemoRuntimeService:
                         # still-unsent work on the next tick. Coverage expires
                         # while evidence is unavailable, blocking all new risk.
                         await pause_new_risk(exc.code)
+                    except Exception:
+                        await pause_new_risk('DEMO_PROTECTION_SUPERVISION_ERROR')
                     await asyncio.sleep(1)
             async def decide():
                 sequence = 0
@@ -154,6 +159,9 @@ class DemoRuntimeService:
                             await asyncio.to_thread(runtime.host.dispatch, command['command_id'])
                     except DemoError as exc:
                         await pause_new_risk(exc.code)
+                        return
+                    except Exception:
+                        await pause_new_risk('DEMO_DECISION_SUPERVISION_ERROR')
                         return
                     await asyncio.sleep(decision_interval_seconds)
             # Model latency cannot starve private-frame ingestion or stop
@@ -178,5 +186,9 @@ class DemoRuntimeService:
                 runtime.transport.close()
 
     def close(self):
+        failed = False
         for session in list(self._sessions):
-            self.close_session(session)
+            try: self.close_session(session)
+            except Exception: failed = True
+        if failed:
+            raise DemoError('DEMO_RUNTIME_SHUTDOWN_RECONCILIATION_REQUIRED')

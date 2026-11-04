@@ -35,7 +35,7 @@ HTTP 路由仅有 `GET /api/demo/status`、`POST /api/demo/connect`、`POST /api
 - `engine/binance_demo/contracts.py`：独立 `BINANCE_DEMO` scope，包含产品、账户、epoch、策略；账户级去重不含策略，防止同一场所成交跨策略重复入账。
 - `credentials.py`、`transport.py`：短期 HMAC 凭据、确定性签名、固定端点、TLS、无代理环境继承、无重定向、时间校验、429/418/模糊发送分类、带签名 HTTP 日志抑制。写请求不做通用重试。
 - `orders.py`：LIMIT/MARKET 纯编译及有界 Decimal 过滤；支持带新鲜平均价/挂单数量/账户持仓证据的百分比价格、订单容量与最大持仓过滤；未知过滤器拒绝。编译成功不代表能力通过。MARKET 风险/发送准入仍关闭。
-- `storage/demo.py`、`0033_binance_demo.sql`、`0034_binance_demo_runtime.sql`：独立表、不可变命令身份、预留、MAY、UNKNOWN、durable inbox/outbox、成交、币种分录、保护责任和恢复游标。SQLAlchemy 元数据用于离线测试；迁移仅由批准的共享 DEV 流程应用。
+- `storage/demo.py`、`0033_binance_demo.sql`、`0034_binance_demo_runtime.sql`、`0035_binance_demo_exit_memory.sql`：独立表、不可变命令身份、预留、MAY、UNKNOWN、durable inbox/outbox、成交、币种分录、保护责任和恢复游标。SQLAlchemy 元数据用于离线测试；迁移仅由批准的共享 DEV 流程应用。
 - `execution/demo_commands.py`：PostgreSQL 会话 advisory lock 覆盖 MAY 提交和外部请求；暂停/轮换/冲突使用同一 sender guard；原 ID、单次 permit、风险快照门禁和模糊结果保留。SQLite 不能创建真实执行 owner。
 - `execution/demo_reports.py`：原订单、已发送状态、方向/数量/LIMIT 价格绑定；WS/REST 重放、迟到状态、终态、第三币种手续费、终态先于缺失成交、原子记账和保护责任。
 - `stream.py`：当前 `userDataStream.subscribe.signature`，受限 TLS WebSocket、禁止重定向、关闭私有帧日志、先订阅再并行补查、每条执行回报先入 durable inbox、有界运行窗口。未知列表/余额事件触发对账，不冒充已覆盖的能力。
@@ -56,7 +56,7 @@ HTTP 路由仅有 `GET /api/demo/status`、`POST /api/demo/connect`、`POST /api
 | D03 持久发送 | 原生 owner、单次 MAY、UNKNOWN 保留、独立撤单与终态闭环的离线实现 | PostgreSQL 跨进程并发/崩溃/权限；真实发送/撤单逐能力证据 |
 | D04 私有流与归并 | 有界流、durable inbox 消费、跨策略归并、重叠补查与证据绑定 READY 门禁 | 场所历史覆盖与断线行为验收；无人值守长期重连未启用 |
 | D05 账本与保护 | 成交/手续费分录、净仓保护责任、日损估算、LAST/持有时限触发的 hosted LIMIT 减仓、撤单优先、责任解除 | 保护真实成交/延迟/断线/小额残仓与第三币种费用估值验收；原生条件单/OCO 未实现 |
-| D06 策略与界面 | 只读界面、Demo schema、真实 assessment_v1 服务、RULE/AI/HYBRID、风控及显式 PG 运行时 factory 组合完成 | 部署绑定/策略授权由内部配置提供，无浏览器启用按钮；UPDATE_EXIT 与策略记忆专属投影未接入 |
+| D06 策略与界面 | 只读界面、Demo schema、真实 assessment_v1 服务、RULE/AI/HYBRID、风控及显式 PG 运行时 factory 组合完成 | 部署绑定/策略授权由内部配置提供，无浏览器启用按钮；UPDATE_EXIT 与独立 Demo 记忆投影已接入；真实场内资格与部署验收未运行 |
 | D07 能力验收 | 逐能力 evidence map、代码/账户/凭据/契约绑定门禁实现；默认仍 COMPILED/禁用 | 当前 SHA + 专用账户 + 官方契约 + 真实 Demo/PG 证据；没有伪造 ENABLED |
 | D08 连续运行 | 受控、最长 900 秒且小于凭据 TTL 的运行窗口代码；NOT_RUN | 用户确定窗口、策略参数、模型费用预算、停止条件与具体执行授权后才运行 |
 
@@ -80,12 +80,14 @@ PostgreSQL 迁移、sender advisory lock 的跨进程/断线行为、恢复和�
 
 - `bind_session` 使用当前会话的内部 lease 和签名账户 UID，不能用浏览器给定 scope、密钥指纹或客户端布尔值冒充账户身份。
 - `save_strategy` 是受信任进程配置接口：显式记录 revision、授权到期、`allow_model_calls`、`allow_execution`、模型与 policy revision、预算和亏损约束。存储配置不意味着能力通过。
+- `DemoMemoryProjector` 从 durable outbox 建立独立、scope/epoch 隔离的记忆读模型，不修改账本，不消费其他投影的 delivery 标记。模型收到有界、hash 绑定的历史和当前责任摘要；真实 ModelService input_hash 必须匹配，原 PAPER memory 写入明确关闭。
+- `UPDATE_EXIT` 使用实际成交建立的计划 head 和 revision，不选择任意“最新模型意见”。无活动订单、UNKNOWN、待归并回报或正在减险责任时，才可原子收紧全部 HOSTED/LAST 责任；保持原始 opened_at、持仓量与责任身份，禁止放宽止损或延长持有期。只产生持久管理回执，不发新增交易所订单。
 - `assess_once` 使用持久 run ID，IN_FLIGHT/失败调用不盲目重放。Demo 模型结果带环境标签，排除在 PAPER 决策列表之外。
 - `run_window(execute=False)` 仅观察；`execute=True` 还要求 PG owner、存储的明确执行授权、有效凭据和所有资格门禁。保护监督与模型调用并行，所有发送仍由唯一 owner 执行。
 - `reconcile_and_resume` 不接受外部 READY 开关。缺少真实基线/完整历史/逐能力证据仍拒绝。
 - 同一 target 的 MAY/UNKNOWN/ACK 撤单不会另造身份重发；已证明从未发送且失效的命令才可释放预留。原订单终态用于解决撤单歧义，不把单次未找到当成未发送。
 - Hosted 保护是每 5 秒到期的运行责任，不是交易所保证止损。保护 LIMIT 不保证成交；费用缓冲和过滤网格残仓仍保留为待处理责任。模型故障不停止监督，但凭据/授权撤销、窗口结束或网络故障不能保证继续管理场内敞口，必须由操作人按计划接管。
-- MARKET、USDM、UPDATE_EXIT、原生 OCO/条件单、批量和高级算法能力仍关闭。没有宣称这些未实现能力已完成。
+- MARKET、USDM、原生 OCO/条件单、批量和高级算法能力仍关闭。没有宣称这些未实现能力已完成。
 
 ## 官方参考（来自批准设计的链接，本次未实时验收）
 
