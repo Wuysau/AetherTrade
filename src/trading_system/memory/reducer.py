@@ -194,6 +194,8 @@ class StrategyStateReducer:
                     active_thesis_id = None
         elif kind == EventType.PLAN_PROPOSED:
             plan = _plan_from_event(event)
+            if event.source == "MODEL" and plan.status != PlanStatus.PROPOSED:
+                raise MemoryTransitionRejected("MODEL_MAY_ONLY_PROPOSE_PLANS")
             if any(item.plan_id == plan.plan_id for item in plans):
                 raise MemoryTransitionRejected("MEMORY_PLAN_ID_CONFLICT")
             if plan.supersedes_plan_id:
@@ -216,6 +218,9 @@ class StrategyStateReducer:
             changed = _change_plan(plan, event, _PLAN_EVENT_STATUS[kind])
             plans[plans.index(plan)] = changed
             if changed.status == PlanStatus.ACTIVE:
+                for index, other in enumerate(plans):
+                    if other.plan_id != changed.plan_id and other.status == PlanStatus.ACTIVE:
+                        plans[index] = other.with_status(PlanStatus.REVISED, updated_at=event.recorded_at)
                 active_plan_id = changed.plan_id
             elif changed.status in (PlanStatus.REJECTED, PlanStatus.EXPIRED, PlanStatus.COMPLETED):
                 if active_plan_id == changed.plan_id:
