@@ -587,6 +587,12 @@ class AutomationService:
                         and self._authorized(connection, job))
 
     def _finish(self, claimed, result=None, error=None):
+        memory_stale = False
+        if self.memory is not None and claimed.get("memory_checkpoint_id"):
+            checkpoint = self.memory.get_checkpoint(claimed["memory_checkpoint_id"])
+            if checkpoint is not None:
+                current = self.memory.get_state(checkpoint.context.scope)
+                memory_stale = current.state_revision != checkpoint.context.state_revision
         market = self.quote_snapshot()
         with self.store.transaction() as connection:
             job = read(connection, jobs, claimed["id"])
@@ -596,6 +602,8 @@ class AutomationService:
                 self._attach_late_result(connection, job)
                 return
             decision = dict(result["decision"]) if result else None
+            if memory_stale and decision is not None:
+                decision["memory_context_stale"] = True
             self._apply_memory_flags(job, decision)
             strategy = self._authorized(connection, job)
             consensus_guard = self._consensus_guard(job, decision) if decision else None
@@ -605,6 +613,8 @@ class AutomationService:
                 status, reason = "ERROR", error
             elif decision is None:
                 status, reason = "SKIPPED", "任务已取消；未调用模型或下单。"
+            elif memory_stale:
+                status, reason = "BLOCKED", "策略记忆在模型调用期间已变化（人工干预或新事件）；未执行。"
             elif consensus_guard:
                 status, reason = consensus_guard
             elif not job["auto_execute"] or not strategy.get("auto_execute"):

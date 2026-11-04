@@ -2,7 +2,7 @@
   "schema_revision": "memory-verification-v1",
   "recorded_at": "2026-11-04",
   "baseline_head": "b15a825",
-  "implementation_head_at_run": "936a26a3591e846f5b97e4fd891bdab68182b15c",
+  "implementation_head_at_run": "68eb29e",
   "environment": {
     "platform": "win32",
     "python": "3.14.2",
@@ -17,16 +17,16 @@
       "name": "memory_suite",
       "command": ".venv/Scripts/python.exe -m pytest tests/unit/test_memory_contracts.py tests/unit/test_memory_repository.py tests/unit/test_memory_context.py tests/unit/test_memory_service.py tests/unit/test_memory_governance.py tests/unit/test_memory_recovery.py tests/unit/test_memory_acceptance.py tests/server/test_memory_integration.py tests/server/test_memory_api.py -q --disable-warnings",
       "exit_code": 0,
-      "result": "65 passed, 1 warning",
-      "duration_seconds": 7.81,
+      "result": "66 passed, 1 warning",
+      "duration_seconds": 13.91,
       "status": "PASS"
     },
     {
       "name": "full_light_regression",
       "command": ".venv/Scripts/python.exe -m pytest tests/contracts tests/intents tests/unit tests/security tests/server tests/api tests/terminal tests/research tests/faults tests/ops -q --disable-warnings -m \"not paper_runtime\"",
       "exit_code": 0,
-      "result": "3313 passed, 12 skipped, 56 deselected, 1 warning",
-      "duration_seconds": 136.31,
+      "result": "3314 passed, 12 skipped, 56 deselected, 1 warning",
+      "duration_seconds": 344.46,
       "status": "PASS"
     },
     {

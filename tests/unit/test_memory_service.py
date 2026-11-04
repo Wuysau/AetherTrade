@@ -70,6 +70,16 @@ def test_record_decision_creates_thesis_and_proposed_plan(memory):
     assert memory.get_active_plan(scope) is None  # proposals are not active plans
 
 
+def test_stale_context_does_not_create_thesis_or_plan(memory):
+    scope = scope_for_strategy(strategy())
+    frozen = checkpoint(memory)
+    memory.record_manual_intervention(scope, "PAUSE", "manual-stale")
+    state = memory.record_decision(frozen, decision(memory_context_stale=True))
+    assert state.theses == () and state.plans == ()
+    ref = memory.list_recent_decisions(scope)[0]
+    assert ref.memory_state_revision == frozen.context.state_revision
+
+
 def test_execution_accepts_and_completes_plan(memory):
     scope = scope_for_strategy(strategy())
     state = memory.record_decision(checkpoint(memory), decision())

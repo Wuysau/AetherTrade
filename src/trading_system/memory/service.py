@@ -111,7 +111,8 @@ class StrategyMemoryService:
         action = decision.get("action") or (proposal or {}).get("action")
         thesis_id = None
         plan_id = None
-        if status == "DECIDED" and isinstance(decision.get("summary"), str) and decision["summary"].strip():
+        stale = bool(decision.get("memory_context_stale"))
+        if status == "DECIDED" and not stale and isinstance(decision.get("summary"), str) and decision["summary"].strip():
             thesis_id = self._record_thesis(scope, state, decision, run_id, created_at)
             if proposal is not None and action in ("SET_TARGET", "UPDATE_EXIT", "REDUCE", "EXIT"):
                 plan_id = self._record_plan(scope, state, decision, proposal, thesis_id, run_id, created_at)
@@ -122,8 +123,8 @@ class StrategyMemoryService:
             model_provider=model_provider, model_name=model_name, prompt_revision=prompt_revision,
             schema_revision=schema_revision, policy_revision=policy_revision,
             snapshot_id=checkpoint.context.snapshot_id, snapshot_hash=checkpoint.context.snapshot_hash,
-            memory_state_revision=current.state_revision, checkpoint_id=checkpoint.checkpoint_id,
-            thesis_id=thesis_id or current.active_thesis_id, plan_id=plan_id,
+            memory_state_revision=checkpoint.context.state_revision, checkpoint_id=checkpoint.checkpoint_id,
+            thesis_id=thesis_id or state.active_thesis_id, plan_id=plan_id,
             execution_status=decision.get("execution_status"))
         return self.append_event(
             scope, EventType.DECISION_RECORDED, {"run_id": run_id, "decision": domain_payload(ref)},

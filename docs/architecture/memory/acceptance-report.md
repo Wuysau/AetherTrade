@@ -41,7 +41,7 @@ no TESTNET/LIVE, no paid model calls.
   tests/server/test_memory_api.py -q --disable-warnings
 ```
 
-Result: `65 passed, 1 warning` in 7.81 s (exit 0).
+Result: `66 passed, 1 warning` in 13.91 s (exit 0).
 
 ### Full light regression (no Docker/PostgreSQL)
 
@@ -51,7 +51,7 @@ Result: `65 passed, 1 warning` in 7.81 s (exit 0).
   -q --disable-warnings -m "not paper_runtime"
 ```
 
-Result: `3313 passed, 12 skipped, 56 deselected, 1 warning` in 136.31 s (exit 0).
+Result: `3314 passed, 12 skipped, 56 deselected, 1 warning` in 344.46 s (exit 0).
 
 The 56 deselected tests are `paper_runtime` scenarios that require a real isolated
 PostgreSQL console and were **NOT_RUN** under the approved no-Docker policy.
@@ -89,8 +89,8 @@ PostgreSQL console and were **NOT_RUN** under the approved no-Docker policy.
 | Docker containers/images/volumes created | 0 |
 | PostgreSQL databases provisioned | 0 |
 | Paid model calls | 0 |
-| Heavy test duration | 136.31 s |
-| Memory test duration | 7.81 s |
+| Heavy test duration | 344.46 s |
+| Memory test duration | 13.91 s |
 
 No cleanup, prune, VHDX, WSL, cross-drive migration or project-external file
 operation was performed.

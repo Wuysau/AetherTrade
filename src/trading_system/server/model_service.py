@@ -300,6 +300,9 @@ class ModelService:
         if checkpoint is None:
             decision['memory_checkpoint_missing'] = True
             return
+        current = self.memory.get_state(checkpoint.context.scope)
+        if current.state_revision != checkpoint.context.state_revision:
+            decision['memory_context_stale'] = True
         state = self.memory.record_decision(
             checkpoint, decision, model_provider=decision.get('source'),
             model_name=decision.get('model'), prompt_revision=prompt_revision,
