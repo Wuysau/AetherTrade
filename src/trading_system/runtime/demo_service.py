@@ -31,10 +31,11 @@ class _Runtime:
 
 
 class DemoRuntimeService:
-    def __init__(self, *, connections, model_service, repository, scope_resolver, current_code_sha, rule_assessor=None, hybrid_gate=None):
+    def __init__(self, *, connections, model_service, repository, scope_resolver, current_code_sha, rule_assessor=None, hybrid_gate=None, close_repository=None):
         self.connections, self.models, self.repository = connections, model_service, repository
         self.scope_resolver, self.current_code_sha = scope_resolver, current_code_sha
         self.rule_assessor, self.hybrid_gate = rule_assessor, hybrid_gate
+        self._close_repository = close_repository
         self._sessions = {}
         self._lifecycle_lock = RLock()
 
@@ -113,14 +114,15 @@ class DemoRuntimeService:
         return runtime
 
     def status(self, session_key):
+        rebind = 'BLOCKED_UNQUALIFIED_FENCING' if self.repository.engine.dialect.name == 'postgresql' else 'OFFLINE_ONLY'
         if session_key not in self._sessions:
-            return {'configured': False, 'execution_authorized': False, 'blocker': 'DEMO_RUNTIME_NOT_BOUND'}
+            return {'configured': False, 'execution_authorized': False, 'blocker': 'DEMO_RUNTIME_NOT_BOUND', 'credential_rebind': rebind}
         try:
             runtime = self._runtime(session_key)
-            return {**runtime.host.status(), 'running': runtime.running, 'last_error': runtime.last_error, 'private_stream_healthy': runtime.stream.healthy,
+            return {**runtime.host.status(), 'credential_rebind': rebind, 'running': runtime.running, 'last_error': runtime.last_error, 'private_stream_healthy': runtime.stream.healthy,
                     'postgresql_owner_available': self.repository.engine.dialect.name == 'postgresql'}
         except DemoError as exc:
-            return {'configured': False, 'execution_authorized': False, 'blocker': exc.code}
+            return {'configured': False, 'execution_authorized': False, 'blocker': exc.code, 'credential_rebind': rebind}
 
     async def assess_once(self, session_key, run_id):
         runtime = self._runtime(session_key)
@@ -249,5 +251,7 @@ class DemoRuntimeService:
         for session in list(self._sessions):
             try: self.close_session(session)
             except Exception: failed = True
+        if self._close_repository is not None:
+            self._close_repository()
         if failed:
             raise DemoError('DEMO_RUNTIME_SHUTDOWN_RECONCILIATION_REQUIRED')

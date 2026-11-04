@@ -18,6 +18,7 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     serve = commands.add_parser("serve", help="Start the API and built browser UI")
     serve.add_argument("--port", type=int, help="Loopback HTTP port (default 8787)")
+    serve.add_argument('--demo-config', type=Path, help='Explicit trusted Demo deployment configuration; no venue credentials or automatic execution')
     serve.add_argument("--no-market", action="store_true", help="Disable public quote streams and polling")
     commands.add_parser("init-db", help="Initialize console-owned tables without resetting data")
     commands.add_parser("doctor", help="Check database connectivity and browser build")
@@ -156,7 +157,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"AetherTrade PAPER | {backend} | http://{settings.host}:{settings.port}", flush=True)
             if not (settings.web_dist / "index.html").is_file():
                 print("Browser build missing. Run: npm --prefix web run build", file=sys.stderr)
-            uvicorn.run(create_app(settings), host=settings.host, port=settings.port,
+            demo_factory = None
+            if args.demo_config:
+                from .demo_deployment import load_demo_factory
+                demo_factory = load_demo_factory(args.demo_config, settings)
+            uvicorn.run(create_app(settings, demo_runtime_factory=demo_factory), host=settings.host, port=settings.port,
                         proxy_headers=False, server_header=False, log_level="info")
             return 0
         from .store import Store

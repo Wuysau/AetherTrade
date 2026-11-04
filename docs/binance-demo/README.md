@@ -27,7 +27,7 @@ Python 不保证已经释放内存的密码学擦除，因此运行主机与进�
 移除凭据不会取消交易所挂单。断开、重启、页面导航都不宣称订单已撤销。
 页面每 10 秒读取本地连接状态，不自动向交易所刷新。过期行情/余额不能用于交易准入。
 
-HTTP 路由仅有 `GET /api/demo/status`、`POST /api/demo/connect`、`POST /api/demo/disconnect`。
+HTTP 路由仅有 `GET /api/demo/status`、`POST /api/demo/connect`、`POST /api/demo/disconnect`。没有绑定运行时的 HTTP 路由；CLI 的显式部署组合也因凭据 fencing 未资格化而拒绝绑定。其他受信任注入组合若调用内部绑定，会重新读取 Demo 账户并写入隔离数据库，不是只读操作。
 它们沿用本地登录、Origin、CSRF 和 no-store 防护。没有下单、撤单、任意 URL、持久密钥保存、READY 或能力启用路由。
 
 ## 已实现的代码边界
@@ -74,6 +74,26 @@ PostgreSQL 迁移、sender advisory lock 的跨进程/断线行为、恢复和�
 
 下一步按治理流程完成共享 DEV PostgreSQL 资格与部署绑定；取得用户对具体 Demo 测试窗口/策略/模型费用的许可后，使用用户填入的专用 Key 做真实场所验收。不需要在聊天中提供 Key/Secret。
 
+## 显式部署配置（未资格化）
+
+默认 `aethertrade serve` 不组合 Demo 执行运行时。受信任的部署操作者可在完成独立 PostgreSQL 数据库的批准迁移后，创建仅限本机操作者读取的 JSON 配置文件，并以 `aethertrade serve --demo-config /path/to/demo-deployment.json` 显式组合。示意字段如下（占位内容不能作为验收证据）：
+
+```json
+{
+  "database_url": "postgresql+psycopg://demo_user:DB_PASSWORD@127.0.0.1/demo_isolated",
+  "account_id": "123456789",
+  "account_epoch": "operator-verified-epoch",
+  "strategy_id": "strategy-1",
+  "build_sha": "0123456789abcdef0123456789abcdef01234567"
+}
+```
+
+配置含数据库访问凭据，应置于版本库之外并保护文件权限；**不得在此配置或环境变量中放入 Binance API Key/Secret**，Demo 凭据只由用户在页面填入并短期驻留内存。配置只接受上述字段，PostgreSQL 地址仅接受数值型本机 `127.0.0.1` / `::1` 并固定连接地址，不接受 URL 查询参数，要求独立 PostgreSQL 数据库名称与控制台和所有 PAPER 数据库名称不同。名称检查不能证明服务器、数据库角色或权限隔离，操作者必须独立验证。数据库必须事先按批准流程迁移；启动不会连接、创建、迁移或验证 Demo schema。目前绑定被安全门禁阻止，因此该配置不能用于运行策略。
+
+`account_id` 必须是可信方式核实的 Binance 签名账户 UID，epoch 是可信操作人确认的账户世代，`build_sha` 必须由部署者核对为实际运行代码的 40 位小写 Git SHA。程序在可用的内部绑定流程中核对 UID 与签名响应一致，但无法验证操作者的 epoch 或 SHA 声明。状态明确标示构建声明未经验证；该 CLI 组合禁止执行，不能把它们当作资格证据。该 CLI 组合目前直接拒绝内部绑定，以防注册期间会话撤销造成不可恢复的绑定，也没有对外绑定端点。当前界面没有绑定按钮，亦没有 assessment、运行窗口、下单或资格写入 HTTP 接口。
+
+PostgreSQL 跨进程凭据重绑定仍因缺少经过证明的 stream fencing 而阻断；其他内部组合若已登记账户，断开、过期或重启后持久账户记录无法自动绑定新会话。不要删除或改写记录绕过此限制。真正运行还需要完成 PostgreSQL/场所资格、可信授权与运维控制，当前不能作为可交易部署。
+
 ## 内部运行时组合与运维边界
 
 `create_app(..., demo_runtime_factory=...)` 是显式部署注入点，默认 `None`。factory 接收 `connections` 与真实 `model_service`，构造 `DemoRuntimeService`，另外提供独立已迁移的 `DemoRepository`、可信 UID/epoch/strategy 映射、当前构建 SHA 和经验证的规则函数。不会创建数据库或自动迁移。
@@ -83,7 +103,7 @@ PostgreSQL 迁移、sender advisory lock 的跨进程/断线行为、恢复和�
 - `DemoMemoryProjector` 从 durable outbox 建立独立、scope/epoch 隔离的记忆读模型，不修改账本，不消费其他投影的 delivery 标记。模型收到有界、hash 绑定的历史和当前责任摘要；真实 ModelService input_hash 必须匹配，原 PAPER memory 写入明确关闭。
 - `UPDATE_EXIT` 使用实际成交建立的计划 head 和 revision，不选择任意“最新模型意见”。无活动订单、UNKNOWN、待归并回报或正在减险责任时，才可原子收紧全部 HOSTED/LAST 责任；保持原始 opened_at、持仓量与责任身份，禁止放宽止损或延长持有期。只产生持久管理回执，不发新增交易所订单。
 - `assess_once` 使用持久 run ID，IN_FLIGHT/失败调用不盲目重放。Demo 模型结果带环境标签，排除在 PAPER 决策列表之外。
-- `run_window(execute=False)` 仅观察；`execute=True` 还要求 PG owner、存储的明确执行授权、有效凭据和所有资格门禁。保护监督与模型调用并行，所有发送仍由唯一 owner 执行。
+- `run_window(execute=False)` 仍启动私有流、对账、处理 inbox 和写入恢复/暂停等持久状态，绝非只读；`execute=True` 还要求 PG owner、存储的明确执行授权、有效凭据和所有资格门禁。assessment 流程可能调用付费模型，后续准入可能暂存命令；调用前必须明确授予相应权限。保护监督与模型调用并行，所有发送仍由唯一 owner 执行。
 - `reconcile_and_resume` 不接受外部 READY 开关。缺少真实基线/完整历史/逐能力证据仍拒绝。
 - 同一 target 的 MAY/UNKNOWN/ACK 撤单不会另造身份重发；已证明从未发送且失效的命令才可释放预留。原订单终态用于解决撤单歧义，不把单次未找到当成未发送。
 - Hosted 保护是每 5 秒到期的运行责任，不是交易所保证止损。保护 LIMIT 不保证成交；费用缓冲和过滤网格残仓仍保留为待处理责任。模型故障不停止监督，但凭据/授权撤销、窗口结束或网络故障不能保证继续管理场内敞口，必须由操作人按计划接管。

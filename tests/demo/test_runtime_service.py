@@ -237,3 +237,28 @@ def test_sqlite_read_only_window_is_blocked_before_stream(tmp_path):
         asyncio.run(manager.run_window('session', duration_seconds=1, execute=False))
     assert not runtime.running and not runtime.stream.healthy
     connections.close(); engine.dispose()
+
+
+def test_postgresql_rebind_after_disconnect_is_explicitly_blocked(tmp_path, monkeypatch):
+    engine = create_engine('sqlite:///' + str(tmp_path/'pg-boundary.sqlite')); metadata.create_all(engine)
+    connections = DemoConnectionService(Transport); repo = DemoRepository(engine)
+    manager = DemoRuntimeService(connections=connections, model_service=None, repository=repo,
+        scope_resolver=lambda account: DemoScope(account_id=str(account['uid']), account_epoch='epoch', strategy_id='s1'), current_code_sha='a'*40)
+    connections.runtime = manager
+    payload = DemoConnect(api_key='fixture-key-123456', api_secret='fixture-secret-123456', acknowledge_demo_only=True)
+    connect = lambda: connections.connect('session', payload, session_expires_at=time.time()+1000)
+    connect(); manager.bind_session('session')
+    scope = manager._runtime('session').host.scope
+    connections.disconnect('session')
+    old = repo.account(scope)
+    connect()
+    # Exercise the explicit dialect gate using offline SQLite storage only; this
+    # is not evidence of real PostgreSQL fencing or cross-process behavior.
+    monkeypatch.setattr(engine.dialect, 'name', 'postgresql')
+    assert manager.status('session')['credential_rebind'] == 'BLOCKED_UNQUALIFIED_FENCING'
+    with pytest.raises(DemoError, match='DEMO_CREDENTIAL_REBIND_FENCING_UNQUALIFIED'):
+        manager.bind_session('session')
+    assert repo.account(scope)['credential_ref'] == old['credential_ref']
+    assert repo.account(scope)['credential_revision'] == old['credential_revision']
+    monkeypatch.setattr(engine.dialect, 'name', 'sqlite')
+    connections.close(); engine.dispose()

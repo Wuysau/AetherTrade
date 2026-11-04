@@ -270,7 +270,7 @@ Do not point this software — or any AI model — at an account you cannot affo
 
 The **Binance Demo** page accepts the user's own Demo HMAC API Key and Secret for
 session-only, read-only checks. Credentials are not persisted; PAPER and official
-Demo balances stay separate. No order or capability-enable API is exposed.
+Demo balances stay separate. The opt-in deployment currently blocks runtime binding pending credential fencing; no order or capability-enable API is exposed.
 The branch also contains isolated durable lifecycle foundations, but the full
 Demo order/strategy runtime and PostgreSQL/venue qualification are not complete.
 See [implementation status and remaining gates](docs/binance-demo/README.md).
