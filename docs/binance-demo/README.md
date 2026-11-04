@@ -118,3 +118,25 @@ PostgreSQL 跨进程凭据重绑定仍因缺少经过证明的 stream fencing �
 - https://developers.binance.com/en/docs/products/spot/rest-api
 - https://developers.binance.com/en/docs/products/spot/web-socket-streams
 - https://developers.binance.com/en/docs/products/derivatives-trading-usds-futures/general-info
+
+## 流 owner 与凭据轮换：未实现的资格要求
+
+跨进程流 owner 和凭据重绑定仍为 **BLOCKED / NOT_RUN**。不得使用 TTL、凭据指纹或手写数据库状态绕过该限制。现有 PostgreSQL rebind 硬阻断保持不变；这里是未来实施和验收要求，不是已部署的机制。
+
+1. 以物理场所账户身份（不含 epoch 和 strategy）持有跨进程 stream-lifetime 排他所有权，并持久化单调 generation；同时使用独立 sender 锁，明确统一锁顺序。不同 epoch 也不得并行占有同一场所账户。数据库连接必须证明 backend 亲和性；PgBouncer transaction/statement pooling 不满足 session advisory lock 的假设。
+2. 禁止裸连接被调用方提交或回滚而绕过 generation 校验；注册、会话撤销、所有私有流/REST ingestion、发送准入与正确 generation 和原子事务相连。旧 socket 在数据库会话丢失时可能仍存活，单纯加锁或内存标志不能保证停止。
+3. 先阻止旧流继续产生新帧，再完整处理旧凭据 revision 的全部 durable inbox（不可只取前 1000 条）；不得丢弃旧回报或错归新 revision。旧命令 ID、MAY/UNKNOWN、预留与待保护责任必须保留；轮换需使资格失效。终止旧流后必须确认最终暂停已持久提交，`DEMO_OWNER_BUSY` 或任何失败均不能当成已排空。
+4. 锁丢失时已发或可能在途 HTTP 请求不可由数据库 token 撤回；必须保留 UNKNOWN，不可宣称 exactly-once。新 owner 必须先订阅私有流，再完成有界重叠回补与完整对账，所有恢复门禁满足后才可 READY。
+5. 必须通过批准的 PostgreSQL 实测直连或 session pooling 的 backend 亲和性、锁隔离、进程崩溃、连接丢失、旧帧/旧 generation、并发注册、最终暂停失败和 sender 在途竞态；场所行为与实际不可变构建身份另需独立资格证据。SQLite 或模拟测试不能证明这些性质。
+
+## U 本位账户与仓位：离线投影基础
+
+`engine/binance_demo/usdm_account.py` 是独立、纯数据的 **USDM Demo 离线投影**，不是交易所连接或完整风险记录。它要求显式 `DemoScope(product="USDM")` 和独立读取的持仓模式；保留 positionRisk v3 行的方向、带符号数量与 `updateTime`，账户资产行的 `updateTime`，以及 ACCOUNT_UPDATE 的 E/T 和部分余额、仓位字段。它校验有限 Decimal、模式/方向一致性、保证金类型、杠杆、重复项和输入结构。更新事件中的 `bc` 原样保留，不能当作包含盈亏与手续费的完整资金流水。空列表或未出现的仓位不表示平仓，E/T 和 updateTime 也不是全局唯一 ID 或排序保证。账户总体金额不自动标记为 USDT。
+
+本次没有接入 USDM 网络端点、凭据、私有流、状态归并、对账、资金费账本、杠杆修改、发单或资格启用；现货和 PAPER 路径未改。官方文档为字段设计依据，但**尚未使用真实 Demo 数据核验当前场所契约**。PostgreSQL、真实 Demo 和连续运行资格均为 **NOT_RUN**，离线通过不代表交易能力获准。
+
+本次轻量检查（使用 `../AetherTrade-paper-test/.venv/bin/python`）：
+
+- `-m pytest -q tests/binance_demo/test_usdm_account.py tests/demo/test_transport.py tests/intents/test_order_features.py`：73 passed，覆盖新投影和相关现货/能力目录回归。
+- `-m compileall -q src/trading_system/engine/binance_demo/usdm_account.py tests/binance_demo/test_usdm_account.py`：通过；`git diff --check`：通过。
+- 未运行 Docker、全量集成、PostgreSQL 或实际场所验收。
