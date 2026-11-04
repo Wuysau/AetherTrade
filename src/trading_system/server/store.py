@@ -82,6 +82,8 @@ class Store:
     def initialize(self):
         # Register additive model tables even when Store is used without the app.
         from . import model_repository as repository
+        # Register strategy-memory tables on the shared metadata before create_all.
+        from trading_system.memory import repository as _memory_repository  # noqa: F401
         metadata.create_all(self.engine)
         try:
             with self.engine.begin() as connection:

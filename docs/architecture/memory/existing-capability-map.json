@@ -1,0 +1,231 @@
+{
+  "schema_revision": "existing-capability-map-v1",
+  "recorded_at": "2026-11-04",
+  "repository": "D:/Projects/Python/AetherTrade/AetherTrade",
+  "branch": "public-snapshot",
+  "head": "b15a825",
+  "baseline_tests": {
+    "command": ".venv/Scripts/python.exe -m pytest tests/security/test_strategy_sandbox.py tests/server/test_decision_assessment.py tests/server/test_program_model_context.py -q",
+    "exit_code": 0,
+    "result": "121 passed, 7 skipped",
+    "duration_seconds": 5.55
+  },
+  "capabilities": [
+    {
+      "id": "market-analysis-snapshot",
+      "status": "VERIFIED",
+      "source": [
+        "src/trading_system/server/analysis_snapshot.py"
+      ],
+      "tests": [
+        "tests/server/test_analysis_snapshot.py",
+        "tests/server/test_decision_assessment.py",
+        "tests/unit/test_snapshot_provenance.py"
+      ],
+      "notes": "Bounded 96KB exact allowlist, deterministic snapshot hash, quality sections, PAPER execution evidence."
+    },
+    {
+      "id": "model-run-journal",
+      "status": "VERIFIED",
+      "source": [
+        "src/trading_system/server/model_service.py",
+        "src/trading_system/server/model_repository.py",
+        "src/trading_system/server/model_client.py"
+      ],
+      "tests": [
+        "tests/server/test_model_api.py",
+        "tests/server/test_decision_assessment.py",
+        "tests/server/test_model_consensus.py",
+        "tests/server/test_multi_model_api.py"
+      ],
+      "notes": "console_model_runs persists exact request bodies, input hashes, component outputs and final decisions."
+    },
+    {
+      "id": "consensus-and-evidence-review",
+      "status": "VERIFIED",
+      "source": [
+        "src/trading_system/server/model_service.py",
+        "src/trading_system/server/decision_assessment.py",
+        "src/trading_system/server/automation.py"
+      ],
+      "tests": [
+        "tests/server/test_model_consensus.py",
+        "tests/server/test_multi_model_api.py",
+        "tests/server/test_automation.py"
+      ],
+      "notes": "Per-model raw output retained; deterministic guard rechecks participants and revisions."
+    },
+    {
+      "id": "durable-automation-jobs",
+      "status": "VERIFIED",
+      "source": [
+        "src/trading_system/server/automation.py"
+      ],
+      "tests": [
+        "tests/server/test_automation.py"
+      ],
+      "notes": "console_ai_jobs/schedules survive restart; expired RUNNING jobs become SKIPPED without replay."
+    },
+    {
+      "id": "watch-conditions",
+      "status": "VERIFIED",
+      "source": [
+        "src/trading_system/server/decision_execution.py",
+        "src/trading_system/server/automation.py"
+      ],
+      "tests": [
+        "tests/server/test_automation.py",
+        "tests/unit/test_decision_scheduling.py"
+      ],
+      "notes": "NEW_BAR/PRICE_ABOVE/PRICE_BELOW persisted in schedule; no model call on unchanged data."
+    },
+    {
+      "id": "execution-ledger-facts",
+      "status": "VERIFIED",
+      "source": [
+        "src/trading_system/server/paper_runtime.py",
+        "migrations/0001_business_ledger.sql"
+      ],
+      "tests": [
+        "tests/integration/test_paper_*",
+        "tests/integration/test_program_*",
+        "tests/integration/test_protection_*"
+      ],
+      "notes": "PostgreSQL ledger is authoritative for commands/fills/positions/protection. Integration tests NOT_RUN here (no Docker)."
+    },
+    {
+      "id": "process-local-reference-memory",
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "source": [
+        "src/trading_system/decision/memory.py"
+      ],
+      "tests": [
+        "tests/security/test_strategy_sandbox.py"
+      ],
+      "notes": "Explicitly process-local, not wired to the server. Not a durability claim."
+    },
+    {
+      "id": "previous-assessment-injection",
+      "status": "NOT_IMPLEMENTED",
+      "source": [
+        "src/trading_system/server/analysis_snapshot.py:196",
+        "src/trading_system/server/analysis_snapshot.py:244"
+      ],
+      "tests": [],
+      "notes": "previous_assessment is hard-coded null and schema-locked."
+    },
+    {
+      "id": "persistent-strategy-state",
+      "status": "NOT_IMPLEMENTED",
+      "source": [],
+      "tests": [],
+      "notes": "console_strategies is a single mutable JSON row; no revisioned state projection."
+    },
+    {
+      "id": "memory-event-log-and-reducer",
+      "status": "NOT_IMPLEMENTED",
+      "source": [],
+      "tests": [],
+      "notes": "No typed append-only strategy memory events, CAS or rebuild."
+    },
+    {
+      "id": "thesis-and-plan-lifecycle",
+      "status": "NOT_IMPLEMENTED",
+      "source": [],
+      "tests": [],
+      "notes": "Only per-run proposal; no persistent ACTIVE/WEAKENED/INVALIDATED thesis or plan version history."
+    },
+    {
+      "id": "decision-context-checkpoint",
+      "status": "PARTIAL",
+      "source": [
+        "src/trading_system/server/model_service.py",
+        "src/trading_system/server/model_repository.py"
+      ],
+      "tests": [
+        "tests/server/test_decision_assessment.py"
+      ],
+      "notes": "Run record stores snapshot/request hashes, but no memory state revision, no checkpoint ID, no validator."
+    },
+    {
+      "id": "unified-context-assembler",
+      "status": "NOT_IMPLEMENTED",
+      "source": [],
+      "tests": [],
+      "notes": "Single/consensus/RULE/HYBRID/manual/automation each build or omit context independently."
+    },
+    {
+      "id": "token-budgeted-history-retrieval",
+      "status": "NOT_IMPLEMENTED",
+      "source": [],
+      "tests": [],
+      "notes": "No relevance ordering, compression, or CONTEXT_INCOMPLETE contract."
+    },
+    {
+      "id": "versioned-prompt-framework",
+      "status": "PARTIAL",
+      "source": [
+        "src/trading_system/server/model_client.py",
+        "src/trading_system/server/decision_assessment.py"
+      ],
+      "tests": [
+        "tests/server/test_decision_assessment.py"
+      ],
+      "notes": "Prompt constants and revision strings exist; no P0-P6 template registry or stored versions."
+    },
+    {
+      "id": "execution-fact-memory-link",
+      "status": "PARTIAL",
+      "source": [
+        "src/trading_system/server/paper_runtime.py",
+        "src/trading_system/server/analysis_snapshot.py"
+      ],
+      "tests": [
+        "tests/integration/test_paper_*"
+      ],
+      "notes": "Snapshot carries summarized active orders/reserved/protection, not stable fact refs or UNKNOWN/STALE linkage."
+    },
+    {
+      "id": "strategy-memory-service",
+      "status": "NOT_IMPLEMENTED",
+      "source": [],
+      "tests": [],
+      "notes": "No unified read service."
+    },
+    {
+      "id": "restart-memory-recovery",
+      "status": "NOT_IMPLEMENTED",
+      "source": [
+        "src/trading_system/server/automation.py"
+      ],
+      "tests": [
+        "tests/server/test_automation.py"
+      ],
+      "notes": "Job recovery exists; strategy state/thesis/plan recovery does not."
+    },
+    {
+      "id": "validated-knowledge",
+      "status": "NOT_IMPLEMENTED",
+      "source": [],
+      "tests": [],
+      "notes": "No knowledge governance."
+    },
+    {
+      "id": "memory-observability-api",
+      "status": "NOT_IMPLEMENTED",
+      "source": [],
+      "tests": [],
+      "notes": "Dashboard shows decisions/notifications only."
+    },
+    {
+      "id": "memory-postgres-migration",
+      "status": "NOT_IMPLEMENTED",
+      "source": [
+        "migrations/0001_business_ledger.sql",
+        "migrations/0031_local_child_admission.sql"
+      ],
+      "tests": [],
+      "notes": "No strategy memory tables in migrations 0001-0031."
+    }
+  ]
+}
