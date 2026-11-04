@@ -92,6 +92,29 @@ def due(service, saved):
         put(connection, schedules, saved["id"], schedule)
 
 
+def test_price_watch_does_not_requeue_on_each_quote_after_failed_review(system):
+    saved = strategy(system)
+    with system.store.transaction() as connection:
+        schedule = read(connection, schedules, saved["id"]) or {}
+        schedule.update(next_analysis_at=(now() + timedelta(hours=1)).isoformat(),
+                        watch_conditions=[{"kind": "PRICE_ABOVE", "value": "49000", "evidence_ref": "quote"}],
+                        watch_baseline={"price": "48000"})
+        put(connection, schedules, saved["id"], schedule)
+
+    job = system._claim(system.models.get_config(), market("50000"))
+    assert job is not None and job["review_kind"] == "HYPOTHESIS_REVIEW"
+    with system.store.transaction() as connection:
+        system._complete(connection, job, None, "ERROR", "memory write failed")
+        schedule = read(connection, schedules, saved["id"])
+        schedule["last_trigger_key"] = "unrelated-new-bar-trigger"
+        put(connection, schedules, saved["id"], schedule)
+
+    assert system._claim(system.models.get_config(), market("50001")) is None
+    with system.store.transaction() as connection:
+        schedule = read(connection, schedules, saved["id"])
+    assert schedule["next_analysis_at"] > stamp()
+
+
 def dashboard(service):
     result = service.store.dashboard(service.quote_snapshot())
     result["decisions"] = service.models.decisions()

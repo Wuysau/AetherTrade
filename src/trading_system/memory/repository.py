@@ -8,11 +8,13 @@ the state row is a rebuildable projection, never the authority.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
-from sqlalchemy import (BigInteger, Column, Index, Integer, JSON, String, Table, UniqueConstraint,
+from sqlalchemy import (BigInteger, Column, DateTime, Index, Integer, JSON, String, Table, UniqueConstraint,
                         func, insert, select, update)
+from sqlalchemy.types import TypeDecorator
 
-from trading_system.contracts.canonical import canonical_hash, domain_payload
+from trading_system.contracts.canonical import canonical_hash, domain_payload, utc_timestamp
 from trading_system.server.store import metadata
 
 from .contracts import (
@@ -23,6 +25,28 @@ from .contracts import (
 from .reducer import MemoryRevisionConflict, RebuildReport, StrategyStateReducer
 
 
+class MemoryTimestamp(TypeDecorator):
+    """Keep the string contract while binding PostgreSQL timestamptz columns."""
+
+    impl = String(40)
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        return dialect.type_descriptor(DateTime(timezone=True) if dialect.name == "postgresql" else String(40))
+
+    def process_bind_param(self, value, dialect):
+        return utc_timestamp(value) if value is not None and dialect.name == "postgresql" else value
+
+    def process_result_value(self, value, dialect):
+        if isinstance(value, datetime) and dialect.name == "postgresql":
+            return value.astimezone(timezone.utc).isoformat()
+        return value
+
+
+def postgres_event_time(value: str) -> str:
+    return utc_timestamp(value).isoformat()
+
+
 events = Table(
     "console_strategy_memory_events", metadata,
     Column("scope_id", String(64), primary_key=True),
@@ -30,8 +54,8 @@ events = Table(
     Column("event_id", String(128), nullable=False),
     Column("event_type", String(64), nullable=False),
     Column("source", String(32), nullable=False),
-    Column("occurred_at", String(40), nullable=False),
-    Column("recorded_at", String(40), nullable=False),
+    Column("occurred_at", MemoryTimestamp(), nullable=False),
+    Column("recorded_at", MemoryTimestamp(), nullable=False),
     Column("idempotency_key", String(200), nullable=False),
     Column("state_revision", Integer, nullable=False),
     Column("payload", JSON, nullable=False),
@@ -49,7 +73,7 @@ state = Table(
     Column("revision", Integer, nullable=False),
     Column("state_hash", String(64), nullable=False),
     Column("data", JSON, nullable=False),
-    Column("updated_at", String(40), nullable=False),
+    Column("updated_at", MemoryTimestamp(), nullable=False),
 )
 
 theses = Table(
@@ -59,7 +83,7 @@ theses = Table(
     Column("revision", Integer, nullable=False),
     Column("status", String(32), nullable=False),
     Column("data", JSON, nullable=False),
-    Column("updated_at", String(40), nullable=False),
+    Column("updated_at", MemoryTimestamp(), nullable=False),
     Index("ix_market_theses_status", "scope_id", "status"),
 )
 
@@ -70,7 +94,7 @@ plans = Table(
     Column("revision", Integer, nullable=False),
     Column("status", String(32), nullable=False),
     Column("data", JSON, nullable=False),
-    Column("updated_at", String(40), nullable=False),
+    Column("updated_at", MemoryTimestamp(), nullable=False),
     Index("ix_strategy_plans_status", "scope_id", "status"),
 )
 
@@ -79,7 +103,7 @@ checkpoints = Table(
     Column("checkpoint_id", String(80), primary_key=True),
     Column("run_id", String(128), nullable=False),
     Column("scope_id", String(64), nullable=False),
-    Column("created_at", String(40), nullable=False),
+    Column("created_at", MemoryTimestamp(), nullable=False),
     Column("input_hash", String(64), nullable=False),
     Column("completeness", String(32), nullable=False),
     Column("data", JSON, nullable=False),
@@ -94,7 +118,7 @@ knowledge = Table(
     Column("version", Integer, nullable=False),
     Column("status", String(32), nullable=False),
     Column("data", JSON, nullable=False),
-    Column("updated_at", String(40), nullable=False),
+    Column("updated_at", MemoryTimestamp(), nullable=False),
     Index("ix_memory_knowledge_status", "scope_id", "status"),
 )
 
@@ -166,10 +190,15 @@ class MemoryRepository:
             sequence = (connection.execute(
                 select(func.max(events.c.sequence)).where(events.c.scope_id == scope.scope_id)
             ).scalar_one() or 0) + 1
+            event_times = ({"occurred_at": postgres_event_time(event.occurred_at),
+                            "recorded_at": postgres_event_time(event.recorded_at)}
+                           if connection.dialect.name == "postgresql" else
+                           {"occurred_at": event.occurred_at, "recorded_at": event.recorded_at})
             stored = StrategyMemoryEvent(**{
                 **{field: getattr(event, field) for field in (
-                    "event_id", "scope", "event_type", "source", "occurred_at", "recorded_at",
+                    "event_id", "scope", "event_type", "source",
                     "idempotency_key", "state_revision", "payload", "schema_revision")},
+                **event_times,
                 "sequence": sequence,
             })
             projected = self.reducer.apply(current, stored)

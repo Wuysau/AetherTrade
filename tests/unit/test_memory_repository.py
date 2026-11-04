@@ -16,6 +16,20 @@ def stamp(offset=0):
     return (datetime.now(timezone.utc) + timedelta(seconds=offset)).isoformat()
 
 
+def test_postgres_timestamp_binding_preserves_utc_event_hashes():
+    from sqlalchemy.dialects import postgresql, sqlite
+    from trading_system.memory.repository import MemoryTimestamp, postgres_event_time
+
+    value = "2026-11-04T07:44:00Z"
+    normalized = postgres_event_time(value)
+    assert normalized == "2026-11-04T07:44:00+00:00"
+    column_type = MemoryTimestamp()
+    bound = column_type.process_bind_param(normalized, postgresql.dialect())
+    assert isinstance(bound, datetime) and bound.tzinfo is not None
+    assert column_type.process_result_value(bound, postgresql.dialect()) == normalized
+    assert column_type.process_bind_param(value, sqlite.dialect()) == value
+
+
 def scope(**changes):
     value = dict(tenant_id="tenant-a", user_id="user-1", account_scope="paper-local",
                  strategy_id="strategy-1", product="SPOT", instrument="console-paper:BTCUSDT")

@@ -333,13 +333,17 @@ class AutomationService:
                     from .decision_execution import watch_triggered
                     try:
                         price = self.store._price(market, strategy['symbol'], self.settings.quote_max_age_seconds)
-                        if watch_triggered(schedule['watch_conditions'], schedule['watch_baseline'], {'price': str(price)}):
-                            key = self._trigger_key('PRICE_WATCH', schedule['watch_conditions'], {'price': str(price)})
-                            if schedule.get('last_trigger_key') != key:
+                        crossed = [condition for condition in schedule['watch_conditions']
+                                   if condition.get('kind') in ('PRICE_ABOVE', 'PRICE_BELOW')
+                                   and watch_triggered([condition], schedule['watch_baseline'], {'price': str(price)})]
+                        if crossed:
+                            key = self._trigger_key('PRICE_WATCH', crossed, schedule['watch_baseline'])
+                            if schedule.get('last_price_trigger_key') != key:
                                 schedule['next_analysis_at'] = current_time
                                 schedule['review_kind'] = 'HYPOTHESIS_REVIEW'
                                 schedule['review_trigger_key'] = key
                                 schedule['last_trigger_key'] = key
+                                schedule['last_price_trigger_key'] = key
                     except ApiError:
                         pass
                 if schedule.get("activated_at") == strategy.get("_activated_at") and schedule.get("next_analysis_at") and schedule["next_analysis_at"] > current_time:
