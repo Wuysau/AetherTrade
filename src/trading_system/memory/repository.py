@@ -372,10 +372,36 @@ class MemoryRepository:
             self._upsert(connection, prompt_templates, {"template_id": template_id, "version": version},
                          dict(role=role, template_hash=template_hash, data=data, active=1))
 
+    def replace_prompt_template(self, template_id: str, version: str, role: str, data: dict,
+                                *, expected_version: str | None = None,
+                                fallback_version: str | None = None) -> None:
+        """Atomically deactivate old versions and activate one new version."""
+        template_hash = canonical_hash(data)
+        with self.store.transaction() as connection:
+            rows = connection.execute(
+                select(prompt_templates.c.version, prompt_templates.c.active)
+                .where(prompt_templates.c.template_id == template_id)).all()
+            active = [row.version for row in rows if row.active]
+            if (expected_version is not None and expected_version not in active
+                    and expected_version != fallback_version):
+                raise ValueError("PROMPT_TEMPLATE_CONFLICT")
+            connection.execute(update(prompt_templates)
+                               .where(prompt_templates.c.template_id == template_id)
+                               .values(active=0))
+            self._upsert(connection, prompt_templates, {"template_id": template_id, "version": version},
+                         dict(role=role, template_hash=template_hash, data=data, active=1))
+
     def list_prompt_templates(self, template_id: str | None = None):
-        statement = select(prompt_templates.c.data, prompt_templates.c.template_id, prompt_templates.c.version)
+        statement = select(prompt_templates.c.data, prompt_templates.c.template_id,
+                           prompt_templates.c.version, prompt_templates.c.active)
         if template_id:
             statement = statement.where(prompt_templates.c.template_id == template_id)
         with self.store.transaction() as connection:
             return connection.execute(statement.order_by(prompt_templates.c.template_id,
                                                          prompt_templates.c.version)).all()
+
+    def deactivate_prompt_templates(self, template_id: str) -> None:
+        with self.store.transaction() as connection:
+            connection.execute(update(prompt_templates)
+                               .where(prompt_templates.c.template_id == template_id)
+                               .values(active=0))

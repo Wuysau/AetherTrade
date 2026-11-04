@@ -1,5 +1,7 @@
 import type { CandleHistory, CandleInterval, MarketConfig, MarketInput, AnalysisInput, ModelProfile, ModelProfileInput, TokenUsage, Notifications, ModelConfig, ModelInput, Decision, Instrument, SymbolName, ActionReceipt, Bootstrap, Dashboard, Market, PaperAction, PaperOrderInput, Range, Risk, Session, Strategy, StrategyInput, MemoryOverview, MemoryEvent, MemoryDecisionRef, MemoryKnowledge, MemoryHealth, MemoryCheckpoint } from './types';
+import type { PromptLayerResponse } from './prompts';
 import type {ProgramPage,ProgramView,CapabilityView} from './orderobservationtypes';
+import { t, tt } from './i18n';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string, public readonly details?: Record<string, unknown>) { super(message); this.name = 'ApiError'; }
@@ -19,14 +21,14 @@ export class RuntimeApi {
     try { response = await this.transport(`/api${path}`, { ...options, headers, credentials: 'same-origin', signal }); }
     catch (error) {
       if (options.signal?.aborted) throw error;
-      throw new ApiError(0, 'NETWORK_ERROR', '无法连接本地服务，请检查服务是否启动后重试。');
+      throw new ApiError(0, 'NETWORK_ERROR', t("无法连接本地服务，请检查服务是否启动后重试。"));
     }
     const body = await response.json().catch(() => null);
     if (!response.ok) {
       if (response.status === 401) this.onUnauthorized?.();
-      throw new ApiError(response.status, body?.error?.code ?? 'HTTP_ERROR', body?.error?.message ?? `服务请求失败（${response.status}），请重试。`, body?.error?.details);
+      throw new ApiError(response.status, body?.error?.code ?? 'HTTP_ERROR', body?.error?.message ?? `${t("服务请求失败（")}${response.status}${t("），请重试。")}`, body?.error?.details);
     }
-    if (body === null) throw new ApiError(response.status, 'INVALID_RESPONSE', '服务响应格式异常，请刷新重试。');
+    if (body === null) throw new ApiError(response.status, 'INVALID_RESPONSE', t("服务响应格式异常，请刷新重试。"));
     return body as T;
   }
   marketConfig() { return this.request<MarketConfig>('/market/config'); }
@@ -87,6 +89,22 @@ export class RuntimeApi {
   decisionContext(runId: string, signal?: AbortSignal) {
     return this.request<MemoryCheckpoint>(`/decisions/${encodeURIComponent(runId)}/context`, { signal });
   }
+  promptLayers(signal?: AbortSignal) { return this.request<PromptLayerResponse>('/prompt-layers', { signal }); }
+  savePromptLayer(layerId: string, template: string, expectedVersion: string) {
+    return this.request<PromptLayerResponse>(`/prompt-layers/${encodeURIComponent(layerId)}`, {
+      method: 'PUT', body: JSON.stringify({ template, expected_version: expectedVersion }),
+    });
+  }
+  resetPromptLayer(layerId: string, expectedVersion: string) {
+    return this.request<PromptLayerResponse>(`/prompt-layers/${encodeURIComponent(layerId)}/reset`, {
+      method: 'POST', body: JSON.stringify({ expected_version: expectedVersion }),
+    });
+  }
+  previewPromptLayer(layerId: string, template: string) {
+    return this.request<{ layer_id: string; text: string; template_hash: string; variables: string[] }>('/prompt-layers/preview', {
+      method: 'POST', body: JSON.stringify({ layer_id: layerId, template }),
+    });
+  }
   refreshMarket() { return this.request<Market>('/market/refresh', { method: 'POST' }); }
   saveStrategy(values: StrategyInput, existing?: Strategy, status?: Strategy['status']) {
     return this.request<Strategy>(existing ? `/strategies/${encodeURIComponent(existing.id)}` : '/strategies', {
@@ -107,14 +125,14 @@ export class RuntimeApi {
   async exportResearch(): Promise<Blob> {
     let response: Response;
     try { response = await this.transport('/api/research/export', { credentials: 'same-origin', signal: AbortSignal.timeout(20_000) }); }
-    catch { throw new ApiError(0, 'NETWORK_ERROR', '摘要下载失败，请检查连接后重试。'); }
+    catch { throw new ApiError(0, 'NETWORK_ERROR', t("摘要下载失败，请检查连接后重试。")); }
     if (!response.ok) {
       if (response.status === 401) this.onUnauthorized?.();
       const body = await response.json().catch(() => null);
-      throw new ApiError(response.status, body?.error?.code ?? 'HTTP_ERROR', body?.error?.message ?? '摘要下载失败，请重试。');
+      throw new ApiError(response.status, body?.error?.code ?? 'HTTP_ERROR', body?.error?.message ?? t("摘要下载失败，请重试。"));
     }
     return response.blob();
   }
 }
 export const runtimeApi = new RuntimeApi();
-export const errorMessage = (error: unknown) => error instanceof Error ? error.message : '操作未完成，请重试。';
+export const errorMessage = (error: unknown) => error instanceof Error ? tt(error.message) : t("操作未完成，请重试。");

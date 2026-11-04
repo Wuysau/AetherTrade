@@ -1,9 +1,10 @@
 """Versioned P0-P6 prompt framework and memory-use protocol.
 
-Templates are immutable server code with explicit versions and hashes. The
-repository can store the same versions for audit, but old decision records keep
-the version/hash they actually used. Prompts never grant risk, identity or
-execution authority.
+The shipped templates are versioned server code with explicit versions and
+hashes. Operators may replace a layer with their own text; the replacement is
+stored with its own version/hash and every decision record keeps the version it
+actually used. Rendering, variable substitution and prompt submission stay on
+the server. Prompts never grant risk, identity or execution authority.
 """
 from __future__ import annotations
 
@@ -15,6 +16,13 @@ from trading_system.contracts.canonical import canonical_hash
 PROMPT_FRAMEWORK_VERSION = "memory-prompt-v1"
 
 _PLACEHOLDER = re.compile(r"\{([a-z_][a-z0-9_]*)\}")
+
+# Variables the server always fills before a decision request is sent.
+KNOWN_PROMPT_VARIABLES = frozenset({
+    "strategy_id", "instrument", "product", "strategy_version", "decision_mode",
+    "authorization_summary", "risk_limits", "memory_completeness",
+    "memory_conflicts", "memory_missing", "output_schema",
+})
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -45,6 +53,7 @@ class PromptLayer:
 
 
 _LAYERS = (
+
     PromptLayer(
         layer_id="P0", title="System Constitution", version="v1", role="decision",
         template=(
@@ -106,6 +115,9 @@ _LAYERS = (
             "conditions and validity time. Do not include hidden reasoning, credentials or authority "
             "changes. A proposal is not an order and is not risk approval.")),
 )
+
+
+DEFAULT_LAYERS = _LAYERS
 
 
 class PromptFramework:

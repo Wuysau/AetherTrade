@@ -63,8 +63,10 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     from trading_system.memory.repository import MemoryRepository
     from trading_system.memory.service import StrategyMemoryService
     from trading_system.memory.assembler import DecisionContextAssembler
+    from trading_system.memory.prompt_templates import PromptTemplateService
     memory = StrategyMemoryService(MemoryRepository(store), execution=store.execution)
-    assembler = DecisionContextAssembler(memory)
+    prompts = PromptTemplateService(memory.repository)
+    assembler = DecisionContextAssembler(memory, prompt_provider=prompts.framework)
     models.memory = memory
 
     automation = AutomationService(store, models, market_snapshot, settings,
@@ -151,6 +153,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     app.state.local_child_host = local_child_host
     app.state.memory = memory
     app.state.assembler = assembler
+    app.state.prompts = prompts
 
     @app.exception_handler(ApiError)
     async def expected_error(request, exc):
@@ -225,6 +228,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
                           externally_provided=quote_provider is not None)
     from trading_system.memory.api import install_memory_routes
     install_memory_routes(app, memory, store, authenticated)
+    from trading_system.memory.prompt_api import install_prompt_routes
+    install_prompt_routes(app, prompts, authenticated, mutation)
 
     def session_response(data):
         token = data.pop("token")

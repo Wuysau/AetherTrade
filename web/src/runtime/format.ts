@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 export function finite(value: string | number | null | undefined): number | null {
   if (value === null || value === undefined || value === '') return null;
   const n = Number(value);
@@ -21,7 +23,7 @@ export function quantity(value: string | null | undefined): string {
   return n === null ? '—' : n.toLocaleString('en-US', { maximumFractionDigits: 8 });
 }
 export function time(value: string | null | undefined, full = false): string {
-  if (!value || !Number.isFinite(Date.parse(value))) return '尚未同步';
+  if (!value || !Number.isFinite(Date.parse(value))) return t("尚未同步");
   return new Intl.DateTimeFormat('zh-CN', {
     timeZone: 'Asia/Shanghai', ...(full ? { year: 'numeric', month: '2-digit', day: '2-digit' } as const : {}),
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,

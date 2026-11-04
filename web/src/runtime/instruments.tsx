@@ -1,4 +1,5 @@
 import type { Instrument } from './types';
+import { t } from './i18n';
 
 // Explicit initial catalog; availability always comes from the quote service.
 export const INSTRUMENTS: Instrument[] = [
@@ -10,5 +11,5 @@ export const INSTRUMENTS: Instrument[] = [
   { symbol: 'AAPLBUSDT', name: 'Apple bStock', asset_class: 'BSTOCK', base_asset: 'AAPLB', quote_asset: 'USDT', underlying_symbol: 'AAPL' },
 ];
 export function InstrumentOptions({ instruments = INSTRUMENTS }: { instruments?: Instrument[] }) {
-  return <>{(['CRYPTO', 'BSTOCK'] as const).map(group => <optgroup key={group} label={group === 'CRYPTO' ? '加密现货' : 'Binance bStocks 现货'}>{instruments.filter(i => i.asset_class === group).map(i => <option value={i.symbol} key={i.symbol}>{i.symbol} · {i.name}</option>)}</optgroup>)}</>;
+  return <>{(['CRYPTO', 'BSTOCK'] as const).map(group => <optgroup key={group} label={group === 'CRYPTO' ? t("加密现货") : t("Binance bStocks 现货")}>{instruments.filter(i => i.asset_class === group).map(i => <option value={i.symbol} key={i.symbol}>{i.symbol} · {i.name}</option>)}</optgroup>)}</>;
 }

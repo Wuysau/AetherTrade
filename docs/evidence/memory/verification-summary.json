@@ -2,7 +2,7 @@
   "schema_revision": "memory-verification-v1",
   "recorded_at": "2026-11-04",
   "baseline_head": "b15a825",
-  "implementation_head_at_run": "68eb29e",
+  "implementation_head_at_run": "c028950",
   "environment": {
     "platform": "win32",
     "python": "3.14.2",
@@ -25,10 +25,18 @@
       "name": "full_light_regression",
       "command": ".venv/Scripts/python.exe -m pytest tests/contracts tests/intents tests/unit tests/security tests/server tests/api tests/terminal tests/research tests/faults tests/ops -q --disable-warnings -m \"not paper_runtime\" --deselect tests/server/test_market_live.py::test_stale_book_repair_continues_during_complete_quote_stream",
       "exit_code": 0,
-      "result": "3313 passed, 12 skipped, 57 deselected, 1 warning",
-      "duration_seconds": 134.82,
+      "result": "3324 passed, 12 skipped, 57 deselected, 1 warning",
+      "duration_seconds": 136.88,
       "status": "PASS",
       "note": "56 paper_runtime PostgreSQL tests + 1 pre-existing timing-sensitive market-live test deselected; the latter passes alone (27 passed in test_market_live.py)."
+    },
+    {
+      "name": "prompt_layer_tests",
+      "command": ".venv/Scripts/python.exe -m pytest tests/unit/test_prompt_templates.py tests/server/test_prompt_api.py -q --disable-warnings",
+      "exit_code": 0,
+      "result": "8 passed, 1 warning",
+      "duration_seconds": 1.90,
+      "status": "PASS"
     },
     {
       "name": "web_typecheck",
@@ -42,8 +50,8 @@
       "name": "web_tests",
       "command": "cd web && npm run test",
       "exit_code": 0,
-      "result": "13 test files / 125 tests passed",
-      "duration_seconds": 6.29,
+      "result": "14 test files / 128 tests passed",
+      "duration_seconds": 6.23,
       "status": "PASS"
     },
     {
@@ -51,7 +59,7 @@
       "command": "cd web && npm run build",
       "exit_code": 0,
       "result": "vite production build passed",
-      "duration_seconds": 0.43,
+      "duration_seconds": 0.44,
       "status": "PASS"
     },
     {

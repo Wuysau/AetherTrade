@@ -63,7 +63,7 @@ describe('runtime session and empty states', () => {
     expect(setup).toHaveBeenCalledWith('owner', 'correct-password', '100000');
     expect((screen.getByLabelText('用户名') as HTMLInputElement).value).toBe('owner');
   });
-  it('shows truthful empty account and all seven navigation destinations', async () => {
+  it('shows truthful empty account and all eight navigation destinations', async () => {
     const api = new RuntimeApi();
     vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: '1' });
     vi.spyOn(api, 'session').mockResolvedValue(session);
@@ -75,7 +75,7 @@ describe('runtime session and empty states', () => {
     expect(screen.getByText('等待第一条决策')).toBeDefined();
     expect(screen.getByText('当前没有持仓')).toBeDefined();
     const navigation = screen.getByRole('navigation', { name: '主导航' });
-    expect(within(navigation).getAllByRole('button')).toHaveLength(7);
+    expect(within(navigation).getAllByRole('button')).toHaveLength(8);
     await user.click(within(navigation).getByRole('button', { name: '策略中心' }));
     await screen.findByRole('heading', { name: '尚未创建策略' });
     await user.click(within(navigation).getByRole('button', { name: '策略记忆' }));

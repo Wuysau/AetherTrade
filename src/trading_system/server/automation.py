@@ -45,7 +45,9 @@ class AutomationService:
         self.memory = memory
         if assembler is None and memory is not None:
             from trading_system.memory.assembler import DecisionContextAssembler
-            assembler = DecisionContextAssembler(memory)
+            from trading_system.memory.prompt_templates import PromptTemplateService
+            prompts = PromptTemplateService(memory.repository)
+            assembler = DecisionContextAssembler(memory, prompt_provider=prompts.framework)
         self.assembler = assembler
         self._program_pending = {}
         self.worker_id = str(uuid4())

@@ -159,13 +159,20 @@ def _expired(value: str, as_of: str) -> bool:
 
 class DecisionContextAssembler:
     def __init__(self, memory, *, clock=None, budget: TokenBudget | None = None,
-                 prompts: PromptFramework | None = None):
+                 prompts: PromptFramework | None = None, prompt_provider=None):
         self.memory = memory
         self.clock = clock or _now
         self.budget = budget or TokenBudget()
         self.retriever = MemoryRetriever(self.budget)
         self.prompts = prompts or PromptFramework()
+        self.prompt_provider = prompt_provider
         self.validator = ContextValidator()
+
+    def _framework(self) -> PromptFramework:
+        """Effective P0-P6 framework, including operator-edited layers."""
+        if self.prompt_provider is None:
+            return self.prompts
+        return self.prompt_provider()
 
     def build(self, strategy_id: str, run_id: str, as_of: str | None = None, *,
               scope: StrategyMemoryScope | None = None, strategy: dict | None = None,
@@ -232,7 +239,7 @@ class DecisionContextAssembler:
             missing=missing if missing is not None else bundle.missing,
             conflicts=conflicts if conflicts is not None else bundle.conflicts,
             evidence_refs=tuple(bundle.included_refs),
-            prompt_versions=self.prompts.layer_versions,
+            prompt_versions=self._framework().layer_versions,
             schema_versions={"memory": MEMORY_SCHEMA_REVISION, "context": CONTEXT_SCHEMA_REVISION,
                              "assessment": "assessment_v1",
                              "analysis_snapshot": (snapshot or {}).get("schema_revision") or "missing"},
@@ -308,4 +315,4 @@ class DecisionContextAssembler:
             "memory_missing": json.dumps(list(context.missing)),
             "output_schema": output_schema,
         }
-        return self.prompts.render(role=role, variables=variables)
+        return self._framework().render(role=role, variables=variables)

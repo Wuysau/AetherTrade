@@ -19,7 +19,7 @@ no TESTNET/LIVE, no paid model calls.
 | MEM-06 memory service | PASS | `tests/unit/test_memory_service.py` (6) |
 | MEM-07 assembler/validator | PASS | `tests/unit/test_memory_context.py`, acceptance T01-T12 |
 | MEM-08 retrieval/token budget | PASS | `memory/retrieval.py`, acceptance T12 |
-| MEM-09 prompt framework | PASS | `memory/prompting.py`, acceptance T15/T18 |
+| MEM-09 prompt framework | PASS | Versioned P0–P6 (`memory/prompting.py`), operator-editable immutable versions (`memory/prompt_templates.py`, `prompt_api.py`, `web/src/runtime/prompts.tsx`); same server variables, no risk/identity/execution authority |
 | MEM-10 single-model integration | PASS (assessment/automation) | `tests/server/test_memory_integration.py`; legacy wire payload intentionally unchanged |
 | MEM-11 cross-model integration | PASS (shared checkpoint) | `model_versions`/one checkpoint; per-model component results retained |
 | MEM-12 review scheduling | PASS | `tests/unit/test_memory_governance.py` (trigger idempotency) |
@@ -52,7 +52,7 @@ Result: `66 passed, 1 warning` in 8.81 s (exit 0).
   --deselect tests/server/test_market_live.py::test_stale_book_repair_continues_during_complete_quote_stream
 ```
 
-Result: `3313 passed, 12 skipped, 57 deselected, 1 warning` in 134.82 s (exit 0).
+Result: `3324 passed, 12 skipped, 57 deselected, 1 warning` in 136.88 s (exit 0).
 
 The 57 deselected tests are 56 `paper_runtime` PostgreSQL scenarios plus one
 pre-existing timing-sensitive market-live test. That market test passes in
@@ -72,11 +72,14 @@ npm run test
 npm run build
 ```
 
-Result: typecheck exit 0; `13` test files / `125` tests passed; production build
+Result: typecheck exit 0; `14` test files / `128` tests passed; production build
 exit 0. The memory page is read-only, scope-selected, and distinguishes
 `COMPLETE` / `PARTIAL` / `CONTEXT_INCOMPLETE`, data-blocked, model-failure,
-capability-blocked, rejected and risk-blocked states. It does not display keys,
-tokens or signatures, and it does not replay provider calls.
+capability-blocked, rejected and risk-blocked states. The separate “决策提示词”
+page edits P0–P6 wording with optimistic-concurrency conflict handling and
+version history; it cannot change risk, identity or execution authority. Neither
+page displays keys, tokens or signatures, and neither replays provider calls.
+The console also supports persisted zh/en switching.
 
 ## 3. Acceptance scenarios T01-T18
 
@@ -111,7 +114,7 @@ tokens or signatures, and it does not replay provider calls.
 | Docker containers/images/volumes created | 0 |
 | PostgreSQL databases provisioned | 0 |
 | Paid model calls | 0 |
-| Heavy test duration | 134.82 s |
+| Heavy test duration | 136.88 s |
 | Memory test duration | 8.81 s |
 
 No cleanup, prune, VHDX, WSL, cross-drive migration or project-external file
@@ -149,6 +152,11 @@ operation was performed.
    (`27 passed` in `tests/server/test_market_live.py`) but failed in two full-suite
    runs at a 0.025 s freshness boundary. It is unrelated to memory; the final
    light regression deselected it explicitly and is reported as such.
+9. **Prompt edits are global wording changes.** P0–P6 edits apply to all
+   strategies, are versioned and audited, and cannot change risk, identity,
+   permissions or execution authority. Over-editing multiple layers can make the
+   rendered prompt exceed the model client's 16,000-character instruction limit;
+   the decision then fails closed rather than truncating risk fields.
 
 ## 6. Rollback
 
