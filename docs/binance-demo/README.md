@@ -133,7 +133,7 @@ PostgreSQL 跨进程凭据重绑定仍因缺少经过证明的 stream fencing �
 
 `engine/binance_demo/usdm_account.py` 是独立、纯数据的 **USDM Demo 离线投影**，不是交易所连接或完整风险记录。它要求显式 `DemoScope(product="USDM")` 和独立读取的持仓模式；保留 positionRisk v3 行的方向、带符号数量与 `updateTime`，账户资产行的 `updateTime`，以及 ACCOUNT_UPDATE 的 E/T 和部分余额、仓位字段。它校验有限 Decimal、模式/方向一致性、保证金类型、杠杆、重复项和输入结构。更新事件中的 `bc` 原样保留，不能当作包含盈亏与手续费的完整资金流水。空列表或未出现的仓位不表示平仓，E/T 和 updateTime 也不是全局唯一 ID 或排序保证。账户总体金额不自动标记为 USDT。
 
-本次没有接入 USDM 网络端点、凭据、私有流、状态归并、对账、资金费账本、杠杆修改、发单或资格启用；现货和 PAPER 路径未改。官方文档为字段设计依据，但**尚未使用真实 Demo 数据核验当前场所契约**。PostgreSQL、真实 Demo 和连续运行资格均为 **NOT_RUN**，离线通过不代表交易能力获准。
+该投影本身不连接 USDM 网络端点、凭据或私有流，也不执行状态归并、对账、资金费记账、杠杆修改、发单或资格启用；现货和 PAPER 路径未改。官方文档为字段设计依据，但**尚未使用真实 Demo 数据核验当前场所契约**。PostgreSQL、真实 Demo 和连续运行资格均为 **NOT_RUN**，离线通过不代表交易能力获准。
 
 本次轻量检查（使用 `../AetherTrade-paper-test/.venv/bin/python`）：
 
@@ -143,6 +143,13 @@ PostgreSQL 跨进程凭据重绑定仍因缺少经过证明的 stream fencing �
 
 ### USDⓈ-M 端点文档与环境命名冲突
 
-截至本次查阅，Binance 官方文档列出的只读契约为：`GET /fapi/v1/time`（公开）、`GET /fapi/v3/account`、`GET /fapi/v1/positionSide/dual`、`GET /fapi/v1/symbolConfig` 和 `GET /fapi/v3/positionRisk`（后四项为签名接口）。参考官方 [市场数据](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data)、[账户](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/account) 和 [交易查询](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/trade)文档。这里只记录协议参考，不开放调用。
+截至本次查阅，Binance 官方文档列出的只读契约为：`GET /fapi/v1/time`（公开）、`GET /fapi/v3/account`、`GET /fapi/v1/positionSide/dual`、`GET /fapi/v1/symbolConfig` 和 `GET /fapi/v3/positionRisk`（后四项为签名接口）。参考官方 [市场数据](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data)、[账户](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/account) 和 [交易查询](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/trade)文档。这些协议仅由下述独立只读客户端覆盖，不开放交易调用。
 
-**阻断：** Binance [USDⓈ-M General Info](https://developers.binance.com/en/docs/products/derivatives-trading-usds-futures/general-info) 当前将 `https://demo-fapi.binance.com` 明确标为 Testnet REST 地址；与此同时，其[支持文档](https://www.binance.com/en-IA/support/faq/detail/ab78f9a1b8824cf0a106b4229c76496d)使用 Futures Demo Trading 名称。由于本仓库明确禁止启用 TESTNET，不能仅凭主机名把该地址判定为与 Testnet 不同的环境。待环境身份及用户批准的治理范围澄清前，不新增可访问该主机的传输、调用或资格启用；本次没有向该主机发送请求。
+**阻断：** Binance [USDⓈ-M General Info](https://developers.binance.com/en/docs/products/derivatives-trading-usds-futures/general-info) 当前将 `https://demo-fapi.binance.com` 明确标为 Testnet REST 地址；与此同时，其[支持文档](https://www.binance.com/en-IA/support/faq/detail/ab78f9a1b8824cf0a106b4229c76496d)使用 Futures Demo Trading 名称。不能仅凭主机名把该地址判定为与 Testnet 不同的环境。用户明确批准本任务将此地址接入代码，作为项目 TESTNET 禁令的特定例外；该例外不授权连接账户、下单或启用能力。
+
+
+### USDⓈ-M 独立只读客户端
+
+`engine/binance_demo/usdm_readonly.py` 为上述五个 GET 提供独立异步客户端，固定 `https://demo-fapi.binance.com`，使用临时凭据、HMAC 签名、时钟校验、TLS、可取消的总时限、禁止代理环境继承和重定向，拒绝压缩响应、限制原始响应大小并隐藏签名请求日志。429/418 的冷却只保存在客户端实例中，不能跨实例、进程或 IP 协调，重新创建实例会丢失该状态；它不是共享限流或场所资格证明。没有任意 URL、发单或撤单接口，也未接入现有运行时、UI 或资格门禁；原 `DemoEndpointRegistry` 的 USDM 拒绝保持不变。调用方仍须分别验证响应内容、账户身份和场所行为。此代码不会自行连接，**尚未获得连接真实账户的授权**，不得把离线 Mock 测试当作场所验证。
+
+轻量验证使用 `../AetherTrade-paper-test/.venv/bin/python -m pytest -q tests/binance_demo/test_usdm_readonly_transport.py tests/binance_demo/test_usdm_account.py tests/demo/test_transport.py tests/intents/test_order_features.py`：100 passed；`-m compileall -q src/trading_system/engine/binance_demo/usdm_readonly.py tests/binance_demo/test_usdm_readonly_transport.py` 和 `git diff --check` 通过。测试只使用 MockTransport。真实账户连接、PostgreSQL 和场所资格均 **NOT_RUN**，USDM 交易仍禁用。
