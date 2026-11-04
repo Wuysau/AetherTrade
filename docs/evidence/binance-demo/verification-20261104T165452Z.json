@@ -1,0 +1,117 @@
+{
+  "recorded_at": "2026-11-04T16:54:52.241415+00:00",
+  "checkpoint": "hosted exit management and isolated strategy-memory projection",
+  "full_design_complete": false,
+  "base_commit": "4134fd1ba6ab9152be064fc91ad93c59f61b8eb7",
+  "previous_remote_commit": "2095c5f91924aefede0aff8cb4826fffe0b50359",
+  "source_file_sha256": {
+    "migrations/0033_binance_demo.sql": "396527f5abd411a0369879dad705522342d2d7ad8e58141348d3ad934b6b2ab4",
+    "migrations/0034_binance_demo_runtime.sql": "da415d2b8df18403f3b85a3dca1f147c64794fa6d503f65b6bc41734ce2a27fc",
+    "migrations/0035_binance_demo_exit_memory.sql": "24953cdea17199bb7054736fab1def38225240a518c7ea18cedb17ba75f38da4",
+    "src/trading_system/engine/binance_demo/contracts.py": "4ee48941a5868dd42099d3af95d4fa772fdac6cb25e2eb5741556e3380758c86",
+    "src/trading_system/engine/binance_demo/credentials.py": "f1f063a165b0468bf02480d5299df530667e086d5074c12c0fbd5e5540f9c7d7",
+    "src/trading_system/engine/binance_demo/orders.py": "e3874357cd627e704ab541b250216142d6a1be89ac994b82fb873d2eb30ed670",
+    "src/trading_system/engine/binance_demo/stream.py": "73fc1742a4302b0e162e89bd7468af541efc8ad01e9c7cdce8b15a751dba7b7b",
+    "src/trading_system/engine/binance_demo/transport.py": "8e3454c96dd90bc5969da5d4670d40f20a75887dfcd8504980674227280bf1bb",
+    "src/trading_system/execution/demo_commands.py": "bf9552c04fbd8c716b0540a82c365ede3011775c087ec08bc08bf8e12e7b3dd8",
+    "src/trading_system/execution/demo_reconcile.py": "5705666a799c90f4c44d5fb5cfb7277ded214727f6e0a98202293be322794066",
+    "src/trading_system/execution/demo_reports.py": "6807418d66e5f42e0d5cf4c4d87340c4b69e43b75ff92cda58118668d7ca2bfc",
+    "src/trading_system/runtime/demo_frame.py": "50cc3d813117e7cf9c6c1a5886f24474979386c659260a9d414d1d320bf7c87d",
+    "src/trading_system/runtime/demo_host.py": "85df39eab66c30213c08f99c693021d5fa88a29bca88a8cba70d6a8611acf3fb",
+    "src/trading_system/runtime/demo_memory.py": "d8bda69e49b003023b515f4a6b68440bfdb43fccaedf7ac56a5c086cf1421506",
+    "src/trading_system/runtime/demo_service.py": "0ab49aa9eaccc4e0410aebeaf21844a96324fc07d523abadc8b856cd2ccc5d29",
+    "src/trading_system/runtime/demo_strategy.py": "aefd6384811ea2432f840f0879cdbf5e36e837d86c4e2c51d75bc56fedfdaa85",
+    "src/trading_system/server/app.py": "e7fa6fec24cc2377d55e032cf4697f356bef36d3d364ebda9f7d1ffab6802664",
+    "src/trading_system/server/decision_assessment.py": "850d99a0d2dd864a7d6bbd89b4172493df0585f409134f362946c823ded188d0",
+    "src/trading_system/server/demo_api.py": "9fdc62a982a79459d772c2ae0b8002cd1f2393bcfdf473d88e2b2e346288ac63",
+    "src/trading_system/server/demo_snapshot.py": "e1d5e74fd9c0cd2216898f391b635edce88cfaed25ee3869fdf12b06fb87f6d4",
+    "src/trading_system/server/model_service.py": "c6f90bbd87e3adacc2a846a18148ef828840cf1a79a7262fec9be921355771f4",
+    "src/trading_system/storage/demo.py": "6422cb1cc3f4757306921af1e99663363f750f1b0383287c8b3c726c5bd4babf",
+    "tests/demo/test_exit_update.py": "467d8c5ab2abbf2f754769c2fc0501172522e222de30519be40289ecf48f73aa",
+    "tests/demo/test_frame.py": "60e3184fa591a72711839d5472242c88a04b95a74002e02bbd8aa443138e946b",
+    "tests/demo/test_host.py": "68fafcc5daaa5adcb19dfdd992f101b1a9231339f1cc31457d8ba0f1cc46914c",
+    "tests/demo/test_lifecycle.py": "00cd189bff7d79103c27118235bd17e037740412aa3a92779da1e87d70b6f7f2",
+    "tests/demo/test_management.py": "61434476daab8becae924f94bd9ed43a00121152f7aa727ab1024ebb3cc6912a",
+    "tests/demo/test_memory.py": "6c9ae30c1ad81d1dd7f3985c29c9575fa2fbdd7c2a9485c4d64504fc08732bbe",
+    "tests/demo/test_model_host.py": "8e440635d9d3ff7307da5b6f83d9e53d9df45c6e77e18adee1b8f2c60979674b",
+    "tests/demo/test_recovery.py": "c0f43ffc55125ebee04739c825f6cb394f254774a6eba9b79e04d2810d550f54",
+    "tests/demo/test_runtime_service.py": "c13de5cba87cc4a3c0566d50f03f82f3d9ed852501f5ec98e8b0c4d049895fe8",
+    "tests/demo/test_transport.py": "b047750f9727ba3de9b7a3aa4a0fe42b090317de3d4a512cd74f07e6fbe12b77",
+    "tests/server/test_demo_api.py": "56f3014f386c6ea01eaf6996b4d8a08cec3725f1f3f8bf2d912a371d811d85fb",
+    "web/src/runtime/App.tsx": "37034e6422a6468f4c891207f8a9794d443bb8c5f200c75e0bfaa702b955f8cb",
+    "web/src/runtime/demo.tsx": "4de0944c1a6ec2460fcb922700951a6e8b687e292f72e64e6c28f51ace55c7cd",
+    "web/src/runtime/types.ts": "981b6ae4c72626cab5f26d9c890b524568826e5e4387c16bc111906174d8e122",
+    "web/tests/demo.test.tsx": "52b31d87e3ff2ac4a2570045e235f331c7b7ecad56bb5d890db8d3c224a9cd2a",
+    "web/tests/runtime-ui.test.tsx": "f58f7ea03ef6f968d0f1ec921ffcebbb5f556896ca27f5cfc854b25acd9d9fd8"
+  },
+  "checks": [
+    {
+      "name": "focused_backend",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "python -m pytest tests/demo tests/server/test_demo_api.py tests/server/test_startup.py tests/server/test_program_automation_wiring.py tests/server/test_api.py tests/server/test_model_api.py tests/server/test_decision_assessment.py tests/server/test_analysis_snapshot.py tests/server/test_assessment_api.py tests/server/test_model_consensus.py -q -m 'not paper_runtime'",
+      "result": "210 passed, 3 deselected; one upstream httpx deprecation warning",
+      "seconds": 14.73
+    },
+    {
+      "name": "focused_frontend",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "npm --prefix web run test -- --run tests/demo.test.tsx tests/runtime-ui.test.tsx tests/runtime-api.test.ts",
+      "result": "26 passed in 3 files"
+    },
+    {
+      "name": "typescript",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "npm --prefix web run typecheck"
+    },
+    {
+      "name": "frontend_build",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "npm --prefix web run build",
+      "note": "Existing bundle-size warning remains"
+    },
+    {
+      "name": "syntax",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "python -m compileall -q [changed Demo Python modules]"
+    },
+    {
+      "name": "whitespace",
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "git -c core.whitespace=cr-at-eol diff --check",
+      "note": "Preserves original CRLF in server/app.py"
+    }
+  ],
+  "review": {
+    "status": "PASS_WITH_QUALIFICATION_GATES",
+    "kind": "independent read-only static safety review",
+    "note": "UPDATE_EXIT HYBRID veto, final-lock expiry, optional leverage and model input-hash findings addressed with regressions. Other scoped projection/lineage/transaction checks found no additional issue. Actual PostgreSQL and venue tests remain NOT_RUN."
+  },
+  "not_run": [
+    "PostgreSQL migration and ownership/concurrency/crash qualification",
+    "Real Binance Demo read/write/stream qualification",
+    "Actual model-provider requests or paid inference",
+    "Continuous Demo window",
+    "Full repository integration suite or CI"
+  ],
+  "continuing_scope": [
+    "Bounded MARKET sizing and lifecycle extension",
+    "Actual PostgreSQL/Demo qualification and continuous window remain NOT_RUN",
+    "USDM, native conditional/OCO and advanced algorithms remain disabled"
+  ],
+  "safety": {
+    "real_credentials_used": false,
+    "real_orders_sent": false,
+    "credentials_persisted": false,
+    "docker_started": false,
+    "database_provisioned": false,
+    "paper_live_identity_changed": false,
+    "qualified_capability_created": false
+  },
+  "evidence_delivery": "Sanitized results and source hashes only; raw workspace logs are not published."
+}

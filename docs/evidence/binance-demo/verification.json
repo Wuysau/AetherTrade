@@ -1,117 +1,218 @@
 {
-  "recorded_at": "2026-11-04T16:54:52.241415+00:00",
-  "checkpoint": "hosted exit management and isolated strategy-memory projection",
-  "full_design_complete": false,
+  "recorded_at": "2026-11-04T18:08:03.547007+00:00",
+  "checkpoint": "offline verification of opt-in fail-closed runtime, SPOT lifecycle and USD-M projection",
+  "tested_source_commit": "d548c7645d4df687aee616c343a008cdc7b5a572",
   "base_commit": "4134fd1ba6ab9152be064fc91ad93c59f61b8eb7",
-  "previous_remote_commit": "2095c5f91924aefede0aff8cb4826fffe0b50359",
+  "full_design_complete": false,
+  "previous_evidence": {
+    "path": "docs/evidence/binance-demo/verification-20261104T165452Z.json",
+    "sha256": "0547ae6faffe462e5df9cbecd21dc40d8cb0943d5bd0db27a604b8fd4e61ca63",
+    "note": "Preserved byte-for-byte historical evidence, not verification of current commit."
+  },
+  "environment": {
+    "python": "3.12.14",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "node": "v24.22.1",
+    "npm": "11.9.0",
+    "python_dependencies_local_file": ".runtime/evidence/binance-demo-20261104-d548c764/python-dependencies.txt",
+    "python_dependencies_sha256": "72e658dee56e19c02f3759618838e96a1235a6066b5ea1502ce93f95b8cff98d",
+    "web_lock_sha256": "943b3c758e5928b2668b79928a2d705084256f5197ce049d14d85091bfbedcc2",
+    "installed_node_lock_sha256": "dc4564c0aca687c09e22a35c5014d7788f6427ee68b4a757ee38950682d8a595",
+    "test_path_note": "pytest project config prepends current worktree src; venv editable package metadata references base commit."
+  },
   "source_file_sha256": {
+    "README.md": "511bee4ea936a65dbfedb37b63c2a47d16774ae8313db12932527be5bddec80a",
+    "docs/binance-demo/README.md": "8515ac2ce7b3b1f277f913cd9fabc8e73a6eba177cc94361e97e8543c3f89a52",
+    "docs/binance-demo/design-2026-11-04.txt": "a47d0e2514ddf7cac806a4499238620f65526e23ecfa655486c15053369ec8ba",
+    "docs/superpowers/plans/2026-11-04-binance-demo.md": "f2f2b589465dc61596f48117b86c96e7be6014a3eac6b08c576d3f4165f6fdaf",
     "migrations/0033_binance_demo.sql": "396527f5abd411a0369879dad705522342d2d7ad8e58141348d3ad934b6b2ab4",
     "migrations/0034_binance_demo_runtime.sql": "da415d2b8df18403f3b85a3dca1f147c64794fa6d503f65b6bc41734ce2a27fc",
     "migrations/0035_binance_demo_exit_memory.sql": "24953cdea17199bb7054736fab1def38225240a518c7ea18cedb17ba75f38da4",
+    "migrations/0036_binance_demo_market_quote.sql": "70e95ff845203ad4d4ca4252b329ca987959410402577a36c22f48443809e12e",
+    "pyproject.toml": "a845a6eb5cfa212520d11c24afe91917c12b08ca215e747d5a7b48e62efa0460",
     "src/trading_system/engine/binance_demo/contracts.py": "4ee48941a5868dd42099d3af95d4fa772fdac6cb25e2eb5741556e3380758c86",
     "src/trading_system/engine/binance_demo/credentials.py": "f1f063a165b0468bf02480d5299df530667e086d5074c12c0fbd5e5540f9c7d7",
-    "src/trading_system/engine/binance_demo/orders.py": "e3874357cd627e704ab541b250216142d6a1be89ac994b82fb873d2eb30ed670",
+    "src/trading_system/engine/binance_demo/orders.py": "ff66ad66304de57ad77893c31974b9d1067bba28f6137030530747abf6970e42",
     "src/trading_system/engine/binance_demo/stream.py": "73fc1742a4302b0e162e89bd7468af541efc8ad01e9c7cdce8b15a751dba7b7b",
     "src/trading_system/engine/binance_demo/transport.py": "8e3454c96dd90bc5969da5d4670d40f20a75887dfcd8504980674227280bf1bb",
-    "src/trading_system/execution/demo_commands.py": "bf9552c04fbd8c716b0540a82c365ede3011775c087ec08bc08bf8e12e7b3dd8",
-    "src/trading_system/execution/demo_reconcile.py": "5705666a799c90f4c44d5fb5cfb7277ded214727f6e0a98202293be322794066",
-    "src/trading_system/execution/demo_reports.py": "6807418d66e5f42e0d5cf4c4d87340c4b69e43b75ff92cda58118668d7ca2bfc",
-    "src/trading_system/runtime/demo_frame.py": "50cc3d813117e7cf9c6c1a5886f24474979386c659260a9d414d1d320bf7c87d",
+    "src/trading_system/engine/binance_demo/usdm_account.py": "704c4379ae1b2a0f74139304d6578fc9b87e0ad5deb5847e792362eaebf7566a",
+    "src/trading_system/execution/demo_commands.py": "bc972f37377ecd1cf05fb18cc39afbfa0d83f793a87a23810dbb6089bcac29f9",
+    "src/trading_system/execution/demo_reconcile.py": "42c1daf0ad411770221410d1b1f383034b193efa497365e7636a41386181b10c",
+    "src/trading_system/execution/demo_reports.py": "18826082bbf22acecfd34ef293a88b9d89773ba8268208c0edab573d50748324",
+    "src/trading_system/runtime/demo_frame.py": "7744a3dbbf2ef715ec6c42d779287443c2395e726645d84045ac28d11d2eaf2b",
     "src/trading_system/runtime/demo_host.py": "85df39eab66c30213c08f99c693021d5fa88a29bca88a8cba70d6a8611acf3fb",
     "src/trading_system/runtime/demo_memory.py": "d8bda69e49b003023b515f4a6b68440bfdb43fccaedf7ac56a5c086cf1421506",
-    "src/trading_system/runtime/demo_service.py": "0ab49aa9eaccc4e0410aebeaf21844a96324fc07d523abadc8b856cd2ccc5d29",
-    "src/trading_system/runtime/demo_strategy.py": "aefd6384811ea2432f840f0879cdbf5e36e837d86c4e2c51d75bc56fedfdaa85",
+    "src/trading_system/runtime/demo_service.py": "a9b61bc46820c6af3975c4b682217a3d3ee9704253afc1cef35a5fc3877b8135",
+    "src/trading_system/runtime/demo_strategy.py": "8af735dbf59d6d0ac42b648d997e8c3fc3a18b2fef61e7f1902982a4bd60993e",
     "src/trading_system/server/app.py": "e7fa6fec24cc2377d55e032cf4697f356bef36d3d364ebda9f7d1ffab6802664",
+    "src/trading_system/server/cli.py": "842e7784be6cacce9443575101da8cdfb2e4a5ac337fab7fef9af479f8c084af",
     "src/trading_system/server/decision_assessment.py": "850d99a0d2dd864a7d6bbd89b4172493df0585f409134f362946c823ded188d0",
     "src/trading_system/server/demo_api.py": "9fdc62a982a79459d772c2ae0b8002cd1f2393bcfdf473d88e2b2e346288ac63",
-    "src/trading_system/server/demo_snapshot.py": "e1d5e74fd9c0cd2216898f391b635edce88cfaed25ee3869fdf12b06fb87f6d4",
+    "src/trading_system/server/demo_deployment.py": "baa6c068e822ca5fe1cc3df7a27952636efcac291812c5c2d55cffc816d95736",
+    "src/trading_system/server/demo_snapshot.py": "94dcdd6368a4579b401ef4776577f1223db33934c441d9e7e5ff2f9af535251f",
     "src/trading_system/server/model_service.py": "c6f90bbd87e3adacc2a846a18148ef828840cf1a79a7262fec9be921355771f4",
-    "src/trading_system/storage/demo.py": "6422cb1cc3f4757306921af1e99663363f750f1b0383287c8b3c726c5bd4babf",
+    "src/trading_system/storage/demo.py": "50fd2e937ba3d565983313a166ed1866d20a7273c7df57cd9ee3c4b2b2f7593b",
+    "tests/binance_demo/test_usdm_account.py": "14b28f6e2110e46af479cf16cd33a7dad4c7717420ae19b202b57474d2840e3d",
+    "tests/demo/test_deployment.py": "8eabc05231da252eb29f62277bac4d63f569f405c2545666b697a86cc67b3e02",
     "tests/demo/test_exit_update.py": "467d8c5ab2abbf2f754769c2fc0501172522e222de30519be40289ecf48f73aa",
-    "tests/demo/test_frame.py": "60e3184fa591a72711839d5472242c88a04b95a74002e02bbd8aa443138e946b",
-    "tests/demo/test_host.py": "68fafcc5daaa5adcb19dfdd992f101b1a9231339f1cc31457d8ba0f1cc46914c",
+    "tests/demo/test_frame.py": "5e1b734009930a350431ec81342b0929dc28109045b4281228a5d9414b410262",
+    "tests/demo/test_host.py": "30d839f992486b7cfd954ef6f7ef152b094f3a4b370f116992ace6fab2cf3aa4",
     "tests/demo/test_lifecycle.py": "00cd189bff7d79103c27118235bd17e037740412aa3a92779da1e87d70b6f7f2",
-    "tests/demo/test_management.py": "61434476daab8becae924f94bd9ed43a00121152f7aa727ab1024ebb3cc6912a",
+    "tests/demo/test_management.py": "9eb6aeab478b4c525e057c3238fb23cfe1e72e721512aab8db6777e1b8e89a79",
+    "tests/demo/test_market.py": "7bb630b6dcacb4176ffcf0489a13feac20c39b617aebbaca34d43a137684ed88",
     "tests/demo/test_memory.py": "6c9ae30c1ad81d1dd7f3985c29c9575fa2fbdd7c2a9485c4d64504fc08732bbe",
     "tests/demo/test_model_host.py": "8e440635d9d3ff7307da5b6f83d9e53d9df45c6e77e18adee1b8f2c60979674b",
-    "tests/demo/test_recovery.py": "c0f43ffc55125ebee04739c825f6cb394f254774a6eba9b79e04d2810d550f54",
-    "tests/demo/test_runtime_service.py": "c13de5cba87cc4a3c0566d50f03f82f3d9ed852501f5ec98e8b0c4d049895fe8",
+    "tests/demo/test_recovery.py": "9ccd20ff95b337e67288979481e5dd50c597905c7bb80f67eacebff7705f2ef2",
+    "tests/demo/test_runtime_service.py": "d6b3255c49596dfc5f59b091326fb2026ca1ca59318476ce83712292b66ce5e3",
     "tests/demo/test_transport.py": "b047750f9727ba3de9b7a3aa4a0fe42b090317de3d4a512cd74f07e6fbe12b77",
+    "tests/intents/test_order_features.py": "bd84307c599360b2b34d0d0027a2117e80f06f78f9248e8cf9f133e1d5b7dda7",
+    "tests/server/test_analysis_snapshot.py": "c1c2e556b5372862e5cc5e0c6699c3ab09a4ade8e7a8da5bfdc2b0878a884fc3",
+    "tests/server/test_api.py": "74a7aa81d24a6c474ed058a4254ad8a7aa81217c1634f431f3ddf1bc59efdc73",
+    "tests/server/test_assessment_api.py": "973b1100785543e6dd291d39dacb4eeea27c03bc38dc2a90a7f3fd79ced65571",
+    "tests/server/test_decision_assessment.py": "381baa46a5f9d2dff96e34c426d825903899fd0b57d04be8b1aa8237277eb780",
     "tests/server/test_demo_api.py": "56f3014f386c6ea01eaf6996b4d8a08cec3725f1f3f8bf2d912a371d811d85fb",
+    "tests/server/test_model_api.py": "f53ae0e5c4de34ac02ed4193056ccaa8d479b098c81ba8a53a806dac1241cf88",
+    "tests/server/test_model_consensus.py": "c485391594a7e94f7ff67cfbb61ba1b4c5ee22c10f0e203c31a49197ae34af04",
+    "tests/server/test_program_automation_wiring.py": "9b60e32423131f77d1af55985d114556699015c3afb34f3e66cbc7c888f97da2",
+    "tests/server/test_startup.py": "203570cc15bbc03238dc31bff9a889eb2f232a75038df760fbdaddf8f69ba58c",
+    "web/package-lock.json": "943b3c758e5928b2668b79928a2d705084256f5197ce049d14d85091bfbedcc2",
     "web/src/runtime/App.tsx": "37034e6422a6468f4c891207f8a9794d443bb8c5f200c75e0bfaa702b955f8cb",
     "web/src/runtime/demo.tsx": "4de0944c1a6ec2460fcb922700951a6e8b687e292f72e64e6c28f51ace55c7cd",
     "web/src/runtime/types.ts": "981b6ae4c72626cab5f26d9c890b524568826e5e4387c16bc111906174d8e122",
     "web/tests/demo.test.tsx": "52b31d87e3ff2ac4a2570045e235f331c7b7ecad56bb5d890db8d3c224a9cd2a",
+    "web/tests/runtime-api.test.ts": "6d5b9678d5e5f0bb0fbd4676de0ac21b11dfc12c108b594e3276d78ca16b3f7a",
     "web/tests/runtime-ui.test.tsx": "f58f7ea03ef6f968d0f1ec921ffcebbb5f556896ca27f5cfc854b25acd9d9fd8"
   },
   "checks": [
     {
-      "name": "focused_backend",
+      "name": "backend",
       "status": "PASS",
       "exit_code": 0,
-      "command": "python -m pytest tests/demo tests/server/test_demo_api.py tests/server/test_startup.py tests/server/test_program_automation_wiring.py tests/server/test_api.py tests/server/test_model_api.py tests/server/test_decision_assessment.py tests/server/test_analysis_snapshot.py tests/server/test_assessment_api.py tests/server/test_model_consensus.py -q -m 'not paper_runtime'",
-      "result": "210 passed, 3 deselected; one upstream httpx deprecation warning",
-      "seconds": 14.73
+      "command": "timeout 120s ../AetherTrade-paper-test/.venv/bin/python -m pytest tests/demo tests/binance_demo/test_usdm_account.py tests/intents/test_order_features.py tests/server/test_demo_api.py tests/server/test_startup.py tests/server/test_program_automation_wiring.py tests/server/test_api.py tests/server/test_model_api.py tests/server/test_decision_assessment.py tests/server/test_analysis_snapshot.py tests/server/test_assessment_api.py tests/server/test_model_consensus.py -q -m 'not paper_runtime' --junitxml=.runtime/evidence/binance-demo-20261104-d548c764/backend.xml",
+      "started_at": "2026-11-04T18:03:26Z",
+      "ended_at": "2026-11-04T18:03:45Z",
+      "result": "309 passed, 3 deselected; one upstream httpx deprecation warning",
+      "local_log": ".runtime/evidence/binance-demo-20261104-d548c764/backend.log",
+      "local_log_sha256": "28c080c0fd3cb4a677078fd4c95cb5c0fef686b61c5a308afc3fc1bcc072214f"
     },
     {
-      "name": "focused_frontend",
+      "name": "frontend",
       "status": "PASS",
       "exit_code": 0,
-      "command": "npm --prefix web run test -- --run tests/demo.test.tsx tests/runtime-ui.test.tsx tests/runtime-api.test.ts",
-      "result": "26 passed in 3 files"
+      "command": "timeout 120s npm --prefix web run test -- --run tests/demo.test.tsx tests/runtime-ui.test.tsx tests/runtime-api.test.ts",
+      "started_at": "2026-11-04T18:03:53Z",
+      "ended_at": "2026-11-04T18:03:58Z",
+      "result": "26 passed in 3 files; npm http-proxy configuration warning",
+      "local_log": ".runtime/evidence/binance-demo-20261104-d548c764/frontend.log",
+      "local_log_sha256": "68fc409a359635a14880bd7e539091b81cd39952c14b356f015a4f28199a062c"
     },
     {
-      "name": "typescript",
+      "name": "typecheck",
       "status": "PASS",
       "exit_code": 0,
-      "command": "npm --prefix web run typecheck"
+      "command": "timeout 120s npm --prefix web run typecheck",
+      "started_at": "2026-11-04T18:03:58Z",
+      "ended_at": "2026-11-04T18:04:03Z",
+      "result": "passed; npm http-proxy configuration warning",
+      "local_log": ".runtime/evidence/binance-demo-20261104-d548c764/typecheck.log",
+      "local_log_sha256": "16f2909009d9d4dd7d8b192e76d37e66290c9262b590ac713ceee7e9626a2d5f"
     },
     {
-      "name": "frontend_build",
+      "name": "build",
       "status": "PASS",
       "exit_code": 0,
-      "command": "npm --prefix web run build",
-      "note": "Existing bundle-size warning remains"
+      "command": "timeout 120s npm --prefix web run build",
+      "started_at": "2026-11-04T18:04:03Z",
+      "ended_at": "2026-11-04T18:04:08Z",
+      "result": "passed; existing >500 kB bundle warning and npm http-proxy configuration warning",
+      "local_log": ".runtime/evidence/binance-demo-20261104-d548c764/build.log",
+      "local_log_sha256": "b9229875bc658ec405403f7531e2cea0721b3d8649af4c4a4de997cc6bee77d6"
     },
     {
-      "name": "syntax",
+      "name": "compile",
       "status": "PASS",
       "exit_code": 0,
-      "command": "python -m compileall -q [changed Demo Python modules]"
+      "command": "timeout 120s ../AetherTrade-paper-test/.venv/bin/python -m compileall -q src/trading_system/engine/binance_demo src/trading_system/runtime/demo*py src/trading_system/server/demo*py src/trading_system/storage/demo.py src/trading_system/execution/demo*py tests/demo tests/binance_demo/test_usdm_account.py",
+      "started_at": "2026-11-04T18:04:20Z",
+      "ended_at": "2026-11-04T18:04:20Z",
+      "result": "passed",
+      "local_log": ".runtime/evidence/binance-demo-20261104-d548c764/compile.log",
+      "local_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "name": "whitespace",
       "status": "PASS",
       "exit_code": 0,
-      "command": "git -c core.whitespace=cr-at-eol diff --check",
-      "note": "Preserves original CRLF in server/app.py"
+      "command": "git diff --check",
+      "started_at": "2026-11-04T18:05:56Z",
+      "ended_at": "2026-11-04T18:05:56Z",
+      "result": "passed; untracked historical evidence is checked byte-for-byte and parsed separately",
+      "local_log": ".runtime/evidence/binance-demo-20261104-d548c764/whitespace.log",
+      "local_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ],
-  "review": {
-    "status": "PASS_WITH_QUALIFICATION_GATES",
-    "kind": "independent read-only static safety review",
-    "note": "UPDATE_EXIT HYBRID veto, final-lock expiry, optional leverage and model input-hash findings addressed with regressions. Other scoped projection/lineage/transaction checks found no additional issue. Actual PostgreSQL and venue tests remain NOT_RUN."
+  "junit": {
+    "local_path": ".runtime/evidence/binance-demo-20261104-d548c764/backend.xml",
+    "sha256": "589fb88ac61972cbba26177fd68735da5646795cdbcd6e3970c2a64f32cb714d",
+    "git_tracked": false
+  },
+  "capability_matrix": [
+    {
+      "capability": "SPOT user-entered Demo credentials and read-only connect",
+      "status": "OFFLINE_TESTED_REAL_VENUE_NOT_RUN",
+      "note": "Session-only memory; real account connectivity unverified."
+    },
+    {
+      "capability": "SPOT LIMIT lifecycle and MARKET compilation/risk foundation",
+      "status": "OFFLINE_TESTED_EXECUTION_DISABLED",
+      "note": "No live venue, PostgreSQL or continuous-run qualification; MARKET execution remains blocked."
+    },
+    {
+      "capability": "Opt-in runtime composition",
+      "status": "FAIL_CLOSED",
+      "note": "No HTTP bind or order endpoint; CLI binding and execution blocked pending fencing and measured build attestation."
+    },
+    {
+      "capability": "USD-M account/position projection",
+      "status": "OFFLINE_PROJECTION_ONLY",
+      "note": "No USD-M transport, credentials, private stream, order, margin, leverage or qualification enabled."
+    },
+    {
+      "capability": "Cross-process credential rebind and stream fencing",
+      "status": "BLOCKED_NOT_IMPLEMENTED",
+      "note": "Durable drain, pause, pool affinity, generation and race qualification remain outstanding."
+    },
+    {
+      "capability": "Conditional/OCO, leverage, advanced algorithms",
+      "status": "DISABLED_OR_NOT_IMPLEMENTED"
+    }
+  ],
+  "pending_user_decision": {
+    "status": "UNRESOLVED",
+    "topic": "USD-M Demo versus TESTNET identity and scope",
+    "note": "Official USD-M docs label demo-fapi.binance.com Testnet while other documentation uses Futures Demo Trading. Current governance prohibits TESTNET; no transport or call is enabled pending clarification and any required user approval."
   },
   "not_run": [
-    "PostgreSQL migration and ownership/concurrency/crash qualification",
-    "Real Binance Demo read/write/stream qualification",
+    "PostgreSQL migration, pool affinity, concurrency and crash qualification",
+    "Real Binance Demo connectivity, writes or private streams",
+    "TESTNET/LIVE access or orders",
     "Actual model-provider requests or paid inference",
-    "Continuous Demo window",
-    "Full repository integration suite or CI"
-  ],
-  "continuing_scope": [
-    "Bounded MARKET sizing and lifecycle extension",
-    "Actual PostgreSQL/Demo qualification and continuous window remain NOT_RUN",
-    "USDM, native conditional/OCO and advanced algorithms remain disabled"
+    "Continuous Demo runtime window",
+    "Full repository integration suite, CI, or deployment",
+    "Fresh independent safety review of this exact source commit"
   ],
   "safety": {
     "real_credentials_used": false,
     "real_orders_sent": false,
-    "credentials_persisted": false,
     "docker_started": false,
-    "database_provisioned": false,
-    "paper_live_identity_changed": false,
-    "qualified_capability_created": false
+    "qualified_capability_created": false,
+    "postgresql_database_provisioned": false,
+    "temporary_sqlite_test_fixtures_used": true
   },
-  "evidence_delivery": "Sanitized results and source hashes only; raw workspace logs are not published."
+  "evidence_delivery": "Raw local logs, JUnit and dependency fingerprint are stored in ignored .runtime for local preservation; only sanitized summaries and hashes are published. These local files are not carried by Git.",
+  "deselected_postgresql_tests": [
+    "tests/server/test_api.py::test_real_data_roundtrip_and_export",
+    "tests/server/test_api.py::test_protected_reduction_web_continuation_requires_csrf_and_separate_review",
+    "tests/server/test_model_api.py::test_partial_market_allows_fresh_crypto_but_rejects_stale_bstock_order"
+  ]
 }
