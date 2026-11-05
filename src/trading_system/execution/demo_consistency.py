@@ -9,7 +9,7 @@ from sqlalchemy import select, update
 from trading_system.engine.binance_demo.contracts import DemoError, digest, decimal
 from trading_system.engine.binance_demo.account_events import parse_account_position
 from trading_system.storage.demo import (accounts,commands,observations,inbox,fills,
-    protection,decisions,final_activity_digest,require_physical_generation)
+    protection,decisions,final_activity_digest,require_physical_generation,unresolved_trade_history)
 from .demo_reconcile import DemoReconciler
 
 TERMINAL={'FILLED','CANCELED','EXPIRED','REJECTED','EXPIRED_IN_MATCH'}
@@ -62,6 +62,7 @@ class SerializedAccountPolicy:
                 if sum(balances.get(asset,(decimal('0'),))) != decimal(account['balances'].get(asset,'0'))+deltas.get(asset,0):
                     raise DemoError('DEMO_BALANCE_MISMATCH')
             with self.repository.transaction(scope.account_key) as conn:
+                if unresolved_trade_history(conn,scope.account_key): raise DemoError('DEMO_UNRESOLVED_TRADE_HISTORY_REVIEW_REQUIRED')
                 if before!=final_activity_digest(conn,scope) or not 0<=int(self.clock())-started<=5:
                     raise DemoError('DEMO_CONSISTENCY_RACED')
                 if self.repository.engine.dialect.name=='postgresql': require_physical_generation(conn,scope,stream.physical_generation)
@@ -92,13 +93,22 @@ class SerializedAccountPolicy:
                 pending=conn.execute(select(observations).join(inbox,observations.c.observation_id==inbox.c.observation_id).where(
                     observations.c.account_key==scope.account_key,inbox.c.state!='PROCESSED')).mappings().all()
                 for row in pending:
-                    if (row['source']!='WS_ACCOUNT_POSITION' or row['credential_revision']!=stream.credential_revision or
-                            row['stream_generation']!=stream.physical_generation or digest(row['payload'])!=row['payload_hash']):
+                    if row['source']!='WS_ACCOUNT_POSITION' or digest(row['payload'])!=row['payload_hash']:
                         raise DemoError('DEMO_INBOX_RECONCILIATION_REQUIRED')
+                    recovery_proof=None
+                    if row['credential_revision']!=stream.credential_revision or row['stream_generation']!=stream.physical_generation:
+                        recovery_proof=self.authority.historical_approval(scope,row,generation=stream.physical_generation)
                     event=row['payload']; partial=parse_account_position(event)
                     if (type(raw.get('updateTime')) is not int or event['u']>raw['updateTime'] or
-                            event['E']>int(self.clock()*1000)+5000 or any(balances.get(k)!=v for k,v in partial.items())):
+                            event['E']>int(self.clock()*1000)+5000):
                         raise DemoError('DEMO_ACCOUNT_POSITION_MISMATCH')
+                    supporting=[]
+                    if any(balances.get(k)!=v for k,v in partial.items()):
+                        from .demo_balance_history import justify_position
+                        supporting=justify_position(conn,scope,event,account['balances'])
+                    self.repository._event(conn,scope.account_key,'SERIAL_POSITION_REVIEW',row['observation_id'],
+                        {'observation_id':row['observation_id'],'supporting_order_observations':supporting,'snapshot_hash':digest(raw),
+                         'policy':'serialized-account-v1','atomic_stream_barrier':False,'recovery_proof':recovery_proof})
                 health=self.repository.health(scope,now=int(self.clock()))
                 if health['unknown'] or health['unprotected'] or health['risk_breaches']: raise DemoError('DEMO_RECOVERY_REQUIRED')
                 for row in pending:
@@ -122,7 +132,8 @@ class SerializedAccountPolicy:
 
     def resume(self,scope,*,stream):
         self._stream(scope,stream)
-        progress=DemoReconciler(self.repository,self.transport,clock=self.clock).reconcile(scope,symbol='BTCUSDT',stream=stream)
+        self.authority.revalidate_observations(scope,generation=stream.physical_generation)
+        progress=DemoReconciler(self.repository,self.transport,clock=self.clock).reconcile(scope,symbol='BTCUSDT',stream=stream,review_positions=False)
         if not progress['pages_complete']: raise DemoError('DEMO_BACKFILL_INCOMPLETE')
         receipt=self.prepare(scope,stream=stream)
         with self.repository.safety_guard(scope),self.repository.transaction(scope.account_key) as conn:
@@ -137,6 +148,11 @@ class QualifiedReconciler(DemoReconciler):
     def __init__(self,policy):
         super().__init__(policy.repository,policy.transport,clock=policy.clock)
         self.policy=policy
+
+    def reconcile(self,scope,**kwargs):
+        self.policy.authority.revalidate_observations(scope,generation=kwargs['stream'].physical_generation)
+        kwargs['review_positions']=False
+        return super().reconcile(scope,**kwargs)
 
     def reconcile_and_resume(self,scope,*,stream,current_code_sha):
         if current_code_sha!=self.policy.authority.code_sha: raise DemoError('DEMO_BUILD_ATTESTATION_REQUIRED')

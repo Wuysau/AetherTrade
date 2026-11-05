@@ -1,5 +1,10 @@
 # Binance Demo integration: implementation and remaining gates
 
+2026-11-05 候选更新：新增签名部署/资格、专用账户保守对账、受控跨进程恢复及人工接管路径，
+详见 [AI 执行候选说明](ai-execution-20261105.md)。旧五字段部署配置仍保持拒绝执行；
+新路径需要独立可信签名和真实 PG/场所验收材料。以下保留前轮 checkpoint，涉及“尚未实现”
+的代码边界以新说明为准；历史验收状态不因候选代码而升级。
+
 基线：`public-snapshot` / `4134fd1ba6ab9152be064fc91ad93c59f61b8eb7`。
 设计原文：[`design-2026-11-04.txt`](design-2026-11-04.txt)。
 

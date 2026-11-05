@@ -76,17 +76,23 @@ class DemoAuthority:
             self.repository._event(conn,scope.account_key,'AUTHORITY_INSTALLED',payload['nonce'],{'proof_hash':digest(envelope)})
         return evidence
 
-    def require(self,scope,*,generation):
+    def require(self,scope,*,generation,cancel=False):
         from .demo import authority_proofs
         account=self.repository.account(scope)
         evidence=account.get('qualification') or {}
         with self.repository.engine.connect() as conn:
             row=conn.execute(select(authority_proofs).where(authority_proofs.c.nonce==evidence.get('proof_nonce'),
                 authority_proofs.c.account_key==scope.account_key)).mappings().first()
-        if not row or row['revoked'] or evidence.get('state')!='DEMO_VERIFIED' or digest(row['envelope'])!=evidence.get('evidence_sha256'):
+        allowed = {'DEMO_VERIFIED','INVALIDATED_BALANCE'} if cancel else {'DEMO_VERIFIED'}
+        if not row or row['revoked'] or evidence.get('state') not in allowed or digest(row['envelope'])!=evidence.get('evidence_sha256'):
             raise DemoError('DEMO_QUALIFICATION_REQUIRED')
         payload=self.trust.verify(row['envelope'],purpose='qualification',bindings=self.bindings(scope,generation=generation),now=int(self.clock()))
         claims=self._claims(payload)
+        if cancel:
+            capability=(evidence.get('capabilities') or {}).get('CANCEL') or {}
+            if capability.get('state')!='DEMO_VERIFIED' or capability.get('evidence_sha256')!=digest(row['envelope']):
+                raise DemoError('DEMO_QUALIFICATION_REQUIRED')
+            return claims
         if digest(account['balances']) != digest(claims['baseline']) or decimal(account['budget'])>decimal(claims['budget']):
             raise DemoError('DEMO_QUALIFICATION_BASELINE_REQUIRED')
         return claims
@@ -107,7 +113,7 @@ class DemoAuthority:
         is not reconciliation and never produces READY or ordinary permission.
         """
         import re
-        from .demo import accounts,authority_proofs,physical_owners
+        from .demo import accounts,authority_proofs,physical_owners,decisions
         if self.repository.engine.dialect.name=='postgresql':
             if physical_owner is None: raise DemoError('DEMO_PHYSICAL_OWNER_REQUIRED')
             physical_owner.validate(scope)
@@ -137,9 +143,59 @@ class DemoAuthority:
             conn.execute(update(accounts).where(accounts.c.account_key==scope.account_key).values(
                 credential_ref=credential_ref,fingerprint=fingerprint,credential_revision=current['credential_revision']+1,
                 revision=current['revision']+1,state='RECOVERY_REQUIRED',qualification=None))
+            conn.execute(update(decisions).where(decisions.c.account_key==scope.account_key,decisions.c.state=='IN_FLIGHT').values(
+                state='FAILED',error='DEMO_RECOVERY_INTERRUPTED'))
             self.repository._event(conn,scope.account_key,'PHYSICAL_RECOVERY',payload['nonce'],
                 {'proof_hash':digest(envelope),'previous_generation':previous['generation'],'generation':generation,'execution_authorized':False})
         return generation
+
+    def historical_approval(self,scope,observation,*,generation):
+        """Exact facts reviewed by the independent recovery issuer, not a reset."""
+        from .demo import authority_proofs
+        account=self.repository.account(scope)
+        with self.repository.engine.connect() as conn:
+            records=conn.execute(select(authority_proofs).where(authority_proofs.c.account_key==scope.account_key,
+                authority_proofs.c.purpose=='recovery',authority_proofs.c.revoked.is_(False)).limit(101)).mappings().all()
+        if len(records)>100: raise DemoError('DEMO_RECOVERY_PROOF_BUDGET')
+        for row in records:
+            payload=row['envelope']['payload']; binding=payload['bindings']
+            if (binding.get('generation')!=generation-1 or binding.get('credential_revision')!=account['credential_revision']-1 or
+                    binding.get('new_fingerprint')!=account['fingerprint'] or binding.get('build')!=self.build_digest or
+                    binding.get('account_key')!=scope.account_key or observation['credential_revision']!=binding['credential_revision'] or
+                    observation['stream_generation']!=binding['generation']): continue
+            verified=self.trust.verify(row['envelope'],purpose='recovery',bindings=binding,now=int(self.clock()))
+            reviewed=verified['claims'].get('observation_hashes')
+            if (isinstance(reviewed,dict) and reviewed.get(observation['observation_id'])==observation['payload_hash'] and
+                    digest(observation['payload'])==observation['payload_hash']): return payload['nonce']
+        raise DemoError('DEMO_HISTORICAL_OBSERVATION_REVIEW_REQUIRED')
+
+    def revalidate_observations(self,scope,*,generation):
+        from .demo import observations,inbox
+        from trading_system.execution.demo_reports import DemoReportVerifier
+        from trading_system.engine.binance_demo.contracts import DemoScope
+        account=self.repository.account(scope)
+        with self.repository.engine.connect() as conn:
+            rows=conn.execute(select(observations).join(inbox,observations.c.observation_id==inbox.c.observation_id).where(
+                observations.c.account_key==scope.account_key,inbox.c.state!='PROCESSED',
+                observations.c.credential_revision!=account['credential_revision']).limit(1001)).mappings().all()
+        if len(rows)>1000: raise DemoError('DEMO_INBOX_DRAIN_LIMIT')
+        verifier=DemoReportVerifier(self.repository)
+        for row in rows:
+            proof=self.historical_approval(scope,row,generation=generation)
+            if row['source']=='WS_ACCOUNT_POSITION': continue  # Validated against order history/snapshot by the policy.
+            if row['source'] not in {'REST_ORDER','REST_TRADES','WS_EXECUTION_REPORT'}:
+                raise DemoError('DEMO_HISTORICAL_OBSERVATION_REVIEW_REQUIRED')
+            owner_scope=DemoScope(**row['scope'])
+            replacement=self.repository.observe(owner_scope,source=row['source'],payload=row['payload'],
+                received_at=int(self.clock()),credential_ref=account['credential_ref'],
+                credential_revision=account['credential_revision'],stream_generation=generation)
+            verifier.process(owner_scope,replacement)
+            with self.repository.safety_guard(scope),self.repository.transaction(scope.account_key) as conn:
+                state=conn.execute(select(inbox.c.state).where(inbox.c.observation_id==replacement)).scalar_one()
+                if state!='PROCESSED': raise DemoError('DEMO_RECOVERY_REVALIDATION_REQUIRED')
+                conn.execute(update(inbox).where(inbox.c.observation_id==row['observation_id']).values(state='PROCESSED',reason='SIGNED_RECOVERY_REVALIDATED'))
+                self.repository._event(conn,scope.account_key,'RECOVERY_REVALIDATED',row['observation_id'],
+                    {'original':row['observation_id'],'replacement':replacement,'proof_nonce':proof})
 
     def responsibilities(self,scope,*,conn=None):
         from .demo import commands,protection,accounts,strategies,decisions

@@ -100,3 +100,49 @@ def test_recovery_consumes_proof_preserves_unknown_and_never_sets_ready(authorit
     assert repo.account(scope)['state']=='RECOVERY_REQUIRED'
     assert repo.account(scope)['credential_revision']==1
     with pytest.raises(DemoError): service.consume_recovery(scope,envelope,credential_ref='new',fingerprint='key2')
+
+
+def test_invalidated_balance_preserves_verified_cancel_only(authority):
+    from sqlalchemy import update
+    from trading_system.storage.demo import accounts,balance_invalidated_evidence
+    service,repo,scope,key=authority
+    service.install(scope,proof(*authority),generation=1)
+    with repo.engine.begin() as conn:
+        conn.execute(update(accounts).values(qualification=balance_invalidated_evidence(repo.account(scope)['qualification'])))
+    service.require(scope,generation=1,cancel=True)
+    with pytest.raises(DemoError): service.require(scope,generation=1)
+    service.revoke(scope,'n'*32)
+    with pytest.raises(DemoError): service.require(scope,generation=1,cancel=True)
+
+
+def test_signed_recovery_revalidates_exact_old_fact_without_erasing_original(authority):
+    from sqlalchemy import insert,update
+    from dataclasses import asdict
+    from trading_system.storage.demo import physical_owners,observations,inbox,decisions
+    auth,repo,scope,key=authority
+    with repo.engine.begin() as conn:
+        conn.execute(insert(physical_owners).values(physical_key=scope.physical_account_key,
+            identity={k:asdict(scope)[k] for k in ('environment','venue','product','account_id')},
+            account_key=scope.account_key,generation=1,state='DIRTY'))
+        conn.execute(insert(decisions).values(scope_key=scope.key,account_key=scope.account_key,run_id='interrupted',state='IN_FLIGHT',
+            credential_revision=0,stream_generation=1,source='assessment_v1',binding_hash='h',snapshot={},strategy={}))
+    request={'symbol':'BTCUSDT','side':'BUY','type':'LIMIT','quantity':'0.001','price':'50000','timeInForce':'GTC','newClientOrderId':'original'}
+    repo.stage(scope,command_id='cmd',request=request,reserve_asset='USDT',reserve_amount='50',available='1000',authorization_ref='old',expires_at=150,now=100)
+    repo.begin_send(scope,'cmd',expected_revision=0,now=100)
+    raw={'symbol':'BTCUSDT','clientOrderId':'original','orderId':22,'side':'BUY','type':'LIMIT','origQty':'0.001',
+         'price':'50000','status':'NEW','executedQty':'0','cummulativeQuoteQty':'0','updateTime':100000}
+    old=repo.observe(scope,source='REST_ORDER',payload=raw,received_at=100,credential_ref='fixture',credential_revision=0,stream_generation=1)
+    payload=dict(version=1,issuer='acceptance',purpose='recovery',nonce='reviewed_recovery_123',issued_at=90,expires_at=200,
+        bindings={**auth.bindings(scope,generation=1),'new_fingerprint':'key2'},claims={
+            'old_process_terminated':True,'old_credentials_revoked':True,'evidence_sha256':'f'*64,'observation_hashes':{old:digest(raw)}})
+    signed={'payload':payload,'signature':base64.b64encode(key.sign(canonical(payload))).decode()}
+    auth.consume_recovery(scope,signed,credential_ref='new',fingerprint='key2')
+    current=repo.observe(scope,source='REST_ORDER',payload=raw,received_at=101,credential_ref='new',credential_revision=1,stream_generation=2)
+    assert current!=old
+    auth.revalidate_observations(scope,generation=2)
+    with repo.engine.connect() as conn:
+        assert conn.execute(select(inbox.c.state).where(inbox.c.observation_id==old)).scalar_one()=='PROCESSED'
+        original=conn.execute(select(observations).where(observations.c.observation_id==old)).mappings().one()
+        assert original['credential_revision']==0 and original['stream_generation']==1 and original['payload']==raw
+    assert repo.decision(scope,'interrupted')['state']=='FAILED'
+    assert repo.command(scope,'cmd')['client_id']=='original'

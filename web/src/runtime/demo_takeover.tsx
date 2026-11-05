@@ -15,7 +15,7 @@ export function DemoTakeoverControls({api, generation, disabled}: {api:RuntimeAp
   const [view,setView]=useState<Responsibilities | null>(null), [ack,setAck]=useState(false);
   const [busy,setBusy]=useState(false), [error,setError]=useState(''), [result,setResult]=useState('');
   const version=useRef(0), inFlight=useRef(false);
-  useEffect(()=>{ ++version.current; setView(null); setAck(false); setResult(''); setError('');
+  useEffect(()=>{ ++version.current; inFlight.current=false; setBusy(false); setView(null); setAck(false); setResult(''); setError('');
     return ()=>{++version.current;}; },[generation,disabled]);
   async function run(confirm:boolean) {
     if(inFlight.current || disabled || (confirm && (!view || !ack))) return;
@@ -31,7 +31,7 @@ export function DemoTakeoverControls({api, generation, disabled}: {api:RuntimeAp
       }
     } catch(err) {
       if(current===version.current) {setError(errorMessage(err));setView(null);setAck(false);}
-    } finally {inFlight.current=false;if(current===version.current)setBusy(false);}
+    } finally {if(current===version.current){inFlight.current=false;setBusy(false);}}
   }
   return <section aria-label={text('停止后的责任接管','Responsibility after stopping')}>
     <h3>{text('停止后的责任接管','Responsibility after stopping')}</h3>

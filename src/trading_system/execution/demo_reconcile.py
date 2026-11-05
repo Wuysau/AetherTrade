@@ -141,7 +141,7 @@ class DemoReconciler:
         return {'state':'MATCHED_UNQUALIFIED', 'execution_authorized':False,
                 'blocker':'DEMO_ACCOUNT_STREAM_SNAPSHOT_ORDERING_UNQUALIFIED', 'count':len(ids)}
 
-    def reconcile(self, scope, *, symbol, stream, max_pages=5, page_size=500, max_order_queries=50):
+    def reconcile(self, scope, *, symbol, stream, max_pages=5, page_size=500, max_order_queries=50, review_positions=True):
         if stream is None or not stream.healthy or stream.scope.account_key != scope.account_key:
             raise DemoError('DEMO_CONNECTED_STREAM_REQUIRED')
         if type(max_pages) is not int or not 1 <= max_pages <= 20 or type(page_size) is not int or not 2 <= page_size <= 1000:
@@ -235,7 +235,7 @@ class DemoReconciler:
                 observations.c.observation_id == inbox.c.observation_id).where(
                 observations.c.account_key == scope.account_key, observations.c.source == 'WS_ACCOUNT_POSITION',
                 inbox.c.state == 'PENDING').limit(1)).first() is not None
-        review = self.review_account_positions(scope, stream=stream) if has_positions else None
+        review = self.review_account_positions(scope, stream=stream) if has_positions and review_positions else None
         return {'pages_complete': complete, 'cursor': cursor, 'execution_authorized': False,
                 'state': 'RECOVERY_REQUIRED', 'reason': 'DEMO_BASELINE_AND_ACCOUNT_RECONCILIATION_REQUIRED',
                 'account_position_review': review}

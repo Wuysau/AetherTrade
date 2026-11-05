@@ -54,6 +54,7 @@ class DemoExecutionOwner:
         self.consistency_policy = None
         self.consistency_stream = None
         self.entry_preflight = None
+        self.capability_preflight = None
 
     def dispatch(self, scope, command_id, *, context):
         if self.repository.engine.dialect.name == 'postgresql':
@@ -61,8 +62,10 @@ class DemoExecutionOwner:
             self.physical_owner.validate(scope)
         with self.repository.owner_guard(scope) as owner_guard:
             is_entry = False
+            command_method = None
             def verify_sender():
                 if is_entry and self.entry_preflight is not None: self.entry_preflight()
+                if command_method is not None and self.capability_preflight is not None: self.capability_preflight(command_method)
                 if owner_guard is not None: owner_guard.validate()
                 if self.physical_owner is not None: self.physical_owner.validate(scope)
                 if self.preflight: self.preflight()
@@ -74,6 +77,7 @@ class DemoExecutionOwner:
             account = self.repository.account(scope)
             command = self.repository.command(scope, command_id)
             method, purpose = command.get('method'), command.get('purpose')
+            command_method = method
             is_entry = method == 'POST' and purpose == 'ENTRY'
             request = command.get('request') if isinstance(command.get('request'), dict) else {}
             if ((method == 'DELETE' and purpose != 'CANCEL') or
@@ -82,6 +86,7 @@ class DemoExecutionOwner:
                      (purpose in {'REDUCTION', 'PROTECTION'} and request.get('side') != 'SELL'))) or
                     method not in {'POST', 'DELETE'}):
                 raise DemoError('DEMO_ORDER_PURPOSE_INVALID')
+            verify_sender()
             if method == 'POST' and purpose == 'ENTRY':
                 if self.consistency_policy is None:
                     from .demo_reconcile import require_qualified_stream_barrier

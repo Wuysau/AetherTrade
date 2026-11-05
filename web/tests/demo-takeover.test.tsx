@@ -26,3 +26,13 @@ it('requires a fresh responsibility list and explicit acknowledgement', async ()
   expect(calls[1].body).toEqual({expected_digest:'a'.repeat(64),acknowledge_responsibility:true});
   expect(screen.getByText(/不表示订单已撤销或仓位已平/)).toBeDefined();
 });
+
+it('recovers controls after a connection change while loading', async () => {
+  let finish!: (value:Response)=>void;
+  const api=new RuntimeApi(()=>new Promise<Response>(resolve=>{finish=resolve;}));
+  const view=render(<LocaleProvider><DemoTakeoverControls api={api} generation="one" disabled={false}/></LocaleProvider>);
+  fireEvent.click(screen.getByRole('button',{name:'读取待接管责任'}));
+  view.rerender(<LocaleProvider><DemoTakeoverControls api={api} generation="two" disabled={false}/></LocaleProvider>);
+  finish(new Response(JSON.stringify({state:'NEEDS_OPERATOR',digest:'a'.repeat(64),orders:[],duties:[]})));
+  expect((screen.getByRole('button',{name:'读取待接管责任'}) as HTMLButtonElement).disabled).toBe(false);
+});

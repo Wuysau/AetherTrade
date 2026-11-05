@@ -83,9 +83,9 @@ class VerifiedDemoRuntime(DemoRuntimeService):
             runtime.host.owner.consistency_policy=policy
             runtime.host.owner.consistency_stream=runtime.stream
             runtime.host.owner.entry_preflight=lambda: self._require_entry_window(runtime)
+            runtime.host.owner.capability_preflight=lambda method: self.authority.require(scope,generation=generation,cancel=method=='DELETE')
             def preflight():
                 self.deployment.verify()
-                self.authority.require(scope,generation=generation)
                 self._sender_preflight(runtime)
             runtime.host.owner.preflight=preflight
             return self.status(session_key)
@@ -128,16 +128,18 @@ class VerifiedDemoRuntime(DemoRuntimeService):
                 await settled_thread(record)
 
     def takeover_status(self,session_key):
-        runtime=self._runtime(session_key)
-        return self.authority.responsibilities(runtime.host.scope)
+        # Authenticated API supplies the operator session. Scope is fixed by
+        # trusted deployment, never supplied by the browser or an expired key.
+        return self.authority.responsibilities(self.deployment.scope)
 
     def acknowledge_takeover(self,session_key,expected_digest):
         with self._lifecycle_lock:
-            runtime=self._runtime(session_key)
-            if runtime.running or self._account_has_active_window(runtime.host.scope) or runtime.drain_failed:
+            scope=self.deployment.scope
+            active=[r for r in self._sessions.values() if self._same_physical_account(r.host.scope,scope)]
+            if self._account_has_active_window(scope) or any(r.running or r.drain_failed for r in active):
                 raise DemoError('DEMO_RUNTIME_DRAIN_REQUIRED')
-            receipt=self.authority.acknowledge_takeover(runtime.host.scope,expected_digest)
-            runtime.new_risk_paused=True
+            receipt=self.authority.acknowledge_takeover(scope,expected_digest)
+            for runtime in active: runtime.new_risk_paused=True
             return receipt
 
     def status(self,session_key):

@@ -134,7 +134,8 @@ def balance_invalidated_evidence(evidence):
             not re.fullmatch(r'[0-9a-f]{64}', proof.get('evidence_sha256') or '') or
             not isinstance(proof.get('official_contract_revision'), str) or not proof['official_contract_revision']):
         return None
-    return {**{key:evidence.get(key) for key in ('code_sha','account_key','credential_revision','product')},
+    return {**{key:evidence.get(key) for key in ('code_sha','account_key','credential_revision','product',
+                                               'proof_nonce','evidence_sha256','baseline_hash','policy')},
             'state':'INVALIDATED_BALANCE', 'capabilities':{'CANCEL':{key:proof[key] for key in ('state','evidence_sha256','official_contract_revision')}}}
 
 
@@ -415,6 +416,9 @@ class DemoRepository:
                     (credential_revision is None and self.engine.dialect.name == 'postgresql') or
                     (credential_revision is not None and (type(credential_revision) is not int or account['credential_revision'] != credential_revision))):
                 raise DemoError('DEMO_OBSERVATION_BINDING_REJECTED')
+            if source not in {'WS_ACCOUNT_POSITION','WS_UNSUPPORTED_EVENT'} and stream_generation is not None:
+                observation_id = digest(['demo-observation-generation-v1',scope.key,source,payload_hash,
+                                         account['credential_revision'],stream_generation])
             if self.engine.dialect.name == 'postgresql':
                 require_physical_generation(conn, scope, stream_generation)
             old = conn.execute(select(observations.c.observation_id).where(observations.c.observation_id == observation_id)).first()

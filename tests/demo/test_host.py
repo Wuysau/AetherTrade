@@ -186,7 +186,8 @@ def test_far_marketable_limit_is_rejected_even_if_midpoint_did_not_move(host):
         service.admit_assessment('slippage')
 
 
-def test_stop_trigger_stages_owned_exit_and_never_calls_send_from_event(host):
+@pytest.mark.parametrize('force_exit',[False,True])
+def test_stop_trigger_stages_owned_exit_and_never_calls_send_from_event(host,force_exit):
     from types import SimpleNamespace
     from sqlalchemy import update
     from trading_system.storage.demo import accounts
@@ -210,8 +211,8 @@ def test_stop_trigger_stages_owned_exit_and_never_calls_send_from_event(host):
         return result
     service.frame_loader = current
     service.stream = SimpleNamespace(healthy=True, credential_ref='demo-session:fixture')
-    service.owner = SimpleNamespace(transport=SimpleNamespace(last_price=lambda symbol: {'symbol': symbol, 'price': '48000'}))
-    result = service.protection_tick()
+    service.owner = SimpleNamespace(transport=SimpleNamespace(last_price=lambda symbol: {'symbol': symbol, 'price': '51000' if force_exit else '48000'}))
+    result = service.protection_tick(force_exit=force_exit)
     assert result['state'] == 'MITIGATION_STAGED'
     command = result['commands'][0]
     assert command['purpose'] == 'PROTECTION' and command['request']['side'] == 'SELL'
