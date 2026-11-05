@@ -51,6 +51,12 @@ class DemoScope:
         return digest(asdict(self))
 
     @property
+    def physical_account_key(self):
+        # Namespace by venue/product and verified UID only: epoch and strategy
+        # must not produce independent ownership for one physical account.
+        return digest({'environment':self.environment, 'venue':self.venue, 'product':self.product, 'account_id':self.account_id})
+
+    @property
     def account_key(self):
         return digest({k: v for k, v in asdict(self).items() if k != 'strategy_id'})
 

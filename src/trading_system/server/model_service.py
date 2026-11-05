@@ -1,5 +1,6 @@
 """Manual model configuration and advice; no trading or scheduling authority."""
 import asyncio
+from trading_system.engine.binance_demo.async_safety import settled_thread
 import hashlib
 import json
 import re
@@ -531,7 +532,7 @@ class ModelService:
 
         async def call(identifier, role, extra=None):
             if request_guard is not None:
-                try: allowed = request_guard() is True
+                try: allowed = (await settled_thread(request_guard)) is True
                 except Exception: allowed = False
                 if not allowed: raise ApiError('MODEL_REQUEST_REVOKED', 'Model request authorization revoked.', 409)
             if len(record['requests']) >= max_calls or asyncio.get_running_loop().time() >= deadline:

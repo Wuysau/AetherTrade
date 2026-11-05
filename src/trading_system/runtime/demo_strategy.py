@@ -11,6 +11,7 @@ import inspect
 import time
 
 from trading_system.engine.binance_demo.contracts import DemoError, DemoScope, decimal, digest
+from trading_system.engine.binance_demo.async_safety import settled_thread
 from trading_system.engine.binance_demo.orders import compile_spot_order
 from trading_system.intents.semantic_validation import quantity_from_notional, quantity_on_grid
 from trading_system.server.demo_snapshot import validate_demo_snapshot
@@ -48,10 +49,14 @@ class DemoStrategyHost:
         return snapshot
 
     async def assess_once(self, run_id, *, expected_strategy=None, before_model=None):
-        strategy = self._strategy()
+        if self.repository.engine.dialect.name == 'postgresql' and (before_model is None or self.stream is None):
+            raise DemoError('DEMO_STANDALONE_ASSESSMENT_DISABLED')
+        binding = {'credential_revision':getattr(self.stream, 'credential_revision', None),
+                   'stream_generation':getattr(self.stream, 'physical_generation', None)}
+        strategy = await settled_thread(self._strategy)
         if expected_strategy is not None and strategy != expected_strategy:
             raise DemoError('DEMO_DECISION_BINDING_CHANGED')
-        previous = self.repository.decision(self.scope, run_id)
+        previous = await settled_thread(self.repository.decision, self.scope, run_id)
         if previous:
             if previous['strategy'] != strategy:
                 raise DemoError('DEMO_DECISION_BINDING_CHANGED')
@@ -64,25 +69,25 @@ class DemoStrategyHost:
         if mode != 'RULE' and (strategy.get('allow_model_calls') is not True or self.models is None):
             raise DemoError('DEMO_MODEL_PERMISSION_REQUIRED')
         if self.memory is not None:
-            await asyncio.to_thread(self.memory.project, self.scope)
-        snapshot = await asyncio.to_thread(self._frame)
+            await settled_thread(self.memory.project, self.scope)
+        snapshot = await settled_thread(self._frame)
         if snapshot['task_profile']['strategy_revision'] != strategy['revision']:
             raise DemoError('DEMO_DECISION_BINDING_CHANGED')
         source = 'verified_rule_v1' if mode == 'RULE' else 'assessment_v1'
-        memory_context = await asyncio.to_thread(self.memory.context, self.scope, snapshot_hash=snapshot['snapshot_hash']) if self.memory is not None else None
-        if self.repository.account(self.scope)['revision'] != snapshot['bindings']['account_revision']:
+        memory_context = await settled_thread(self.memory.context, self.scope, snapshot_hash=snapshot['snapshot_hash']) if self.memory is not None else None
+        if (await settled_thread(self.repository.account, self.scope))['revision'] != snapshot['bindings']['account_revision']:
             raise DemoError('DEMO_FRAME_BINDING_CHANGED')
-        self.repository.begin_decision(self.scope, run_id, snapshot, strategy, source, memory_context=memory_context)
+        await settled_thread(self.repository.begin_decision, self.scope, run_id, snapshot, strategy, source, memory_context=memory_context, **binding)
         try:
-            if self._strategy() != strategy:
+            if await settled_thread(self._strategy) != strategy:
                 raise DemoError('DEMO_DECISION_BINDING_CHANGED')
             if snapshot['quality']['status'] != 'READY':
                 raise DemoError('DEMO_REQUIRED_EVIDENCE_MISSING')
-            if before_model is not None: before_model()
+            if before_model is not None: await settled_thread(before_model)
             if mode == 'RULE':
                 if not callable(self.rule_assessor) or not strategy.get('rule_revision'):
                     raise DemoError('DEMO_RULE_SOURCE_REQUIRED')
-                value = await asyncio.to_thread(self.rule_assessor, deepcopy(snapshot))
+                value = await settled_thread(self.rule_assessor, deepcopy(snapshot))
                 if inspect.isawaitable(value): value = await value
                 validate_assessment(value, snapshot)
                 result = {'decision': {**value, 'assessment_status': 'DECIDED', 'snapshot_hash': snapshot['snapshot_hash'],
@@ -99,12 +104,12 @@ class DemoStrategyHost:
                     {'analysis_snapshot': snapshot, 'quote_max_age_seconds': 5, **({'strategy_memory': memory_context,
                     'memory_binding': {'schema_revision': 'demo-memory-binding-v1', 'scope_key': self.scope.key, 'context_hash': memory_context['context_hash']},
                     'memory_record_decision': False} if memory_context is not None else {})}, **request_options)
-            if self._strategy() != strategy:
+            if await settled_thread(self._strategy) != strategy:
                 raise DemoError('DEMO_DECISION_BINDING_CHANGED')
-            return self.repository.finish_decision(self.scope, run_id, result=result)
+            return await settled_thread(self.repository.finish_decision, self.scope, run_id, result=result, **binding)
         except Exception as exc:
             code = exc.code if isinstance(exc, DemoError) else 'DEMO_ASSESSMENT_FAILED'
-            self.repository.finish_decision(self.scope, run_id, error=code)
+            await settled_thread(self.repository.finish_decision, self.scope, run_id, error=code, **binding)
             raise DemoError(code) from None
 
     def _validate_receipt(self, row, strategy):

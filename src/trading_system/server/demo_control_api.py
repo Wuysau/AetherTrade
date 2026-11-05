@@ -2,7 +2,9 @@
 
 These routes do not create qualification evidence or bypass runtime admission.
 """
+import asyncio
 from fastapi import Depends, Query, Request
+from trading_system.engine.binance_demo.async_safety import settled_thread
 from trading_system.engine.binance_demo.contracts import DemoError
 from trading_system.runtime.demo_control import DemoBindInput, DemoRecoveryInput, DemoStrategyInput, DemoWindowInput
 from .demo_api import session_key
@@ -39,14 +41,14 @@ def install_demo_control_routes(app, service, authenticated, mutation, settings)
 
     @app.post('/api/demo/runtime/start')
     async def start(payload: DemoWindowInput, request: Request, _=Depends(mutation)):
-        try: return runtime().start_window(session_key(request, settings), duration_seconds=payload.duration_seconds,
+        try: return await settled_thread(runtime().start_window, session_key(request, settings), duration_seconds=payload.duration_seconds,
                                            decision_interval_seconds=payload.decision_interval_seconds,
-                                           expected_strategy_revision=payload.expected_strategy_revision, expected_grant_hash=payload.expected_grant_hash)
+                                           expected_strategy_revision=payload.expected_strategy_revision, expected_grant_hash=payload.expected_grant_hash, loop=asyncio.get_running_loop())
         except DemoError as exc: fail(exc)
 
     @app.post('/api/demo/runtime/recover')
     async def recover(payload: DemoRecoveryInput, request: Request, _=Depends(mutation)):
-        try: return runtime().start_recovery(session_key(request, settings), duration_seconds=payload.duration_seconds)
+        try: return await settled_thread(runtime().start_recovery, session_key(request, settings), duration_seconds=payload.duration_seconds, loop=asyncio.get_running_loop())
         except DemoError as exc: fail(exc)
 
     @app.post('/api/demo/runtime/stop')

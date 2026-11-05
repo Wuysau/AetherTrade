@@ -313,3 +313,26 @@ def test_stop_during_frame_prevents_starting_model_call(host):
     asyncio.run(scenario())
     assert not model_calls
     assert repo.decision(scope, 'stop-frame')['error'] == 'DEMO_STOP_REQUESTED'
+
+
+def test_slow_before_model_guard_leaves_event_loop_responsive(host):
+    from threading import Event
+    service, repo, scope, config = host
+    updated = {**config, 'revision':2, 'mode':'AI', 'allow_model_calls':True, 'profile':{**config['profile'],'strategy_revision':2}}
+    repo.save_strategy(scope, updated, expected_revision=1)
+    entered, release = Event(), Event(); calls = []
+    class Models:
+        async def analyze(self, *args, **kwargs): calls.append(True); return {}
+    service.models = Models()
+    service._frame = lambda:{'task_profile':{'strategy_revision':2},'snapshot_hash':'fixture',
+        'bindings':{'account_revision':repo.account(scope)['revision']},'quality':{'status':'READY'}}
+    def before_model():
+        entered.set(); assert release.wait(3); raise DemoError('DEMO_STOP_REQUESTED')
+    async def scenario():
+        task = asyncio.create_task(service.assess_once('slow-guard',expected_strategy=updated,before_model=before_model))
+        assert await asyncio.to_thread(entered.wait,2)
+        await asyncio.wait_for(asyncio.sleep(0.01),timeout=0.2)
+        release.set()
+        with pytest.raises(DemoError, match='DEMO_STOP_REQUESTED'): await task
+    asyncio.run(scenario())
+    assert calls == []

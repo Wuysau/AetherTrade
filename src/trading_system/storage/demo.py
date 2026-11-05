@@ -14,9 +14,12 @@ from sqlalchemy import (MetaData, Table, Column, String, Text, Integer, Boolean,
 
 from trading_system.engine.binance_demo.contracts import DemoError, DemoScope, decimal, digest
 
-_held_guards = ContextVar('demo_sender_guards', default=frozenset())
+_held_guards = ContextVar('demo_sender_guards', default={})
 
 metadata = MetaData()
+from trading_system.storage.demo_physical import define_physical_owners
+physical_owners = define_physical_owners(metadata)
+
 accounts = Table('demo_accounts', metadata,
     Column('account_key', String(64), primary_key=True), Column('identity', JSON, nullable=False),
     Column('credential_ref', String(128), nullable=False), Column('fingerprint', String(64), nullable=False),
@@ -38,7 +41,7 @@ commands = Table('demo_commands', metadata,
 observations = Table('demo_observations', metadata,
     Column('observation_id', String(64), primary_key=True), Column('account_key', String(64), nullable=False),
     Column('scope_key', String(64), nullable=False), Column('scope', JSON), Column('source', String(32), nullable=False),
-    Column('credential_revision', Integer, nullable=False), Column('payload_hash', String(64), nullable=False),
+    Column('credential_revision', Integer, nullable=False), Column('stream_generation', Integer), Column('payload_hash', String(64), nullable=False),
     Column('payload', JSON, nullable=False), Column('received_at', Integer, nullable=False))
 inbox = Table('demo_inbox', metadata,
     Column('observation_id', String(64), primary_key=True), Column('state', String(16), nullable=False),
@@ -76,6 +79,7 @@ strategies = Table('demo_strategies', metadata,
 decisions = Table('demo_decisions', metadata,
     Column('scope_key', String(64), primary_key=True), Column('run_id', String(100), primary_key=True),
     Column('account_key', String(64), nullable=False), Column('state', String(32), nullable=False),
+    Column('credential_revision', Integer), Column('stream_generation', Integer),
     Column('source', String(32), nullable=False), Column('binding_hash', String(64), nullable=False),
     Column('snapshot', JSON, nullable=False), Column('strategy', JSON, nullable=False), Column('result', JSON),
     Column('command_id', String(100)), Column('error', String(80)), Column('memory_context', JSON))
@@ -98,6 +102,45 @@ plan_updates = Table('demo_plan_updates', metadata,
     Column('account_key', String(64), nullable=False), Column('run_id', String(100), nullable=False),
     Column('request_hash', String(64), nullable=False), Column('receipt', JSON, nullable=False),
     UniqueConstraint('scope_key', 'run_id', name='demo_exit_update_identity'))
+
+
+def final_activity_digest(conn, scope, *, limit=100000):
+    # Caller holds the account row lock. Include every durable account fact
+    # that can change trading/recovery, not account revision alone.
+    if type(limit) is not int or not 1 <= limit <= 100000:
+        raise DemoError('DEMO_ACTIVITY_LIMIT_INVALID')
+    account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
+    account_fields = ('identity','credential_ref','fingerprint','credential_revision','budget','balances','frozen','qualification')
+    snapshot = {'account': {key: account[key] for key in account_fields}}
+    tables = (commands, observations, fills, postings, protection, reconciliations, strategies, decisions, account_snapshots, memory_projection, plan_heads, plan_updates)
+    remaining = limit
+    for table in tables:
+        rows = conn.execute(select(table).where(table.c.account_key == scope.account_key).order_by(*table.primary_key.columns).limit(remaining + 1)).mappings().all()
+        if len(rows) > remaining: raise DemoError('DEMO_ACTIVITY_LIMIT_EXCEEDED')
+        snapshot[table.name] = [dict(row) for row in rows]
+        remaining -= len(rows)
+    rows = conn.execute(select(inbox).join(observations, inbox.c.observation_id == observations.c.observation_id)
+        .where(observations.c.account_key == scope.account_key).order_by(inbox.c.observation_id).limit(remaining + 1)).mappings().all()
+    if len(rows) > remaining: raise DemoError('DEMO_ACTIVITY_LIMIT_EXCEEDED')
+    snapshot[inbox.name] = [dict(row) for row in rows]
+    safety = conn.execute(select(outbox).where(outbox.c.account_key == scope.account_key,
+        outbox.c.kind.in_(['EXECUTION_RISK_BREACH','ACCOUNT_PAUSED']))
+        .order_by(outbox.c.event_id).limit(remaining - len(rows) + 1)).mappings().all()
+    if len(safety) > remaining - len(rows): raise DemoError('DEMO_ACTIVITY_LIMIT_EXCEEDED')
+    # Only the two mandatory local teardown pauses are expected after the
+    # receipt. Every other pause is a unique, durable safety activity.
+    snapshot['safety_events'] = [dict(row) for row in safety if row['kind'] != 'ACCOUNT_PAUSED' or
+        (row['payload'] or {}).get('reason') not in {'DEMO_STREAM_DISCONNECTED','DEMO_RUNTIME_WINDOW_ENDED'}]
+    return digest(snapshot)
+
+
+def require_physical_generation(conn, scope, generation):
+    if type(generation) is not int:
+        raise DemoError('DEMO_PHYSICAL_GENERATION_REJECTED')
+    owner = conn.execute(select(physical_owners).where(physical_owners.c.physical_key == scope.physical_account_key).with_for_update()).mappings().first()
+    if (owner is None or owner['state'] != 'DIRTY' or owner['account_key'] != scope.account_key or
+            owner['generation'] != generation):
+        raise DemoError('DEMO_PHYSICAL_GENERATION_REJECTED')
 
 
 class DemoRepository:
@@ -124,38 +167,41 @@ class DemoRepository:
 
     @contextmanager
     def owner_guard(self, scope):
-        # A session advisory lock survives the MAY transaction commit and covers
-        # the network request. Lease expiry never steals it from a live sender.
+        # Keep the transaction open so transaction pooling cannot return the
+        # transaction lock's backend while the sender is using it.
+        from trading_system.storage.demo_physical import PinnedSenderLock
         if self.engine.dialect.name != 'postgresql':
             raise DemoError('DEMO_POSTGRESQL_OWNER_REQUIRED')
         identity = (id(self.engine), scope.account_key)
-        if identity in _held_guards.get():
-            yield
+        current = _held_guards.get()
+        if identity in current:
+            current[identity].validate()
+            yield current[identity]
             return
-        key = int(scope.account_key[:15], 16)
-        with self.engine.connect() as conn:
-            locked = conn.exec_driver_sql('SELECT pg_try_advisory_lock(%s)', (key,)).scalar()
-            conn.commit()
-            if not locked:
-                raise DemoError('DEMO_OWNER_BUSY')
-            token = _held_guards.set(_held_guards.get() | {identity})
-            try:
-                yield
-            finally:
-                _held_guards.reset(token)
-                conn.exec_driver_sql('SELECT pg_advisory_unlock(%s)', (key,))
-                conn.commit()
+        guard = PinnedSenderLock.acquire(self.engine, scope.account_key)
+        token = _held_guards.set({**current, identity: guard})
+        try:
+            yield guard
+        finally:
+            _held_guards.reset(token)
+            guard.close()
 
     def safety_guard(self, scope):
         return self.owner_guard(scope) if self.engine.dialect.name == 'postgresql' else self._lock
 
-    def register_account(self, scope, *, credential_ref, fingerprint, budget):
+    def register_account(self, scope, *, credential_ref, fingerprint, budget, physical_owner=None):
         from dataclasses import asdict
         amount = decimal(budget, positive=True)
         if amount > 10000:
             raise DemoError('DEMO_PROJECT_BUDGET_EXCEEDED')
         # Registration does not certify that this identity belongs to a key.
+        if self.engine.dialect.name == 'postgresql':
+            if physical_owner is None: raise DemoError('DEMO_PHYSICAL_OWNER_REQUIRED')
+            physical_owner.validate(scope)
         with self.transaction(scope.account_key) as conn:
+            if self.engine.dialect.name == 'postgresql':
+                require_physical_generation(conn, scope, physical_owner.generation)
+                physical_owner.validate(scope)
             existing = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().first()
             if existing:
                 if existing['credential_ref'] != credential_ref or existing['fingerprint'] != fingerprint:
@@ -305,9 +351,9 @@ class DemoRepository:
         with self.safety_guard(scope), self.transaction(scope.account_key) as conn:
             conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(frozen=True, state='RECOVERY_REQUIRED', reset_evidence=evidence_ref, revision=accounts.c.revision + 1))
 
-    def observe(self, scope, *, source, payload, received_at, credential_ref):
+    def observe(self, scope, *, source, payload, received_at, credential_ref, credential_revision=None, stream_generation=None):
         # Internal transport/stream boundary only. There is no HTTP ingest route.
-        if source not in {'WS_EXECUTION_REPORT', 'REST_ORDER', 'REST_TRADES'}:
+        if source not in {'WS_EXECUTION_REPORT', 'WS_UNSUPPORTED_EVENT', 'REST_ORDER', 'REST_TRADES'}:
             raise DemoError('DEMO_OBSERVATION_SOURCE_REJECTED')
         encoded = str(payload).lower()
         if any(key in encoded for key in ('apikey', 'secret', 'signature', 'authorization')):
@@ -316,13 +362,19 @@ class DemoRepository:
         observation_id = digest([scope.key, source, payload_hash])
         with self.transaction(scope.account_key) as conn:
             account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
-            if account['credential_ref'] != credential_ref or account['frozen']:
+            if (account['credential_ref'] != credential_ref or account['frozen'] or
+                    (credential_revision is None and self.engine.dialect.name == 'postgresql') or
+                    (credential_revision is not None and (type(credential_revision) is not int or account['credential_revision'] != credential_revision))):
                 raise DemoError('DEMO_OBSERVATION_BINDING_REJECTED')
+            if self.engine.dialect.name == 'postgresql':
+                require_physical_generation(conn, scope, stream_generation)
             old = conn.execute(select(observations.c.observation_id).where(observations.c.observation_id == observation_id)).first()
             if old is None:
                 conn.execute(insert(observations).values(observation_id=observation_id, account_key=scope.account_key, scope_key=scope.key, scope=asdict(scope),
-                    source=source, credential_revision=account['credential_revision'], payload_hash=payload_hash, payload=payload, received_at=received_at))
-                conn.execute(insert(inbox).values(observation_id=observation_id, state='PENDING', attempts=0))
+                    source=source, credential_revision=account['credential_revision'], stream_generation=stream_generation, payload_hash=payload_hash, payload=payload, received_at=received_at))
+                conn.execute(insert(inbox).values(observation_id=observation_id,
+                    state='CONFLICT' if source == 'WS_UNSUPPORTED_EVENT' else 'PENDING', attempts=0,
+                    reason='DEMO_UNSUPPORTED_STREAM_EVENT' if source == 'WS_UNSUPPORTED_EVENT' else None))
         return observation_id
 
     def freeze_on_conflict(self, scope, observation_id, reason):
@@ -349,8 +401,14 @@ class DemoRepository:
                     'unprotected': count(protection, (protection.c.account_key == scope.account_key) & (protection.c.state != 'SATISFIED') & ((protection.c.state != 'HOSTED_ACTIVE') | (protection.c.coverage_until <= now))),
                     'pending_inbox': count(inbox, (inbox.c.state != 'PROCESSED') & inbox.c.observation_id.in_(select(observations.c.observation_id).where(observations.c.account_key == scope.account_key)))}
 
-    def save_cursor(self, scope, symbol, cursor, *, complete, expected_revision):
+    def save_cursor(self, scope, symbol, cursor, *, complete, expected_revision, credential_revision=None, stream_generation=None):
         with self.transaction(scope.account_key) as conn:
+            account_revision = conn.execute(select(accounts.c.credential_revision).where(accounts.c.account_key == scope.account_key)).scalar_one()
+            if ((credential_revision is None and self.engine.dialect.name == 'postgresql') or
+                    (credential_revision is not None and (type(credential_revision) is not int or account_revision != credential_revision))):
+                raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
+            if self.engine.dialect.name == 'postgresql':
+                require_physical_generation(conn, scope, stream_generation)
             row = conn.execute(select(reconciliations).where(reconciliations.c.account_key == scope.account_key, reconciliations.c.symbol == symbol)).mappings().first()
             if row is None:
                 if expected_revision != 0:
@@ -361,14 +419,18 @@ class DemoRepository:
             else:
                 conn.execute(update(reconciliations).where(reconciliations.c.account_key == scope.account_key, reconciliations.c.symbol == symbol).values(cursor=cursor, complete=complete, revision=expected_revision + 1))
 
-    def rotate_credential(self, scope, *, credential_ref, fingerprint, expected_revision):
-        if self.engine.dialect.name == 'postgresql':
-            # A process-local lock cannot fence another process's live stream.
-            raise DemoError('DEMO_CREDENTIAL_REBIND_FENCING_UNQUALIFIED')
-        # Call under the owner_guard in a deployed PostgreSQL runtime. SQLite is
-        # offline-only and cannot have an executing owner.
-        guard = self.owner_guard(scope) if self.engine.dialect.name == 'postgresql' else self._lock
-        with guard, self.transaction(scope.account_key) as conn:
+    def rotate_credential(self, scope, *, credential_ref, fingerprint, expected_revision, physical_owner=None):
+        postgres = self.engine.dialect.name == 'postgresql'
+        if postgres:
+            if physical_owner is None or type(physical_owner.generation) is not int or physical_owner.generation < 2:
+                raise DemoError('DEMO_CREDENTIAL_REBIND_FENCING_UNQUALIFIED')
+            physical_owner.validate(scope)
+        # PostgreSQL takes physical ownership first, then the epoch sender lock.
+        guard = self.owner_guard(scope) if postgres else self._lock
+        with guard as sender, self.transaction(scope.account_key) as conn:
+            if postgres:
+                sender.validate(); physical_owner.validate(scope)
+                require_physical_generation(conn, scope, physical_owner.generation)
             row = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
             if row['revision'] != expected_revision:
                 raise DemoError('DEMO_CREDENTIAL_REVISION_CONFLICT')
@@ -376,16 +438,23 @@ class DemoRepository:
                 select(observations.c.observation_id).where(observations.c.account_key == scope.account_key)))).first()
             if pending:
                 raise DemoError('DEMO_INBOX_RECONCILIATION_REQUIRED')
+            if postgres:
+                unresolved = conn.execute(select(commands.c.command_id).where(commands.c.account_key == scope.account_key,
+                    commands.c.state.in_(['MAY_HAVE_SENT','UNKNOWN']))).first()
+                if unresolved or row['frozen']: raise DemoError('DEMO_RECOVERY_REQUIRED')
+                sender.validate(); physical_owner.validate(scope)
             conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(credential_ref=credential_ref,
-                fingerprint=fingerprint, revision=expected_revision + 1, credential_revision=row['credential_revision'] + 1, state='READ_ONLY', qualification=None))
+                fingerprint=fingerprint, revision=expected_revision + 1, credential_revision=row['credential_revision'] + 1,
+                state='RECOVERY_REQUIRED' if postgres else 'READ_ONLY', qualification=None))
 
-    def acknowledge(self, scope, command_id, response):
+    def acknowledge(self, scope, command_id, response, *, validator=None):
         row = self.command(scope, command_id)
         request = row['request']
         target = request.get('newClientOrderId', request.get('origClientOrderId'))
         if response.get('symbol') != request['symbol'] or response.get('origClientOrderId' if row['method'] == 'DELETE' else 'clientOrderId') != target or type(response.get('orderId')) is not int:
             raise DemoError('DEMO_ACK_BINDING_INVALID')
         with self.transaction(scope.account_key) as conn:
+            if validator is not None: validator()
             conn.execute(update(commands).where(commands.c.command_id == command_id, commands.c.scope_key == scope.key,
                 commands.c.state == 'MAY_HAVE_SENT').values(state='ACKNOWLEDGED', order_id=str(response['orderId'])))
             self._event(conn, scope.account_key, 'COMMAND_ACKNOWLEDGED', command_id, {'command_id': command_id})
@@ -393,7 +462,10 @@ class DemoRepository:
     def pause(self, scope, reason='DEMO_RECOVERY_REQUIRED'):
         with self.safety_guard(scope), self.transaction(scope.account_key) as conn:
             conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(state='RECOVERY_REQUIRED', revision=accounts.c.revision + 1))
-            self._event(conn, scope.account_key, 'ACCOUNT_PAUSED', reason, {'reason': reason})
+            # Repeated safety pauses must not collapse into one event: a new
+            # stream gap after a final receipt must change its activity hash.
+            from uuid import uuid4
+            self._event(conn, scope.account_key, 'ACCOUNT_PAUSED', uuid4().hex, {'reason': reason})
 
     def pending_commands(self, scope, *, limit=50):
         with self.engine.connect() as conn:
@@ -467,20 +539,33 @@ class DemoRepository:
             row = conn.execute(select(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id)).mappings().first()
             return dict(row) if row else None
 
-    def begin_decision(self, scope, run_id, snapshot, strategy, source, memory_context=None):
+    def begin_decision(self, scope, run_id, snapshot, strategy, source, memory_context=None, *, credential_revision=None, stream_generation=None):
         binding_hash = digest([snapshot['snapshot_hash'], strategy, memory_context])
         with self.transaction(scope.account_key) as conn:
+            if self.engine.dialect.name == 'postgresql':
+                account_revision = conn.execute(select(accounts.c.credential_revision).where(accounts.c.account_key == scope.account_key)).scalar_one()
+                if type(credential_revision) is not int or account_revision != credential_revision: raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
+                require_physical_generation(conn, scope, stream_generation)
             row = conn.execute(select(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id)).mappings().first()
             if row:
                 if row['binding_hash'] != binding_hash:
                     raise DemoError('DEMO_DECISION_IDEMPOTENCY_CONFLICT')
                 raise DemoError('DEMO_MODEL_RUN_NOT_RETRYABLE')
             conn.execute(insert(decisions).values(scope_key=scope.key, run_id=run_id, account_key=scope.account_key,
-                state='IN_FLIGHT', source=source, binding_hash=binding_hash, snapshot=snapshot, strategy=strategy, memory_context=memory_context))
+                state='IN_FLIGHT', credential_revision=credential_revision, stream_generation=stream_generation,
+                source=source, binding_hash=binding_hash, snapshot=snapshot, strategy=strategy, memory_context=memory_context))
         return self.decision(scope, run_id)
 
-    def finish_decision(self, scope, run_id, *, result=None, error=None):
+    def finish_decision(self, scope, run_id, *, result=None, error=None, credential_revision=None, stream_generation=None):
         with self.transaction(scope.account_key) as conn:
+            if self.engine.dialect.name == 'postgresql':
+                account_revision = conn.execute(select(accounts.c.credential_revision).where(accounts.c.account_key == scope.account_key)).scalar_one()
+                if type(credential_revision) is not int or account_revision != credential_revision: raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
+                require_physical_generation(conn, scope, stream_generation)
+                current = conn.execute(select(decisions.c.credential_revision, decisions.c.stream_generation).where(
+                    decisions.c.scope_key == scope.key, decisions.c.run_id == run_id)).first()
+                if current is None or current[0] != credential_revision or current[1] != stream_generation:
+                    raise DemoError('DEMO_DECISION_BINDING_CHANGED')
             conn.execute(update(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id,
                 decisions.c.state == 'IN_FLIGHT').values(state='FAILED' if error else 'ASSESSED', result=result, error=error))
             self._event(conn, scope.account_key, 'DECISION_RECORDED', digest([scope.key, run_id]), {'scope_key': scope.key, 'run_id': run_id})

@@ -102,3 +102,30 @@ def test_real_runtime_routes_configure_but_sqlite_cannot_start_execution(tmp_pat
         assert rejected.status_code == 422 and rejected.json()['error']['code'] == 'DEMO_POSTGRESQL_OWNER_REQUIRED'
         assert not app.state.demo_runtime._runtime(next(iter(app.state.demo_runtime._sessions))).running
     engine.dispose()
+
+
+def test_slow_start_admission_does_not_block_async_server():
+    import asyncio
+    from threading import Event
+    from types import SimpleNamespace
+    import httpx
+    from fastapi import FastAPI
+    from trading_system.server.demo_control_api import install_demo_control_routes
+    entered, release = Event(), Event()
+    class SlowRuntime:
+        def start_window(self, session, **kwargs):
+            entered.set(); assert release.wait(3)
+            return {'state':'START_REQUESTED'}
+    app = FastAPI()
+    install_demo_control_routes(app, SimpleNamespace(runtime=SlowRuntime()), lambda:True, lambda:True, SimpleNamespace(cookie_name='session'))
+    @app.get('/ping')
+    async def ping(): return {'ok':True}
+    async def scenario():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
+            payload = {'duration_seconds':60,'decision_interval_seconds':30,'expected_strategy_revision':1,'expected_grant_hash':'f'*64,'acknowledge_model_cost':True,'acknowledge_demo_orders':True}
+            start = asyncio.create_task(client.post('/api/demo/runtime/start',json=payload))
+            assert await asyncio.to_thread(entered.wait,2)
+            response = await asyncio.wait_for(client.get('/ping'),timeout=0.2)
+            assert response.json() == {'ok':True}
+            release.set(); assert (await start).status_code == 200
+    asyncio.run(scenario())

@@ -319,3 +319,54 @@ def test_parallel_reservations_do_not_oversubscribe_account(repo, scope):
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(submit, range(2)))
     assert sorted(results) == ['DEMO_BUDGET_EXCEEDED', 'OK']
+
+
+def test_ack_validates_fences_inside_transaction_before_mutation(repo, scope):
+    register(repo, scope); stage(repo, scope)
+    repo.begin_send(scope,'cmd-1',expected_revision=0,now=101)
+    response = {'symbol':'BTCUSDT','clientOrderId':'original','orderId':22}
+    def lost(): raise DemoError('DEMO_PHYSICAL_OWNER_LOST')
+    with pytest.raises(DemoError, match='DEMO_PHYSICAL_OWNER_LOST'):
+        repo.acknowledge(scope,'cmd-1',response,validator=lost)
+    assert repo.command(scope,'cmd-1')['state'] == 'MAY_HAVE_SENT'
+
+
+def test_final_activity_digest_detects_commands_inbox_and_cursor_but_not_pause(repo, scope):
+    from trading_system.storage.demo import final_activity_digest
+    register(repo, scope)
+    def snapshot():
+        with repo.transaction(scope.account_key) as conn:
+            return final_activity_digest(conn,scope)
+    initial = snapshot()
+    repo.pause(scope,'DEMO_STREAM_DISCONNECTED')
+    assert snapshot() == initial
+    repo.pause(scope,'TEST_PAUSE')
+    after_safety_pause = snapshot(); assert after_safety_pause != initial
+    stage(repo, scope)
+    staged = snapshot(); assert staged != after_safety_pause
+    revision = repo.account(scope)['revision']
+    # stage admission binds the current account revision.
+    repo.begin_send(scope,'cmd-1',expected_revision=revision,now=101)
+    may = snapshot(); assert may != staged
+    repo.observe(scope,source='WS_EXECUTION_REPORT',payload={'e':'executionReport'},received_at=102,credential_ref='demo-session:fixture')
+    observed_snapshot = snapshot(); assert observed_snapshot != may
+    repo.save_cursor(scope,'BTCUSDT',{'from_id':1},complete=False,expected_revision=0)
+    assert snapshot() != observed_snapshot
+
+
+def test_final_activity_digest_fails_closed_if_bound_exceeded(repo, scope):
+    from trading_system.storage.demo import final_activity_digest
+    register(repo, scope); stage(repo, scope)
+    repo.observe(scope,source='WS_EXECUTION_REPORT',payload={'e':'executionReport'},received_at=102,credential_ref='demo-session:fixture')
+    with repo.transaction(scope.account_key) as conn:
+        with pytest.raises(DemoError, match='DEMO_ACTIVITY_LIMIT_EXCEEDED'):
+            final_activity_digest(conn,scope,limit=1)
+
+
+def test_repeated_unexpected_pause_after_receipt_changes_activity_digest(repo, scope):
+    from trading_system.storage.demo import final_activity_digest
+    register(repo, scope); repo.pause(scope,'DEMO_STREAM_RECONCILIATION_REQUIRED')
+    with repo.transaction(scope.account_key) as conn: before = final_activity_digest(conn,scope)
+    repo.pause(scope,'DEMO_STREAM_RECONCILIATION_REQUIRED')
+    with repo.transaction(scope.account_key) as conn: after = final_activity_digest(conn,scope)
+    assert before != after

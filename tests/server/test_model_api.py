@@ -173,3 +173,24 @@ def test_model_request_rechecks_stop_after_dns_before_http(monkeypatch):
             await task
         assert not sent
     asyncio.run(scenario())
+
+
+def test_slow_model_send_guard_does_not_block_loop_or_send_after_cancel():
+    import asyncio
+    from threading import Event
+    import pytest
+    from trading_system.server import model_client
+    entered, release = Event(), Event(); sent = []
+    def guard(): entered.set(); assert release.wait(3); return True
+    class Client:
+        async def send(self, *args, **kwargs): sent.append(True); raise AssertionError('must not send')
+    async def scenario():
+        config = {'base_url':'http://127.0.0.1:1234/v1','protocol':'openai_chat','local_mode':True,'timeout_seconds':10}
+        task = asyncio.create_task(model_client.request(Client(),config,'fixture','POST','/chat/completions',{},before_send=guard))
+        assert await asyncio.to_thread(entered.wait,2)
+        await asyncio.wait_for(asyncio.sleep(0.01),timeout=0.2)
+        task.cancel(); await asyncio.sleep(0.01); assert not task.done()
+        release.set()
+        with pytest.raises(asyncio.CancelledError): await task
+        assert not sent
+    asyncio.run(scenario())

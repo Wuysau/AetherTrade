@@ -7,7 +7,7 @@ import asyncio
 from copy import deepcopy
 from dataclasses import dataclass
 import time
-from threading import RLock
+from threading import Event, Lock, RLock
 from uuid import uuid4
 
 from trading_system.engine.binance_demo.contracts import DemoError, DemoScope, digest
@@ -18,6 +18,8 @@ from trading_system.execution.demo_reconcile import DemoReconciler
 from .demo_frame import DemoFrameLoader
 from .demo_memory import DemoMemoryProjector
 from .demo_strategy import DemoStrategyHost
+
+_SCHEDULE_WAIT_SECONDS = 10
 
 
 @dataclass(repr=False)
@@ -36,6 +38,9 @@ class _Runtime:
     strategy_revision: int = 0
     new_risk_paused: bool = False
     send_guard: object | None = None
+    physical_owner: object | None = None
+    graceful_stop_event: object | None = None
+    final_receipt: object | None = None
 
 
 class DemoRuntimeService:
@@ -45,12 +50,15 @@ class DemoRuntimeService:
         self.rule_assessor, self.hybrid_gate = rule_assessor, hybrid_gate
         self._close_repository = close_repository
         self._sessions = {}
+        self._handoff_authority = object()
+        self._clean_handoffs = {}  # Process-local, only after acknowledged CLEAN commit.
         self._jobs = {}
         self._closing = False
         self._lifecycle_lock = RLock()
 
     def bind_session(self, session_key):
         with self._lifecycle_lock:
+            if self._closing: raise DemoError('DEMO_SERVICE_CLOSED')
             return self._bind_session(session_key)
 
     def _bind_session(self, session_key):
@@ -74,6 +82,7 @@ class DemoRuntimeService:
                 return self.status(session_key)
         lease = self.connections.connection_lease(session_key)
         transport = lease.transport()
+        physical_owner = None
         try:
             transport.sync_time(); account = transport.account(); lease.validate()
             # Scope comes from a deployment-owned account/epoch mapping, not a
@@ -81,36 +90,69 @@ class DemoRuntimeService:
             scope = self.scope_resolver(account)
             if type(scope) is not DemoScope or scope.product != 'SPOT' or type(account.get('uid')) is not int or str(account['uid']) != scope.account_id:
                 raise DemoError('DEMO_VERIFIED_ACCOUNT_IDENTITY_REQUIRED')
-            if any(other.drain_failed and other.host.scope.account_key == scope.account_key for other in self._sessions.values()):
+            if any(other.drain_failed and self._same_physical_account(other.host.scope, scope) for other in self._sessions.values()):
                 raise DemoError('DEMO_DRAIN_PAUSE_UNCONFIRMED')
-            if any(other.running and other.host.scope.account_key == scope.account_key for other in self._sessions.values()):
+            if self._account_has_active_window(scope):
                 raise DemoError('DEMO_ACCOUNT_RUNTIME_DRAIN_REQUIRED')
+            if any(self._same_physical_account(other.host.scope, scope) and other.host.scope.account_key != scope.account_key for other in self._sessions.values()):
+                raise DemoError('DEMO_CROSS_EPOCH_FENCING_UNQUALIFIED')
+            handoff = None
+            if self.repository.engine.dialect.name == 'postgresql':
+                handoff = self._clean_handoffs.pop(scope.physical_account_key, None)
+                if handoff is None:
+                    try:
+                        legacy = self.repository.account(scope)
+                    except DemoError as exc:
+                        if exc.code != 'DEMO_ACCOUNT_UNREGISTERED': raise
+                    else:
+                        if legacy['credential_ref'] != lease.credential_ref:
+                            raise DemoError('DEMO_CREDENTIAL_REBIND_FENCING_UNQUALIFIED')
+                        raise DemoError('DEMO_LEGACY_PHYSICAL_MAPPING_REQUIRED')
+                from trading_system.storage.demo_physical import PhysicalOwner
+                from trading_system.storage.demo import physical_owners, accounts
+                physical_owner = PhysicalOwner.acquire(self.repository.engine, physical_owners, accounts, scope, authority=self._handoff_authority, handoff=handoff)
             with lease.registration_guard():
+                if physical_owner is not None: physical_owner.validate(scope)
                 fingerprint = self.connections.provider.describe(lease.credential_ref)['fingerprint']
                 try:
                     existing = self.repository.account(scope)
                 except DemoError as exc:
                     if exc.code != 'DEMO_ACCOUNT_UNREGISTERED':
                         raise
-                    self.repository.register_account(scope, credential_ref=lease.credential_ref, fingerprint=fingerprint, budget='10000')
+                    self.repository.register_account(scope, credential_ref=lease.credential_ref, fingerprint=fingerprint, budget='10000', physical_owner=physical_owner)
                 else:
-                    if existing['credential_ref'] != lease.credential_ref or existing['fingerprint'] != fingerprint:
-                        # Process already durable observations under their original
-                        # revision before atomically changing that revision.
+                    if self.repository.engine.dialect.name == 'postgresql':
+                        if handoff is None: raise DemoError('DEMO_CREDENTIAL_REBIND_FENCING_UNQUALIFIED')
+                        self.repository.rotate_credential(scope, credential_ref=lease.credential_ref, fingerprint=fingerprint,
+                            expected_revision=existing['revision'], physical_owner=physical_owner)
+                    elif existing['credential_ref'] != lease.credential_ref or existing['fingerprint'] != fingerprint:
+                        # Offline fixtures must exhaust all old observations,
+                        # not merely the first page, before rotating.
                         from trading_system.execution.demo_reports import DemoReportVerifier
                         verifier = DemoReportVerifier(self.repository)
-                        for observation in self.repository.pending_observations(scope, limit=1000):
-                            if not observation.get('scope'):
-                                raise DemoError('DEMO_OBSERVATION_SCOPE_MISSING')
-                            verifier.process(DemoScope(**observation['scope']), observation['observation_id'])
+                        previous_batch = None
+                        for _ in range(100):
+                            batch = self.repository.pending_observations(scope, limit=1000)
+                            if not batch:
+                                break
+                            ids = tuple(item['observation_id'] for item in batch)
+                            if ids == previous_batch:
+                                raise DemoError('DEMO_INBOX_DRAIN_NO_PROGRESS')
+                            previous_batch = ids
+                            for observation in batch:
+                                if not observation.get('scope'):
+                                    raise DemoError('DEMO_OBSERVATION_SCOPE_MISSING')
+                                verifier.process(DemoScope(**observation['scope']), observation['observation_id'])
+                        else:
+                            raise DemoError('DEMO_INBOX_DRAIN_LIMIT')
                         lease.validate()
                         existing = self.repository.account(scope)
                         self.repository.rotate_credential(scope, credential_ref=lease.credential_ref, fingerprint=fingerprint, expected_revision=existing['revision'])
-                stream = DemoUserStreamConsumer(self.repository, scope, lease.credential_ref, request_id='demo-' + uuid4().hex)
+                stream = DemoUserStreamConsumer(self.repository, scope, lease.credential_ref, request_id='demo-' + uuid4().hex, physical_owner=physical_owner)
                 host = DemoStrategyHost(self.repository, scope, frame_loader=DemoFrameLoader(self.repository, scope, transport, current_code_sha=self.current_code_sha),
-                    model_service=self.models, execution_owner=DemoExecutionOwner(self.repository, transport, preflight=lease.validate), stream=stream,
+                    model_service=self.models, execution_owner=DemoExecutionOwner(self.repository, transport, preflight=lease.validate, physical_owner=physical_owner), stream=stream,
                     rule_assessor=self.rule_assessor, hybrid_gate=self.hybrid_gate, current_code_sha=self.current_code_sha, memory_service=DemoMemoryProjector(self.repository))
-                runtime = _Runtime(lease, transport, host, stream, DemoReconciler(self.repository, transport))
+                runtime = _Runtime(lease, transport, host, stream, DemoReconciler(self.repository, transport), physical_owner=physical_owner)
                 host.owner.preflight = lambda: self._sender_preflight(runtime)
                 try:
                     runtime.strategy_revision = self.repository.strategy(scope)['revision']
@@ -119,7 +161,11 @@ class DemoRuntimeService:
                 lease.validate(); self._sessions[session_key] = runtime
                 return self.status(session_key)
         except BaseException:
-            transport.close()
+            try: transport.close()
+            except Exception: pass
+            if physical_owner is not None:
+                try: physical_owner.close()
+                except Exception: pass  # DIRTY is retained; never imply safe recovery.
             raise
 
     @staticmethod
@@ -129,15 +175,21 @@ class DemoRuntimeService:
         guard = runtime.send_guard
         if not runtime.running or guard is None:
             raise DemoError('DEMO_EXECUTION_PERMISSION_REQUIRED')
+        if runtime.physical_owner is not None:
+            runtime.physical_owner.validate(runtime.host.scope)
         guard()
 
     def _runtime(self, session_key):
         runtime = self._sessions.get(session_key)
         if runtime is None or runtime.revoked:
             raise DemoError('DEMO_RUNTIME_NOT_BOUND')
-        try: runtime.lease.validate()
+        try:
+            runtime.lease.validate()
+            if runtime.physical_owner is not None:
+                runtime.physical_owner.validate(runtime.host.scope)
         except DemoError:
-            self.close_session(session_key)
+            try: self.close_session(session_key)
+            except Exception: pass  # Failed drain remains latched and DIRTY.
             raise
         return runtime
 
@@ -158,7 +210,7 @@ class DemoRuntimeService:
 
     @staticmethod
     def _same_physical_account(left, right):
-        return (left.environment, left.venue, left.product, left.account_id) == (right.environment, right.venue, right.product, right.account_id)
+        return left.physical_account_key == right.physical_account_key
 
     def _account_has_active_window(self, scope):
         for key, other in self._sessions.items():
@@ -260,40 +312,60 @@ class DemoRuntimeService:
                 raise DemoError('DEMO_QUALIFICATION_REQUIRED')
 
     async def assess_once(self, session_key, run_id):
-        runtime = self._runtime(session_key)
+        if self.repository.engine.dialect.name == 'postgresql':
+            raise DemoError('DEMO_STANDALONE_ASSESSMENT_DISABLED')
+        runtime = await settled_thread(self._runtime, session_key)
         result = await runtime.host.assess_once(run_id)
-        runtime.lease.validate()
+        await settled_thread(runtime.lease.validate)
         return result
 
     async def run_window(self, session_key, *, duration_seconds, execute=False, decision_interval_seconds=60, socket_factory=private_connection, expected_strategy=None, expected_credential_revision=None):
-        with self._lifecycle_lock:
-            runtime = self._runtime(session_key)
-            if runtime.running or type(duration_seconds) is not int or not 1 <= duration_seconds <= 900 or type(decision_interval_seconds) is not int or decision_interval_seconds < 30:
-                raise DemoError('DEMO_RUNTIME_WINDOW_INVALID')
-            if any(other is not runtime and other.running and self._same_physical_account(other.host.scope, runtime.host.scope) for other in self._sessions.values()):
-                raise DemoError('DEMO_ACCOUNT_RUNTIME_DRAIN_REQUIRED')
-            account = self.repository.account(runtime.host.scope)
-            if account['credential_ref'] != runtime.lease.credential_ref:
-                raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
-            if expected_credential_revision is not None and account.get('credential_revision') != expected_credential_revision:
-                raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
-            if self.repository.engine.dialect.name != 'postgresql':
-                raise DemoError('DEMO_POSTGRESQL_OWNER_REQUIRED')
-            if time.time() + duration_seconds >= runtime.lease.expires_at:
-                raise DemoError('DEMO_WINDOW_EXCEEDS_CREDENTIAL_TTL')
-            if execute:
-                strategy = self.repository.strategy(runtime.host.scope)
-                if strategy.get('allow_execution') is not True or strategy['authorized_until'] < time.time() + duration_seconds:
-                    raise DemoError('DEMO_EXECUTION_PERMISSION_REQUIRED')
-                if expected_strategy is not None and strategy != expected_strategy:
-                    raise DemoError('DEMO_DECISION_BINDING_CHANGED')
-                expected_strategy = deepcopy(strategy)
-            runtime.running = True
-            runtime.stop_requested = False
-            runtime.new_risk_paused = False
-            runtime.last_error = None
-            runtime.window_task = asyncio.current_task()
-        deadline = time.monotonic() + duration_seconds
+        window_task = asyncio.current_task()
+        graceful_stop_event = asyncio.Event()
+        requested_strategy = expected_strategy
+        started = []
+        def begin_window():
+            with self._lifecycle_lock:
+                if self._closing: raise DemoError('DEMO_SERVICE_CLOSED')
+                runtime = self._runtime(session_key)
+                if runtime.running or type(duration_seconds) is not int or not 1 <= duration_seconds <= 900 or type(decision_interval_seconds) is not int or decision_interval_seconds < 30:
+                    raise DemoError('DEMO_RUNTIME_WINDOW_INVALID')
+                if any(other is not runtime and other.running and self._same_physical_account(other.host.scope, runtime.host.scope) for other in self._sessions.values()):
+                    raise DemoError('DEMO_ACCOUNT_RUNTIME_DRAIN_REQUIRED')
+                account = self.repository.account(runtime.host.scope)
+                if account['credential_ref'] != runtime.lease.credential_ref:
+                    raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
+                if expected_credential_revision is not None and account.get('credential_revision') != expected_credential_revision:
+                    raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
+                if self.repository.engine.dialect.name != 'postgresql':
+                    raise DemoError('DEMO_POSTGRESQL_OWNER_REQUIRED')
+                if time.time() + duration_seconds >= runtime.lease.expires_at:
+                    raise DemoError('DEMO_WINDOW_EXCEEDS_CREDENTIAL_TTL')
+                strategy_snapshot = None
+                if execute:
+                    strategy = self.repository.strategy(runtime.host.scope)
+                    if strategy.get('allow_execution') is not True or strategy['authorized_until'] < time.time() + duration_seconds:
+                        raise DemoError('DEMO_EXECUTION_PERMISSION_REQUIRED')
+                    if requested_strategy is not None and strategy != requested_strategy:
+                        raise DemoError('DEMO_DECISION_BINDING_CHANGED')
+                    strategy_snapshot = deepcopy(strategy)
+                if runtime.physical_owner is not None:
+                    runtime.physical_owner.validate(runtime.host.scope)
+                runtime.running = True
+                runtime.stop_requested = False
+                runtime.new_risk_paused = False
+                runtime.last_error = None
+                runtime.window_task = window_task
+                runtime.graceful_stop_event = graceful_stop_event
+                runtime.final_receipt = None
+                started.append(runtime)
+                return runtime, strategy_snapshot, time.monotonic() + duration_seconds
+        try:
+            runtime, expected_strategy, deadline = await settled_thread(begin_window)
+        except asyncio.CancelledError:
+            if started:
+                await settled_thread(self._finish_window, session_key, started[0])
+            raise
         window_id = uuid4().hex
         def verify_binding():
             if runtime.stop_requested or runtime.revoked:
@@ -303,6 +375,7 @@ class DemoRuntimeService:
             if execute and time.time() >= expected_strategy.get('authorized_until', 0):
                 raise DemoError('DEMO_EXECUTION_PERMISSION_REQUIRED')
             runtime.lease.validate()
+            if runtime.physical_owner is not None: runtime.physical_owner.validate(runtime.host.scope)
             account = self.repository.account(runtime.host.scope)
             if (account['credential_ref'] != runtime.lease.credential_ref or
                     (expected_credential_revision is not None and account.get('credential_revision') != expected_credential_revision)):
@@ -310,6 +383,7 @@ class DemoRuntimeService:
             if execute and self.repository.strategy(runtime.host.scope) != expected_strategy:
                 raise DemoError('DEMO_DECISION_BINDING_CHANGED')
             # Repository and credential checks can block across the deadline.
+            if runtime.physical_owner is not None: runtime.physical_owner.validate(runtime.host.scope)
             if runtime.stop_requested or runtime.revoked:
                 raise DemoError('DEMO_STOP_REQUESTED')
             if time.monotonic() >= deadline:
@@ -331,7 +405,7 @@ class DemoRuntimeService:
             async def protect():
                 last_recovery = 0
                 while time.monotonic() < deadline:
-                    self._runtime(session_key)
+                    await settled_thread(self._runtime, session_key)
                     try:
                         await settled_thread(runtime.host.drain_inbox)
                         if runtime.host.memory is not None:
@@ -348,7 +422,7 @@ class DemoRuntimeService:
                                 await settled_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
                                 last_recovery = time.monotonic()
                             for command in protection['commands']:
-                                self._runtime(session_key)
+                                await settled_thread(self._runtime, session_key)
                                 def dispatch_protection():
                                     verify_binding()
                                     return runtime.host.dispatch(command['command_id'])
@@ -364,7 +438,7 @@ class DemoRuntimeService:
             async def decide():
                 sequence = 0
                 while time.monotonic() < deadline:
-                    self._runtime(session_key)
+                    await settled_thread(self._runtime, session_key)
                     if new_risk_paused:
                         return  # Existing protection and ingestion keep running.
                     try:
@@ -383,7 +457,7 @@ class DemoRuntimeService:
                             return runtime.host.admit_assessment(run_id)
                         command = await settled_thread(admit_checked)
                         if command.get('command_id'):
-                            self._runtime(session_key)
+                            await settled_thread(self._runtime, session_key)
                             await settled_thread(verify_binding)
                             def dispatch_checked():
                                 verify_binding()
@@ -399,44 +473,83 @@ class DemoRuntimeService:
             # Model latency cannot starve private-frame ingestion or stop
             # supervision. Decision failure pauses only new-risk work.
             async with asyncio.TaskGroup() as tasks:
-                tasks.create_task(protect())
-                if execute: tasks.create_task(decide())
+                workers = [tasks.create_task(protect())]
+                if execute: workers.append(tasks.create_task(decide()))
+                if runtime.physical_owner is not None and getattr(runtime.stream, 'supports_graceful_stop', False):
+                    try:
+                        await graceful_stop_event.wait()
+                    finally:
+                        for worker in workers: worker.cancel()
+            if (runtime.stop_requested and not runtime.revoked and runtime.physical_owner is not None and
+                    getattr(runtime.stream, 'supports_graceful_stop', False)):
+                try:
+                    await settled_thread(runtime.lease.validate)
+                    async with asyncio.timeout(20):
+                        runtime.final_receipt = await settled_thread(runtime.reconciler.reconcile_for_clean, runtime.host.scope,
+                            stream=stream, current_code_sha=self.current_code_sha)
+                except Exception as exc:
+                    runtime.last_error = exc.code if isinstance(exc, DemoError) else 'DEMO_FINAL_RECONCILIATION_FAILED'
+                    runtime.new_risk_paused = True
         try:
             await runtime.stream.run_window(runtime.transport, duration_seconds=duration_seconds, on_subscribed=supervise, socket_factory=socket_factory)
         finally:
-            with self._lifecycle_lock:
-                try:
+            await settled_thread(self._finish_window, session_key, runtime)
+        return await settled_thread(self.status, session_key)
+
+    def _finish_window(self, session_key, runtime):
+        with self._lifecycle_lock:
+            try:
+                if runtime.physical_owner is not None and (runtime.revoked or runtime.final_receipt is not None):
+                    self._pause_after_physical_drain(runtime, 'DEMO_RUNTIME_WINDOW_ENDED')
+                else:
                     self.repository.pause(runtime.host.scope, 'DEMO_RUNTIME_WINDOW_ENDED')
-                except BaseException:
-                    runtime.drain_failed = True
-                    runtime.revoked = True
-                    runtime.last_error = 'DEMO_DRAIN_PAUSE_UNCONFIRMED'
-                    runtime.stream.healthy = False
-                    runtime.transport.close()
-                    raise
-                finally:
-                    runtime.running = False
-                    runtime.send_guard = None
-                    runtime.window_task = None
-                    if runtime.revoked and not runtime.drain_failed and self._sessions.get(session_key) is runtime:
-                        try:
-                            runtime.transport.close()
-                        except Exception:
-                            runtime.drain_failed = True
-                            runtime.last_error = 'DEMO_DRAIN_CLOSE_UNCONFIRMED'
-                            raise
-                        self._sessions.pop(session_key, None)
-        return self.status(session_key)
+                if runtime.final_receipt is not None and not runtime.revoked and runtime.physical_owner is not None:
+                    proof = getattr(runtime.stream, 'closed_proof', None)
+                    if proof is None:
+                        runtime.last_error = 'DEMO_STREAM_CLOSE_PROOF_REQUIRED'
+                        runtime.new_risk_paused = True
+                    else:
+                        with self.repository.owner_guard(runtime.host.scope) as sender:
+                            handoff = runtime.physical_owner.commit_clean(runtime.host.scope, runtime.final_receipt,
+                                close_proof=proof, validate_sender=sender.validate, now=int(time.time()))
+                        # No handoff is published unless transport close also succeeds.
+                        runtime.transport.close()
+                        self._clean_handoffs[runtime.host.scope.physical_account_key] = handoff
+                        runtime.revoked = True
+                        if self._sessions.get(session_key) is runtime:
+                            self._sessions.pop(session_key, None)
+            except BaseException:
+                runtime.drain_failed = True
+                runtime.revoked = True
+                runtime.last_error = 'DEMO_DRAIN_PAUSE_UNCONFIRMED'
+                runtime.stream.healthy = False
+                try: runtime.transport.close()
+                except Exception: pass
+                raise
+            finally:
+                runtime.running = False
+                runtime.send_guard = None
+                runtime.window_task = None
+                runtime.graceful_stop_event = None
+                if runtime.revoked and not runtime.drain_failed and self._sessions.get(session_key) is runtime:
+                    try:
+                        runtime.transport.close()
+                        if runtime.physical_owner is not None: runtime.physical_owner.close()
+                    except Exception:
+                        runtime.drain_failed = True
+                        runtime.last_error = 'DEMO_DRAIN_CLOSE_UNCONFIRMED'
+                        raise
+                    self._sessions.pop(session_key, None)
 
-    def start_window(self, session_key, *, duration_seconds, decision_interval_seconds, expected_strategy_revision, expected_grant_hash):
+    def start_window(self, session_key, *, duration_seconds, decision_interval_seconds, expected_strategy_revision, expected_grant_hash, loop=None):
         """Schedule one bounded real-Demo AI window, without bypassing admission."""
-        return self._schedule_window(session_key, duration_seconds=duration_seconds, decision_interval_seconds=decision_interval_seconds, execute=True, expected_strategy_revision=expected_strategy_revision, expected_grant_hash=expected_grant_hash)
+        return self._schedule_window(session_key, duration_seconds=duration_seconds, decision_interval_seconds=decision_interval_seconds, execute=True, expected_strategy_revision=expected_strategy_revision, expected_grant_hash=expected_grant_hash, loop=loop)
 
-    def start_recovery(self, session_key, *, duration_seconds):
+    def start_recovery(self, session_key, *, duration_seconds, loop=None):
         """Schedule subscribed backfill and persistence, with no model or sends."""
-        return self._schedule_window(session_key, duration_seconds=duration_seconds, decision_interval_seconds=60, execute=False)
+        return self._schedule_window(session_key, duration_seconds=duration_seconds, decision_interval_seconds=60, execute=False, loop=loop)
 
-    def _schedule_window(self, session_key, *, duration_seconds, decision_interval_seconds, execute, expected_strategy_revision=None, expected_grant_hash=None):
+    def _schedule_window(self, session_key, *, duration_seconds, decision_interval_seconds, execute, expected_strategy_revision=None, expected_grant_hash=None, loop=None):
         if (type(duration_seconds) is not int or not 1 <= duration_seconds <= 900 or
                 type(decision_interval_seconds) is not int or not 30 <= decision_interval_seconds <= 900):
             raise DemoError('DEMO_RUNTIME_WINDOW_INVALID')
@@ -485,14 +598,45 @@ class DemoRuntimeService:
                     if runtime.new_risk_paused:
                         job['state'], job['error'] = 'ENDED_BLOCKED_REVIEW_REQUIRED', runtime.last_error
                     else:
-                        job['state'] = 'ENDED_REVIEW_REQUIRED'
-            task = asyncio.get_running_loop().create_task(run(), name='aethertrade-demo-window')
-            job['task'] = task
+                        job['state'] = 'STOPPED_REVIEW_REQUIRED' if runtime.stop_requested else 'ENDED_REVIEW_REQUIRED'
+            target_loop = loop
+            try: current_loop = asyncio.get_running_loop()
+            except RuntimeError: current_loop = None
+            if target_loop is None: target_loop = current_loop
+            if target_loop is None or not target_loop.is_running():
+                raise DemoError('DEMO_EVENT_LOOP_UNAVAILABLE')
+            ready, outcome, scheduling_lock = Event(), {}, Lock()
+            def schedule():
+                with scheduling_lock:
+                    if outcome.get('cancelled'):
+                        ready.set()
+                        return
+                    coroutine = run()
+                    try:
+                        task = target_loop.create_task(coroutine, name='aethertrade-demo-window')
+                        def finished(value):
+                            if value.cancelled() and job['state'] == 'START_REQUESTED':
+                                job['state'] = 'STOPPED_BEFORE_START'
+                        task.add_done_callback(finished)
+                        outcome['task'] = task
+                    except Exception as exc:
+                        coroutine.close()
+                        outcome['error'] = exc
+                    finally:
+                        ready.set()
+            if current_loop is target_loop:
+                schedule()
+            else:
+                try: target_loop.call_soon_threadsafe(schedule)
+                except RuntimeError: raise DemoError('DEMO_EVENT_LOOP_UNAVAILABLE') from None
+                if not ready.wait(_SCHEDULE_WAIT_SECONDS):
+                    with scheduling_lock:
+                        if not ready.is_set():
+                            outcome['cancelled'] = True
+                            raise DemoError('DEMO_EVENT_LOOP_UNAVAILABLE')
+            if 'error' in outcome: raise DemoError('DEMO_EVENT_LOOP_UNAVAILABLE') from None
+            job['task'] = outcome['task']
             self._jobs[session_key] = job
-            def finished(value):
-                if value.cancelled() and job['state'] == 'START_REQUESTED':
-                    job['state'] = 'STOPPED_BEFORE_START'
-            task.add_done_callback(finished)
             return {'state': 'START_REQUESTED'}
 
     def request_stop(self, session_key):
@@ -514,8 +658,32 @@ class DemoRuntimeService:
                 runtime.stop_requested = True
                 job = self._jobs.get(session_key)
                 if job and not job['task'].done(): job['state'] = 'STOP_PENDING'
-                runtime.window_task.get_loop().call_soon_threadsafe(runtime.window_task.cancel)
+                if (runtime.physical_owner is not None and runtime.graceful_stop_event is not None and
+                        getattr(runtime.stream, 'supports_graceful_stop', False)):
+                    runtime.window_task.get_loop().call_soon_threadsafe(runtime.graceful_stop_event.set)
+                else:
+                    runtime.window_task.get_loop().call_soon_threadsafe(runtime.window_task.cancel)
             return {'state': 'STOP_REQUESTED'}
+
+    def _pause_after_physical_drain(self, runtime, reason):
+        # Only release a physical fence after the socket/workers have ended,
+        # all old durable inbox records are resolved, and pause commits.
+        owner = runtime.physical_owner
+        if owner is not None:
+            for _ in range(1000):
+                owner.validate(runtime.host.scope)
+                batch = runtime.host.drain_inbox(limit=100)
+                owner.validate(runtime.host.scope)
+                if batch['remaining'] == 0: break
+                if batch['processed'] == 0: raise DemoError('DEMO_INBOX_DRAIN_BLOCKED')
+            else:
+                raise DemoError('DEMO_INBOX_DRAIN_LIMIT')
+        self.repository.pause(runtime.host.scope, reason)
+        if owner is not None:
+            owner.validate(runtime.host.scope)
+            if self.repository.health(runtime.host.scope)['pending_inbox']:
+                raise DemoError('DEMO_INBOX_DRAIN_BLOCKED')
+            owner.validate(runtime.host.scope)
 
     def close_session(self, session_key):
         with self._lifecycle_lock:
@@ -528,41 +696,60 @@ class DemoRuntimeService:
             task = runtime.window_task or (job['task'] if job and not job['task'].done() else None)
             runtime.revoked = True; runtime.stream.healthy = False
             if task is not None and not task.done():
-                if not runtime.stop_requested:
-                    runtime.stop_requested = True
-                    if job: job['state'] = 'STOP_PENDING'
-                    task.get_loop().call_soon_threadsafe(task.cancel)
+                runtime.stop_requested = True
+                if job: job['state'] = 'STOP_PENDING'
+                # Revocation must upgrade an earlier graceful stop to hard
+                # cancellation; in-flight workers still settle before close.
+                task.get_loop().call_soon_threadsafe(task.cancel)
                 if runtime.running:
                     return  # The window owns pause and transport close after all workers settle.
             try:
-                self.repository.pause(runtime.host.scope, 'DEMO_SESSION_REVOKED')
+                self._pause_after_physical_drain(runtime, 'DEMO_SESSION_REVOKED')
             except BaseException:
                 runtime.drain_failed = True
                 runtime.last_error = 'DEMO_DRAIN_PAUSE_UNCONFIRMED'
+                try: runtime.transport.close()
+                except Exception: pass
                 raise
-            finally:
+            try:
                 runtime.transport.close()
+                if runtime.physical_owner is not None: runtime.physical_owner.close()
+            except Exception:
+                runtime.drain_failed = True
+                runtime.last_error = 'DEMO_DRAIN_CLOSE_UNCONFIRMED'
+                raise DemoError('DEMO_DRAIN_CLOSE_UNCONFIRMED') from None
             if not runtime.running and not runtime.drain_failed:
                 self._sessions.pop(session_key, None)
 
     async def aclose(self):
+        # Shutdown itself must settle even if its caller is cancelled.
+        await settle_before_cancel(self._aclose_impl())
+
+    async def _aclose_impl(self):
         # Revoke first, then await actual tasks/threads before disposing storage.
-        with self._lifecycle_lock:
-            self._closing = True
-            sessions = list(self._sessions)
+        def begin():
+            with self._lifecycle_lock:
+                self._closing = True
+                self._clean_handoffs.clear()
+                return list(self._sessions)
+        sessions = await settled_thread(begin)
         for session in sessions:
-            try: self.close_session(session)
+            try: await settled_thread(self.close_session, session)
             except Exception: pass  # close() below reports unresolved durable pause.
-        with self._lifecycle_lock:
-            tasks = list({runtime.window_task for runtime in self._sessions.values() if runtime.window_task is not None})
-            tasks += [job['task'] for job in self._jobs.values() if not job['task'].done() and job['task'] not in tasks]
+        def pending():
+            with self._lifecycle_lock:
+                tasks = list({runtime.window_task for runtime in self._sessions.values() if runtime.window_task is not None})
+                tasks += [job['task'] for job in self._jobs.values() if not job['task'].done() and job['task'] not in tasks]
+                return tasks
+        tasks = await settled_thread(pending)
         if tasks:
             await settle_before_cancel(asyncio.gather(*tasks, return_exceptions=True))
-        self.close()
+        await settled_thread(self.close)
 
     def close(self):
         with self._lifecycle_lock:
             self._closing = True
+            self._clean_handoffs.clear()
             if any(runtime.running for runtime in self._sessions.values()) or any(not job['task'].done() for job in self._jobs.values()):
                 raise DemoError('DEMO_RUNTIME_DRAIN_REQUIRED')
         failed = any(runtime.drain_failed for runtime in self._sessions.values())

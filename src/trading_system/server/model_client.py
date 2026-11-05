@@ -1,5 +1,6 @@
 """Bounded, no-retry provider requests and protocol envelope validation."""
 import asyncio
+from trading_system.engine.binance_demo.async_safety import settled_thread
 import ipaddress
 import json
 import socket
@@ -85,7 +86,7 @@ async def request(client, config, secret, method, path, payload=None, *, before_
             extensions['timeout'] = httpx.Timeout(config['timeout_seconds']).as_dict()
             outgoing = httpx.Request(method, url, headers=headers, json=payload, extensions=extensions)
             if before_send is not None:
-                try: allowed = before_send() is True
+                try: allowed = (await settled_thread(before_send)) is True
                 except Exception: allowed = False
                 if not allowed: raise ApiError('MODEL_REQUEST_REVOKED', 'Model request authorization revoked.', 409)
             response = await client.send(outgoing, auth=None, follow_redirects=False, stream=True)

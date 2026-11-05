@@ -48,12 +48,24 @@ class DemoCommandBoundary:
 
 
 class DemoExecutionOwner:
-    def __init__(self, repository, transport, *, clock=time.time, preflight=None):
+    def __init__(self, repository, transport, *, clock=time.time, preflight=None, physical_owner=None):
         self.repository, self.transport, self.clock, self.preflight = repository, transport, clock, preflight
+        self.physical_owner = physical_owner
 
     def dispatch(self, scope, command_id, *, context):
-        with self.repository.owner_guard(scope):
-            if self.preflight: self.preflight()
+        if self.repository.engine.dialect.name == 'postgresql':
+            if self.physical_owner is None: raise DemoError('DEMO_PHYSICAL_OWNER_REQUIRED')
+            self.physical_owner.validate(scope)
+        with self.repository.owner_guard(scope) as owner_guard:
+            def verify_sender():
+                if owner_guard is not None: owner_guard.validate()
+                if self.physical_owner is not None: self.physical_owner.validate(scope)
+                if self.preflight: self.preflight()
+                if self.physical_owner is not None: self.physical_owner.validate(scope)
+                # Preflight may block on account/strategy IO while the epoch
+                # lock session dies; check it again before allowing work.
+                if owner_guard is not None: owner_guard.validate()
+            verify_sender()
             account = self.repository.account(scope)
             command = self.repository.command(scope, command_id)
             health = self.repository.health(scope)
@@ -96,18 +108,21 @@ class DemoExecutionOwner:
             current = replace(current, now=int(self.clock()), account_state=current_account['state'],
                 unresolved_unknown=current_health['unknown'], unprotected=current_health['unprotected'], pending_inbox=current_health['pending_inbox'])
             admit(current)
-            if self.preflight: self.preflight()
+            verify_sender()
             def final_admission(now):
-                if self.preflight: self.preflight()
+                verify_sender()
                 admit(replace(current, now=now))
             command = self.repository.begin_send(scope, command_id, expected_revision=account['revision'], now=current.now, clock=self.clock, validator=final_admission)
-            permit = DemoSendPermit(_owner=_OWNER, method=command['method'], request=command['request'], credential_ref=account['credential_ref'], preflight=self.preflight)
+            permit = DemoSendPermit(_owner=_OWNER, method=command['method'], request=command['request'], credential_ref=account['credential_ref'], preflight=verify_sender)
             try:
                 # Stop/revocation may occur after MAY committed. Never start a
                 # new send after observing it; preserve UNKNOWN conservatively.
-                if self.preflight: self.preflight()
+                verify_sender()
                 response = (self.transport.send_order if command['method'] == 'POST' else self.transport.cancel_order)(command['request'], permit=permit)
-                self.repository.acknowledge(scope, command_id, response)
+                # A response does not certify ownership survived in-flight IO.
+                # If either fence was lost, retain MAY/UNKNOWN for recovery.
+                verify_sender()
+                self.repository.acknowledge(scope, command_id, response, validator=verify_sender)
             except Exception:
                 # All write failures are conservative UNKNOWN. No generic HTTP
                 # retry, new client ID, or reservation release is permitted.
