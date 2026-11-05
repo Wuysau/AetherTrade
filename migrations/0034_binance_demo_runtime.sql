@@ -15,32 +15,32 @@ ALTER TABLE demo_protection ADD COLUMN coverage_until INTEGER NOT NULL DEFAULT 0
 ALTER TABLE demo_protection ADD COLUMN opened_at INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE demo_protection ADD COLUMN mitigation_command_id VARCHAR(100);
 CREATE TABLE demo_strategies (
-	scope_key VARCHAR(64) NOT NULL, 
-	account_key VARCHAR(64) NOT NULL, 
-	scope JSON NOT NULL, 
-	revision INTEGER NOT NULL, 
-	config JSON NOT NULL, 
+	scope_key VARCHAR(64) NOT NULL,
+	account_key VARCHAR(64) NOT NULL,
+	scope JSON NOT NULL,
+	revision INTEGER NOT NULL,
+	config JSON NOT NULL,
 	PRIMARY KEY (scope_key)
 );
 CREATE TABLE demo_decisions (
-	scope_key VARCHAR(64) NOT NULL, 
-	run_id VARCHAR(100) NOT NULL, 
-	account_key VARCHAR(64) NOT NULL, 
-	state VARCHAR(32) NOT NULL, 
-	source VARCHAR(32) NOT NULL, 
-	binding_hash VARCHAR(64) NOT NULL, 
-	snapshot JSON NOT NULL, 
-	strategy JSON NOT NULL, 
-	result JSON, 
-	command_id VARCHAR(100), 
-	error VARCHAR(80), 
+	scope_key VARCHAR(64) NOT NULL,
+	run_id VARCHAR(100) NOT NULL,
+	account_key VARCHAR(64) NOT NULL,
+	state VARCHAR(32) NOT NULL,
+	source VARCHAR(32) NOT NULL,
+	binding_hash VARCHAR(64) NOT NULL,
+	snapshot JSON NOT NULL,
+	strategy JSON NOT NULL,
+	result JSON,
+	command_id VARCHAR(100),
+	error VARCHAR(80),
 	PRIMARY KEY (scope_key, run_id)
 );
 CREATE TABLE demo_account_snapshots (
-	account_key VARCHAR(64) NOT NULL, 
-	facts_hash VARCHAR(64) NOT NULL, 
-	facts JSON NOT NULL, 
-	observed_at VARCHAR(40) NOT NULL, 
+	account_key VARCHAR(64) NOT NULL,
+	facts_hash VARCHAR(64) NOT NULL,
+	facts JSON NOT NULL,
+	observed_at VARCHAR(40) NOT NULL,
 	PRIMARY KEY (account_key)
 );
 COMMIT;
