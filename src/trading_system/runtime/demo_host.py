@@ -45,7 +45,7 @@ class DemoRuntimeHost:
     def admit_management(context: AdmissionContext, *, cancel=False):
         if not context.authorized or context.now >= context.decision_expires_at:
             raise DemoError('DEMO_NOT_AUTHORIZED')
-        if context.capability_state != 'DEMO_VERIFIED' or len(context.code_sha) != 40 or context.qualified_sha != context.code_sha:
+        if context.capability_state not in ({'DEMO_VERIFIED', 'INVALIDATED_BALANCE'} if cancel else {'DEMO_VERIFIED'}) or len(context.code_sha) != 40 or context.qualified_sha != context.code_sha:
             raise DemoError('DEMO_CAPABILITY_NOT_QUALIFIED')
         if not 0 <= context.now - context.account_at <= 15:
             raise DemoError('DEMO_SNAPSHOT_STALE')

@@ -336,3 +336,31 @@ def test_slow_before_model_guard_leaves_event_loop_responsive(host):
         with pytest.raises(DemoError, match='DEMO_STOP_REQUESTED'): await task
     asyncio.run(scenario())
     assert calls == []
+
+
+def test_balance_invalidation_schedules_only_original_entry_cancel(host):
+    from sqlalchemy import update
+    from types import SimpleNamespace
+    from trading_system.storage.demo import accounts
+    from trading_system.server.demo_snapshot import snapshot_hash
+    service, repo, scope, config = host
+    asyncio.run(service.assess_once('entry-before-reset'))
+    entry = service.admit_assessment('entry-before-reset')
+    repo.begin_send(scope, entry['command_id'], expected_revision=0, now=int(service.clock()))
+    proof = {'state':'DEMO_VERIFIED','evidence_sha256':'f'*64,'official_contract_revision':'fixture'}
+    evidence = {'state':'INVALIDATED_BALANCE','code_sha':'a'*40,'account_key':scope.account_key,'credential_revision':0,
+                'product':'SPOT','capabilities':{'CANCEL':proof}}
+    with repo.transaction(scope.account_key) as conn: conn.execute(update(accounts).values(qualification=evidence))
+    def current():
+        result = frame(scope, config)
+        result['bindings']['account_revision'] = repo.account(scope)['revision']
+        result['bindings']['qualification_hash'] = __import__('trading_system.engine.binance_demo.contracts',fromlist=['digest']).digest(evidence)
+        result['snapshot_hash'] = snapshot_hash(result); result['snapshot_id'] = 'demo-snapshot:' + result['snapshot_hash'][:32]
+        return result
+    service.frame_loader = current
+    service.stream = SimpleNamespace(healthy=True, credential_ref='demo-session:fixture')
+    service.owner = SimpleNamespace(transport=SimpleNamespace())
+    result = service.protection_tick()
+    assert result['state'] == 'CANCEL_ENTRY_FIRST'
+    assert len(result['commands']) == 1 and result['commands'][0]['method'] == 'DELETE'
+    assert result['commands'][0]['request']['origClientOrderId'] == entry['client_id']

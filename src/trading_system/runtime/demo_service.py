@@ -413,14 +413,29 @@ class DemoRuntimeService:
                         if execute:
                             await settled_thread(self.repository.abandon_stale_unsent, runtime.host.scope, now=int(time.time()))
                             health = await settled_thread(self.repository.health, runtime.host.scope)
+                            account = await settled_thread(self.repository.account, runtime.host.scope)
+                            if (account.get('qualification') or {}).get('state') == 'INVALIDATED_BALANCE':
+                                # Risk-reducing cancellation of known original
+                                # entries must not wait behind ambiguous REST
+                                # backfill, which may itself be blocked.
+                                await settled_thread(verify_binding)
+                                protection = await settled_thread(runtime.host.protection_tick)
+                                for command in protection['commands']:
+                                    await settled_thread(verify_binding)
+                                    await settled_thread(runtime.host.dispatch, command['command_id'])
+                                if health['unknown'] and time.monotonic() - last_recovery >= 5:
+                                    last_recovery = time.monotonic()
+                                    await settled_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
+                                await asyncio.sleep(1)
+                                continue
                             if health['unknown'] and time.monotonic() - last_recovery >= 5:
-                                await settled_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
                                 last_recovery = time.monotonic()
+                                await settled_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
                             await settled_thread(verify_binding)
                             protection = await settled_thread(runtime.host.protection_tick)
                             if protection['state'] == 'RECONCILIATION_REQUIRED' and time.monotonic() - last_recovery >= 5:
-                                await settled_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
                                 last_recovery = time.monotonic()
+                                await settled_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
                             for command in protection['commands']:
                                 await settled_thread(self._runtime, session_key)
                                 def dispatch_protection():

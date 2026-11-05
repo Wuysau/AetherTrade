@@ -67,6 +67,14 @@ class DemoReportVerifier:
                     self._release_mitigation(conn, scope, row)
                 # REST trades do not imply an order terminal state. Query that separately.
                 conn.execute(update(inbox).where(inbox.c.observation_id == observation_id).values(state='PROCESSED', attempts=inbox.c.attempts + 1))
+                # Only an exact, successfully verified REST fact may resolve a
+                # prior unknown-ownership marker. It never sets READY.
+                from trading_system.storage.demo import outbox
+                fact_hash = digest(event)
+                unresolved_id = digest([scope.account_key, 'UNRESOLVED_TRADE_HISTORY', fact_hash])
+                if conn.execute(select(outbox.c.event_id).where(outbox.c.event_id == unresolved_id)).first():
+                    self.repository._event(conn, scope.account_key, 'RESOLVED_TRADE_HISTORY', fact_hash,
+                        {'trade_hash':fact_hash, 'observation_id':observation_id, 'command_id':row['command_id']})
                 return True
             if observation['source'] == 'REST_ORDER':
                 event = {'e': 'executionReport', 's': event.get('symbol'), 'c': event.get('clientOrderId'),

@@ -248,7 +248,7 @@ class DemoStrategyHost:
 
     def drain_inbox(self, *, limit=100):
         processed = 0
-        for observation in self.repository.pending_observations(self.scope, limit):
+        for observation in self.repository.pending_observations(self.scope, limit, exclude_account_positions=True):
             if not observation.get('scope'):
                 raise DemoError('DEMO_OBSERVATION_SCOPE_MISSING')
             DemoReportVerifier(self.repository).process(DemoScope(**observation['scope']), observation['observation_id'])
@@ -306,6 +306,16 @@ class DemoStrategyHost:
             expected_account_revision=binding['account_revision'], expected_strategy_revision=strategy['revision'])
 
     def protection_tick(self):
+        account = self.repository.account(self.scope)
+        if (account.get('qualification') or {}).get('state') == 'INVALIDATED_BALANCE':
+            # Existing, separately qualified CANCEL may reduce an open entry's
+            # risk. Do not create a new sell or claim hosted coverage here.
+            entries = [row for row in self.repository.active_orders(self.scope)
+                if row['purpose'] == 'ENTRY' and row['request'].get('side') == 'BUY' and
+                row['state'] in {'MAY_HAVE_SENT', 'UNKNOWN', 'ACKNOWLEDGED', 'OBSERVED'}]
+            cancellations = [self.stage_cancel(row['command_id']) for row in entries]
+            return {'state':'CANCEL_ENTRY_FIRST' if entries else 'BALANCE_REVIEW_REQUIRED',
+                    'commands':[row for row in cancellations if row['state'] == 'DURABLE_READY']}
         duties = self.repository.protection_duties(self.scope)
         if not duties:
             self.repository.abandon_unneeded_protection(self.scope)

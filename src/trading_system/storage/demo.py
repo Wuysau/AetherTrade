@@ -104,6 +104,38 @@ plan_updates = Table('demo_plan_updates', metadata,
     UniqueConstraint('scope_key', 'run_id', name='demo_exit_update_identity'))
 
 
+def unresolved_trade_history(conn, account_key, *, limit=100000):
+    """Fail closed on excessive or malformed history; resolved requires an audit event."""
+    rows = conn.execute(select(outbox).where(outbox.c.account_key == account_key,
+        outbox.c.kind.in_(['UNRESOLVED_TRADE_HISTORY', 'RESOLVED_TRADE_HISTORY'])).limit(limit + 1)).mappings().all()
+    if len(rows) > limit: raise DemoError('DEMO_HISTORY_REVIEW_LIMIT_EXCEEDED')
+    pending, resolved = {}, set()
+    for row in rows:
+        payload = row['payload'] if isinstance(row['payload'], dict) else {}
+        key = payload.get('trade_hash')
+        if not isinstance(key, str) or len(key) != 64: raise DemoError('DEMO_HISTORY_REVIEW_CORRUPT')
+        if row['kind'] == 'UNRESOLVED_TRADE_HISTORY': pending[key] = dict(row)
+        else: resolved.add(key)
+    return [row for key, row in pending.items() if key not in resolved]
+
+
+def balance_invalidated_evidence(evidence):
+    """Preserve only an already-qualified, separately bound cancel capability."""
+    import re
+    if not isinstance(evidence, dict): return None
+    if evidence.get('state') == 'INVALIDATED_BALANCE': return evidence
+    if evidence.get('state') != 'DEMO_VERIFIED': return None
+    capabilities = evidence.get('capabilities')
+    if not isinstance(capabilities, dict): capabilities = {}
+    proof = capabilities.get('CANCEL') or (evidence if evidence.get('order_type') == 'CANCEL' else {})
+    if (not isinstance(proof, dict) or proof.get('state') != 'DEMO_VERIFIED' or
+            not re.fullmatch(r'[0-9a-f]{64}', proof.get('evidence_sha256') or '') or
+            not isinstance(proof.get('official_contract_revision'), str) or not proof['official_contract_revision']):
+        return None
+    return {**{key:evidence.get(key) for key in ('code_sha','account_key','credential_revision','product')},
+            'state':'INVALIDATED_BALANCE', 'capabilities':{'CANCEL':{key:proof[key] for key in ('state','evidence_sha256','official_contract_revision')}}}
+
+
 def final_activity_digest(conn, scope, *, limit=100000):
     # Caller holds the account row lock. Include every durable account fact
     # that can change trading/recovery, not account revision alone.
@@ -124,7 +156,7 @@ def final_activity_digest(conn, scope, *, limit=100000):
     if len(rows) > remaining: raise DemoError('DEMO_ACTIVITY_LIMIT_EXCEEDED')
     snapshot[inbox.name] = [dict(row) for row in rows]
     safety = conn.execute(select(outbox).where(outbox.c.account_key == scope.account_key,
-        outbox.c.kind.in_(['EXECUTION_RISK_BREACH','ACCOUNT_PAUSED']))
+        outbox.c.kind.in_(['EXECUTION_RISK_BREACH','ACCOUNT_PAUSED','UNRESOLVED_TRADE_HISTORY','RESOLVED_TRADE_HISTORY','BALANCE_BASELINE_INVALIDATED']))
         .order_by(outbox.c.event_id).limit(remaining - len(rows) + 1)).mappings().all()
     if len(safety) > remaining - len(rows): raise DemoError('DEMO_ACTIVITY_LIMIT_EXCEEDED')
     # Only the two mandatory local teardown pauses are expected after the
@@ -232,6 +264,11 @@ class DemoRepository:
     def stage(self, scope, *, command_id, request, reserve_asset, reserve_amount, available, authorization_ref, expires_at, now, method='POST', purpose='ENTRY', protection_plan=None, risk_receipt=None, expected_account_revision=None, expected_strategy_revision=None, reject_active_orders=False):
         if scope.product != 'SPOT' or method not in {'POST', 'DELETE'}:
             raise DemoError('DEMO_CAPABILITY_NOT_SUPPORTED')
+        if ((method == 'DELETE' and purpose != 'CANCEL') or
+                (method == 'POST' and (purpose not in {'ENTRY', 'REDUCTION', 'PROTECTION'} or
+                 (purpose == 'ENTRY' and request.get('side') != 'BUY') or
+                 (purpose in {'REDUCTION', 'PROTECTION'} and request.get('side') != 'SELL')))):
+            raise DemoError('DEMO_ORDER_PURPOSE_INVALID')
         amount, available = decimal(reserve_amount), decimal(available)
         if not authorization_ref or type(expires_at) is not int or not now < expires_at <= now + 300:
             raise DemoError('DEMO_AUTHORIZATION_EXPIRED')
@@ -283,6 +320,8 @@ class DemoRepository:
                 raise DemoError('DEMO_EPOCH_FROZEN')
             if method == 'POST' and purpose == 'ENTRY' and conn.execute(select(outbox.c.event_id).where(outbox.c.account_key == scope.account_key, outbox.c.kind == 'EXECUTION_RISK_BREACH')).first():
                 raise DemoError('DEMO_EXECUTION_RISK_BREACH')
+            if method == 'POST' and purpose == 'ENTRY' and unresolved_trade_history(conn, scope.account_key):
+                raise DemoError('DEMO_UNRESOLVED_TRADE_HISTORY_REVIEW_REQUIRED')
             if expected_account_revision is not None and account['revision'] != expected_account_revision:
                 raise DemoError('DEMO_DECISION_BINDING_CHANGED')
             if expected_strategy_revision is not None:
@@ -328,6 +367,8 @@ class DemoRepository:
             if row['method'] == 'POST':
                 if row['purpose'] == 'ENTRY' and conn.execute(select(outbox.c.event_id).where(outbox.c.account_key == scope.account_key, outbox.c.kind == 'EXECUTION_RISK_BREACH')).first():
                     raise DemoError('DEMO_EXECUTION_RISK_BREACH')
+                if row['purpose'] == 'ENTRY' and unresolved_trade_history(conn, scope.account_key):
+                    raise DemoError('DEMO_UNRESOLVED_TRADE_HISTORY_REVIEW_REQUIRED')
                 pending = conn.execute(select(inbox.c.observation_id).where(inbox.c.state != 'PROCESSED', inbox.c.observation_id.in_(select(observations.c.observation_id).where(observations.c.account_key == scope.account_key)))).first()
                 if pending:
                     raise DemoError('DEMO_INBOX_RECONCILIATION_REQUIRED')
@@ -353,13 +394,19 @@ class DemoRepository:
 
     def observe(self, scope, *, source, payload, received_at, credential_ref, credential_revision=None, stream_generation=None):
         # Internal transport/stream boundary only. There is no HTTP ingest route.
-        if source not in {'WS_EXECUTION_REPORT', 'WS_UNSUPPORTED_EVENT', 'REST_ORDER', 'REST_TRADES'}:
+        if source not in {'WS_EXECUTION_REPORT', 'WS_ACCOUNT_POSITION', 'WS_UNSUPPORTED_EVENT', 'REST_ORDER', 'REST_TRADES'}:
             raise DemoError('DEMO_OBSERVATION_SOURCE_REJECTED')
         encoded = str(payload).lower()
         if any(key in encoded for key in ('apikey', 'secret', 'signature', 'authorization')):
             raise DemoError('DEMO_OBSERVATION_SECRET_REJECTED')
         payload_hash = digest(payload)
-        observation_id = digest([scope.key, source, payload_hash])
+        if source in {'WS_ACCOUNT_POSITION', 'WS_UNSUPPORTED_EVENT'}:
+            # These event types have no documented unique event ID. Identical
+            # frames may be separate activity and must both survive a checkpoint.
+            from uuid import uuid4
+            observation_id = digest([scope.key, source, payload_hash, uuid4().hex])
+        else:
+            observation_id = digest([scope.key, source, payload_hash])
         with self.transaction(scope.account_key) as conn:
             account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
             if (account['credential_ref'] != credential_ref or account['frozen'] or
@@ -375,6 +422,21 @@ class DemoRepository:
                 conn.execute(insert(inbox).values(observation_id=observation_id,
                     state='CONFLICT' if source == 'WS_UNSUPPORTED_EVENT' else 'PENDING', attempts=0,
                     reason='DEMO_UNSUPPORTED_STREAM_EVENT' if source == 'WS_UNSUPPORTED_EVENT' else None))
+                if source == 'WS_ACCOUNT_POSITION':
+                    # Persist first; no account event is itself a ledger entry.
+                    conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(
+                        state='RECOVERY_REQUIRED', revision=accounts.c.revision + 1))
+                    conn.execute(update(protection).where(protection.c.account_key == scope.account_key,
+                        protection.c.state == 'HOSTED_ACTIVE').values(state='REQUIRED', coverage_until=0))
+                elif source == 'WS_UNSUPPORTED_EVENT' and payload.get('e') in {'balanceUpdate', 'externalLockUpdate'}:
+                    # Deposits, withdrawals, transfers and external locks can
+                    # invalidate the old balance proof; never post their delta.
+                    conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(
+                        qualification=balance_invalidated_evidence(account['qualification']), state='RECOVERY_REQUIRED', revision=accounts.c.revision + 1))
+                    conn.execute(update(protection).where(protection.c.account_key == scope.account_key,
+                        protection.c.state == 'HOSTED_ACTIVE').values(state='REQUIRED', coverage_until=0))
+                    self._event(conn, scope.account_key, 'BALANCE_BASELINE_INVALIDATED', observation_id,
+                        {'reason':'DEMO_EXTERNAL_BALANCE_ACTIVITY', 'previous_qualification_hash':digest(account['qualification'] or {})})
         return observation_id
 
     def freeze_on_conflict(self, scope, observation_id, reason):
@@ -490,6 +552,52 @@ class DemoRepository:
                 return balances
             return row['balances']
 
+    def invalidate_balance_baseline(self, scope, *, expected_revision, stream=None):
+        """Revoke qualification without overwriting historical balance facts."""
+        from uuid import uuid4
+        with self.safety_guard(scope), self.transaction(scope.account_key) as conn:
+            row = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
+            if row['revision'] != expected_revision: raise DemoError('DEMO_ACCOUNT_READ_RACED')
+            if stream is not None:
+                if hasattr(stream, 'validate_owner'): stream.validate_owner()
+                if (not stream.healthy or row['credential_ref'] != stream.credential_ref or
+                        row['credential_revision'] != stream.credential_revision):
+                    raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
+            if self.engine.dialect.name == 'postgresql':
+                if stream is None: raise DemoError('DEMO_PHYSICAL_GENERATION_REJECTED')
+                require_physical_generation(conn, scope, getattr(stream, 'physical_generation', None))
+            unresolved = conn.execute(select(inbox.c.observation_id).join(observations,
+                inbox.c.observation_id == observations.c.observation_id).where(observations.c.account_key == scope.account_key,
+                observations.c.source != 'WS_ACCOUNT_POSITION', inbox.c.state != 'PROCESSED')).first()
+            active = conn.execute(select(commands.c.command_id).where(commands.c.account_key == scope.account_key,
+                commands.c.state.in_(['MAY_HAVE_SENT', 'UNKNOWN', 'ACKNOWLEDGED', 'OBSERVED']),
+                (commands.c.order_status.is_(None) | commands.c.order_status.not_in(['FILLED', 'CANCELED', 'EXPIRED', 'REJECTED', 'EXPIRED_IN_MATCH']) |
+                 (commands.c.reserve_amount != '0')))).first()
+            if unresolved or active: raise DemoError('DEMO_BALANCE_RECONCILIATION_INCOMPLETE')
+            terminals = conn.execute(select(commands).where(commands.c.account_key == scope.account_key,
+                commands.c.method == 'POST', commands.c.order_status.in_(['FILLED', 'CANCELED', 'EXPIRED', 'REJECTED', 'EXPIRED_IN_MATCH'])).limit(100001)).mappings().all()
+            if len(terminals) > 100000: raise DemoError('DEMO_BALANCE_RECONCILIATION_INCOMPLETE')
+            all_fills = conn.execute(select(fills.c.symbol, fills.c.order_id, fills.c.payload).where(
+                fills.c.account_key == scope.account_key).limit(100001)).all()
+            if len(all_fills) > 100000: raise DemoError('DEMO_BALANCE_RECONCILIATION_INCOMPLETE')
+            totals = {}
+            for symbol, order_id, item in all_fills:
+                quantity, quote = totals.get((symbol, order_id), (Decimal(0), Decimal(0)))
+                totals[(symbol, order_id)] = (quantity + decimal(item['quantity']), quote + decimal(item['quote_quantity']))
+            for command in terminals:
+                expected = decimal(command['cumulative_qty'])
+                if expected == 0: continue
+                if command['order_id'] is None: raise DemoError('DEMO_BALANCE_RECONCILIATION_INCOMPLETE')
+                quantity, quote = totals.get((command['request']['symbol'], command['order_id']), (Decimal(0), Decimal(0)))
+                if quantity != expected:
+                    raise DemoError('DEMO_BALANCE_RECONCILIATION_INCOMPLETE')
+                if command['request']['type'] == 'MARKET' and quote != decimal(command['cumulative_quote']):
+                    raise DemoError('DEMO_BALANCE_RECONCILIATION_INCOMPLETE')
+            conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(
+                qualification=balance_invalidated_evidence(row['qualification']), state='RECOVERY_REQUIRED', revision=accounts.c.revision + 1))
+            self._event(conn, scope.account_key, 'BALANCE_BASELINE_INVALIDATED', uuid4().hex,
+                {'reason':'DEMO_BALANCE_MISMATCH', 'previous_qualification_hash':digest(row['qualification'] or {})})
+
     def account_deltas(self, scope):
         result = {}
         with self.engine.connect() as conn:
@@ -507,6 +615,57 @@ class DemoRepository:
         if len(matches) != 1:
             raise DemoError('DEMO_ORDER_BINDING_REJECTED')
         return DemoScope(**matches[0]['scope'])
+
+    def record_unresolved_trade(self, scope, *, symbol, trade, credential_ref, credential_revision, stream_generation):
+        """Record an unresolved fact without attributing it to a strategy.
+
+        It may be an external trade or one of our own unresolved sends. A hash
+        is an audit marker, not proof of ownership or history completeness.
+        """
+        with self.safety_guard(scope), self.transaction(scope.account_key) as conn:
+            account = conn.execute(select(accounts).where(accounts.c.account_key == scope.account_key)).mappings().one()
+            if (account['credential_ref'] != credential_ref or type(credential_revision) is not int or
+                    account['credential_revision'] != credential_revision):
+                raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
+            if self.engine.dialect.name == 'postgresql':
+                require_physical_generation(conn, scope, stream_generation)
+            order_id = trade.get('orderId')
+            if type(order_id) is int and order_id >= 0:
+                matches = [row for row in conn.execute(select(commands).where(commands.c.account_key == scope.account_key,
+                    commands.c.namespace == 'SPOT', commands.c.order_id == str(order_id))).mappings()
+                    if row['request'].get('symbol') == symbol]
+                if len(matches) == 1:
+                    return DemoScope(**matches[0]['scope'])
+            fact_hash = digest(trade)
+            # Retain documented economic fields, not arbitrary venue payload
+            # fields or credentials. Unknown/oversized fields remain blocked.
+            fields = {'symbol','id','orderId','orderListId','price','qty','quoteQty',
+                      'commission','commissionAsset','time','isBuyer','isMaker','isBestMatch'}
+            import re
+            def safe_value(key, value):
+                if key in {'symbol', 'commissionAsset'}:
+                    return type(value) is str and re.fullmatch(r'[A-Z0-9]{1,20}', value) is not None
+                if key in {'price', 'qty', 'quoteQty', 'commission'}:
+                    try:
+                        return type(value) is str and decimal(value) >= 0
+                    except DemoError:
+                        return False
+                if key in {'id', 'orderId', 'orderListId', 'time'}:
+                    return type(value) is int and (-1 if key == 'orderListId' else 0) <= value < 2**63
+                return key in {'isBuyer', 'isMaker', 'isBestMatch'} and type(value) is bool
+            fact = {key:value for key, value in trade.items() if key in fields and safe_value(key, value)}
+            complete = set(fact) == fields and set(trade) == fields
+            # Expose only bounded numeric venue identifiers for later review.
+            def venue_id(value):
+                return str(value) if type(value) is int and 0 <= value < 2**63 else None
+            self._event(conn, scope.account_key, 'UNRESOLVED_TRADE_HISTORY', fact_hash,
+                        {'symbol':symbol, 'trade_hash':fact_hash, 'credential_revision':credential_revision,
+                         'stream_generation':stream_generation, 'trade_id':venue_id(trade.get('id')),
+                         'order_id':venue_id(trade.get('orderId')), 'trade_fact':fact,
+                         'trade_fact_complete':complete})
+            conn.execute(update(accounts).where(accounts.c.account_key == scope.account_key).values(
+                state='RECOVERY_REQUIRED', revision=accounts.c.revision + 1))
+            return None
 
     def save_strategy(self, scope, config, *, expected_revision):
         if type(config.get('revision')) is not int or config['revision'] != expected_revision + 1 or type(config.get('authorized')) is not bool:
@@ -578,12 +737,14 @@ class DemoRepository:
                 raise DemoError('DEMO_DECISION_COMMAND_CONFLICT')
             conn.execute(update(decisions).where(decisions.c.scope_key == scope.key, decisions.c.run_id == run_id).values(state='STAGED', command_id=command_id))
 
-    def pending_observations(self, scope, limit=100):
+    def pending_observations(self, scope, limit=100, *, exclude_account_positions=False):
         if type(limit) is not int or not 1 <= limit <= 1000:
             raise DemoError('DEMO_INBOX_LIMIT_INVALID')
         with self.engine.connect() as conn:
-            return [dict(row) for row in conn.execute(select(observations).join(inbox, observations.c.observation_id == inbox.c.observation_id).where(
-                observations.c.account_key == scope.account_key, inbox.c.state == 'PENDING').order_by(observations.c.received_at, observations.c.observation_id).limit(limit)).mappings()]
+            query = select(observations).join(inbox, observations.c.observation_id == inbox.c.observation_id).where(
+                observations.c.account_key == scope.account_key, inbox.c.state == 'PENDING')
+            if exclude_account_positions: query = query.where(observations.c.source != 'WS_ACCOUNT_POSITION')
+            return [dict(row) for row in conn.execute(query.order_by(observations.c.received_at, observations.c.observation_id).limit(limit)).mappings()]
 
     def record_account_snapshot(self, scope, facts, *, observed_at, expected_revision):
         with self.safety_guard(scope), self.transaction(scope.account_key) as conn:
@@ -628,6 +789,11 @@ class DemoRepository:
             cs = conn.execute(select(commands).where(*scoped(commands)).order_by(commands.c.command_id.desc()).limit(limit)).mappings().all()
             os = conn.execute(select(observations, inbox.c.state.label('inbox_state')).outerjoin(inbox, inbox.c.observation_id == observations.c.observation_id).where(*scoped(observations)).order_by(observations.c.received_at.desc(), observations.c.observation_id.desc()).limit(limit)).mappings().all()
             fs = conn.execute(select(fills).where(*scoped(fills)).order_by(fills.c.occurred_at.desc(), fills.c.fill_key.desc()).limit(limit)).mappings().all()
+            unresolved = sorted(unresolved_trade_history(conn, scope.account_key),
+                key=lambda row: (row['created_at'], row['event_id']), reverse=True)[:limit]
+            position_count = conn.execute(select(func.count()).select_from(observations.join(inbox,
+                observations.c.observation_id == inbox.c.observation_id)).where(observations.c.account_key == scope.account_key,
+                observations.c.source == 'WS_ACCOUNT_POSITION', inbox.c.state == 'PENDING')).scalar_one()
         def decision(row):
             result = row['result'] if isinstance(row['result'], dict) else {}
             body = result.get('decision') if isinstance(result.get('decision'), dict) else {}
@@ -654,6 +820,10 @@ class DemoRepository:
                     'confirmation':'VENUE_OBSERVED', **{key:payload.get(key) for key in fields}}
         return {'decisions':[decision(row) for row in ds], 'orders':[command(row) for row in cs],
                 'reports':[observation(row) for row in os], 'fills':[fill(row) for row in fs],
+                'unresolved_trade_history':[{**{key:row['payload'].get(key) for key in ('symbol','trade_hash','trade_id','order_id','trade_fact_complete')},
+                    'recorded_at':row['created_at']} for row in unresolved],
+                'account_position_review':{'state':'PENDING' if position_count else 'NONE', 'count':position_count,
+                    'execution_authorized':False, 'blocker':'DEMO_ACCOUNT_STREAM_SNAPSHOT_ORDERING_UNQUALIFIED' if position_count else None},
                 'pnl':{'state':'UNAVAILABLE', 'realized_usdt':None, 'unrealized_usdt':None, 'reason':'DEMO_PNL_EVIDENCE_INCOMPLETE'},
                 'limit':limit, 'complete_history':False}
 
@@ -693,6 +863,10 @@ class DemoRepository:
             row = conn.execute(select(protection).where(protection.c.fill_key == fill_key, protection.c.scope_key == scope.key)).mappings().one()
             if not row['plan'] or row['plan'].get('mode') != 'HOSTED' or row['plan']['authorization_ref'] != authorization_ref or row['state'] not in {'REQUIRED', 'HOSTED_ACTIVE'}:
                 raise DemoError('DEMO_PROTECTION_AUTHORITY_INVALID')
+            pending = conn.execute(select(inbox.c.observation_id).join(observations,
+                inbox.c.observation_id == observations.c.observation_id).where(observations.c.account_key == scope.account_key,
+                inbox.c.state != 'PROCESSED')).first()
+            if pending: raise DemoError('DEMO_PROTECTION_RECONCILIATION_REQUIRED')
             conn.execute(update(protection).where(protection.c.fill_key == fill_key).values(state='HOSTED_ACTIVE', coverage_until=until))
 
     def bind_mitigation(self, scope, fill_keys, command_id):

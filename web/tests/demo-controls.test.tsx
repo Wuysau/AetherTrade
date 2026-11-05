@@ -66,3 +66,35 @@ it('shows durable records without treating unknown orders as confirmed or invent
   expect(screen.getByText(/UNAVAILABLE.*DEMO_PNL_EVIDENCE_INCOMPLETE/)).toBeDefined();
   expect(screen.getByText(/可能不完整或过时/)).toBeDefined();
 });
+
+it('shows unresolved account history as requiring review, not a strategy fill', async () => {
+  const api = new RuntimeApi(async path => {
+    const name = String(path);
+    if (name.endsWith('/model-configs')) return new Response(JSON.stringify({profiles:[]}));
+    if (name.endsWith('/runtime/status')) return new Response(JSON.stringify({configured:true,execution_authorized:false}));
+    if (name.endsWith('/runtime/observations')) return new Response(JSON.stringify({decisions:[],orders:[],reports:[],fills:[],
+      unresolved_trade_history:[{symbol:'BTCUSDT',trade_id:'12',order_id:'345',trade_hash:'abc',recorded_at:100}],
+      pnl:{state:'UNAVAILABLE',reason:'DEMO_PNL_EVIDENCE_INCOMPLETE'},complete_history:false}));
+    throw new Error('unexpected request');
+  });
+  render(<LocaleProvider><DemoRuntimeControls api={api} /></LocaleProvider>);
+  fireEvent.click(screen.getByRole('button',{name:'读取记录'}));
+  await screen.findByText(/未归属成交记录需要核对/);
+  expect(screen.getByText(/BTCUSDT.*345.*12/)).toBeDefined();
+});
+
+it('shows account balance frames still blocking recovery', async () => {
+  const api = new RuntimeApi(async path => {
+    const name = String(path);
+    if (name.endsWith('/model-configs')) return new Response(JSON.stringify({profiles:[]}));
+    if (name.endsWith('/runtime/status')) return new Response(JSON.stringify({configured:true,execution_authorized:false}));
+    if (name.endsWith('/runtime/observations')) return new Response(JSON.stringify({decisions:[],orders:[],reports:[],fills:[],
+      account_position_review:{state:'PENDING',count:2,execution_authorized:false,blocker:'DEMO_ACCOUNT_STREAM_SNAPSHOT_ORDERING_UNQUALIFIED'},
+      pnl:{state:'UNAVAILABLE',reason:'DEMO_PNL_EVIDENCE_INCOMPLETE'},complete_history:false}));
+    throw new Error('unexpected request');
+  });
+  render(<LocaleProvider><DemoRuntimeControls api={api} /></LocaleProvider>);
+  fireEvent.click(screen.getByRole('button',{name:'读取记录'}));
+  await screen.findByText(/2 条余额事件仍待核对/);
+  expect(screen.getByText(/DEMO_ACCOUNT_STREAM_SNAPSHOT_ORDERING_UNQUALIFIED/)).toBeDefined();
+});

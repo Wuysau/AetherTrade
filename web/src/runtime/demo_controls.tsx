@@ -21,6 +21,8 @@ interface Observations {
   orders: Array<{command_id:string; state:string; confirmation:string; order_id:string | null; order_status:string | null}>;
   reports: Array<{observation_id:string; source:string; received_at:number; inbox_state:string | null}>;
   fills: Array<{symbol:string; order_id:string; trade_id:string; quantity:string | null; price:string | null; confirmation:string}>;
+  unresolved_trade_history?: Array<{symbol:string; order_id:string | null; trade_id:string | null; trade_hash:string}>;
+  account_position_review?: {state:string; count:number; execution_authorized:false; blocker:string | null};
   pnl: {state:string; reason:string}; complete_history:boolean;
 }
 
@@ -150,6 +152,15 @@ export function DemoRuntimeControls({ api, connectionGeneration = "", connection
         <h4>{text('订单', 'Orders')}</h4><ul>{observations.orders.map(item => <li key={item.command_id}>{item.command_id} · {item.state} · {item.confirmation} · {item.order_id ?? '—'} · {item.order_status ?? '—'}</li>)}</ul>
         <h4>{text('回报', 'Reports')}</h4><ul>{observations.reports.map(item => <li key={item.observation_id}>{item.source} · {item.received_at} · {item.inbox_state ?? 'UNVERIFIED'}</li>)}</ul>
         <h4>{text('成交', 'Fills')}</h4><ul>{observations.fills.map(item => <li key={`${item.symbol}-${item.trade_id}`}>{item.symbol} · {item.order_id} · {item.trade_id} · {item.quantity ?? '—'} @ {item.price ?? '—'} · {item.confirmation}</li>)}</ul>
+        {Boolean(observations.unresolved_trade_history?.length) && <div>
+          <h4>{text('未归属成交记录需要核对', 'Unresolved account trades require review')}</h4>
+          <p>{text('这些记录可能是外部成交或本系统尚未确认的订单，不计入策略成交。只有精确匹配并验证原订单的记录才可解除阻断；其他记录仍需人工核对。', 'These may be external trades or this system’s unconfirmed orders and are not counted as strategy fills. Only a verified exact match to the original order clears a record; other records require review.')}</p>
+          <ul>{observations.unresolved_trade_history?.map(item => <li key={item.trade_hash}>{item.symbol} · {item.order_id ?? '—'} · {item.trade_id ?? '—'}</li>)}</ul>
+        </div>}
+        {Boolean(observations.account_position_review?.count) && <p>
+          {text(`${observations.account_position_review?.count} 条余额事件仍待核对，不能用于恢复交易。`, `${observations.account_position_review?.count} account balance events remain pending; trading cannot resume.`)}
+          {' '}{observations.account_position_review?.blocker}
+        </p>}
         <p>{text('盈亏', 'P&L')}: {observations.pnl.state} · {observations.pnl.reason}</p>
       </div>}
     </section>

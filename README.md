@@ -266,11 +266,14 @@ shipped integration.
 substantial risk of loss, including losses beyond planned limits for leveraged products.
 Do not point this software — or any AI model — at an account you cannot afford to lose.
 
-### Binance Demo (read-only connection, unqualified execution)
+### Binance Demo (controls present; execution unqualified)
 
 The **Binance Demo** page accepts the user's own Demo HMAC API Key and Secret for
 session-only, read-only checks. Credentials are not persisted; PAPER and official
-Demo balances stay separate. The opt-in deployment currently blocks runtime binding pending credential fencing; no order or capability-enable API is exposed.
+Demo balances stay separate. Runtime controls and observation routes are present,
+but the opt-in deployment currently blocks runtime binding and execution pending
+credential fencing, trusted build identity and qualification; no direct order or
+capability-enable API is exposed.
 The branch also contains isolated durable lifecycle foundations, but the full
 Demo order/strategy runtime and PostgreSQL/venue qualification are not complete.
 See [implementation status and remaining gates](docs/binance-demo/README.md).

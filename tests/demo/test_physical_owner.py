@@ -227,6 +227,9 @@ def test_physical_generation_must_match_scope_epoch_and_dirty_row(tmp_path):
 
 
 def test_owner_loss_during_http_never_marks_acknowledged(monkeypatch):
+    # Offline seam exercises lock loss after MAY, not stream qualification.
+    import trading_system.execution.demo_reconcile as barrier
+    monkeypatch.setattr(barrier, 'require_qualified_stream_barrier', lambda: None)
     from contextlib import contextmanager
     from trading_system.execution.demo_commands import DemoExecutionOwner
     from trading_system.runtime.demo_host import DemoRuntimeHost, AdmissionContext
@@ -246,7 +249,7 @@ def test_owner_loss_during_http_never_marks_acknowledged(monkeypatch):
             return {'credential_ref':'fixture','credential_revision':0,'revision':0,'state':'READY',
                 'qualification':{'state':'DEMO_VERIFIED','code_sha':'a'*40,'account_key':scope.account_key,'credential_revision':0,'product':'SPOT',
                 'capabilities':{'LIMIT':{'state':'DEMO_VERIFIED','evidence_sha256':'e','official_contract_revision':'v'}}}}
-        def command(self, scope, command): return {'method':'POST','purpose':'ENTRY','request':{'type':'LIMIT'}}
+        def command(self, scope, command): return {'method':'POST','purpose':'ENTRY','request':{'type':'LIMIT','side':'BUY'}}
         def health(self, scope): return {'unknown':0,'unprotected':0,'pending_inbox':0,'risk_breaches':0}
         def begin_send(self, *args, **kwargs): events.append('MAY'); return {'method':'POST','request':{'type':'LIMIT'}}
         def acknowledge(self, *args): events.append('ACK')

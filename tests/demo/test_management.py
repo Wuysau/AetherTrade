@@ -129,3 +129,67 @@ def test_partial_protection_fee_exhausts_owned_duty_but_keeps_live_order_visible
     assert repo.health(scope)['risk_breaches'] == 2
     assert repo.command(scope, 'protect-excess')['order_status'] == 'PARTIALLY_FILLED'
     assert repo.command(scope, 'protect-excess')['reserve_amount'] != '0'
+
+
+def test_account_position_pending_revokes_and_prevents_hosted_coverage(repo, scope):
+    from sqlalchemy import select
+    from trading_system.storage.demo import protection
+    buy(repo, scope)
+    duty = repo.protection_duties(scope)[0]
+    repo.renew_hosted_protection(scope, fill_key=duty['fill_key'], now=110, until=115, authorization_ref='grant')
+    repo.observe(scope, source='WS_ACCOUNT_POSITION', payload={'e':'outboundAccountPosition','E':110000,'u':110000,'B':[{'a':'USDT','f':'500','l':'0'}]},
+        received_at=110, credential_ref='demo-session:fixture', credential_revision=0)
+    with repo.engine.connect() as conn:
+        stored = conn.execute(select(protection).where(protection.c.fill_key==duty['fill_key'])).mappings().one()
+        assert stored['state'] == 'REQUIRED' and stored['coverage_until'] == 0
+    with pytest.raises(DemoError, match='DEMO_PROTECTION_RECONCILIATION_REQUIRED'):
+        repo.renew_hosted_protection(scope, fill_key=duty['fill_key'], now=111, until=116, authorization_ref='grant')
+
+
+def test_balance_invalidation_preserves_only_bound_cancel_capability(repo, scope, monkeypatch):
+    from contextlib import contextmanager
+    from dataclasses import replace
+    from sqlalchemy import update
+    from trading_system.storage.demo import accounts
+    from trading_system.execution.demo_commands import DemoExecutionOwner
+    from test_lifecycle import ready_context
+    register(repo, scope)
+    repo.stage(scope, command_id='entry', request=order(), reserve_asset='USDT', reserve_amount='500', available='1000', authorization_ref='grant', expires_at=200, now=100)
+    repo.begin_send(scope, 'entry', expected_revision=0, now=101)
+    repo.acknowledge(scope, 'entry', {'symbol':'BTCUSDT','clientOrderId':'original','orderId':22})
+    repo.observe(scope, source='WS_EXECUTION_REPORT', payload=report(x='NEW',X='NEW',t=-1,l='0',z='0'), received_at=105,
+                 credential_ref='demo-session:fixture', credential_revision=0)
+    DemoReportVerifier(repo).process(scope, observed(repo, scope, report(x='NEW',X='NEW',t=-1,l='0',z='0')))
+    proof = {'state':'DEMO_VERIFIED','evidence_sha256':'f'*64,'official_contract_revision':'fixture'}
+    qualification = {'state':'DEMO_VERIFIED','code_sha':'a'*40,'account_key':scope.account_key,'credential_revision':0,'product':'SPOT',
+                     'capabilities':{'LIMIT':proof, 'CANCEL':proof}}
+    with repo.transaction(scope.account_key) as conn: conn.execute(update(accounts).values(qualification=qualification))
+    repo.observe(scope, source='WS_UNSUPPORTED_EVENT', payload={'e':'balanceUpdate','E':109000,'a':'USDT','d':'10','T':109000},
+                 received_at=109, credential_ref='demo-session:fixture', credential_revision=0)
+    evidence = repo.account(scope)['qualification']
+    assert evidence['state'] == 'INVALIDATED_BALANCE' and set(evidence['capabilities']) == {'CANCEL'}
+    repo.stage(scope, command_id='cancel-after-reset', request={'symbol':'BTCUSDT','origClientOrderId':'original'}, method='DELETE', purpose='CANCEL',
+               reserve_asset='BTC', reserve_amount='0', available='0', authorization_ref='grant', expires_at=200, now=110)
+    @contextmanager
+    def guard(_): yield
+    monkeypatch.setattr(repo, 'owner_guard', guard)
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def cancel_order(self, params, *, permit):
+            permit.consume('DELETE', params, self.credential_ref)
+            return {'symbol':'BTCUSDT','origClientOrderId':'original','orderId':22}
+    context = replace(ready_context(), account_state='RECOVERY_REQUIRED', capability_state='INVALIDATED_BALANCE', decision_expires_at=200)
+    result = DemoExecutionOwner(repo, Transport(), clock=lambda:110).dispatch(scope, 'cancel-after-reset', context=context)
+    assert result['state'] == 'ACKNOWLEDGED'
+
+
+def test_invalidated_balance_evidence_does_not_authorize_new_or_reduction():
+    from dataclasses import replace
+    from trading_system.runtime.demo_host import DemoRuntimeHost
+    from test_lifecycle import ready_context
+    context = replace(ready_context(), capability_state='INVALIDATED_BALANCE')
+    with pytest.raises(DemoError, match='DEMO_CAPABILITY_NOT_QUALIFIED'):
+        DemoRuntimeHost.admit(context)
+    with pytest.raises(DemoError, match='DEMO_CAPABILITY_NOT_QUALIFIED'):
+        DemoRuntimeHost.admit_management(context, cancel=False)

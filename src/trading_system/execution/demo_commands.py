@@ -68,13 +68,24 @@ class DemoExecutionOwner:
             verify_sender()
             account = self.repository.account(scope)
             command = self.repository.command(scope, command_id)
+            method, purpose = command.get('method'), command.get('purpose')
+            request = command.get('request') if isinstance(command.get('request'), dict) else {}
+            if ((method == 'DELETE' and purpose != 'CANCEL') or
+                    (method == 'POST' and (purpose not in {'ENTRY', 'REDUCTION', 'PROTECTION'} or
+                     (purpose == 'ENTRY' and request.get('side') != 'BUY') or
+                     (purpose in {'REDUCTION', 'PROTECTION'} and request.get('side') != 'SELL'))) or
+                    method not in {'POST', 'DELETE'}):
+                raise DemoError('DEMO_ORDER_PURPOSE_INVALID')
+            if method == 'POST' and purpose == 'ENTRY':
+                from .demo_reconcile import require_qualified_stream_barrier
+                require_qualified_stream_barrier()
             health = self.repository.health(scope)
             evidence = account.get('qualification') or {}
             # Qualification must bind this code, account epoch, key revision,
             # product and exact order type; no blanket ENABLED switch exists.
             required = {'code_sha': context.code_sha, 'account_key': scope.account_key,
                         'credential_revision': account['credential_revision'], 'product': scope.product,
-                        'state': 'DEMO_VERIFIED'}
+                        'state': 'INVALIDATED_BALANCE' if command['method'] == 'DELETE' and evidence.get('state') == 'INVALIDATED_BALANCE' else 'DEMO_VERIFIED'}
             capability = 'CANCEL' if command['method'] == 'DELETE' else command['request'].get('type')
             proof = (evidence.get('capabilities') or {}).get(capability) or (evidence if evidence.get('order_type') == capability else {})
             if any(evidence.get(k) != v for k, v in required.items()) or proof.get('state') != 'DEMO_VERIFIED' or not proof.get('evidence_sha256') or not proof.get('official_contract_revision'):

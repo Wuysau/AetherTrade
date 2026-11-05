@@ -130,12 +130,27 @@ class DemoUserStreamConsumer:
         if not isinstance(event, dict):
             raise DemoError('DEMO_STREAM_EVENT_INVALID')
         kind = event.get('e')
+        if kind == 'outboundAccountPosition':
+            from .account_events import parse_account_position
+            try:
+                parse_account_position(event)
+            except DemoError:
+                pass  # Persist malformed frames as unsupported conflicts below.
+            else:
+                receipt = self.repository.observe(self.scope, source='WS_ACCOUNT_POSITION', payload=event,
+                    received_at=received_at, credential_ref=self.credential_ref, credential_revision=self.credential_revision,
+                    stream_generation=self.physical_generation)
+                self.validate_owner()
+                self.last_event_at = received_at
+                return receipt
         if kind != 'executionReport':
             # Preserve every unsupported frame as a durable conflict. A pause
             # alone is not an activity marker and could be overwritten later.
             receipt = self.repository.observe(self.scope, source='WS_UNSUPPORTED_EVENT', payload=event,
                 received_at=received_at, credential_ref=self.credential_ref, credential_revision=self.credential_revision,
                 stream_generation=self.physical_generation)
+            if kind == 'eventStreamTerminated':
+                self.healthy = False
             self.validate_owner()
             self.repository.pause(self.scope, 'DEMO_STREAM_RECONCILIATION_REQUIRED')
             return receipt

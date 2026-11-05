@@ -27,8 +27,8 @@ Python 不保证已经释放内存的密码学擦除，因此运行主机与进�
 移除凭据不会取消交易所挂单。断开、重启、页面导航都不宣称订单已撤销。
 页面每 10 秒读取本地连接状态，不自动向交易所刷新。过期行情/余额不能用于交易准入。
 
-HTTP 路由仅有 `GET /api/demo/status`、`POST /api/demo/connect`、`POST /api/demo/disconnect`。没有绑定运行时的 HTTP 路由；CLI 的显式部署组合也因凭据 fencing 未资格化而拒绝绑定。其他受信任注入组合若调用内部绑定，会重新读取 Demo 账户并写入隔离数据库，不是只读操作。
-它们沿用本地登录、Origin、CSRF 和 no-store 防护。没有下单、撤单、任意 URL、持久密钥保存、READY 或能力启用路由。
+除了 `GET /api/demo/status`、`POST /api/demo/connect`、`POST /api/demo/disconnect`，还注册了运行时状态、观测、绑定、策略配置、启动、恢复和停止路由及对应控制界面。路由存在不代表部署可用：默认 CLI 没有运行时组合，显式 Demo 部署组合目前因凭据 fencing 未资格化而拒绝绑定，并因构建证明缺失而阻断执行。受信任的其他注入组合若调用绑定，会重新读取 Demo 账户并写入隔离数据库，不是只读操作。
+控制路由沿用本地登录、Origin、CSRF 和 no-store 防护。没有绕开这些门禁的直接下单、撤单、任意 URL、持久密钥保存、READY 或能力启用路由。策略启动可以调用付费模型和产生真实 Demo 订单，仅在完整资格及用户明确授权后才可运行；当前默认部署尚不满足这些条件。
 
 ## 已实现的代码边界
 
@@ -40,6 +40,8 @@ HTTP 路由仅有 `GET /api/demo/status`、`POST /api/demo/connect`、`POST /api
 - `execution/demo_reports.py`：原订单、已发送状态、方向/数量/LIMIT 价格绑定；WS/REST 重放、迟到状态、终态、第三币种手续费、终态先于缺失成交、原子记账和保护责任。
 - `stream.py`：当前 `userDataStream.subscribe.signature`，受限 TLS WebSocket、禁止重定向、关闭私有帧日志、先订阅再并行补查、每条执行回报先入 durable inbox、有界运行窗口。未知列表/余额事件触发对账，不冒充已覆盖的能力。
 - `execution/demo_reconcile.py`：凭据/账户绑定、原 ID 查询、“未找到”不自动重发、跨策略路由、分页重叠与 CAS 游标、订单查询和页数预算、余额差异冻结。单纯补查完成不自动 READY；独立恢复门禁还校验当前资格证据、原始余额基线、完整历史覆盖、挂单一致性、私有流、空 inbox、无 UNKNOWN 与有效保护，并原子记录恢复证据。
+- 现货账户位置帧仅包含部分资产。代码逐帧持久保存并与签名账户快照及已有基线、入账分录核对；相等只记录未资格化的核对结果，不清除待处理帧，也不能证明 REST 与私流无缝衔接或授权交易。`balanceUpdate`、外部锁及无法识别的事件仍作为冲突保留；余额不连续或外部余额活动撤销旧的新风险资格，原基线不会被覆盖；仅保留先前已验证且与原账户和凭据绑定的撤单能力，仍需独立授权和原订单校验。首次写入基线不构成资格证明。官方事件说明见 [Binance Spot User Data Stream](https://developers.binance.com/en/docs/products/spot/user-data-stream)。
+- 历史交易首次从 `fromId=0` 请求，后续要求保留的重叠锚点；无法证明起点的旧游标被阻断。无法归属的成交不会记到策略；文档规定的有界经济字段按账户持久保存，未知或异常字段不会被当作完整记录。只有原始事实经原订单严格验证并入账后才能解除相应记录。起点、空页和这些离线检查都不是 Binance 历史覆盖或实际资格证明。
 - `runtime/demo_host.py`：独立准入规则；当前代码、模型来源、报价/账户时效、私有流、UNKNOWN、预算、未保护敞口任何一项不合格均拒绝。
 - `server/demo_snapshot.py`、`runtime/demo_frame.py`：独立 Demo 快照 schema；固定 Demo 行情/已闭合 K 线/账户费用读取，账户与策略自有持仓分开，策略/模型/规则/账户/凭据/授权/代码全部绑定。
 - `runtime/demo_strategy.py`：RULE、AI、HYBRID；复用真实 ModelService、共识与原有 assessment_v1 校验，不伪装 PAPER；持久决策抢占、回执验证、目标差量、滑点/费用/日损/计划亏损/预算检查，原生命令及保护责任关联。

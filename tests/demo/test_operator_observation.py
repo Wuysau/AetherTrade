@@ -28,3 +28,20 @@ def test_operator_observation_is_scoped_and_does_not_invent_pnl(tmp_path):
     assert view['pnl']['state'] == 'UNAVAILABLE' and view['pnl']['realized_usdt'] is None
     assert 'scope-b' not in str(view) and 'demo-session:fixture' not in str(view)
     engine.dispose()
+
+
+def test_unresolved_history_is_visible_only_to_its_account_without_raw_payload(tmp_path):
+    engine = create_engine(f'sqlite:///{tmp_path / "observer.sqlite"}'); metadata.create_all(engine)
+    repo = DemoRepository(engine)
+    first = DemoScope(account_id='123',account_epoch='epoch',strategy_id='a')
+    other = DemoScope(account_id='456',account_epoch='epoch',strategy_id='a')
+    for scope in (first, other):
+        repo.register_account(scope, credential_ref='demo-session:fixture', fingerprint='fp', budget='1000')
+    repo.record_unresolved_trade(first, symbol='BTCUSDT', trade={'id':12,'orderId':345,'extra':'private-value'},
+        credential_ref='demo-session:fixture', credential_revision=0, stream_generation=None)
+    view = repo.operator_view(first)
+    assert view['unresolved_trade_history'][0]['trade_id'] == '12'
+    assert view['unresolved_trade_history'][0]['order_id'] == '345'
+    assert 'private-value' not in str(view)
+    assert repo.operator_view(other)['unresolved_trade_history'] == []
+    engine.dispose()

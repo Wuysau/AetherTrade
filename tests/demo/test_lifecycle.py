@@ -268,6 +268,9 @@ def test_unsent_command_cannot_claim_venue_facts(repo, scope):
 
 
 def test_owner_commits_may_before_one_attempt_and_never_retries_unknown(repo, scope, monkeypatch):
+    # Offline seam isolates the existing MAY/UNKNOWN mechanism; not venue qualification.
+    import trading_system.execution.demo_reconcile as barrier
+    monkeypatch.setattr(barrier, 'require_qualified_stream_barrier', lambda: None)
     from contextlib import contextmanager
     from sqlalchemy import update
     from trading_system.execution.demo_commands import DemoExecutionOwner
@@ -370,3 +373,45 @@ def test_repeated_unexpected_pause_after_receipt_changes_activity_digest(repo, s
     repo.pause(scope,'DEMO_STREAM_RECONCILIATION_REQUIRED')
     with repo.transaction(scope.account_key) as conn: after = final_activity_digest(conn,scope)
     assert before != after
+
+
+def test_entry_owner_rejects_stale_ready_without_qualified_stream_barrier(repo, scope, monkeypatch):
+    from contextlib import contextmanager
+    from sqlalchemy import update
+    from trading_system.execution.demo_commands import DemoExecutionOwner
+    register(repo, scope)
+    stage(repo, scope)
+    with repo.transaction(scope.account_key) as conn:
+        conn.execute(update(accounts).values(state='READY'))
+    @contextmanager
+    def offline_guard(_): yield
+    monkeypatch.setattr(repo, 'owner_guard', offline_guard)
+    with pytest.raises(DemoError, match='DEMO_ACCOUNT_STREAM_BARRIER_UNQUALIFIED'):
+        DemoExecutionOwner(repo, transport=None).dispatch(scope, 'cmd-1', context=ready_context())
+    assert repo.command(scope, 'cmd-1')['state'] == 'DURABLE_READY'
+
+
+@pytest.mark.parametrize('method,purpose,side', [('POST','OTHER','BUY'), ('POST','REDUCTION','BUY'), ('POST','ENTRY','SELL'), ('DELETE','ENTRY','BUY')])
+def test_stage_rejects_unsupported_method_purpose_and_side(repo, scope, method, purpose, side):
+    register(repo, scope)
+    request = order() if method == 'POST' else {'symbol':'BTCUSDT','origClientOrderId':'original'}
+    if method == 'POST': request['side'] = side
+    with pytest.raises(DemoError, match='DEMO_ORDER_PURPOSE_INVALID'):
+        repo.stage(scope, command_id='bad', request=request, reserve_asset='USDT' if side == 'BUY' else 'BTC',
+                   reserve_amount='500', available='1000', authorization_ref='grant', expires_at=200, now=100,
+                   method=method, purpose=purpose)
+
+
+def test_owner_rejects_legacy_unknown_purpose_without_sending(repo, scope, monkeypatch):
+    from contextlib import contextmanager
+    from sqlalchemy import update
+    from trading_system.execution.demo_commands import DemoExecutionOwner
+    register(repo, scope); stage(repo, scope)
+    with repo.transaction(scope.account_key) as conn:
+        conn.execute(update(commands).where(commands.c.command_id=='cmd-1').values(purpose='OTHER'))
+    @contextmanager
+    def offline_guard(_): yield
+    monkeypatch.setattr(repo, 'owner_guard', offline_guard)
+    with pytest.raises(DemoError, match='DEMO_ORDER_PURPOSE_INVALID'):
+        DemoExecutionOwner(repo, transport=None).dispatch(scope, 'cmd-1', context=ready_context())
+    assert repo.command(scope, 'cmd-1')['state'] == 'DURABLE_READY'

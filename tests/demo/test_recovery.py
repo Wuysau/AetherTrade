@@ -178,11 +178,9 @@ def test_ready_requires_full_bound_reconciliation_not_page_completion(repo, scop
         conn.execute(update(accounts).values(qualification={'state': 'DEMO_VERIFIED', 'code_sha': 'a'*40, 'account_key': scope.account_key,
             'credential_revision': 0, 'product': 'SPOT', 'evidence_sha256': 'f'*64, 'official_contract_revision': 'offline-only',
             'baseline_hash': digest({'USDT': '1000'}), 'history_coverage': 'COMPLETE'}))
-    result = reconciler.reconcile_and_resume(scope, stream=stream, current_code_sha='a'*40)
-    assert result['state'] == 'READY'
-    assert result['receipt']['physical_key'] == scope.physical_account_key
-    assert result['receipt']['physical_generation'] is None  # SQLite fixture is not qualified ownership.
-    assert result['execution_authorized'] is False  # readiness alone never grants a strategy
+    with pytest.raises(DemoError, match='DEMO_ACCOUNT_STREAM_BARRIER_UNQUALIFIED'):
+        reconciler.reconcile_and_resume(scope, stream=stream, current_code_sha='a'*40)
+    assert repo.account(scope)['state'] != 'READY'
     stream.healthy = False
     with pytest.raises(DemoError): reconciler.reconcile_and_resume(scope, stream=stream, current_code_sha='a'*40)
 
@@ -394,7 +392,7 @@ def test_time_sync_crossing_window_does_not_open_socket(setup):
     asyncio.run(scenario())
 
 
-def test_final_reconcile_records_generation_bound_nonready_snapshot(tmp_path):
+def test_final_reconcile_records_generation_bound_nonready_snapshot(tmp_path, monkeypatch):
     from trading_system.engine.binance_demo.contracts import digest
     from trading_system.storage.demo import accounts, outbox, final_activity_digest
     from sqlalchemy import update
@@ -416,6 +414,11 @@ def test_final_reconcile_records_generation_bound_nonready_snapshot(tmp_path):
         def trades(self,*args,**kwargs): return []
         def open_orders(self,*args): return []
         def account(self): return {'uid':int(scope.account_id) if scope.account_id.isdigit() else None,'accountType':'SPOT','balances':[{'asset':'USDT','free':'1000','locked':'0'}]}
+    with pytest.raises(DemoError, match='DEMO_ACCOUNT_STREAM_BARRIER_UNQUALIFIED'):
+        DemoReconciler(repo,Transport(),clock=lambda:100).reconcile_for_clean(scope,stream=stream,current_code_sha='a'*40)
+    # Offline-only seam exercises receipt activity binding below; never venue evidence.
+    import trading_system.execution.demo_reconcile as barrier
+    monkeypatch.setattr(barrier, 'require_qualified_stream_barrier', lambda: None)
     receipt = DemoReconciler(repo,Transport(),clock=lambda:100).reconcile_for_clean(scope,stream=stream,current_code_sha='a'*40)
     assert receipt['physical_generation'] == 1 and receipt['credential_revision'] == 0
     assert receipt['stream_run_nonce'] == stream.active_run_nonce
@@ -534,3 +537,299 @@ def test_one_consumer_cannot_run_two_sockets_or_reuse_sealed_proof(setup):
         with pytest.raises(DemoError,match='DEMO_STREAM_SEALED'):
             await stream.run_window(Transport(),duration_seconds=2,on_subscribed=final,socket_factory=factory)
     asyncio.run(scenario())
+
+
+def test_unresolved_history_is_durable_blocker_and_never_strategy_fill(setup):
+    from trading_system.storage.demo import outbox, fills, postings
+    repo, scope = setup
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self, *args, **kwargs):
+            return [{'id':12, 'orderId':345, 'symbol':'BTCUSDT', 'qty':'0.01'}]
+    with pytest.raises(DemoError, match='DEMO_UNRESOLVED_TRADE_HISTORY_REVIEW_REQUIRED'):
+        DemoReconciler(repo, Transport(), clock=lambda:100).reconcile(scope, symbol='BTCUSDT', stream=stream)
+    assert repo.cursor(scope, 'BTCUSDT')['revision'] == 0
+    assert repo.account(scope)['state'] == 'RECOVERY_REQUIRED'
+    with repo.engine.connect() as conn:
+        rows = conn.execute(select(outbox).where(outbox.c.kind == 'UNRESOLVED_TRADE_HISTORY')).mappings().all()
+        assert len(rows) == 1 and rows[0]['payload']['symbol'] == 'BTCUSDT'
+        assert rows[0]['payload']['trade_hash'] and 'orderId' not in rows[0]['payload']
+        assert conn.execute(select(fills)).first() is None
+        assert conn.execute(select(postings)).first() is None
+
+
+def test_recorded_unresolved_trade_blocks_later_ready_even_if_next_page_is_empty(setup):
+    from sqlalchemy import update
+    from trading_system.engine.binance_demo.contracts import digest
+    from trading_system.storage.demo import accounts
+    repo, scope = setup
+    repo.record_unresolved_trade(scope, symbol='BTCUSDT', trade={'id':12, 'orderId':345},
+        credential_ref='demo-session:fixture', credential_revision=0, stream_generation=None)
+    with repo.transaction(scope.account_key) as conn:
+        conn.execute(update(accounts).values(qualification={'state':'DEMO_VERIFIED','code_sha':'a'*40,
+            'account_key':scope.account_key,'credential_revision':0,'product':'SPOT',
+            'evidence_sha256':'f'*64,'official_contract_revision':'offline-fixture',
+            'baseline_hash':digest({'USDT':'1000'}),'history_coverage':'COMPLETE'}))
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self, *a, **kw): return []
+        def account(self): return {'accountType':'SPOT','balances':[{'asset':'USDT','free':'1000','locked':'0'}]}
+        def open_orders(self, *a): return []
+    class Stream:
+        healthy = True
+        credential_ref = 'demo-session:fixture'
+        credential_revision = 0
+        subscription_id = 1
+    stream = Stream(); stream.scope = scope
+    with pytest.raises(DemoError, match='DEMO_RECOVERY_REQUIRED'):
+        DemoReconciler(repo, Transport(), clock=lambda:100).reconcile_and_resume(scope, stream=stream, current_code_sha='a'*40)
+    assert repo.account(scope)['state'] != 'READY'
+
+
+def test_unresolved_history_fences_entry_but_not_cancel(setup):
+    repo, scope = setup
+    order = {'symbol':'BTCUSDT','side':'BUY','type':'LIMIT','quantity':'0.001','price':'50000',
+             'newClientOrderId':'original','timeInForce':'GTC'}
+    repo.stage(scope, command_id='before', request=order, reserve_asset='USDT', reserve_amount='50',
+               available='1000', authorization_ref='fixture', expires_at=200, now=100)
+    repo.record_unresolved_trade(scope, symbol='BTCUSDT', trade={'id':9,'orderId':88},
+        credential_ref='demo-session:fixture', credential_revision=0, stream_generation=None)
+    with pytest.raises(DemoError, match='DEMO_UNRESOLVED_TRADE_HISTORY_REVIEW_REQUIRED'):
+        repo.stage(scope, command_id='after', request={**order,'newClientOrderId':'other'}, reserve_asset='USDT',
+                   reserve_amount='50', available='1000', authorization_ref='fixture', expires_at=200, now=100)
+    # Unresolved history must not disable independently authorized cancellation.
+    result = repo.stage(scope, command_id='cancel', request={'symbol':'BTCUSDT','origClientOrderId':'original'},
+                        reserve_asset='USDT', reserve_amount='0', available='1000', authorization_ref='fixture',
+                        expires_at=200, now=100, method='DELETE', purpose='CANCEL')
+    assert result['state'] == 'DURABLE_READY'
+    reduction = repo.stage(scope, command_id='reduce', request={**order, 'side':'SELL', 'newClientOrderId':'reduce'},
+        reserve_asset='BTC', reserve_amount='0.001', available='0.001', authorization_ref='fixture',
+        expires_at=200, now=100, purpose='REDUCTION')
+    assert reduction['state'] == 'DURABLE_READY'  # Dispatch still verifies owned exposure.
+
+
+def test_unresolved_history_rejects_stale_credential_before_recording(setup):
+    from trading_system.storage.demo import outbox
+    repo, scope = setup
+    with pytest.raises(DemoError, match='DEMO_CREDENTIAL_BINDING_REJECTED'):
+        repo.record_unresolved_trade(scope, symbol='BTCUSDT', trade={'id':9,'orderId':88},
+            credential_ref='demo-session:fixture', credential_revision=1, stream_generation=None)
+    with repo.engine.connect() as conn:
+        assert not conn.execute(select(outbox).where(outbox.c.kind=='UNRESOLVED_TRADE_HISTORY')).first()
+
+
+def test_backfill_rechecks_order_binding_under_lock_before_latching_unresolved(setup, monkeypatch):
+    from trading_system.storage.demo import outbox, fills
+    repo, scope = setup
+    request = {'symbol':'BTCUSDT','side':'BUY','type':'LIMIT','quantity':'0.001','price':'50000',
+               'newClientOrderId':'original','timeInForce':'GTC'}
+    repo.stage(scope, command_id='cmd', request=request, reserve_asset='USDT', reserve_amount='50',
+               available='1000', authorization_ref='fixture', expires_at=200, now=100)
+    repo.begin_send(scope, 'cmd', expected_revision=0, now=101)
+    def first_lookup(*args, **kwargs):
+        repo.acknowledge(scope, 'cmd', {'symbol':'BTCUSDT','clientOrderId':'original','orderId':345})
+        raise DemoError('DEMO_ORDER_BINDING_REJECTED')
+    monkeypatch.setattr(repo, 'resolve_order_scope', first_lookup)
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def query_order(self, *args):
+            return {'symbol':'BTCUSDT','clientOrderId':'original','side':'BUY','type':'LIMIT','origQty':'0.001','price':'50000','orderId':345,'status':'NEW','executedQty':'0','cummulativeQuoteQty':'0'}
+        def trades(self, *args, **kwargs):
+            return [{'id':12,'orderId':345,'symbol':'BTCUSDT','qty':'0.001','price':'50000','quoteQty':'50',
+                     'commission':'0','commissionAsset':'USDT','isBuyer':True,'time':100000}]
+    # Isolate the race at the trade lookup rather than the earlier pending-order query.
+    monkeypatch.setattr(repo, 'pending_commands', lambda *args, **kwargs: [])
+    DemoReconciler(repo, Transport(), clock=lambda:100).reconcile(scope, symbol='BTCUSDT', stream=stream)
+    with repo.engine.connect() as conn:
+        assert conn.execute(select(fills)).first() is not None
+        assert conn.execute(select(outbox).where(outbox.c.kind=='UNRESOLVED_TRADE_HISTORY')).first() is None
+
+
+def test_unresolved_history_clears_only_after_exact_trade_is_verified_for_original_order(setup, monkeypatch):
+    repo, scope = setup
+    request = {'symbol':'BTCUSDT','side':'BUY','type':'LIMIT','quantity':'0.001','price':'50000',
+               'newClientOrderId':'original','timeInForce':'GTC'}
+    repo.stage(scope, command_id='cmd', request=request, reserve_asset='USDT', reserve_amount='50',
+               available='1000', authorization_ref='fixture', expires_at=200, now=100)
+    repo.begin_send(scope, 'cmd', expected_revision=0, now=101)
+    trade = {'id':12,'orderId':345,'symbol':'BTCUSDT','qty':'0.001','price':'50000','quoteQty':'50',
+             'commission':'0','commissionAsset':'USDT','isBuyer':True,'time':100000}
+    repo.record_unresolved_trade(scope, symbol='BTCUSDT', trade=trade,
+        credential_ref='demo-session:fixture', credential_revision=0, stream_generation=None)
+    assert len(repo.operator_view(scope)['unresolved_trade_history']) == 1
+    repo.acknowledge(scope, 'cmd', {'symbol':'BTCUSDT','clientOrderId':'original','orderId':345})
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self, *args, **kwargs): return [trade]
+    monkeypatch.setattr(repo, 'pending_commands', lambda *args, **kwargs: [])
+    DemoReconciler(repo, Transport(), clock=lambda:100).reconcile(scope, symbol='BTCUSDT', stream=stream)
+    assert repo.operator_view(scope)['unresolved_trade_history'] == []
+    assert repo.operator_view(scope)['fills'][0]['order_id'] == '345'
+    assert repo.account(scope)['state'] == 'RECOVERY_REQUIRED'  # No automatic READY.
+
+
+def test_different_trade_fact_does_not_clear_unresolved_marker(setup, monkeypatch):
+    repo, scope = setup
+    request = {'symbol':'BTCUSDT','side':'BUY','type':'LIMIT','quantity':'0.001','price':'50000',
+               'newClientOrderId':'original','timeInForce':'GTC'}
+    repo.stage(scope, command_id='cmd', request=request, reserve_asset='USDT', reserve_amount='50',
+               available='1000', authorization_ref='fixture', expires_at=200, now=100)
+    repo.begin_send(scope, 'cmd', expected_revision=0, now=101)
+    trade = {'id':12,'orderId':345,'symbol':'BTCUSDT','qty':'0.001','price':'50000','quoteQty':'50',
+             'commission':'0','commissionAsset':'USDT','isBuyer':True,'time':100000}
+    repo.record_unresolved_trade(scope, symbol='BTCUSDT', trade={**trade, 'id':13},
+        credential_ref='demo-session:fixture', credential_revision=0, stream_generation=None)
+    repo.acknowledge(scope, 'cmd', {'symbol':'BTCUSDT','clientOrderId':'original','orderId':345})
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self, *args, **kwargs): return [trade]
+    monkeypatch.setattr(repo, 'pending_commands', lambda *args, **kwargs: [])
+    DemoReconciler(repo, Transport(), clock=lambda:100).reconcile(scope, symbol='BTCUSDT', stream=stream)
+    assert len(repo.operator_view(scope)['unresolved_trade_history']) == 1
+    assert repo.account(scope)['state'] == 'RECOVERY_REQUIRED'
+
+
+def test_first_history_backfill_starts_at_zero_without_claiming_full_baseline(setup):
+    repo, scope = setup
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        seen = []
+        def sync_time(self): pass
+        def trades(self, symbol, *, from_id, limit):
+            self.seen.append(from_id)
+            return []
+    transport = Transport()
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    result = DemoReconciler(repo, transport).reconcile(scope, symbol='BTCUSDT', stream=stream)
+    assert transport.seen == [0]
+    assert result['execution_authorized'] is False and result['state'] == 'RECOVERY_REQUIRED'
+
+
+def test_legacy_cursor_without_known_start_cannot_be_silently_promoted(setup):
+    repo, scope = setup
+    repo.save_cursor(scope, 'BTCUSDT', {'from_id':None}, complete=True, expected_revision=0)
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self, *args, **kwargs): pytest.fail('legacy cursor needs review before backfill')
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    with pytest.raises(DemoError, match='DEMO_HISTORY_CURSOR_UNVERIFIED'):
+        DemoReconciler(repo, Transport()).reconcile(scope, symbol='BTCUSDT', stream=stream)
+
+
+def test_legacy_nonempty_cursor_cannot_assert_full_history(setup):
+    repo, scope = setup
+    repo.save_cursor(scope, 'BTCUSDT', {'from_id':900}, complete=True, expected_revision=0)
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self, *args, **kwargs): pytest.fail('unproven legacy cursor')
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    with pytest.raises(DemoError, match='DEMO_HISTORY_CURSOR_UNVERIFIED'):
+        DemoReconciler(repo, Transport()).reconcile(scope, symbol='BTCUSDT', stream=stream)
+
+
+@pytest.mark.parametrize('page', [[], [{'id':11,'orderId':1}], [{'id':9,'orderId':1}, {'id':10,'orderId':2}]])
+def test_backfill_rejects_lost_or_regressed_overlap_anchor(setup, page):
+    repo, scope = setup
+    repo.save_cursor(scope, 'BTCUSDT', {'from_id':10,'started_at_zero':True,'overlap_required':True}, complete=True, expected_revision=0)
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self, *args, **kwargs): return page
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    with pytest.raises(DemoError, match='DEMO_BACKFILL_OVERLAP_LOST'):
+        DemoReconciler(repo, Transport()).reconcile(scope, symbol='BTCUSDT', stream=stream)
+    stored = repo.cursor(scope, 'BTCUSDT')
+    assert stored['cursor']['from_id'] == 10 and stored['complete'] is False
+
+
+def test_backfill_rejects_single_item_page_budget_before_network(setup):
+    repo, scope = setup
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pytest.fail('invalid page budget must fail before network')
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    with pytest.raises(DemoError, match='DEMO_BACKFILL_BUDGET_INVALID'):
+        DemoReconciler(repo, Transport()).reconcile(scope, symbol='BTCUSDT', stream=stream, page_size=1)
+
+
+def test_backfill_rejects_response_larger_than_requested(setup):
+    repo, scope = setup
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self, *args, **kwargs): return [{'id':1},{'id':2},{'id':3}]
+    stream = DemoUserStreamConsumer(repo, scope, 'demo-session:fixture', request_id='s')
+    stream.accept_subscription({'id':'s','status':200,'result':{'subscriptionId':4}})
+    with pytest.raises(DemoError, match='DEMO_BACKFILL_RESPONSE_INVALID'):
+        DemoReconciler(repo, Transport()).reconcile(scope, symbol='BTCUSDT', stream=stream, page_size=2)
+    assert repo.cursor(scope, 'BTCUSDT')['revision'] == 0
+
+
+def test_unresolved_trade_keeps_bounded_economic_facts_without_strategy_fill(setup):
+    from trading_system.storage.demo import outbox, fills
+    repo, scope = setup
+    trade = {'symbol':'BTCUSDT','id':12,'orderId':345,'orderListId':-1,'price':'50000','qty':'0.001',
+             'quoteQty':'50','commission':'0.01','commissionAsset':'USDT','time':100000,
+             'isBuyer':True,'isMaker':False,'isBestMatch':True}
+    repo.record_unresolved_trade(scope, symbol='BTCUSDT', trade=trade,
+        credential_ref='demo-session:fixture', credential_revision=0, stream_generation=None)
+    with repo.engine.connect() as conn:
+        event = conn.execute(select(outbox).where(outbox.c.kind=='UNRESOLVED_TRADE_HISTORY')).mappings().one()
+        assert event['payload']['trade_fact'] == trade
+        assert conn.execute(select(fills)).first() is None
+
+
+def test_unresolved_trade_drops_untrusted_secret_text(setup):
+    from trading_system.storage.demo import outbox
+    repo, scope = setup
+    trade = {'symbol':'BTCUSDT','id':12,'orderId':345,'price':'secret-value','apiKey':'secret-value'}
+    repo.record_unresolved_trade(scope, symbol='BTCUSDT', trade=trade,
+        credential_ref='demo-session:fixture', credential_revision=0, stream_generation=None)
+    with repo.engine.connect() as conn:
+        event = conn.execute(select(outbox).where(outbox.c.kind=='UNRESOLVED_TRADE_HISTORY')).mappings().one()
+        assert 'secret-value' not in str(event['payload'])
+        assert event['payload']['trade_fact_complete'] is False
+
+
+def test_empty_inbox_and_old_qualification_cannot_set_ready_without_stream_barrier(repo, scope):
+    from sqlalchemy import update
+    from trading_system.engine.binance_demo.contracts import digest
+    from trading_system.storage.demo import accounts
+    from test_lifecycle import register
+    register(repo, scope)
+    with repo.transaction(scope.account_key) as conn:
+        conn.execute(update(accounts).values(qualification={'state':'DEMO_VERIFIED','code_sha':'a'*40,'account_key':scope.account_key,
+            'credential_revision':0,'product':'SPOT','history_coverage':'COMPLETE','baseline_hash':digest({'USDT':'1000'}),
+            'evidence_sha256':'f'*64,'official_contract_revision':'fixture-only'}))
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self): pass
+        def trades(self,*args,**kwargs): return []
+        def open_orders(self,*args): return []
+        def account(self): return {'accountType':'SPOT','balances':[{'asset':'USDT','free':'1000','locked':'0'}]}
+    class Stream:
+        healthy=True; credential_ref='demo-session:fixture'; credential_revision=0; subscription_id=1
+    stream=Stream(); stream.scope=scope
+    with pytest.raises(DemoError, match='DEMO_ACCOUNT_STREAM_BARRIER_UNQUALIFIED'):
+        DemoReconciler(repo, Transport(), clock=lambda:100).reconcile_and_resume(scope, stream=stream, current_code_sha='a'*40)
+    assert repo.account(scope)['state'] != 'READY'

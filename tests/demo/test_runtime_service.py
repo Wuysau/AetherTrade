@@ -761,6 +761,9 @@ def test_window_deadline_blocks_each_new_model_request(monkeypatch, cross_at):
 
 @pytest.mark.parametrize('cross_at', ['sync', 'signing'])
 def test_owner_final_preflight_rejects_send_when_blocked_work_crosses_deadline(monkeypatch, cross_at):
+    # Offline seam exercises the deadline guard, not venue qualification.
+    import trading_system.execution.demo_reconcile as barrier
+    monkeypatch.setattr(barrier, 'require_qualified_stream_barrier', lambda: None)
     from contextlib import nullcontext
     from types import SimpleNamespace
     import trading_system.runtime.demo_service as service_module
@@ -783,7 +786,7 @@ def test_owner_final_preflight_rejects_send_when_blocked_work_crosses_deadline(m
                                      'capabilities':{'LIMIT':{'state':'DEMO_VERIFIED','evidence_sha256':'e','official_contract_revision':'v'}}}}
         def strategy(self, scope): return {'allow_execution':True,'authorized_until':self.auth_until}
         def owner_guard(self, scope): return nullcontext()
-        def command(self, scope, command_id): return {'method':'POST','purpose':'ENTRY','request':{'type':'LIMIT'}}
+        def command(self, scope, command_id): return {'method':'POST','purpose':'ENTRY','request':{'type':'LIMIT','side':'BUY'}}
         def health(self, scope): return {'unknown':0,'unprotected':0,'pending_inbox':0,'risk_breaches':0}
         def begin_send(self, *args, **kwargs):
             may.append(True); return {'method':'POST','request':{'type':'LIMIT'}}
@@ -1255,3 +1258,46 @@ def test_clean_handoff_published_only_after_commit_ack_and_transport_close(close
         assert manager._clean_handoffs[runtime.host.scope.physical_account_key] == {'fixture':'acknowledged'}
         assert 's' not in manager._sessions
     assert events[:4] == ['drain','pause','clean-commit-ack','transport-close']
+
+
+def test_runtime_schedules_bound_cancel_before_ambiguous_backfill_after_balance_invalidation():
+    import asyncio, time
+    from types import SimpleNamespace
+    from trading_system.runtime.demo_service import DemoRuntimeService, _Runtime
+    scope = DemoScope(account_id='123',account_epoch='e',strategy_id='s')
+    calls = []
+    class Lease:
+        credential_ref='fixture'; expires_at=time.time()+1000
+        def validate(self): pass
+    strategy = {'allow_execution':True,'authorized_until':time.time()+500}
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        def account(self, scope): return {'credential_ref':'fixture','credential_revision':0,'qualification':{'state':'INVALIDATED_BALANCE'}}
+        def strategy(self, scope): return strategy
+        def health(self, scope): return {'unknown':1}
+        def abandon_stale_unsent(self,*args,**kwargs): pass
+        def pause(self,*args): pass
+    class Host:
+        memory=None
+        def drain_inbox(self): pass
+        def protection_tick(self): calls.append('cancel_staged'); return {'state':'CANCEL_ENTRY_FIRST','commands':[{'command_id':'cancel'}]}
+        def dispatch(self, command): calls.append('cancel_dispatched')
+        def status(self): return {'execution_authorized':False}
+        async def assess_once(self,*args,**kwargs): raise AssertionError('no new decision is needed')
+    Host.scope = scope
+    class Reconciler:
+        n=0
+        def reconcile(self,*args,**kwargs):
+            self.n+=1
+            if self.n>1: raise DemoError('DEMO_RECOVERY_REQUIRED')
+        def reconcile_and_resume(self,*args,**kwargs): raise DemoError('DEMO_RECOVERY_REQUIRED')
+    class Stream:
+        healthy=True
+        async def run_window(self, transport, *, on_subscribed, **kwargs):
+            try: await asyncio.wait_for(on_subscribed(self), timeout=0.3)
+            except TimeoutError: pass
+    repo=Repo(); manager=DemoRuntimeService(connections=None,model_service=None,repository=repo,scope_resolver=None,current_code_sha='a'*40)
+    runtime=_Runtime(Lease(), object(), Host(), Stream(), Reconciler()); manager._sessions['session']=runtime
+    asyncio.run(manager.run_window('session',duration_seconds=2,execute=True))
+    assert calls == ['cancel_staged','cancel_dispatched']
+    assert runtime.reconciler.n >= 2  # Original-ID recovery remains attempted after cancellation.
