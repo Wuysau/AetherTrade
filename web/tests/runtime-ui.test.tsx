@@ -246,3 +246,171 @@ it('reopening the same notification reselects its decision while dashboard refre
   await screen.findByText('decision-a'); expect(screen.queryByText('decision-b')).toBeNull();
   expect((screen.getByLabelText('模型名称') as HTMLInputElement).value).toBe('unsaved-model');
 });
+
+it('shows Demo status on direct navigation when the PAPER dashboard fails, then retries PAPER independently', async () => {
+  window.location.hash = '#demo';
+  const api = new RuntimeApi(async path => {
+    if (String(path).endsWith('/demo/status')) return new Response(JSON.stringify({ environment: 'BINANCE_DEMO', product: 'SPOT', state: 'DISABLED', execution_authorized: false, credential_storage: 'MEMORY_ONLY', balances: [], capabilities: [], blockers: [], endpoint: 'https://demo-api.binance.com', budget_cap_usdt: '10000', connection_epoch: 'fixture-epoch-1234567890' }));
+    throw new Error('unexpected request');
+  });
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: 'fixture' });
+  vi.spyOn(api, 'session').mockResolvedValue(session);
+  const paper = vi.spyOn(api, 'dashboard').mockRejectedValueOnce(new ApiError(503, 'PAPER_DOWN', 'PAPER 快照不可用')).mockResolvedValue(dashboard());
+  render(<RuntimeApp api={api} />);
+  await screen.findByText('PAPER 快照不可用');
+  expect(screen.getByRole('alert').textContent).toContain('PAPER ·');
+  expect(document.querySelector('.tclock')?.textContent).toMatch(/^PAPER ·/);
+  await screen.findByRole('heading', { name: '币安 Demo 连接' });
+  await screen.findByText('DISABLED');
+  fireEvent.click(screen.getByRole('button', { name: '总览' }));
+  await screen.findByText('账户数据暂不可用');
+  fireEvent.click(screen.getByRole('button', { name: '重新连接' }));
+  await screen.findByRole('heading', { name: '运行总览' });
+  expect(paper).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Binance Demo' }));
+  await screen.findByRole('heading', { name: '币安 Demo 连接' });
+  await screen.findByText('DISABLED');
+});
+
+it('allows navigation to Demo after an initial PAPER snapshot failure', async () => {
+  const api = new RuntimeApi(async path => {
+    if (String(path).endsWith('/demo/status')) return new Response(JSON.stringify({ environment: 'BINANCE_DEMO', product: 'SPOT', state: 'DISABLED', execution_authorized: false, credential_storage: 'MEMORY_ONLY', balances: [], capabilities: [], blockers: [], endpoint: 'https://demo-api.binance.com', budget_cap_usdt: '10000', connection_epoch: 'fixture-epoch-1234567890' }));
+    throw new Error('unexpected request');
+  });
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: 'fixture' });
+  vi.spyOn(api, 'session').mockResolvedValue(session);
+  vi.spyOn(api, 'dashboard').mockRejectedValue(new ApiError(503, 'PAPER_DOWN', 'PAPER 快照不可用'));
+  render(<RuntimeApp api={api} />);
+  await screen.findByText('账户数据暂不可用');
+  fireEvent.click(screen.getByRole('button', { name: 'Binance Demo' }));
+  await screen.findByRole('heading', { name: '币安 Demo 连接' });
+  await screen.findByText('DISABLED');
+  expect(screen.getByText('PAPER 快照不可用')).toBeDefined();
+});
+
+it('does not load Demo status before authentication even with a Demo hash', async () => {
+  window.location.hash = '#demo';
+  const transport = vi.fn(async () => { throw new Error('must not request Demo'); });
+  const api = new RuntimeApi(transport);
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: 'fixture' });
+  vi.spyOn(api, 'session').mockRejectedValue(new ApiError(401, 'AUTH_REQUIRED', '请登录'));
+  render(<RuntimeApp api={api} />);
+  await screen.findByRole('heading', { name: '登录工作空间' });
+  expect(transport).not.toHaveBeenCalled();
+  expect(screen.queryByRole('heading', { name: '币安 Demo 连接' })).toBeNull();
+});
+
+it.each(['connect', 'disconnect'] as const)('keeps Demo %s pending across navigation until a fresh status reread', async operation => {
+  window.location.hash = '#demo';
+  const now = Math.floor(Date.now() / 1000);
+  const base = { environment: 'BINANCE_DEMO', product: 'SPOT', execution_authorized: false, credential_storage: 'MEMORY_ONLY', balances: [], capabilities: [], blockers: [], endpoint: 'https://demo-api.binance.com', budget_cap_usdt: '10000', connection_epoch: 'fixture-epoch-1234567890' };
+  const initial = operation === 'connect' ? { ...base, state: 'DISABLED' } : { ...base, state: 'READ_ONLY', checked_at: now, expires_at: now + 900 };
+  const final = operation === 'connect' ? { ...base, state: 'READ_ONLY', checked_at: now, expires_at: now + 900 } : { ...base, state: 'DISABLED' };
+  let finish!: (response: Response) => void;
+  const pending = new Promise<Response>(resolve => { finish = resolve; });
+  let settled = false, statusReads = 0;
+  const api = new RuntimeApi(async path => {
+    if (String(path).endsWith('/demo/status')) { statusReads++; return new Response(JSON.stringify(settled ? final : initial)); }
+    if (String(path).endsWith('/demo/' + operation)) return pending;
+    throw new Error('unexpected request');
+  });
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: 'fixture' });
+  vi.spyOn(api, 'session').mockResolvedValue(session);
+  vi.spyOn(api, 'dashboard').mockResolvedValue(dashboard());
+  render(<RuntimeApp api={api} />);
+  await screen.findByText(initial.state);
+  if (operation === 'connect') {
+    fireEvent.change(screen.getByLabelText('Demo API Key'), { target: { value: 'fixture-key-123456789' } });
+    fireEvent.change(screen.getByLabelText('Demo API Secret'), { target: { value: 'fixture-secret-123456' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '验证只读连接' }));
+  } else fireEvent.click(screen.getByRole('button', { name: '移除本次凭据' }));
+  fireEvent.click(screen.getByRole('button', { name: '总览' }));
+  await screen.findByRole('heading', { name: '运行总览' });
+  fireEvent.click(screen.getByRole('button', { name: 'Binance Demo' }));
+  await screen.findByRole('heading', { name: '币安 Demo 连接' });
+  expect(screen.getByText(/上次快照（当前状态未验证）/)).toBeDefined();
+  expect((screen.getByRole('button', { name: '移除本次凭据' }) as HTMLButtonElement).disabled).toBe(true);
+  const readsBeforeSettlement = statusReads;
+  settled = true; finish(new Response(JSON.stringify(final)));
+  await waitFor(() => expect(statusReads).toBeGreaterThan(readsBeforeSettlement));
+  await screen.findByText(final.state);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(statusReads).toBe(readsBeforeSettlement + 1);
+  expect(screen.queryByText(/上次快照（当前状态未验证）/)).toBeNull();
+  expect(screen.getByText(/不会取消交易所挂单/)).toBeDefined();
+});
+
+it('clears an unsent Demo credential draft when navigating away', async () => {
+  window.location.hash = '#demo';
+  const base = { environment: 'BINANCE_DEMO', product: 'SPOT', state: 'DISABLED', execution_authorized: false, credential_storage: 'MEMORY_ONLY', balances: [], capabilities: [], blockers: [], endpoint: 'https://demo-api.binance.com', budget_cap_usdt: '10000', connection_epoch: 'fixture-epoch-1234567890' };
+  const api = new RuntimeApi(async path => { if (String(path).endsWith('/demo/status')) return new Response(JSON.stringify(base)); throw new Error('unexpected request'); });
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: 'fixture' });
+  vi.spyOn(api, 'session').mockResolvedValue(session);
+  vi.spyOn(api, 'dashboard').mockResolvedValue(dashboard());
+  render(<RuntimeApp api={api} />);
+  await screen.findByText('DISABLED');
+  fireEvent.change(screen.getByLabelText('Demo API Secret'), { target: { value: 'fixture-secret-123456' } });
+  fireEvent.click(screen.getByRole('button', { name: '总览' }));
+  await screen.findByRole('heading', { name: '运行总览' });
+  fireEvent.click(screen.getByRole('button', { name: 'Binance Demo' }));
+  await screen.findByRole('heading', { name: '币安 Demo 连接' });
+  expect((screen.getByLabelText('Demo API Secret') as HTMLInputElement).value).toBe('');
+});
+
+it('focuses the visible page heading after navigating away from and back to Demo', async () => {
+  window.location.hash = '#demo';
+  const base = { environment: 'BINANCE_DEMO', product: 'SPOT', state: 'DISABLED', execution_authorized: false, credential_storage: 'MEMORY_ONLY', balances: [], capabilities: [], blockers: [], endpoint: 'https://demo-api.binance.com', budget_cap_usdt: '10000', connection_epoch: 'fixture-epoch-1234567890' };
+  const api = new RuntimeApi(async path => { if (String(path).endsWith('/demo/status')) return new Response(JSON.stringify(base)); throw new Error('unexpected request'); });
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: 'fixture' });
+  vi.spyOn(api, 'session').mockResolvedValue(session);
+  vi.spyOn(api, 'dashboard').mockResolvedValue(dashboard());
+  render(<RuntimeApp api={api} />);
+  await screen.findByRole('heading', { name: '币安 Demo 连接' });
+  fireEvent.click(screen.getByRole('button', { name: '总览' }));
+  const overview = await screen.findByRole('heading', { name: '运行总览' });
+  await waitFor(() => expect(document.activeElement).toBe(overview));
+  fireEvent.click(screen.getByRole('button', { name: 'Binance Demo' }));
+  const demo = await screen.findByRole('heading', { name: '币安 Demo 连接' });
+  await waitFor(() => expect(document.activeElement).toBe(demo));
+});
+
+it('retains a failed Demo operation message after navigating away and back', async () => {
+  window.location.hash = '#demo';
+  const now = Math.floor(Date.now() / 1000);
+  const status = { environment: 'BINANCE_DEMO', product: 'SPOT', state: 'READ_ONLY', execution_authorized: false, credential_storage: 'MEMORY_ONLY', balances: [], capabilities: [], blockers: [], endpoint: 'https://demo-api.binance.com', budget_cap_usdt: '10000', connection_epoch: 'fixture-epoch-1234567890', checked_at: now, expires_at: now + 900 };
+  let finish!: (response: Response) => void;
+  const pending = new Promise<Response>(resolve => { finish = resolve; });
+  const api = new RuntimeApi(async path => String(path).endsWith('/disconnect') ? pending : new Response(JSON.stringify(status)));
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: 'fixture' });
+  vi.spyOn(api, 'session').mockResolvedValue(session);
+  vi.spyOn(api, 'dashboard').mockResolvedValue(dashboard());
+  render(<RuntimeApp api={api} />);
+  await screen.findByText('READ_ONLY');
+  fireEvent.click(screen.getByRole('button', { name: '移除本次凭据' }));
+  fireEvent.click(screen.getByRole('button', { name: '总览' }));
+  await screen.findByRole('heading', { name: '运行总览' });
+  fireEvent.click(screen.getByRole('button', { name: 'Binance Demo' }));
+  finish(new Response(JSON.stringify({ error: { code: 'FAILED', message: '移除凭据请求失败' } }), { status: 503 }));
+  await screen.findByText('移除凭据请求失败');
+});
+
+it('moves focus to the visible page heading on browser history hash changes', async () => {
+  window.location.hash = '#demo';
+  const base = { environment: 'BINANCE_DEMO', product: 'SPOT', state: 'DISABLED', execution_authorized: false, credential_storage: 'MEMORY_ONLY', balances: [], capabilities: [], blockers: [], endpoint: 'https://demo-api.binance.com', budget_cap_usdt: '10000', connection_epoch: 'fixture-epoch-1234567890' };
+  const api = new RuntimeApi(async path => { if (String(path).endsWith('/demo/status')) return new Response(JSON.stringify(base)); throw new Error('unexpected request'); });
+  vi.spyOn(api, 'bootstrap').mockResolvedValue({ needs_setup: false, environment: 'PAPER', version: 'fixture' });
+  vi.spyOn(api, 'session').mockResolvedValue(session);
+  vi.spyOn(api, 'dashboard').mockResolvedValue(dashboard());
+  render(<RuntimeApp api={api} />);
+  await screen.findByText('DISABLED');
+  screen.getByLabelText('Demo API Secret').focus();
+  window.location.hash = '#overview';
+  fireEvent(window, new HashChangeEvent('hashchange'));
+  const overview = await screen.findByRole('heading', { name: '运行总览' });
+  await waitFor(() => expect(document.activeElement).toBe(overview));
+  window.location.hash = '#demo';
+  fireEvent(window, new HashChangeEvent('hashchange'));
+  const demo = await screen.findByRole('heading', { name: '币安 Demo 连接' });
+  await waitFor(() => expect(document.activeElement).toBe(demo));
+});

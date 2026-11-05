@@ -58,8 +58,10 @@ def test_cli_enables_factory_only_when_explicit_config_supplied(tmp_path, monkey
     captured = []
     monkeypatch.setattr(cli.Settings, 'from_env', classmethod(lambda cls: Settings(testing=True, market_enabled=False)))
     monkeypatch.setattr(app_module, 'create_app', lambda settings, **kw: captured.append(kw['demo_runtime_factory']) or object())
-    monkeypatch.setattr(uvicorn, 'run', lambda *args, **kw: None)
+    servers = []
+    monkeypatch.setattr(uvicorn, 'run', lambda *args, **kw: servers.append(kw))
     assert cli.main(['serve', '--no-market']) == 0
+    assert servers[-1]['workers'] == 1
     assert captured[-1] is None
     assert cli.main(['serve', '--no-market', '--demo-config', str(path)]) == 0
     assert callable(captured[-1])
@@ -78,5 +80,5 @@ def test_cli_composition_bind_is_blocked_before_credentials_or_database(tmp_path
         status = client.get('/api/demo/status').json()['runtime']
         assert status['binding_blocker'] == 'DEMO_CREDENTIAL_FENCING_UNQUALIFIED'
         assert status['build_attestation'] == 'UNVERIFIED_OPERATOR_DECLARATION'
-        result = client.post('/api/demo/runtime/bind', json={'acknowledge_binding': True})
-        assert result.status_code in {404, 405}
+        result = client.post('/api/demo/runtime/bind', json={'acknowledge_account': True})
+        assert result.status_code == 422 and result.json()['error']['code'] == 'DEMO_CREDENTIAL_FENCING_UNQUALIFIED'

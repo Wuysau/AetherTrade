@@ -1,8 +1,10 @@
 """User-entered, ephemeral Demo connection. No order/enable/credential-save API."""
 from copy import deepcopy
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 import hashlib
 import re
+import secrets
 from threading import RLock
 import time
 
@@ -15,11 +17,17 @@ from trading_system.engine.binance_demo.transport import BinanceDemoTransport
 from .errors import ApiError
 
 
+class DemoDisconnect(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    connection_epoch: str = Field(min_length=16, max_length=128, pattern=r'^[A-Za-z0-9_-]+$')
+
+
 class DemoConnect(BaseModel):
     model_config = ConfigDict(extra='forbid')
     api_key: SecretStr
     api_secret: SecretStr
     acknowledge_demo_only: bool = Field(strict=True)
+    connection_epoch: str | None = Field(default=None, min_length=16, max_length=128, pattern=r'^[A-Za-z0-9_-]+$')
 
 
 @dataclass
@@ -48,6 +56,15 @@ class _ConnectionLease:
         self.validate()
         return self._service._transport_factory(self._service.provider, self.credential_ref)
 
+    @contextmanager
+    def registration_guard(self):
+        # Prevent same-process logout/disconnect while registering this lease.
+        # Process failure and expiry still require durable fencing/recovery.
+        with self._service._lock:
+            self.validate()
+            yield
+            self.validate()
+
 
 class DemoConnectionService:
     """One connection per authenticated console session, expiring in 15 minutes.
@@ -60,7 +77,10 @@ class DemoConnectionService:
         self._transport_factory = transport_factory or BinanceDemoTransport
         self.clock = clock
         self._entries = {}
+        self._pending_connect = {}
+        self._connection_epochs = {}
         self._generation = 0
+        self._closed = False
         self._lock = RLock()
         self.runtime = None
 
@@ -79,10 +99,56 @@ class DemoConnectionService:
             return len(self._entries)
 
     def _expire(self):
+        for key, (_, expires_at) in list(self._connection_epochs.items()):
+            if expires_at <= self.clock():
+                del self._connection_epochs[key]
+        for key, (_, expires_at) in list(self._pending_connect.items()):
+            if expires_at <= self.clock():
+                del self._pending_connect[key]
         for key, entry in list(self._entries.items()):
             if entry.expires_at <= self.clock():
                 self.provider.remove(entry.credential_ref)
                 del self._entries[key]
+
+    def authorize_connect(self, session_key, authenticate, *, connection_epoch=None):
+        """Atomically authenticate and issue one in-process connect ticket.
+
+        Logout uses the same lock around session revocation; disconnect cancels
+        any ticket issued before it. Tickets contain no credentials.
+        """
+        from datetime import datetime
+        with self._lock:
+            if self._closed: raise DemoError('DEMO_SERVICE_CLOSED')
+            self._expire()
+            session = authenticate()
+            self._check_epoch(session_key, connection_epoch)
+            if session_key in self._pending_connect:
+                raise DemoError('DEMO_CONNECTION_BUSY')
+            expires_at = datetime.fromisoformat(session['expires_at'].replace('Z', '+00:00')).timestamp()
+            ticket = object()
+            self._pending_connect[session_key] = (ticket, min(expires_at, self.clock() + 60))
+            return {'session': session, 'ticket': ticket}
+
+    def _check_epoch(self, session_key, supplied):
+        epoch = self._connection_epochs.get(session_key)
+        if (epoch is None or not isinstance(supplied, str) or
+                not secrets.compare_digest(epoch[0], supplied)):
+            raise DemoError('DEMO_CONNECTION_EPOCH_STALE')
+
+    def _disconnect_locked(self, session_key):
+        self._pending_connect.pop(session_key, None)
+        self._connection_epochs.pop(session_key, None)
+        entry = self._entries.pop(session_key, None)
+        if entry:
+            self.provider.remove(entry.credential_ref)
+
+    def revoke_session(self, session_key, revoke):
+        # Serialize durable session revocation with connect authentication.
+        with self._lock:
+            revoke()
+            self._disconnect_locked(session_key)
+        if self.runtime is not None:
+            self.runtime.close_session(session_key)
 
     def _base(self):
         return {'environment': 'BINANCE_DEMO', 'product': 'SPOT', 'state': 'DISABLED', 'execution_authorized': False,
@@ -94,10 +160,16 @@ class DemoConnectionService:
 
     def status(self, session_key):
         with self._lock:
+            if self._closed: raise DemoError('DEMO_SERVICE_CLOSED')
             self._expire()
             entry = self._entries.get(session_key)
             result = self._base()
-            if entry:
+            if session_key not in self._connection_epochs:
+                self._connection_epochs[session_key] = (secrets.token_urlsafe(24), self.clock() + 900)
+            result['connection_epoch'] = self._connection_epochs[session_key][0]
+            if session_key in self._pending_connect:
+                result['state'] = 'CONNECTING'
+            elif entry:
                 result.update(deepcopy(entry.snapshot or {'state': 'CONNECTING'}))
                 result.update(self.provider.describe(entry.credential_ref))
                 result['expires_at'] = int(entry.expires_at)
@@ -105,11 +177,19 @@ class DemoConnectionService:
                     result['snapshot_stale'] = True
             return result
 
-    def connect(self, session_key, payload, *, session_expires_at):
-        if not payload.acknowledge_demo_only:
-            raise DemoError('DEMO_EXPLICIT_ACK_REQUIRED')
+    def connect(self, session_key, payload, *, session_expires_at, ticket=None):
         with self._lock:
+            if self._closed: raise DemoError('DEMO_SERVICE_CLOSED')
             self._expire()
+            if ticket is not None:
+                pending = self._pending_connect.get(session_key)
+                if pending is None or pending[0] is not ticket:
+                    raise DemoError('DEMO_CONNECTION_CANCELED')
+                del self._pending_connect[session_key]
+                self._check_epoch(session_key, payload.connection_epoch)
+                del self._connection_epochs[session_key]
+            if not payload.acknowledge_demo_only:
+                raise DemoError('DEMO_EXPLICIT_ACK_REQUIRED')
             previous = self._entries.get(session_key)
             if previous and previous.snapshot is None:
                 raise DemoError('DEMO_CONNECTION_BUSY')
@@ -156,22 +236,42 @@ class DemoConnectionService:
                 self.provider.remove(ref)
             raise
 
-    def disconnect(self, session_key):
+    def disconnect(self, session_key, *, connection_epoch=None, require_epoch=False):
         with self._lock:
-            entry = self._entries.pop(session_key, None)
-            if entry:
-                self.provider.remove(entry.credential_ref)
+            self._expire()
+            if require_epoch: self._check_epoch(session_key, connection_epoch)
+            self._disconnect_locked(session_key)
         if self.runtime is not None:
             self.runtime.close_session(session_key)
         return self.status(session_key)
 
+    async def aclose(self):
+        with self._lock:
+            self._closed = True
+            self._entries.clear()
+            self._pending_connect.clear()
+            self._connection_epochs.clear()
+            self.provider.clear()
+        if self.runtime is not None:
+            close_async = getattr(self.runtime, 'aclose', None)
+            if close_async is not None:
+                await close_async()
+            else:
+                self.runtime.close()
+
     def close(self):
+        with self._lock:
+            self._closed = True
+            self._pending_connect.clear()
+            self._connection_epochs.clear()
         try:
             if self.runtime is not None:
                 self.runtime.close()
         finally:
             with self._lock:
                 self._entries.clear()
+                self._pending_connect.clear()
+                self._connection_epochs.clear()
                 self.provider.clear()
 
 
@@ -179,7 +279,7 @@ def session_key(request, settings):
     return hashlib.sha256((request.cookies.get(settings.cookie_name) or '').encode()).hexdigest()
 
 
-def install_demo_routes(app, service, authenticated, mutation, settings):
+def install_demo_routes(app, service, authenticated, mutation, settings, connect_mutation):
     @app.get('/api/demo/status')
     def status(request: Request, _=Depends(authenticated)):
         result = service.status(session_key(request, settings))
@@ -188,10 +288,11 @@ def install_demo_routes(app, service, authenticated, mutation, settings):
         return result
 
     @app.post('/api/demo/connect')
-    def connect(payload: DemoConnect, request: Request, session=Depends(mutation)):
+    def connect(payload: DemoConnect, request: Request, authorization=Depends(connect_mutation)):
         from datetime import datetime
         try:
-            return service.connect(session_key(request, settings), payload,
+            session = authorization['session']
+            return service.connect(session_key(request, settings), payload, ticket=authorization['ticket'],
                 session_expires_at=datetime.fromisoformat(session['expires_at'].replace('Z', '+00:00')).timestamp())
         except DemoError as exc:
             raise ApiError(exc.code, 'Demo 只读连接未通过，请检查专用 HMAC API Key、网络和服务器时间。', 422) from None
@@ -199,5 +300,8 @@ def install_demo_routes(app, service, authenticated, mutation, settings):
             raise ApiError('DEMO_CONNECTION_UNAVAILABLE', 'Demo 连接暂不可用，未启用交易。', 503) from None
 
     @app.post('/api/demo/disconnect')
-    def disconnect(request: Request, _=Depends(mutation)):
-        return service.disconnect(session_key(request, settings))
+    def disconnect(payload: DemoDisconnect, request: Request, _=Depends(mutation)):
+        try:
+            return service.disconnect(session_key(request, settings), connection_epoch=payload.connection_epoch, require_epoch=True)
+        except DemoError as exc:
+            raise ApiError(exc.code, 'Demo 凭据移除未通过，请刷新状态后重试。', 422) from None

@@ -47,8 +47,10 @@ class DemoStrategyHost:
             raise DemoError('DEMO_FILTER_CONTEXT_STALE')
         return snapshot
 
-    async def assess_once(self, run_id):
+    async def assess_once(self, run_id, *, expected_strategy=None, before_model=None):
         strategy = self._strategy()
+        if expected_strategy is not None and strategy != expected_strategy:
+            raise DemoError('DEMO_DECISION_BINDING_CHANGED')
         previous = self.repository.decision(self.scope, run_id)
         if previous:
             if previous['strategy'] != strategy:
@@ -72,8 +74,11 @@ class DemoStrategyHost:
             raise DemoError('DEMO_FRAME_BINDING_CHANGED')
         self.repository.begin_decision(self.scope, run_id, snapshot, strategy, source, memory_context=memory_context)
         try:
+            if self._strategy() != strategy:
+                raise DemoError('DEMO_DECISION_BINDING_CHANGED')
             if snapshot['quality']['status'] != 'READY':
                 raise DemoError('DEMO_REQUIRED_EVIDENCE_MISSING')
+            if before_model is not None: before_model()
             if mode == 'RULE':
                 if not callable(self.rule_assessor) or not strategy.get('rule_revision'):
                     raise DemoError('DEMO_RULE_SOURCE_REQUIRED')
@@ -83,11 +88,17 @@ class DemoStrategyHost:
                 result = {'decision': {**value, 'assessment_status': 'DECIDED', 'snapshot_hash': snapshot['snapshot_hash'],
                     'snapshot_id': snapshot['snapshot_id'], 'strategy_revision': strategy['revision'], 'source': source}}
             else:
+                request_options = {'decision_policy': strategy['decision_policy']}
+                if before_model is not None:
+                    def request_guard():
+                        before_model()
+                        return True
+                    request_options['request_guard'] = request_guard
                 result = await self.models.analyze('BTCUSDT', strategy['analysis_mode'], strategy['model_profile_ids'],
                     strategy['model_revisions'], 'demo:' + digest([self.scope.key, run_id]),
                     {'analysis_snapshot': snapshot, 'quote_max_age_seconds': 5, **({'strategy_memory': memory_context,
                     'memory_binding': {'schema_revision': 'demo-memory-binding-v1', 'scope_key': self.scope.key, 'context_hash': memory_context['context_hash']},
-                    'memory_record_decision': False} if memory_context is not None else {})}, decision_policy=strategy['decision_policy'])
+                    'memory_record_decision': False} if memory_context is not None else {})}, **request_options)
             if self._strategy() != strategy:
                 raise DemoError('DEMO_DECISION_BINDING_CHANGED')
             return self.repository.finish_decision(self.scope, run_id, result=result)

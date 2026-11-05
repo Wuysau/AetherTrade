@@ -39,7 +39,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
     market_config = MarketConfigService(store, settings.model_key_path)
     feed = quote_provider if quote_provider is not None else LiveMarketFeed(market_config, max_age_seconds=settings.quote_max_age_seconds)
     models = ModelService(store, settings.model_key_path, client=model_client)
-    from .demo_api import DemoConnectionService, install_demo_routes, session_key as demo_session_key
+    from .demo_api import DemoConnect, DemoConnectionService, DemoError, install_demo_routes, session_key as demo_session_key
     demo = DemoConnectionService(demo_transport_factory)
     demo_runtime = demo_runtime_factory(connections=demo, model_service=models) if demo_runtime_factory is not None else None
     demo.runtime = demo_runtime
@@ -127,7 +127,7 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
         try:
             yield
         finally:
-            demo.close()
+            await demo.aclose()
             if automation_task:
                 automation_task.cancel()
                 with suppress(asyncio.CancelledError):
@@ -218,7 +218,26 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
             raise ApiError("CSRF_REJECTED", "安全令牌无效，请刷新页面后重试。", 403)
         return session
 
-    install_demo_routes(app, demo, authenticated, mutation, settings)
+    async def demo_connect_mutation(request: Request):
+        # Validate before issuing a pending ticket, without logging the body.
+        try:
+            payload = DemoConnect.model_validate(await request.json())
+        except ValueError:
+            raise ApiError("INVALID_REQUEST", "请求字段无效，请检查格式、范围和必填项。", 422) from None
+        def verify():
+            session = store.session(request.cookies.get(settings.cookie_name))
+            provided = request.headers.get("x-csrf-token", "")
+            if not secrets.compare_digest(provided.encode(), session["csrf_token"].encode()):
+                raise ApiError("CSRF_REJECTED", "安全令牌无效，请刷新页面后重试。", 403)
+            return session
+        try:
+            return await run_in_threadpool(demo.authorize_connect, demo_session_key(request, settings), verify, connection_epoch=payload.connection_epoch)
+        except DemoError as exc:
+            raise ApiError(exc.code, "Demo 连接状态已变化，请刷新后重试。", 422) from None
+
+    install_demo_routes(app, demo, authenticated, mutation, settings, demo_connect_mutation)
+    from .demo_control_api import install_demo_control_routes
+    install_demo_control_routes(app, demo, authenticated, mutation, settings)
 
     from .order_observation import install_order_observation_routes, observer_for_runtime
     app.state.order_observer = order_observer or observer_for_runtime(store.execution)
@@ -284,8 +303,8 @@ def create_app(settings: Settings | None = None, *, quote_provider=None, model_c
 
     @app.post("/api/session/logout")
     def logout(request: Request, _=Depends(mutation)):
-        demo.disconnect(demo_session_key(request, settings))
-        store.logout(request.cookies.get(settings.cookie_name))
+        demo.revoke_session(demo_session_key(request, settings),
+                            lambda: store.logout(request.cookies.get(settings.cookie_name)))
         response = JSONResponse({"ok": True})
         response.delete_cookie(settings.cookie_name, path="/", httponly=True, secure=settings.cookie_secure, samesite="strict")
         return response

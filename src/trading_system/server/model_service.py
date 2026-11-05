@@ -372,7 +372,7 @@ class ModelService:
             repository.write_run(connection, key, dict(record, status='SUCCEEDED', result=result))
         return result
 
-    async def analyze(self, symbol, analysis_mode, profile_ids, expected_revisions, key, context, *, decision_policy='unanimous', research_request=None):
+    async def analyze(self, symbol, analysis_mode, profile_ids, expected_revisions, key, context, *, decision_policy='unanimous', research_request=None, request_guard=None):
         self._request_identity(symbol, key)
         if (analysis_mode not in ('single', 'consensus') or not isinstance(profile_ids, list)
                 or any(not isinstance(p, str) or not 1 <= len(p) <= 64 for p in profile_ids)
@@ -392,7 +392,7 @@ class ModelService:
         if research_request is not None:
             raise ApiError('INVALID_MODEL_REQUEST', 'Program research requires an explicit frozen program context.')
         if isinstance(context, dict) and 'analysis_snapshot' in context:
-            return await self._assess(symbol, analysis_mode, list(profile_ids), dict(expected_revisions), key, context, decision_policy)
+            return await self._assess(symbol, analysis_mode, list(profile_ids), dict(expected_revisions), key, context, decision_policy, request_guard=request_guard)
         if decision_policy != 'unanimous':
             raise ApiError('INVALID_MODEL_REQUEST', 'Evidence review requires a snapshot.')
         # Freeze the caller's mutable selection before the first await.
@@ -497,7 +497,7 @@ class ModelService:
         if self._owned_client is not None:
             await self._owned_client.aclose()
 
-    async def _assess(self, symbol, mode, ids, revisions, key, context, policy):
+    async def _assess(self, symbol, mode, ids, revisions, key, context, policy, *, request_guard=None):
         from .decision_assessment import validate_assessment, validate_review, combine_review_reports, PROMPT_REVISION
         clean = self._clean_context(symbol, context)
         snapshot = clean['analysis_snapshot']
@@ -530,6 +530,10 @@ class ModelService:
                 repository.write_run(connection, key, record)
 
         async def call(identifier, role, extra=None):
+            if request_guard is not None:
+                try: allowed = request_guard() is True
+                except Exception: allowed = False
+                if not allowed: raise ApiError('MODEL_REQUEST_REVOKED', 'Model request authorization revoked.', 409)
             if len(record['requests']) >= max_calls or asyncio.get_running_loop().time() >= deadline:
                 raise ApiError('MODEL_BUDGET_EXHAUSTED', 'Call or elapsed-time budget exhausted.', 409)
             config, secret = configs[identifier]
@@ -551,7 +555,10 @@ class ModelService:
             components.append(component)
             try:
                 async with asyncio.timeout(max(0.001, deadline-asyncio.get_running_loop().time())):
-                    raw = await provider.request(self.client, config, secret, 'POST', path, body)
+                    if request_guard is None:
+                        raw = await provider.request(self.client, config, secret, 'POST', path, body)
+                    else:
+                        raw = await provider.request(self.client, config, secret, 'POST', path, body, before_send=request_guard)
                 consumed = provider._usage(raw)
                 component['usage'] = consumed
                 for name in usage:

@@ -16,16 +16,24 @@ _OWNER = object()
 
 
 class DemoSendPermit:
-    def __init__(self, *, _owner=None, method=None, request=None, credential_ref=None):
+    def __init__(self, *, _owner=None, method=None, request=None, credential_ref=None, preflight=None):
         if _owner is not _OWNER:
             raise DemoError('DEMO_EXECUTION_OWNER_REQUIRED')
         self._method, self._hash, self._ref = method, digest(request), credential_ref
-        self._expires, self._used = time.monotonic() + 1, False
+        self._expires, self._used, self._preflight = time.monotonic() + 1, False, preflight
 
     def consume(self, method, params, credential_ref):
         if self._used or time.monotonic() > self._expires or method != self._method or digest(params) != self._hash or credential_ref != self._ref:
             raise DemoError('DEMO_DURABLE_PERMIT_INVALID')
         self._used = True
+
+    def before_network(self):
+        if not self._used or time.monotonic() > self._expires:
+            raise DemoError('DEMO_DURABLE_PERMIT_INVALID')
+        if self._preflight is not None:
+            self._preflight()
+        if time.monotonic() > self._expires:
+            raise DemoError('DEMO_DURABLE_PERMIT_INVALID')
 
 
 class DemoCommandBoundary:
@@ -93,8 +101,11 @@ class DemoExecutionOwner:
                 if self.preflight: self.preflight()
                 admit(replace(current, now=now))
             command = self.repository.begin_send(scope, command_id, expected_revision=account['revision'], now=current.now, clock=self.clock, validator=final_admission)
-            permit = DemoSendPermit(_owner=_OWNER, method=command['method'], request=command['request'], credential_ref=account['credential_ref'])
+            permit = DemoSendPermit(_owner=_OWNER, method=command['method'], request=command['request'], credential_ref=account['credential_ref'], preflight=self.preflight)
             try:
+                # Stop/revocation may occur after MAY committed. Never start a
+                # new send after observing it; preserve UNKNOWN conservatively.
+                if self.preflight: self.preflight()
                 response = (self.transport.send_order if command['method'] == 'POST' else self.transport.cancel_order)(command['request'], permit=permit)
                 self.repository.acknowledge(scope, command_id, response)
             except Exception:

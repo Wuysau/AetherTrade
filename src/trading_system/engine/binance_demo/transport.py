@@ -42,7 +42,7 @@ class BinanceDemoTransport:
     def close(self):
         self._client.close()
 
-    def _request(self, method, path, params=None, *, signed=False):
+    def _request(self, method, path, params=None, *, signed=False, before_network=None):
         url = DemoEndpointRegistry.url('SPOT', method, path)
         if self.banned:
             raise DemoError('DEMO_IP_BANNED')
@@ -60,6 +60,8 @@ class BinanceDemoTransport:
         query = urlencode(sorted(params.items()))
         if signed:
             query += '&signature=' + self.credentials.sign(self.credential_ref, query)
+        if before_network is not None:
+            before_network()
         logging_token = _demo_in_flight.set(True)
         try:
             response = self._client.request(method, url, params=query, headers=headers)
@@ -144,14 +146,14 @@ class BinanceDemoTransport:
         if type(permit) is not DemoSendPermit:
             raise DemoError('DEMO_DURABLE_PERMIT_REQUIRED')
         permit.consume('POST', params, self.credential_ref)
-        return self._request('POST', '/api/v3/order', params, signed=True)
+        return self._request('POST', '/api/v3/order', params, signed=True, before_network=permit.before_network)
 
     def cancel_order(self, params, *, permit):
         from trading_system.execution.demo_commands import DemoSendPermit
         if type(permit) is not DemoSendPermit:
             raise DemoError('DEMO_DURABLE_PERMIT_REQUIRED')
         permit.consume('DELETE', params, self.credential_ref)
-        return self._request('DELETE', '/api/v3/order', params, signed=True)
+        return self._request('DELETE', '/api/v3/order', params, signed=True, before_network=permit.before_network)
 
     def subscription(self, request_id):
         if self.synced_at is None or not 0 <= self.clock() - self.synced_at <= 60:

@@ -58,7 +58,7 @@ def validate_url(value, local_mode):
         raise ApiError('INVALID_MODEL_URL', '远程模型需使用公网 HTTPS；本地模式仅允许回环地址。') from None
 
 
-async def request(client, config, secret, method, path, payload=None):
+async def request(client, config, secret, method, path, payload=None, *, before_send=None):
     url = httpx.URL(config['base_url'] + path)
     headers = {'Accept': 'application/json', 'Accept-Encoding': 'identity', 'Connection': 'close'}
     if config['protocol'] == 'anthropic':
@@ -84,6 +84,10 @@ async def request(client, config, secret, method, path, payload=None):
                 extensions = {}
             extensions['timeout'] = httpx.Timeout(config['timeout_seconds']).as_dict()
             outgoing = httpx.Request(method, url, headers=headers, json=payload, extensions=extensions)
+            if before_send is not None:
+                try: allowed = before_send() is True
+                except Exception: allowed = False
+                if not allowed: raise ApiError('MODEL_REQUEST_REVOKED', 'Model request authorization revoked.', 409)
             response = await client.send(outgoing, auth=None, follow_redirects=False, stream=True)
             try:
                 if not 200 <= response.status_code < 300:

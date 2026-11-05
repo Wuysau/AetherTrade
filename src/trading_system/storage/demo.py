@@ -532,6 +532,46 @@ class DemoRepository:
         with self.engine.connect() as conn:
             return [dict(row) for row in conn.execute(select(protection).where(protection.c.scope_key == scope.key, protection.c.state != 'SATISFIED').order_by(protection.c.opened_at, protection.c.fill_key)).mappings()]
 
+    def operator_view(self, scope, *, limit=50):
+        """Project bounded, scope-bound durable facts, not an assertion of completeness."""
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 100:
+            raise DemoError('DEMO_OBSERVATION_LIMIT_REJECTED')
+        def scoped(table):
+            return (table.c.account_key == scope.account_key, table.c.scope_key == scope.key)
+        with self.engine.connect() as conn:
+            ds = conn.execute(select(decisions).where(*scoped(decisions)).order_by(decisions.c.run_id.desc()).limit(limit)).mappings().all()
+            cs = conn.execute(select(commands).where(*scoped(commands)).order_by(commands.c.command_id.desc()).limit(limit)).mappings().all()
+            os = conn.execute(select(observations, inbox.c.state.label('inbox_state')).outerjoin(inbox, inbox.c.observation_id == observations.c.observation_id).where(*scoped(observations)).order_by(observations.c.received_at.desc(), observations.c.observation_id.desc()).limit(limit)).mappings().all()
+            fs = conn.execute(select(fills).where(*scoped(fills)).order_by(fills.c.occurred_at.desc(), fills.c.fill_key.desc()).limit(limit)).mappings().all()
+        def decision(row):
+            result = row['result'] if isinstance(row['result'], dict) else {}
+            body = result.get('decision') if isinstance(result.get('decision'), dict) else {}
+            return {'run_id':row['run_id'], 'state':row['state'], 'source':row['source'], 'command_id':row['command_id'],
+                    'error':row['error'], 'summary':body.get('summary'), 'assessment_status':body.get('assessment_status'), 'action':body.get('action')}
+        confirmation = {'DURABLE_READY':'NOT_SENT', 'MAY_HAVE_SENT':'OUTCOME_UNKNOWN', 'UNKNOWN':'OUTCOME_UNKNOWN',
+                        'ACKNOWLEDGED':'VENUE_ACKNOWLEDGED', 'OBSERVED':'VENUE_OBSERVED', 'ABANDONED':'ABANDONED_UNSENT'}
+        def command(row):
+            request = row['request'] if isinstance(row['request'], dict) else {}
+            return {'command_id':row['command_id'], 'client_id':row['client_id'], 'state':row['state'],
+                    'confirmation':confirmation.get(row['state'], 'UNVERIFIED'), 'method':row['method'], 'purpose':row['purpose'],
+                    **{key:request.get(key) for key in ('symbol','side','type','quantity','price')},
+                    'order_id':row['order_id'], 'order_status':row['order_status'], 'cumulative_qty':row['cumulative_qty'],
+                    'cumulative_quote':row['cumulative_quote'], 'reason':row['reason']}
+        def observation(row):
+            payload = row['payload'] if isinstance(row['payload'], dict) else {}
+            fields = ('symbol','orderId','clientOrderId','status','executedQty','cummulativeQuoteQty','s','i','c','X','z','Z')
+            return {'observation_id':row['observation_id'], 'source':row['source'], 'received_at':row['received_at'],
+                    'inbox_state':row['inbox_state'], 'fields':{key:payload[key] for key in fields if key in payload}}
+        def fill(row):
+            payload = row['payload'] if isinstance(row['payload'], dict) else {}
+            fields = ('side','quantity','price','quote_quantity','commission','commission_asset')
+            return {'symbol':row['symbol'], 'order_id':row['order_id'], 'trade_id':row['trade_id'], 'occurred_at':row['occurred_at'],
+                    'confirmation':'VENUE_OBSERVED', **{key:payload.get(key) for key in fields}}
+        return {'decisions':[decision(row) for row in ds], 'orders':[command(row) for row in cs],
+                'reports':[observation(row) for row in os], 'fills':[fill(row) for row in fs],
+                'pnl':{'state':'UNAVAILABLE', 'realized_usdt':None, 'unrealized_usdt':None, 'reason':'DEMO_PNL_EVIDENCE_INCOMPLETE'},
+                'limit':limit, 'complete_history':False}
+
     def risk_summary(self, scope, *, mark, now):
         """Weighted-cost inventory with UTC-day realized loss plus open drawdown.
 

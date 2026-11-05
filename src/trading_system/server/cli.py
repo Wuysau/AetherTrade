@@ -162,7 +162,7 @@ def main(argv: list[str] | None = None) -> int:
                 from .demo_deployment import load_demo_factory
                 demo_factory = load_demo_factory(args.demo_config, settings)
             uvicorn.run(create_app(settings, demo_runtime_factory=demo_factory), host=settings.host, port=settings.port,
-                        proxy_headers=False, server_header=False, log_level="info")
+                        workers=1, proxy_headers=False, server_header=False, log_level="info")
             return 0
         from .store import Store
         from . import model_repository  # Register additive model tables for init-db/doctor too.

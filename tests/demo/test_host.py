@@ -284,3 +284,32 @@ def test_no_remaining_duty_still_cancels_confirmed_live_protection(host):
     result = service.protection_tick()
     assert result['state'] == 'CANCEL_STALE_PROTECTION'
     assert result['commands'][0]['request']['origClientOrderId'] == 'leftover-exit'
+
+
+def test_stop_during_frame_prevents_starting_model_call(host):
+    from threading import Event
+    from trading_system.engine.binance_demo.async_safety import settle_before_cancel
+    service, repo, scope, config = host
+    updated = {**config, 'revision':2, 'mode':'AI', 'allow_model_calls':True, 'profile':{**config['profile'], 'strategy_revision':2}}
+    repo.save_strategy(scope, updated, expected_revision=1)
+    entered, release = Event(), Event(); stopped = [False]; model_calls = []
+    class Models:
+        async def analyze(self, *args, **kwargs): model_calls.append(True); return {}
+    service.models = Models()
+    def frame_wait():
+        entered.set(); assert release.wait(3)
+        return {'task_profile':{'strategy_revision':2}, 'snapshot_hash':'fixture',
+                'bindings':{'account_revision':repo.account(scope)['revision']}, 'quality':{'status':'READY'}}
+    service._frame = frame_wait
+    def before_model():
+        if stopped[0]: raise DemoError('DEMO_STOP_REQUESTED')
+    async def scenario():
+        task = asyncio.create_task(settle_before_cancel(service.assess_once('stop-frame', expected_strategy=updated, before_model=before_model)))
+        assert await asyncio.to_thread(entered.wait, 2)
+        stopped[0] = True; task.cancel()
+        await asyncio.sleep(0.05); assert not task.done()
+        release.set()
+        with pytest.raises(asyncio.CancelledError): await task
+    asyncio.run(scenario())
+    assert not model_calls
+    assert repo.decision(scope, 'stop-frame')['error'] == 'DEMO_STOP_REQUESTED'

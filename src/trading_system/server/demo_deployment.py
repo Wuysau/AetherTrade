@@ -19,6 +19,9 @@ class _UnqualifiedDemoRuntime(DemoRuntimeService):
     def bind_session(self, session_key):
         raise DemoError('DEMO_CREDENTIAL_FENCING_UNQUALIFIED')
 
+    def start_window(self, session_key, *, duration_seconds, decision_interval_seconds, expected_strategy_revision, expected_grant_hash):
+        raise DemoError('DEMO_BUILD_ATTESTATION_REQUIRED')
+
     async def run_window(self, session_key, *, duration_seconds, execute=False, **kwargs):
         if execute:
             raise DemoError('DEMO_BUILD_ATTESTATION_REQUIRED')

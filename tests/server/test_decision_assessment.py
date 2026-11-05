@@ -241,3 +241,17 @@ def test_prompt_specifies_verifiable_paths_and_watch_reference_rules():
     assert 'market.quote.price' in body['instructions']
     assert 'market.features.5m.atr' in body['instructions']
     assert 'PRICE_ABOVE and PRICE_BELOW must use evidence_ref="quote"' in body['instructions']
+
+
+def test_stop_after_primary_prevents_repair_model_request(svc, monkeypatch):
+    stopped = [False]; calls = []
+    bad = candidate(); bad['proposal']['exit_plan']['stop_price'] = '110'
+    async def request(*args, **kwargs):
+        calls.append(True); stopped[0] = True
+        return {'choices':[{'finish_reason':'stop','message':{'content':json.dumps(bad)}}]}
+    monkeypatch.setattr(model_client, 'request', request)
+    snap = snapshot(); snap['quality'] = {'status':'READY','missing_required':[]}
+    result = asyncio.run(svc.analyze('BTCUSDT','single',['default'],{'default':0},'stop-repair',
+        {'analysis_snapshot':snap}, request_guard=lambda: not stopped[0]))
+    assert len(calls) == 1
+    assert result['decision']['assessment_status'] == 'MODEL_ERROR'

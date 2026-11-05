@@ -8,6 +8,7 @@ import time
 
 from websockets.asyncio.client import connect
 from .contracts import DemoEndpointRegistry, DemoError
+from .async_safety import settled_thread
 
 
 class _NoRedirectConnection(connect):
@@ -72,7 +73,7 @@ class DemoUserStreamConsumer:
         # Explicit bounded run only; no implicit background runtime or reconnect.
         subscribed = False
         try:
-            await asyncio.to_thread(transport.sync_time)
+            await settled_thread(transport.sync_time)
             async with asyncio.timeout(duration_seconds):
                 async with socket_factory() as socket:
                     await socket.send(json.dumps(transport.subscription(self.request_id)))
@@ -82,14 +83,14 @@ class DemoUserStreamConsumer:
                     async with asyncio.TaskGroup() as tasks:
                         if on_subscribed:
                             async def backfill():
-                                result = await asyncio.to_thread(on_subscribed, self)
+                                result = await settled_thread(on_subscribed, self)
                                 if inspect.isawaitable(result):
                                     await result
                             tasks.create_task(backfill())
                         # Drain frames while the REST callback runs. Every accepted
                         # execution report is durably archived before next recv.
                         async for message in socket:
-                            await asyncio.to_thread(self.ingest, json.loads(message), received_at=int(time.time()))
+                            await settled_thread(self.ingest, json.loads(message), received_at=int(time.time()))
         except TimeoutError:
             if not subscribed:
                 raise DemoError('DEMO_STREAM_SUBSCRIPTION_TIMEOUT') from None

@@ -147,3 +147,21 @@ def test_decimal_rejects_resource_exhausting_exponents():
     from trading_system.engine.binance_demo.contracts import decimal
     for value in ('1e1000000', '0.' + '0'*1000 + '1'):
         with pytest.raises(DemoError): decimal(value)
+
+
+def test_send_preflight_runs_after_signing_before_any_http(monkeypatch):
+    from trading_system.execution.demo_commands import DemoSendPermit, _OWNER
+    provider, ref = credentials(); seen = []; expired = [False]
+    original_sign = provider.sign
+    def sign(*args):
+        result = original_sign(*args); expired[0] = True; return result
+    monkeypatch.setattr(provider, 'sign', sign)
+    def preflight():
+        if expired[0]: raise DemoError('DEMO_WINDOW_EXPIRED')
+    params = {'symbol':'BTCUSDT'}
+    permit = DemoSendPermit(_owner=_OWNER, method='POST', request=params, credential_ref=ref, preflight=preflight)
+    with BinanceDemoTransport(provider, ref, http_transport=httpx.MockTransport(lambda request: seen.append(request) or httpx.Response(200)), clock=lambda:100.0) as transport:
+        transport.synced_at = 100.0; transport.offset_ms = 0
+        with pytest.raises(DemoError, match='DEMO_WINDOW_EXPIRED'):
+            transport.send_order(params, permit=permit)
+    assert not seen

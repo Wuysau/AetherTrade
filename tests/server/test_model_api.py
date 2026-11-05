@@ -150,3 +150,26 @@ def test_partial_market_allows_fresh_crypto_but_rejects_stale_bstock_order(api):
         assert crypto.status_code == 200 and stock.status_code == 409
     finally:
         app.state.market.snapshot = original
+
+
+def test_model_request_rechecks_stop_after_dns_before_http(monkeypatch):
+    import asyncio
+    import socket
+    import pytest
+    from trading_system.server import model_client
+    from trading_system.server.errors import ApiError
+    async def scenario():
+        entered, release = asyncio.Event(), asyncio.Event(); stopped = [False]; sent = []
+        async def lookup(*args, **kwargs):
+            entered.set(); await release.wait()
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('8.8.8.8',443))]
+        class Client:
+            async def send(self, *args, **kwargs): sent.append(True); raise AssertionError('must not send')
+        loop = asyncio.get_running_loop(); monkeypatch.setattr(loop, 'getaddrinfo', lookup)
+        config = {'base_url':'https://model.example/v1','protocol':'openai_chat','local_mode':False,'timeout_seconds':10}
+        task = asyncio.create_task(model_client.request(Client(), config, 'fixture-secret', 'POST', '/chat/completions', {}, before_send=lambda: not stopped[0]))
+        await entered.wait(); stopped[0] = True; release.set()
+        with pytest.raises(ApiError, match='MODEL_REQUEST_REVOKED'):
+            await task
+        assert not sent
+    asyncio.run(scenario())

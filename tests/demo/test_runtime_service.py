@@ -69,12 +69,12 @@ def test_slow_assessment_does_not_starve_protection_supervisor(fail_model):
     class Host:
         scope = DemoScope(account_id='account', account_epoch='epoch', strategy_id='s1')
         memory = None
-        async def assess_once(self, run):
+        async def assess_once(self, run, **kwargs):
             counters['assessing'] = True
             if fail_model:
                 await asyncio.sleep(0.1)
                 raise DemoError('DEMO_MODEL_ERROR')
-            await asyncio.sleep(10)
+            await asyncio.sleep(2)
         def drain_inbox(self): pass
         def protection_tick(self):
             counters['protect'] += 1
@@ -88,7 +88,8 @@ def test_slow_assessment_does_not_starve_protection_supervisor(fail_model):
             except TimeoutError: pass
     class Repository:
         engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
-        def strategy(self, scope): return {'allow_execution': True, 'authorized_until': time.time()+1000}
+        authorization_deadline = time.time() + 1000
+        def strategy(self, scope): return {'allow_execution': True, 'authorized_until': self.authorization_deadline}
         def account(self, scope): return {'credential_ref': 'demo-session:fixture'}
         def active_orders(self, scope): return []
         def health(self, scope): return {'unknown': 0}
@@ -262,3 +263,570 @@ def test_postgresql_rebind_after_disconnect_is_explicitly_blocked(tmp_path, monk
     assert repo.account(scope)['credential_revision'] == old['credential_revision']
     monkeypatch.setattr(engine.dialect, 'name', 'sqlite')
     connections.close(); engine.dispose()
+
+
+def test_window_pause_failure_keeps_session_blocked_for_rebind():
+    from types import SimpleNamespace
+    from trading_system.runtime.demo_service import _Runtime
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+        def status(self): return {'execution_authorized': False}
+    class Stream:
+        healthy = False
+        async def run_window(self, *args, **kwargs): pass
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        def account(self, scope): return {'credential_ref': 'demo-session:fixture'}
+        def pause(self, scope, reason): raise DemoError('DEMO_OWNER_BUSY')
+    manager = DemoRuntimeService(connections=None, model_service=None, repository=Repo(), scope_resolver=None, current_code_sha='a'*40)
+    runtime = _Runtime(Lease(), SimpleNamespace(close=lambda: None), Host(), Stream(), None)
+    manager._sessions['session'] = runtime
+    with pytest.raises(DemoError, match='DEMO_OWNER_BUSY'):
+        asyncio.run(manager.run_window('session', duration_seconds=1))
+    assert manager.status('session')['blocker'] == 'DEMO_DRAIN_PAUSE_UNCONFIRMED'
+    with pytest.raises(DemoError, match='DEMO_DRAIN_PAUSE_UNCONFIRMED'):
+        manager.bind_session('session')
+
+
+def test_explicit_stop_waits_for_window_teardown_and_durable_pause():
+    from types import SimpleNamespace
+    from trading_system.runtime.demo_service import _Runtime
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+        def status(self): return {'execution_authorized': False}
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        pauses = []
+        def account(self, scope): return {'credential_ref': 'demo-session:fixture'}
+        def pause(self, scope, reason): self.pauses.append(reason)
+    async def scenario():
+        entered = asyncio.Event()
+        class Stream:
+            healthy = False
+            async def run_window(self, *args, **kwargs):
+                entered.set(); await asyncio.Event().wait()
+        repo = Repo()
+        manager = DemoRuntimeService(connections=None, model_service=None, repository=repo, scope_resolver=None, current_code_sha='a'*40)
+        runtime = _Runtime(Lease(), SimpleNamespace(close=lambda: None), Host(), Stream(), None)
+        manager._sessions['session'] = runtime
+        task = asyncio.create_task(manager.run_window('session', duration_seconds=30))
+        await entered.wait()
+        assert manager.request_stop('session')['state'] == 'STOP_REQUESTED'
+        with pytest.raises(asyncio.CancelledError): await task
+        assert not runtime.running and repo.pauses == ['DEMO_RUNTIME_WINDOW_ENDED']
+    asyncio.run(scenario())
+
+
+def test_registration_and_session_revocation_are_serialized(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError
+    from threading import Event
+    engine = create_engine('sqlite:///' + str(tmp_path/'registration-race.sqlite'), connect_args={'check_same_thread': False}); metadata.create_all(engine)
+    connections = DemoConnectionService(Transport); repo = DemoRepository(engine)
+    manager = DemoRuntimeService(connections=connections, model_service=None, repository=repo,
+        scope_resolver=lambda account: DemoScope(account_id=str(account['uid']), account_epoch='epoch', strategy_id='s1'), current_code_sha='a'*40)
+    connections.runtime = manager
+    payload = DemoConnect(api_key='fixture-key-123456', api_secret='fixture-secret-123456', acknowledge_demo_only=True)
+    connections.connect('session', payload, session_expires_at=time.time()+1000)
+    entered, release = Event(), Event(); original = repo.register_account
+    def delayed(*args, **kwargs):
+        entered.set(); assert release.wait(3)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(repo, 'register_account', delayed)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        bind = pool.submit(manager.bind_session, 'session')
+        assert entered.wait(2)
+        disconnect = pool.submit(connections.disconnect, 'session')
+        with pytest.raises(TimeoutError): disconnect.result(timeout=0.1)
+        release.set(); bind.result(timeout=3); disconnect.result(timeout=3)
+    assert connections.connection_count == 0 and not manager.status('session')['configured']
+    connections.close(); engine.dispose()
+
+
+def test_explicit_ai_configuration_is_scoped_and_never_starts_a_window(tmp_path):
+    from trading_system.runtime.demo_control import DemoStrategyInput
+    engine = create_engine('sqlite:///' + str(tmp_path/'control.sqlite')); metadata.create_all(engine)
+    connections = DemoConnectionService(Transport); repo = DemoRepository(engine)
+    class Models:
+        def get_config(self, profile_id): return {'id': profile_id, 'revision': 4, 'enabled': True, 'key_available': True, 'local_mode': False}
+    manager = DemoRuntimeService(connections=connections, model_service=Models(), repository=repo,
+        scope_resolver=lambda account: DemoScope(account_id=str(account['uid']), account_epoch='epoch', strategy_id='s1'), current_code_sha='a'*40)
+    connections.runtime = manager
+    connections.connect('session', DemoConnect(api_key='fixture-key-123456', api_secret='fixture-secret-123456', acknowledge_demo_only=True), session_expires_at=time.time()+1000)
+    manager.bind_session('session')
+    payload = DemoStrategyInput(model_profile_id='model-a', model_revision=4, expected_strategy_revision=0,
+        budget='100', max_planned_loss='2', max_daily_loss='5', fee_rate_cap='0.001',
+        holding_period_seconds=300, authorization_seconds=300, acknowledge_model_cost=True, acknowledge_demo_execution=True)
+    result = manager.configure_strategy('session', payload)
+    runtime = manager._runtime('session'); saved = repo.strategy(runtime.host.scope)
+    assert result['revision'] == 1 and not result['execution_authorized']
+    assert manager.status('session')['strategy_revision'] == 1
+    from trading_system.engine.binance_demo.contracts import digest
+    summary = manager.operator_status('session')['saved_strategy']
+    assert summary['grant_hash'] == digest(saved) and summary['model_profile_id'] == 'model-a'
+    assert saved['mode'] == 'AI' and saved['model_revisions'] == {'model-a': 4}
+    assert saved['budget'] == '100' and saved['max_daily_loss'] == '5'
+    assert saved['allow_model_calls'] and saved['allow_execution']
+    assert not runtime.running and not runtime.stream.healthy
+    assert repo.account(runtime.host.scope)['qualification'] is None
+    connections.close(); engine.dispose()
+
+
+def test_operator_start_stop_owns_one_bounded_background_window():
+    from types import SimpleNamespace
+    from trading_system.runtime.demo_service import _Runtime
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+        def status(self): return {'execution_authorized': False}
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        pauses = []
+        def account(self, scope):
+            proof = {'state':'DEMO_VERIFIED','evidence_sha256':'f'*64,'official_contract_revision':'fixture'}
+            return {'credential_ref':'demo-session:fixture','credential_revision':0,'qualification':{'state':'DEMO_VERIFIED','code_sha':'a'*40,'account_key':scope.account_key,'credential_revision':0,'product':'SPOT','history_coverage':'COMPLETE','protection':'HOSTED','baseline_hash':'b'*64,'evidence_sha256':'e'*64,'official_contract_revision':'fixture','capabilities':{'LIMIT':proof,'CANCEL':proof}}}
+        authorization_deadline = time.time() + 500
+        def strategy(self, scope): return {'revision': 1, 'authorized': True, 'allow_execution': True, 'allow_model_calls': True, 'mode': 'AI', 'authorized_until': self.authorization_deadline}
+        def pause(self, scope, reason): self.pauses.append(reason)
+    async def scenario():
+        entered = asyncio.Event()
+        class Stream:
+            healthy = False
+            async def run_window(self, *args, **kwargs): entered.set(); await asyncio.Event().wait()
+        repo = Repo()
+        manager = DemoRuntimeService(connections=None, model_service=None, repository=repo, scope_resolver=None, current_code_sha='a'*40)
+        runtime = _Runtime(Lease(), SimpleNamespace(close=lambda: None), Host(), Stream(), None)
+        manager._sessions['session'] = runtime
+        from trading_system.engine.binance_demo.contracts import digest
+        grant = digest(repo.strategy(runtime.host.scope))
+        assert manager.start_window('session', duration_seconds=60, decision_interval_seconds=30, expected_strategy_revision=1, expected_grant_hash=grant)['state'] == 'START_REQUESTED'
+        await entered.wait()
+        assert manager.status('session')['window']['state'] == 'RUNNING'
+        with pytest.raises(DemoError, match='WINDOW_ACTIVE'):
+            manager.start_window('session', duration_seconds=60, decision_interval_seconds=30, expected_strategy_revision=1, expected_grant_hash=grant)
+        assert manager.request_stop('session')['state'] == 'STOP_REQUESTED'
+        await asyncio.sleep(0); await asyncio.sleep(0)
+        assert manager.status('session')['window']['state'] == 'STOPPED_REVIEW_REQUIRED'
+        assert repo.pauses == ['DEMO_RUNTIME_WINDOW_ENDED']
+    asyncio.run(scenario())
+
+
+def test_operator_recovery_window_does_not_require_model_or_enable_sends():
+    from types import SimpleNamespace
+    from trading_system.runtime.demo_service import _Runtime
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+        def status(self): return {'execution_authorized': False}
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        pauses = []
+        def account(self, scope): return {'credential_ref': 'demo-session:fixture'}
+        def strategy(self, scope): raise AssertionError('Recovery must not require an AI strategy')
+        def pause(self, scope, reason): self.pauses.append(reason)
+    async def scenario():
+        class Stream:
+            healthy = False
+            async def run_window(self, *args, **kwargs): pass
+        repo = Repo()
+        manager = DemoRuntimeService(connections=None, model_service=None, repository=repo, scope_resolver=None, current_code_sha='a'*40)
+        manager._sessions['session'] = _Runtime(Lease(), SimpleNamespace(close=lambda: None), Host(), Stream(), None)
+        assert manager.start_recovery('session', duration_seconds=30)['state'] == 'START_REQUESTED'
+        await asyncio.sleep(0); await asyncio.sleep(0)
+        assert manager.status('session')['window']['state'] == 'ENDED_REVIEW_REQUIRED'
+        assert repo.pauses == ['DEMO_RUNTIME_WINDOW_ENDED']
+    asyncio.run(scenario())
+
+
+def test_stop_remains_pending_until_inflight_worker_finishes_and_pause_commits():
+    from types import SimpleNamespace
+    from threading import Event
+    from trading_system.runtime.demo_service import _Runtime
+    entered, release = Event(), Event()
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+        def status(self): return {'execution_authorized': False}
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        pauses = []
+        def account(self, scope): return {'credential_ref': 'demo-session:fixture'}
+        def pause(self, scope, reason): self.pauses.append(reason)
+    class Reconciler:
+        def reconcile(self, *args, **kwargs): entered.set(); assert release.wait(3)
+    async def scenario():
+        class Stream:
+            healthy = True
+            async def run_window(self, transport, *, on_subscribed, **kwargs): await on_subscribed(self)
+        repo = Repo()
+        manager = DemoRuntimeService(connections=None, model_service=None, repository=repo, scope_resolver=None, current_code_sha='a'*40)
+        manager._sessions['session'] = _Runtime(Lease(), SimpleNamespace(close=lambda: None), Host(), Stream(), Reconciler())
+        manager.start_recovery('session', duration_seconds=30)
+        assert await asyncio.to_thread(entered.wait, 2)
+        assert manager.request_stop('session')['state'] == 'STOP_REQUESTED'
+        await asyncio.sleep(0.05)
+        assert manager.status('session')['window']['state'] == 'STOP_PENDING'
+        assert repo.pauses == []
+        release.set()
+        for _ in range(50):
+            if manager.status('session')['window']['state'] == 'STOPPED_REVIEW_REQUIRED': break
+            await asyncio.sleep(0.01)
+        assert manager.status('session')['window']['state'] == 'STOPPED_REVIEW_REQUIRED'
+        assert repo.pauses == ['DEMO_RUNTIME_WINDOW_ENDED']
+    asyncio.run(scenario())
+
+
+def test_strategy_configuration_rejects_pending_window_for_same_physical_account(tmp_path):
+    from types import SimpleNamespace
+    from contextlib import nullcontext
+    from trading_system.runtime.demo_service import _Runtime
+    from trading_system.runtime.demo_control import DemoStrategyInput
+    class Lease:
+        expires_at = time.time() + 1000
+        def validate(self): return True
+        def registration_guard(self): return nullcontext()
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        def save_strategy(self, *args, **kwargs): raise AssertionError('must not save')
+    class Model:
+        def get_config(self, profile_id): return {'revision':4, 'enabled':True, 'key_available':True}
+    manager = DemoRuntimeService(connections=None, model_service=Model(), repository=Repo(), scope_resolver=None, current_code_sha='a'*40)
+    def runtime(epoch):
+        host = SimpleNamespace(scope=DemoScope(account_id='123', account_epoch=epoch, strategy_id='s1'))
+        return _Runtime(Lease(), None, host, None, None)
+    manager._sessions = {'a':runtime('epoch-a'), 'b':runtime('epoch-b')}
+    manager._jobs['a'] = {'state':'START_REQUESTED', 'error':None, 'task':SimpleNamespace(done=lambda: False)}
+    payload = DemoStrategyInput(model_profile_id='model-a', model_revision=4, expected_strategy_revision=0,
+        budget='100', max_planned_loss='2', max_daily_loss='5', fee_rate_cap='0.001',
+        holding_period_seconds=300, authorization_seconds=300, acknowledge_model_cost=True, acknowledge_demo_execution=True)
+    with pytest.raises(DemoError, match='DEMO_ACCOUNT_RUNTIME_ACTIVE'):
+        manager.configure_strategy('b', payload)
+
+
+def test_operator_start_requires_bound_capability_and_baseline_evidence():
+    from types import SimpleNamespace
+    from trading_system.runtime.demo_service import _Runtime
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        def account(self, scope): return {'credential_ref':'demo-session:fixture', 'credential_revision':0, 'qualification':None}
+        deadline = time.time() + 500
+        def strategy(self, scope): return {'revision':1,'mode':'AI','authorized':True,'allow_model_calls':True,'allow_execution':True,'authorized_until':self.deadline}
+    manager = DemoRuntimeService(connections=None, model_service=None, repository=Repo(), scope_resolver=None, current_code_sha='a'*40)
+    manager._sessions['session'] = _Runtime(Lease(), None, Host(), None, None)
+    from trading_system.engine.binance_demo.contracts import digest
+    grant = digest(manager.repository.strategy(manager._sessions['session'].host.scope))
+    with pytest.raises(DemoError, match='DEMO_QUALIFICATION_REQUIRED'):
+        manager.start_window('session', duration_seconds=60, decision_interval_seconds=30, expected_strategy_revision=1, expected_grant_hash=grant)
+    assert not manager._jobs
+
+
+def test_start_rejects_a_stale_user_reviewed_strategy_before_scheduling():
+    from types import SimpleNamespace
+    from trading_system.runtime.demo_service import _Runtime
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        def account(self, scope): return {'credential_ref':'demo-session:fixture', 'credential_revision':0}
+        def strategy(self, scope): return {'revision':2,'mode':'AI','authorized':True,'allow_model_calls':True,'allow_execution':True,'authorized_until':time.time()+500}
+    manager = DemoRuntimeService(connections=None, model_service=None, repository=Repo(), scope_resolver=None, current_code_sha='a'*40)
+    manager._sessions['session'] = _Runtime(Lease(), None, Host(), None, None)
+    with pytest.raises(DemoError, match='DEMO_DECISION_BINDING_CHANGED'):
+        manager.start_window('session', duration_seconds=60, decision_interval_seconds=30, expected_strategy_revision=1, expected_grant_hash='f'*64)
+    assert not manager._jobs
+
+
+def test_session_revocation_waits_for_inflight_worker_before_transport_close():
+    from types import SimpleNamespace
+    from threading import Event
+    from trading_system.runtime.demo_service import _Runtime
+    entered, release = Event(), Event()
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+        def status(self): return {'execution_authorized': False}
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        pauses = []
+        def account(self, scope): return {'credential_ref':'demo-session:fixture'}
+        def pause(self, scope, reason): self.pauses.append(reason)
+    class Transport:
+        closed = False
+        def close(self): self.closed = True
+    class Reconciler:
+        def reconcile(self, *args, **kwargs): entered.set(); assert release.wait(3)
+    async def scenario():
+        class Stream:
+            healthy = True
+            async def run_window(self, transport, *, on_subscribed, **kwargs): await on_subscribed(self)
+        repo, transport = Repo(), Transport()
+        manager = DemoRuntimeService(connections=None, model_service=None, repository=repo, scope_resolver=None, current_code_sha='a'*40)
+        manager._sessions['session'] = _Runtime(Lease(), transport, Host(), Stream(), Reconciler())
+        manager.start_recovery('session', duration_seconds=30)
+        assert await asyncio.to_thread(entered.wait, 2)
+        manager.close_session('session')
+        await asyncio.sleep(0.05)
+        assert not transport.closed and not repo.pauses
+        release.set(); await manager._jobs['session']['task']
+        assert transport.closed and repo.pauses == ['DEMO_RUNTIME_WINDOW_ENDED']
+    asyncio.run(scenario())
+
+
+def test_rebind_after_lease_revocation_waits_for_inflight_worker_before_close():
+    from types import SimpleNamespace
+    from threading import Event
+    from trading_system.runtime.demo_service import _Runtime
+    entered, release = Event(), Event()
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        revoked = False
+        def validate(self):
+            if self.revoked: raise DemoError('DEMO_SESSION_LEASE_REVOKED')
+            return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+        def status(self): return {'execution_authorized': False}
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        pauses = []
+        def account(self, scope): return {'credential_ref':'demo-session:fixture'}
+        def pause(self, scope, reason): self.pauses.append(reason)
+    class Transport:
+        closed = False
+        def close(self): self.closed = True
+    class Reconciler:
+        def reconcile(self, *args, **kwargs): entered.set(); assert release.wait(3)
+    async def scenario():
+        class Stream:
+            healthy = True
+            async def run_window(self, transport, *, on_subscribed, **kwargs): await on_subscribed(self)
+        repo, transport = Repo(), Transport()
+        manager = DemoRuntimeService(connections=None, model_service=None, repository=repo, scope_resolver=None, current_code_sha='a'*40)
+        manager._sessions['session'] = _Runtime(Lease(), transport, Host(), Stream(), Reconciler())
+        manager.start_recovery('session', duration_seconds=30)
+        assert await asyncio.to_thread(entered.wait, 2)
+        manager._sessions['session'].lease.revoked = True
+        with pytest.raises(DemoError, match='DEMO_RUNTIME_DRAIN_REQUIRED'):
+            manager.bind_session('session')
+        assert manager._sessions['session'].stop_requested
+        await asyncio.sleep(0.05)
+        assert not transport.closed and not repo.pauses
+        release.set(); await manager._jobs['session']['task']
+        assert transport.closed and repo.pauses == ['DEMO_RUNTIME_WINDOW_ENDED']
+    asyncio.run(scenario())
+
+
+def test_shutdown_waits_for_inflight_worker_before_repository_disposal():
+    from types import SimpleNamespace
+    from threading import Event
+    from trading_system.runtime.demo_service import _Runtime
+    entered, release = Event(), Event(); disposed = []
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+        def status(self): return {'execution_authorized': False}
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        def account(self, scope): return {'credential_ref':'demo-session:fixture'}
+        def pause(self, scope, reason): pass
+    class Reconciler:
+        def reconcile(self, *args, **kwargs): entered.set(); assert release.wait(3)
+    async def scenario():
+        class Stream:
+            healthy = True
+            async def run_window(self, transport, *, on_subscribed, **kwargs): await on_subscribed(self)
+        manager = DemoRuntimeService(connections=None, model_service=None, repository=Repo(), scope_resolver=None, current_code_sha='a'*40, close_repository=lambda: disposed.append(True))
+        manager._sessions['session'] = _Runtime(Lease(), SimpleNamespace(close=lambda: None), Host(), Stream(), Reconciler())
+        manager.start_recovery('session', duration_seconds=30)
+        assert await asyncio.to_thread(entered.wait, 2)
+        closing = asyncio.create_task(manager.aclose())
+        await asyncio.sleep(0.05)
+        assert not closing.done() and not disposed
+        release.set(); await closing
+        assert disposed == [True]
+    asyncio.run(scenario())
+
+
+def test_decision_failure_is_reported_as_paused_not_normal_completion():
+    from types import SimpleNamespace
+    from trading_system.runtime.demo_service import _Runtime
+    from trading_system.engine.binance_demo.contracts import digest
+    class Lease:
+        credential_ref='demo-session:fixture'; expires_at=time.time()+1000
+        def validate(self): return True
+    class Host:
+        scope=DemoScope(account_id='123',account_epoch='epoch',strategy_id='s1'); memory=None
+        def status(self): return {'execution_authorized':False}
+        def drain_inbox(self): pass
+        def protection_tick(self): return {'state':'NO_EXPOSURE','commands':[]}
+    class Repo:
+        engine=SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        deadline=time.time()+500
+        def account(self, scope):
+            proof={'state':'DEMO_VERIFIED','evidence_sha256':'f'*64,'official_contract_revision':'fixture'}
+            return {'credential_ref':'demo-session:fixture','credential_revision':0,'qualification':{'state':'DEMO_VERIFIED','code_sha':'a'*40,'account_key':scope.account_key,'credential_revision':0,'product':'SPOT','history_coverage':'COMPLETE','protection':'HOSTED','baseline_hash':'b'*64,'evidence_sha256':'e'*64,'official_contract_revision':'fixture','capabilities':{'LIMIT':proof,'CANCEL':proof}}}
+        def strategy(self, scope): return {'revision':1,'mode':'AI','authorized':True,'allow_model_calls':True,'allow_execution':True,'authorized_until':self.deadline}
+        def pause(self, *args): pass
+        def active_orders(self, scope): return []
+        def abandon_stale_unsent(self, *args, **kwargs): pass
+        def health(self, scope): return {'unknown':0}
+    class Reconciler:
+        def reconcile(self, *args, **kwargs): pass
+        def reconcile_and_resume(self, *args, **kwargs): raise DemoError('DEMO_EXTERNAL_ORDER_UNRESOLVED')
+    async def scenario():
+        class Stream:
+            healthy=True
+            async def run_window(self, transport, *, on_subscribed, **kwargs): await on_subscribed(self)
+        repo=Repo(); manager=DemoRuntimeService(connections=None,model_service=None,repository=repo,scope_resolver=None,current_code_sha='a'*40)
+        runtime=_Runtime(Lease(),SimpleNamespace(close=lambda: None),Host(),Stream(),Reconciler()); manager._sessions['session']=runtime
+        grant=digest(repo.strategy(runtime.host.scope))
+        manager.start_window('session',duration_seconds=1,decision_interval_seconds=30,expected_strategy_revision=1,expected_grant_hash=grant)
+        await manager._jobs['session']['task']
+        status=manager.status('session')
+        assert status['new_risk_paused'] is True and status['last_error']=='DEMO_EXTERNAL_ORDER_UNRESOLVED'
+        assert status['window']['state']=='ENDED_BLOCKED_REVIEW_REQUIRED'
+        assert status['window']['error']=='DEMO_EXTERNAL_ORDER_UNRESOLVED'
+    asyncio.run(scenario())
+
+@pytest.mark.parametrize('cross_at', ['frame', 'repair', 'repo'])
+def test_window_deadline_blocks_each_new_model_request(monkeypatch, cross_at):
+    from types import SimpleNamespace
+    import trading_system.runtime.demo_service as service_module
+    from trading_system.runtime.demo_service import _Runtime
+    clock = [10.0]; calls = []; cross_repo = [False]
+    monkeypatch.setattr(service_module, 'time', SimpleNamespace(time=time.time, monotonic=lambda: clock[0]))
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time() + 1000
+        def validate(self): return True
+    class Host:
+        scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+        memory = None
+        async def assess_once(self, run, *, before_model, **kwargs):
+            if cross_at == 'frame': clock[0] = 11.0
+            if cross_at == 'repo': cross_repo[0] = True
+            before_model(); calls.append('primary')
+            clock[0] = 11.0
+            before_model(); calls.append('repair')
+        def drain_inbox(self): pass
+        def protection_tick(self): return {'commands': []}
+        def status(self): return {'execution_authorized':False}
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        authorization_deadline = time.time() + 100
+        def account(self, scope):
+            if cross_repo[0]: clock[0] = 11.0
+            return {'credential_ref':'demo-session:fixture'}
+        def strategy(self, scope): return {'allow_execution':True,'authorized_until':self.authorization_deadline}
+        def active_orders(self, scope): return []
+        def health(self, scope): return {'unknown':0}
+        def abandon_stale_unsent(self, *args, **kwargs): pass
+        def pause(self, *args): pass
+    class Reconciler:
+        def reconcile(self, *args, **kwargs): pass
+        def reconcile_and_resume(self, *args, **kwargs): pass
+    class Stream:
+        healthy = True
+        async def run_window(self, transport, *, on_subscribed, **kwargs):
+            try: await asyncio.wait_for(on_subscribed(self), timeout=0.2)
+            except TimeoutError: pass
+    manager = DemoRuntimeService(connections=None, model_service=None, repository=Repo(), scope_resolver=None, current_code_sha='a'*40)
+    runtime = _Runtime(Lease(), None, Host(), Stream(), Reconciler()); manager._sessions['session'] = runtime
+    asyncio.run(manager.run_window('session', duration_seconds=1, execute=True))
+    assert calls == (['primary'] if cross_at == 'repair' else [])
+    assert runtime.last_error == 'DEMO_WINDOW_EXPIRED'
+
+
+@pytest.mark.parametrize('cross_at', ['sync', 'signing'])
+def test_owner_final_preflight_rejects_send_when_blocked_work_crosses_deadline(monkeypatch, cross_at):
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+    import trading_system.runtime.demo_service as service_module
+    from trading_system.runtime.demo_service import _Runtime
+    from trading_system.execution.demo_commands import DemoExecutionOwner
+    from trading_system.runtime.demo_host import DemoRuntimeHost, AdmissionContext
+    clock = [10.0]; sent = []; may = []; unknown = []
+    monkeypatch.setattr(service_module, 'time', SimpleNamespace(time=time.time, monotonic=lambda: clock[0]))
+    monkeypatch.setattr(DemoRuntimeHost, 'admit', staticmethod(lambda context: None))
+    scope = DemoScope(account_id='123', account_epoch='epoch', strategy_id='s1')
+    class Lease:
+        credential_ref = 'demo-session:fixture'; expires_at = time.time()+1000
+        def validate(self): pass
+    class Repo:
+        engine = SimpleNamespace(dialect=SimpleNamespace(name='postgresql'))
+        auth_until = time.time()+100
+        def account(self, scope):
+            return {'credential_ref':'demo-session:fixture','credential_revision':0,'revision':0,'state':'READY',
+                    'qualification':{'state':'DEMO_VERIFIED','code_sha':'a'*40,'account_key':scope.account_key,'credential_revision':0,'product':'SPOT',
+                                     'capabilities':{'LIMIT':{'state':'DEMO_VERIFIED','evidence_sha256':'e','official_contract_revision':'v'}}}}
+        def strategy(self, scope): return {'allow_execution':True,'authorized_until':self.auth_until}
+        def owner_guard(self, scope): return nullcontext()
+        def command(self, scope, command_id): return {'method':'POST','purpose':'ENTRY','request':{'type':'LIMIT'}}
+        def health(self, scope): return {'unknown':0,'unprotected':0,'pending_inbox':0,'risk_breaches':0}
+        def begin_send(self, *args, **kwargs):
+            may.append(True); return {'method':'POST','request':{'type':'LIMIT'}}
+        def mark_unknown(self, *args): unknown.append(True)
+        def active_orders(self, scope): return []
+        def abandon_stale_unsent(self, *args, **kwargs): pass
+        def pause(self, *args): pass
+    class Transport:
+        credential_ref = 'demo-session:fixture'
+        def sync_time(self):
+            if cross_at == 'sync': clock[0] = 11.0
+        def send_order(self, request, *, permit):
+            permit.consume('POST', request, self.credential_ref)
+            if cross_at == 'signing': clock[0] = 11.0
+            permit.before_network(); sent.append(True)
+    class Reconciler:
+        def reconcile(self, *args, **kwargs): pass
+        def reconcile_and_resume(self, *args, **kwargs): pass
+    class Host:
+        memory = None
+        async def assess_once(self, run, **kwargs): return {}
+        def admit_assessment(self, run): return {'command_id':'id'}
+        def drain_inbox(self): pass
+        def protection_tick(self): return {'commands':[]}
+        def status(self): return {'execution_authorized':False}
+        def dispatch(self, command):
+            now = int(time.time())
+            context = AdmissionContext(now=now,quote_at=now,account_at=now,quote_source='BINANCE_DEMO',model_source='assessment_v1',decision_expires_at=now+100,capability_state='DEMO_VERIFIED',code_sha='a'*40,qualified_sha='a'*40,private_stream_healthy=True,account_state='READY',authorized=True,budget='100',available='100',risk_limit='100',unresolved_unknown=0,unprotected=0)
+            return owner.dispatch(scope, command, context=context)
+    Host.scope = scope
+    class Stream:
+        healthy = True
+        async def run_window(self, transport, *, on_subscribed, **kwargs):
+            try: await asyncio.wait_for(on_subscribed(self), timeout=0.2)
+            except TimeoutError: pass
+    repo, transport = Repo(), Transport()
+    manager = DemoRuntimeService(connections=None, model_service=None, repository=repo, scope_resolver=None, current_code_sha='a'*40)
+    runtime = _Runtime(Lease(), transport, Host(), Stream(), Reconciler()); manager._sessions['session'] = runtime
+    owner = DemoExecutionOwner(repo, transport, preflight=lambda: manager._sender_preflight(runtime))
+    asyncio.run(manager.run_window('session', duration_seconds=1, execute=True))
+    assert runtime.last_error == ('DEMO_WINDOW_EXPIRED' if cross_at == 'sync' else 'DEMO_SEND_OUTCOME_UNKNOWN')
+    assert not sent
+    assert may == ([] if cross_at == 'sync' else [True])
+    assert unknown == ([] if cross_at == 'sync' else [True])
+    with pytest.raises(DemoError, match='DEMO_EXECUTION_PERMISSION_REQUIRED'):
+        manager._sender_preflight(runtime)
