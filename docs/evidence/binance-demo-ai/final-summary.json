@@ -1,0 +1,62 @@
+{
+  "source_commit": "68c260e6d50ae20ac17cb3f91cd527c5ebb66e96",
+  "base": "7d492bdf104eb16a40956c6e8c8e54af01b74ae6",
+  "layer": "TASK_LIGHT",
+  "workflow": "task-light-batch-full",
+  "python": {
+    "status": "PASS",
+    "passed": 337,
+    "failed": 0,
+    "skipped": 0,
+    "raw": "review-final.log",
+    "junit": "review-final.xml",
+    "command_receipt": "review-final-run.json"
+  },
+  "exit_budget_supplement": {
+    "status": "PASS",
+    "passed": 2,
+    "overlapping_cases": 1,
+    "raw": "exit-budget.log",
+    "command": "python -X utf8 -m pytest tests/demo/test_host.py::test_stop_trigger_stages_owned_exit_and_never_calls_send_from_event -q --junitxml=docs/evidence/binance-demo-ai/exit-budget.xml"
+  },
+  "frontend": {
+    "status": "PASS",
+    "passed": 27,
+    "typecheck": "PASS",
+    "raw": "frontend-final.log",
+    "command_receipt": "frontend-final-run.json"
+  },
+  "review": {
+    "state": "SIX_FINDINGS_FIXED_WITH_REGRESSIONS",
+    "reviewed_commit": "b984749e858543b6e91bf4f155fbe75f698abace",
+    "details": "review-resolution.md",
+    "second_review": "NOT_RUN"
+  },
+  "postgresql": {
+    "state": "BLOCKED",
+    "execution": "NOT_RUN",
+    "reason": "Approved migration and heavy-check scheduler required"
+  },
+  "binance_demo": "NOT_RUN",
+  "paid_model": "NOT_RUN",
+  "full_acceptance": "NOT_RUN",
+  "integration": "READY_FOR_INTEGRATION_MANAGER_NOT_MERGED",
+  "deployment": "NOT_RUN",
+  "enforcement_implementation_status": "UNCHANGED_POLICY_APPROVED_ENFORCEMENT_PENDING",
+  "environment": {
+    "python": "3.14.2 (tags/v3.14.2:df79316, Dec  5 2025, 17:18:21) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "dependencies_sha256": "a845a6eb5cfa212520d11c24afe91917c12b08ca215e747d5a7b48e62efa0460"
+  },
+  "logs_sha256": {
+    "exit-budget.log": "4292a72d128ea69923156513880600348388208e4c263548eda2ab38247d2119",
+    "exit-budget.xml": "db2f2f6257d872e14e6050b472b225d8d5d6d4286060ac1962d525a10c62f3ce",
+    "frontend-final.log": "e621ec1b194d421ffa5a46fc980746e0d30006cc5eb421bcfcde78a0aa132aae",
+    "frontend-observed.txt": "7345b4c0641a451b0f2b914d9a45989432da67db22af156b515289ac80c71c7a",
+    "light.log": "595ae03d5fea5ab3c59eff655b7bbcfab21bd4aa408e2495b18e7689e9581a57",
+    "light.xml": "d5ccaed10f940f61c2ca22efe8dea9044c2910316746e854f9c17a7bc5efe2ae",
+    "review-final.log": "32820d508c636c8bd9852a8d60f3ed2dec540c6cfe3ecdcee9be758d4377a8b5",
+    "review-final.xml": "041a6f09891cef13dcb00bc4bd670a5cb42433ac3ab27faec3af03ebef4fcf01",
+    "typecheck-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

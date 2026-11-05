@@ -1,3 +1,25 @@
+# BINANCE_DEMO_AI_CANDIDATE — 2026-11-05
+
+Task branch `codex/binance-demo-ai-20261105`; source `68c260e6d50ae20ac17cb3f91cd527c5ebb66e96`.
+User approved the official Demo SPOT BTCUSDT LIMIT design and offline implementation.
+Implemented signed deployment/capability evidence, bounded independent qualification
+runner, conservative dedicated-account reconciliation, exact-fact cross-process
+revalidation, preserved CANCEL after balance invalidation, exit reserve and
+lease-independent authenticated operator takeover. Default old deployment stays closed.
+Six independent-review findings were repaired and regression-tested.
+
+TASK_LIGHT: 337 Python cases PASS; exit-budget supplement 2 PASS (one overlap);
+27 frontend cases PASS; TypeScript PASS. Evidence:
+`docs/evidence/binance-demo-ai/final-summary.json`; operation/limits:
+`docs/binance-demo/ai-execution-20261105.md`.
+
+PG migrations/locks/permissions/crash acceptance BLOCKED/NOT_RUN; official Demo
+account/orders/fills, paid models, full acceptance and deployment NOT_RUN.
+No signed production acceptance was created. This is a code candidate, not
+operational trading qualification. Infrastructure enforcement status unchanged.
+Integration Manager must serially integrate the candidate; public-snapshot unchanged.
+Task worktree and evidence retained; no cleanup. Existing history follows unchanged.
+
 # CURRENT_ENVIRONMENT_FIX_ROUND — 2026-11-03
 
 Frozen source `7b2947c14446200c2fc9c79aa6a2772ac5b9ae2d` on

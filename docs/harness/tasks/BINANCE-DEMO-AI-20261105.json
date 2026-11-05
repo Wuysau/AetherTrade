@@ -7,11 +7,74 @@
   "base_branch": "public-snapshot",
   "branch": "codex/binance-demo-ai-20261105",
   "path": "D:/Projects/Python/AetherTrade/AetherTrade-demo-ai-20261105",
-  "state": "REGISTERED",
-  "phase": "DESIGN_REVIEW",
-  "file_scope": ["docs/superpowers/specs/2026-11-05-binance-demo-ai-design.md", "docs/harness/tasks/BINANCE-DEMO-AI-20261105.json"],
-  "budget": {"active_worktree_limit": 4, "heavy_runs_this_stage": 0, "automatic_test_retries": 0, "light_run_timeout_seconds": 120, "task_disk_budget_bytes": 2147483648},
-  "validation": "NOT_RUN",
-  "integration": "NOT_REQUESTED",
-  "cleanup": "NOT_ELIGIBLE"
+  "state": "LIGHT_VERIFIED",
+  "phase": "READY_FOR_INTEGRATION_MANAGER",
+  "file_scope": [
+    "docs/binance-demo/README.md",
+    "docs/binance-demo/ai-execution-20261105.md",
+    "docs/harness/tasks/BINANCE-DEMO-AI-20261105.json",
+    "docs/superpowers/plans/2026-11-05-binance-demo-ai.md",
+    "docs/superpowers/specs/2026-11-05-binance-demo-ai-design.md",
+    "migrations/0038_binance_demo_authority.sql",
+    "src/trading_system/engine/binance_demo/attestation.py",
+    "src/trading_system/engine/binance_demo/qualification.py",
+    "src/trading_system/execution/demo_balance_history.py",
+    "src/trading_system/execution/demo_commands.py",
+    "src/trading_system/execution/demo_consistency.py",
+    "src/trading_system/execution/demo_qualification.py",
+    "src/trading_system/execution/demo_reconcile.py",
+    "src/trading_system/runtime/demo_control.py",
+    "src/trading_system/runtime/demo_service.py",
+    "src/trading_system/runtime/demo_strategy.py",
+    "src/trading_system/server/cli.py",
+    "src/trading_system/server/demo_control_api.py",
+    "src/trading_system/server/demo_deployment.py",
+    "src/trading_system/server/demo_verified.py",
+    "src/trading_system/storage/demo.py",
+    "src/trading_system/storage/demo_authority.py",
+    "src/trading_system/storage/demo_physical.py",
+    "tests/demo/test_attestation.py",
+    "tests/demo/test_authority.py",
+    "tests/demo/test_consistency.py",
+    "tests/demo/test_host.py",
+    "tests/demo/test_qualification_run.py",
+    "tests/demo/test_qualified_chain.py",
+    "tests/demo/test_qualified_deployment.py",
+    "tests/demo/test_takeover.py",
+    "tests/demo/test_verified_cancel.py",
+    "tests/server/test_demo_control_api.py",
+    "web/src/runtime/demo_controls.tsx",
+    "web/src/runtime/demo_takeover.tsx",
+    "web/tests/demo-takeover.test.tsx"
+  ],
+  "budget": {
+    "active_worktree_limit": 4,
+    "heavy_runs_this_stage": 0,
+    "automatic_test_retries": 0,
+    "light_run_timeout_seconds": 120,
+    "task_disk_budget_bytes": 2147483648
+  },
+  "validation": "TASK_LIGHT_PASS",
+  "integration": "NOT_MERGED",
+  "cleanup": "NOT_ELIGIBLE",
+  "candidate": "68c260e6d50ae20ac17cb3f91cd527c5ebb66e96",
+  "local_dependencies": {
+    "web_node_modules": "junction to existing root web/node_modules; preserve both"
+  },
+  "evidence": "docs/evidence/binance-demo-ai/final-summary.json",
+  "events": [
+    {
+      "state": "REGISTERED",
+      "base": "7d492bdf104eb16a40956c6e8c8e54af01b74ae6"
+    },
+    {
+      "state": "ACTIVE",
+      "candidate": "b984749e858543b6e91bf4f155fbe75f698abace"
+    },
+    {
+      "state": "LIGHT_VERIFIED",
+      "candidate": "68c260e6d50ae20ac17cb3f91cd527c5ebb66e96",
+      "evidence": "docs/evidence/binance-demo-ai/final-summary.json"
+    }
+  ]
 }
