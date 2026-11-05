@@ -14,6 +14,8 @@ class Runtime:
     def start_window(self, session, **kwargs): self.calls.append(('start', session, kwargs)); return {'state': 'START_REQUESTED'}
     def start_recovery(self, session, **kwargs): self.calls.append(('recover', session, kwargs)); return {'state': 'START_REQUESTED'}
     def request_stop(self, session): self.calls.append(('stop', session)); return {'state': 'STOP_REQUESTED'}
+    def takeover_status(self, session): return {'state':'NEEDS_OPERATOR','digest':'a'*64,'flat_account_verified':False}
+    def acknowledge_takeover(self, session, expected_digest): self.calls.append(('takeover',session,expected_digest)); return {'state':'TAKEOVER_ACKNOWLEDGED','execution_authorized':False}
     def close_session(self, session): pass
     def close(self): pass
 
@@ -27,6 +29,21 @@ def client_for(tmp_path, runtime):
 def auth(client):
     response = client.post('/api/setup', json={'username':'owner', 'password':'long-password-here', 'initial_cash':'10000'})
     client.headers['x-csrf-token'] = response.json()['csrf_token']
+
+
+def test_takeover_endpoint_requires_auth_csrf_and_explicit_responsibility(tmp_path):
+    runtime=Runtime()
+    with client_for(tmp_path,runtime) as client:
+        assert client.get('/api/demo/runtime/takeover').status_code==401
+        auth(client)
+        assert client.get('/api/demo/runtime/takeover').json()['flat_account_verified'] is False
+        payload={'expected_digest':'a'*64,'acknowledge_responsibility':True}
+        token=client.headers.pop('x-csrf-token')
+        assert client.post('/api/demo/runtime/takeover',json=payload).status_code==403
+        client.headers['x-csrf-token']=token
+        assert client.post('/api/demo/runtime/takeover',json={**payload,'acknowledge_responsibility':False}).status_code==422
+        assert client.post('/api/demo/runtime/takeover',json=payload).json()['state']=='TAKEOVER_ACKNOWLEDGED'
+        assert runtime.calls[-1][2]=='a'*64
 
 
 def test_operator_routes_require_auth_csrf_and_explicit_acknowledgement(tmp_path):

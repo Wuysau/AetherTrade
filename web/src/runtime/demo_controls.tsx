@@ -3,6 +3,7 @@ import { RuntimeApi, errorMessage } from './api';
 import { useLocale } from './i18n';
 import type { ModelProfile } from './types';
 import { Alert } from './ui';
+import { DemoTakeoverControls } from './demo_takeover';
 
 interface SavedStrategy {
   revision:number; grant_hash:string; mode:string; model_profile_id:string; model_revision:number;
@@ -142,6 +143,7 @@ export function DemoRuntimeControls({ api, connectionGeneration = "", connection
       <label><input type="checkbox" checked={recoveryAck} onChange={e => setRecoveryAck(e.target.checked)} disabled={busy} /> {text('确认恢复会订阅私有流、对账并写入本地状态，不调用模型或发送订单。', 'Recovery subscribes to the private stream, reconciles, and writes local state; it does not call models or send orders.')}</label>
       <div className="form-actions"><button className="button" type="button" disabled={busy || !status?.configured || Boolean(statusError) || !validDuration || !recoveryAck} onClick={() => void act('/demo/runtime/recover', {duration_seconds:Number(duration),acknowledge_state_changes:true})}>{text('启动对账恢复', 'Start reconciliation')}</button><button className="button" type="button" disabled={busy} onClick={() => void act('/demo/runtime/stop')}>{text('请求停止', 'Request stop')}</button></div>
     </div>
+    <DemoTakeoverControls api={api} generation={connectionGeneration} disabled={connectionBusy || busy || !status?.configured || Boolean(status.running)} />
     <section aria-label={text('已记录的模拟交易结果', 'Recorded Demo results')}>
       <h3>{text('已记录的模拟交易结果', 'Recorded Demo results')}</h3>
       <button className="button" type="button" disabled={connectionBusy} onClick={() => void readObservations()}>{text('读取记录', 'Read records')}</button>

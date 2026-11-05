@@ -305,8 +305,14 @@ class DemoStrategyHost:
             expires_at=min(now + 60, strategy['authorized_until']), now=now, risk_receipt=risk,
             expected_account_revision=binding['account_revision'], expected_strategy_revision=strategy['revision'])
 
-    def protection_tick(self):
+    def protection_tick(self, *, force_exit=False):
         account = self.repository.account(self.scope)
+        if force_exit:
+            entries = [row for row in self.repository.active_orders(self.scope)
+                if row['purpose']=='ENTRY' and row['state'] in {'MAY_HAVE_SENT','UNKNOWN','ACKNOWLEDGED','OBSERVED'}]
+            if entries:
+                cancellations = [self.stage_cancel(row['command_id']) for row in entries]
+                return {'state':'CANCEL_ENTRY_FIRST','commands':[row for row in cancellations if row['state']=='DURABLE_READY']}
         if (account.get('qualification') or {}).get('state') == 'INVALIDATED_BALANCE':
             # Existing, separately qualified CANCEL may reduce an open entry's
             # risk. Do not create a new sell or claim hosted coverage here.
@@ -334,7 +340,7 @@ class DemoStrategyHost:
             plan = duty['plan'] or {}
             if plan.get('authorization_ref') != strategy['authorization_ref'] or plan.get('mode') != 'HOSTED' or plan.get('stop_trigger', 'LAST') != 'LAST':
                 raise DemoError('DEMO_PROTECTION_PLAN_UNSUPPORTED')
-            if price <= decimal(plan['stop_price'], positive=True) or now >= duty['opened_at'] + plan['maximum_holding_seconds']:
+            if force_exit or price <= decimal(plan['stop_price'], positive=True) or now >= duty['opened_at'] + plan['maximum_holding_seconds']:
                 triggered.append(duty)
         self.repository.abandon_stale_unsent(self.scope, now=now)
         active = self.repository.active_orders(self.scope)

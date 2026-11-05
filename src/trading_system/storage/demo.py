@@ -17,6 +17,8 @@ from trading_system.engine.binance_demo.contracts import DemoError, DemoScope, d
 _held_guards = ContextVar('demo_sender_guards', default={})
 
 metadata = MetaData()
+from trading_system.storage.demo_authority import define_authority
+authority_proofs = define_authority(metadata)
 from trading_system.storage.demo_physical import define_physical_owners
 physical_owners = define_physical_owners(metadata)
 

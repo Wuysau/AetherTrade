@@ -41,6 +41,7 @@ class _Runtime:
     physical_owner: object | None = None
     graceful_stop_event: object | None = None
     final_receipt: object | None = None
+    entry_deadline: float | None = None
 
 
 class DemoRuntimeService:
@@ -60,6 +61,26 @@ class DemoRuntimeService:
         with self._lifecycle_lock:
             if self._closing: raise DemoError('DEMO_SERVICE_CLOSED')
             return self._bind_session(session_key)
+
+    def _recover_physical_owner(self, scope, lease):
+        return None  # Only independently verified deployment may supply recovery.
+
+    @staticmethod
+    def _require_entry_window(runtime):
+        if runtime.entry_deadline is not None and time.monotonic() >= runtime.entry_deadline:
+            raise DemoError('DEMO_ENTRY_WINDOW_ENDED')
+
+    @staticmethod
+    def _protection_tick(runtime):
+        if runtime.entry_deadline is not None and time.monotonic() >= runtime.entry_deadline:
+            return runtime.host.protection_tick(force_exit=True)
+        return runtime.host.protection_tick()
+
+    def takeover_status(self, session_key):
+        raise DemoError('DEMO_TAKEOVER_NOT_CONFIGURED')
+
+    def acknowledge_takeover(self, session_key, expected_digest):
+        raise DemoError('DEMO_TAKEOVER_NOT_CONFIGURED')
 
     def _bind_session(self, session_key):
         if session_key in self._sessions:
@@ -97,6 +118,7 @@ class DemoRuntimeService:
             if any(self._same_physical_account(other.host.scope, scope) and other.host.scope.account_key != scope.account_key for other in self._sessions.values()):
                 raise DemoError('DEMO_CROSS_EPOCH_FENCING_UNQUALIFIED')
             handoff = None
+            recovered = False
             if self.repository.engine.dialect.name == 'postgresql':
                 handoff = self._clean_handoffs.pop(scope.physical_account_key, None)
                 if handoff is None:
@@ -105,12 +127,16 @@ class DemoRuntimeService:
                     except DemoError as exc:
                         if exc.code != 'DEMO_ACCOUNT_UNREGISTERED': raise
                     else:
-                        if legacy['credential_ref'] != lease.credential_ref:
-                            raise DemoError('DEMO_CREDENTIAL_REBIND_FENCING_UNQUALIFIED')
-                        raise DemoError('DEMO_LEGACY_PHYSICAL_MAPPING_REQUIRED')
+                        physical_owner = self._recover_physical_owner(scope,lease)
+                        recovered = physical_owner is not None
+                        if not recovered:
+                            if legacy['credential_ref'] != lease.credential_ref:
+                                raise DemoError('DEMO_CREDENTIAL_REBIND_FENCING_UNQUALIFIED')
+                            raise DemoError('DEMO_LEGACY_PHYSICAL_MAPPING_REQUIRED')
                 from trading_system.storage.demo_physical import PhysicalOwner
                 from trading_system.storage.demo import physical_owners, accounts
-                physical_owner = PhysicalOwner.acquire(self.repository.engine, physical_owners, accounts, scope, authority=self._handoff_authority, handoff=handoff)
+                if physical_owner is None:
+                    physical_owner = PhysicalOwner.acquire(self.repository.engine, physical_owners, accounts, scope, authority=self._handoff_authority, handoff=handoff)
             with lease.registration_guard():
                 if physical_owner is not None: physical_owner.validate(scope)
                 fingerprint = self.connections.provider.describe(lease.credential_ref)['fingerprint']
@@ -121,7 +147,10 @@ class DemoRuntimeService:
                         raise
                     self.repository.register_account(scope, credential_ref=lease.credential_ref, fingerprint=fingerprint, budget='10000', physical_owner=physical_owner)
                 else:
-                    if self.repository.engine.dialect.name == 'postgresql':
+                    if recovered:
+                        if existing['credential_ref'] != lease.credential_ref or existing['fingerprint'] != fingerprint:
+                            raise DemoError('DEMO_CREDENTIAL_BINDING_REJECTED')
+                    elif self.repository.engine.dialect.name == 'postgresql':
                         if handoff is None: raise DemoError('DEMO_CREDENTIAL_REBIND_FENCING_UNQUALIFIED')
                         self.repository.rotate_credential(scope, credential_ref=lease.credential_ref, fingerprint=fingerprint,
                             expected_revision=existing['revision'], physical_owner=physical_owner)
@@ -352,6 +381,11 @@ class DemoRuntimeService:
                 if runtime.physical_owner is not None:
                     runtime.physical_owner.validate(runtime.host.scope)
                 runtime.running = True
+                reserve = getattr(self,'entry_reserve_seconds',0) if execute else 0
+                if reserve and duration_seconds <= reserve:
+                    runtime.running = False
+                    raise DemoError('DEMO_EXIT_BUDGET_REQUIRED')
+                runtime.entry_deadline = time.monotonic() + duration_seconds - reserve if reserve else None
                 runtime.stop_requested = False
                 runtime.new_risk_paused = False
                 runtime.last_error = None
@@ -419,7 +453,7 @@ class DemoRuntimeService:
                                 # entries must not wait behind ambiguous REST
                                 # backfill, which may itself be blocked.
                                 await settled_thread(verify_binding)
-                                protection = await settled_thread(runtime.host.protection_tick)
+                                protection = await settled_thread(self._protection_tick, runtime)
                                 for command in protection['commands']:
                                     await settled_thread(verify_binding)
                                     await settled_thread(runtime.host.dispatch, command['command_id'])
@@ -432,7 +466,7 @@ class DemoRuntimeService:
                                 last_recovery = time.monotonic()
                                 await settled_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
                             await settled_thread(verify_binding)
-                            protection = await settled_thread(runtime.host.protection_tick)
+                            protection = await settled_thread(self._protection_tick, runtime)
                             if protection['state'] == 'RECONCILIATION_REQUIRED' and time.monotonic() - last_recovery >= 5:
                                 last_recovery = time.monotonic()
                                 await settled_thread(runtime.reconciler.reconcile, runtime.host.scope, symbol='BTCUSDT', stream=stream)
@@ -456,6 +490,10 @@ class DemoRuntimeService:
                     await settled_thread(self._runtime, session_key)
                     if new_risk_paused:
                         return  # Existing protection and ingestion keep running.
+                    if runtime.entry_deadline is not None and time.monotonic() >= runtime.entry_deadline:
+                        runtime.new_risk_paused = True
+                        runtime.last_error = 'DEMO_ENTRY_WINDOW_ENDED'
+                        return
                     try:
                         if await settled_thread(self.repository.active_orders, runtime.host.scope):
                             await asyncio.sleep(1)

@@ -32,10 +32,10 @@ class _UnqualifiedDemoRuntime(DemoRuntimeService):
                 'deployment_execution_enabled': False, 'binding_blocker': 'DEMO_CREDENTIAL_FENCING_UNQUALIFIED'}
 
 
-def load_demo_factory(path, settings):
+def load_demo_factory(path, settings, *, trust_path=None):
     value = json.loads(path.read_text(encoding='utf-8'))
     required = {'database_url', 'account_id', 'account_epoch', 'strategy_id', 'build_sha'}
-    if type(value) is not dict or set(value) != required or any(type(value[k]) is not str for k in required):
+    if type(value) is not dict or set(value) not in (required, required | {'admission_file'}) or any(type(value[k]) is not str for k in value):
         raise ValueError('Invalid Demo deployment configuration')
     try:
         url = make_url(value['database_url'])
@@ -55,11 +55,27 @@ def load_demo_factory(path, settings):
             raise DemoError('DEMO_VERIFIED_ACCOUNT_IDENTITY_REQUIRED')
         return scope
 
+    deployment = None
+    if 'admission_file' in value:
+        from pathlib import Path
+        from .demo_verified import DeploymentEvidence
+        if trust_path is None or not Path(value['admission_file']).is_absolute():
+            raise ValueError('Separate deployment trust and absolute admission file required')
+        deployment = DeploymentEvidence(root=Path(__file__).resolve().parents[3], trust_path=trust_path,
+            admission_file=value['admission_file'],scope=scope,code_sha=value['build_sha'])
+    elif trust_path is not None:
+        raise ValueError('Admission file required with deployment trust')
+
     def factory(*, connections, model_service):
         # SQLAlchemy engine construction is lazy: it does not connect or migrate.
         # Pin the numeric destination, overriding libpq PGHOSTADDR environment.
         engine = create_engine(url, connect_args={'hostaddr': url.host})
-        return _UnqualifiedDemoRuntime(connections=connections, model_service=model_service,
+        runtime_type = _UnqualifiedDemoRuntime
+        options = {}
+        if deployment is not None:
+            from .demo_verified import VerifiedDemoRuntime
+            runtime_type, options = VerifiedDemoRuntime, {'deployment':deployment}
+        return runtime_type(connections=connections, model_service=model_service,
             repository=DemoRepository(engine), scope_resolver=resolve,
-            current_code_sha=value['build_sha'], close_repository=engine.dispose)
+            current_code_sha=value['build_sha'], close_repository=engine.dispose, **options)
     return factory

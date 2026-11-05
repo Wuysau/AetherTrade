@@ -89,7 +89,7 @@ class PhysicalOwner:
         self.__mutex = RLock()
 
     @classmethod
-    def acquire(cls, engine, table, accounts, scope, *, authority=None, handoff=None):
+    def acquire(cls, engine, table, accounts, scope, *, authority=None, handoff=None, recovery=None):
         if engine.dialect.name != 'postgresql':
             raise DemoError('DEMO_POSTGRESQL_OWNER_REQUIRED')
         # Negative keys are separate from the current positive epoch send key.
@@ -102,7 +102,8 @@ class PhysicalOwner:
             pid = conn.exec_driver_sql('SELECT pg_backend_pid()').scalar_one()
             owner = cls(conn, scope, key, pid, 1, authority=authority)
             owner.validate(scope)
-            owner.__generation = _reserve_new_dirty(engine, table, accounts, scope, authority=authority, handoff=handoff)
+            owner.__generation = (recovery(owner) if recovery is not None else
+                _reserve_new_dirty(engine, table, accounts, scope, authority=authority, handoff=handoff))
             owner.validate(scope)
             return owner
         except BaseException:

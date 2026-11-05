@@ -51,13 +51,18 @@ class DemoExecutionOwner:
     def __init__(self, repository, transport, *, clock=time.time, preflight=None, physical_owner=None):
         self.repository, self.transport, self.clock, self.preflight = repository, transport, clock, preflight
         self.physical_owner = physical_owner
+        self.consistency_policy = None
+        self.consistency_stream = None
+        self.entry_preflight = None
 
     def dispatch(self, scope, command_id, *, context):
         if self.repository.engine.dialect.name == 'postgresql':
             if self.physical_owner is None: raise DemoError('DEMO_PHYSICAL_OWNER_REQUIRED')
             self.physical_owner.validate(scope)
         with self.repository.owner_guard(scope) as owner_guard:
+            is_entry = False
             def verify_sender():
+                if is_entry and self.entry_preflight is not None: self.entry_preflight()
                 if owner_guard is not None: owner_guard.validate()
                 if self.physical_owner is not None: self.physical_owner.validate(scope)
                 if self.preflight: self.preflight()
@@ -69,6 +74,7 @@ class DemoExecutionOwner:
             account = self.repository.account(scope)
             command = self.repository.command(scope, command_id)
             method, purpose = command.get('method'), command.get('purpose')
+            is_entry = method == 'POST' and purpose == 'ENTRY'
             request = command.get('request') if isinstance(command.get('request'), dict) else {}
             if ((method == 'DELETE' and purpose != 'CANCEL') or
                     (method == 'POST' and (purpose not in {'ENTRY', 'REDUCTION', 'PROTECTION'} or
@@ -77,8 +83,11 @@ class DemoExecutionOwner:
                     method not in {'POST', 'DELETE'}):
                 raise DemoError('DEMO_ORDER_PURPOSE_INVALID')
             if method == 'POST' and purpose == 'ENTRY':
-                from .demo_reconcile import require_qualified_stream_barrier
-                require_qualified_stream_barrier()
+                if self.consistency_policy is None:
+                    from .demo_reconcile import require_qualified_stream_barrier
+                    require_qualified_stream_barrier()
+                else:
+                    consistency = self.consistency_policy.prepare(scope,stream=self.consistency_stream,command_id=command_id)
             health = self.repository.health(scope)
             evidence = account.get('qualification') or {}
             # Qualification must bind this code, account epoch, key revision,
@@ -122,6 +131,8 @@ class DemoExecutionOwner:
             verify_sender()
             def final_admission(now):
                 verify_sender()
+                if method == 'POST' and purpose == 'ENTRY' and self.consistency_policy is not None:
+                    self.consistency_policy.validate(consistency,scope,stream=self.consistency_stream)
                 admit(replace(current, now=now))
             command = self.repository.begin_send(scope, command_id, expected_revision=account['revision'], now=current.now, clock=self.clock, validator=final_admission)
             permit = DemoSendPermit(_owner=_OWNER, method=command['method'], request=command['request'], credential_ref=account['credential_ref'], preflight=verify_sender)

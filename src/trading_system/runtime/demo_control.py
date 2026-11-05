@@ -44,6 +44,17 @@ class DemoBindInput(BaseModel):
         return self
 
 
+class DemoTakeoverInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    expected_digest: str = Field(pattern=r'^[0-9a-f]{64}$')
+    acknowledge_responsibility: bool = Field(strict=True)
+
+    @model_validator(mode='after')
+    def require_acknowledgement(self):
+        if not self.acknowledge_responsibility: raise ValueError('Explicit responsibility acknowledgement required')
+        return self
+
+
 class DemoWindowInput(BaseModel):
     model_config = ConfigDict(extra='forbid')
     duration_seconds: int = Field(strict=True, ge=1, le=900)

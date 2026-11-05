@@ -9,6 +9,7 @@ from trading_system.engine.binance_demo.contracts import DemoError
 from trading_system.runtime.demo_control import DemoBindInput, DemoRecoveryInput, DemoStrategyInput, DemoWindowInput
 from .demo_api import session_key
 from .errors import ApiError
+from trading_system.runtime.demo_control import DemoTakeoverInput
 
 
 def install_demo_control_routes(app, service, authenticated, mutation, settings):
@@ -54,4 +55,14 @@ def install_demo_control_routes(app, service, authenticated, mutation, settings)
     @app.post('/api/demo/runtime/stop')
     def stop(request: Request, _=Depends(mutation)):
         try: return runtime().request_stop(session_key(request, settings))
+        except DemoError as exc: fail(exc)
+
+    @app.get('/api/demo/runtime/takeover')
+    def takeover_status(request: Request, _=Depends(authenticated)):
+        try: return runtime().takeover_status(session_key(request,settings))
+        except DemoError as exc: fail(exc)
+
+    @app.post('/api/demo/runtime/takeover')
+    def takeover(payload: DemoTakeoverInput, request: Request, _=Depends(mutation)):
+        try: return runtime().acknowledge_takeover(session_key(request,settings),payload.expected_digest)
         except DemoError as exc: fail(exc)
